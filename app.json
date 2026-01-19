@@ -2,6 +2,7 @@
   "expo": {
     "name": "Kaiz1 Mobile Playground",
     "slug": "kaiz1-mobile-playground",
+    "owner": "ruyotech",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
