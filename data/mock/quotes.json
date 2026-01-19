@@ -1,0 +1,58 @@
+[
+    {
+        "id": "quote-1",
+        "text": "The only way to do great work is to love what you do.",
+        "author": "Steve Jobs",
+        "categoryId": "qcat-2",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-2",
+        "text": "Success is not final, failure is not fatal: it is the courage to continue that counts.",
+        "author": "Winston Churchill",
+        "categoryId": "qcat-3",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-3",
+        "text": "Take care of your body. It's the only place you have to live.",
+        "author": "Jim Rohn",
+        "categoryId": "qcat-1",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-4",
+        "text": "The mind is everything. What you think you become.",
+        "author": "Buddha",
+        "categoryId": "qcat-6",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-5",
+        "text": "Education is the most powerful weapon which you can use to change the world.",
+        "author": "Nelson Mandela",
+        "categoryId": "qcat-4",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-6",
+        "text": "The best time to plant a tree was 20 years ago. The second best time is now.",
+        "author": "Chinese Proverb",
+        "categoryId": "qcat-3",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-7",
+        "text": "Family is not an important thing. It's everything.",
+        "author": "Michael J. Fox",
+        "categoryId": "qcat-5",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-8",
+        "text": "Strength doesn't come from what you can do. It comes from overcoming the things you once thought you couldn't.",
+        "author": "Rikki Rogers",
+        "categoryId": "qcat-1",
+        "createdAt": "2026-01-01T00:00:00Z"
+    }
+]

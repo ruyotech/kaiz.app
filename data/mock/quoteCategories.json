@@ -1,0 +1,32 @@
+[
+    {
+        "id": "qcat-1",
+        "name": "Health & Fitness",
+        "icon": "💪"
+    },
+    {
+        "id": "qcat-2",
+        "name": "Career Success",
+        "icon": "💼"
+    },
+    {
+        "id": "qcat-3",
+        "name": "Perseverance",
+        "icon": "🔥"
+    },
+    {
+        "id": "qcat-4",
+        "name": "Learning & Growth",
+        "icon": "📚"
+    },
+    {
+        "id": "qcat-5",
+        "name": "Relationships",
+        "icon": "❤️"
+    },
+    {
+        "id": "qcat-6",
+        "name": "Mindfulness",
+        "icon": "🧘"
+    }
+]

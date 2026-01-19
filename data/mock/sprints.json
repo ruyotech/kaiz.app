@@ -1,0 +1,59 @@
+{
+    "year": 2026,
+    "sprints": [
+        {
+            "id": "sprint-1",
+            "weekNumber": 1,
+            "startDate": "2025-12-29",
+            "endDate": "2026-01-04",
+            "status": "completed",
+            "totalPoints": 21,
+            "completedPoints": 21
+        },
+        {
+            "id": "sprint-2",
+            "weekNumber": 2,
+            "startDate": "2026-01-05",
+            "endDate": "2026-01-11",
+            "status": "completed",
+            "totalPoints": 18,
+            "completedPoints": 16
+        },
+        {
+            "id": "sprint-3",
+            "weekNumber": 3,
+            "startDate": "2026-01-12",
+            "endDate": "2026-01-18",
+            "status": "active",
+            "totalPoints": 24,
+            "completedPoints": 12
+        },
+        {
+            "id": "sprint-4",
+            "weekNumber": 4,
+            "startDate": "2026-01-19",
+            "endDate": "2026-01-25",
+            "status": "planned",
+            "totalPoints": 0,
+            "completedPoints": 0
+        },
+        {
+            "id": "sprint-5",
+            "weekNumber": 5,
+            "startDate": "2026-01-26",
+            "endDate": "2026-02-01",
+            "status": "planned",
+            "totalPoints": 0,
+            "completedPoints": 0
+        },
+        {
+            "id": "sprint-6",
+            "weekNumber": 6,
+            "startDate": "2026-02-02",
+            "endDate": "2026-02-08",
+            "status": "planned",
+            "totalPoints": 0,
+            "completedPoints": 0
+        }
+    ]
+}

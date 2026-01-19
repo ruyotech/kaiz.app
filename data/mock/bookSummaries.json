@@ -1,0 +1,62 @@
+[
+    {
+        "id": "book-1",
+        "title": "Atomic Habits",
+        "author": "James Clear",
+        "lifeWheelAreaId": "lw-4",
+        "coverUrl": null,
+        "content": "Atomic Habits is about the compound effect of small changes. Clear argues that 1% improvements daily lead to remarkable results over time. The book focuses on four laws: Make it obvious, make it attractive, make it easy, and make it satisfying.",
+        "keyTakeaways": [
+            "Habits are the compound interest of self-improvement",
+            "Focus on systems, not goals",
+            "Environment shapes behavior more than motivation",
+            "The Two-Minute Rule: downscale habits until they take 2 minutes"
+        ],
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "book-2",
+        "title": "Deep Work",
+        "author": "Cal Newport",
+        "lifeWheelAreaId": "lw-2",
+        "coverUrl": null,
+        "content": "Deep Work explores the value of focused, distraction-free work in an increasingly fragmented world. Newport argues that the ability to perform deep work is becoming rare and valuable. He provides strategies for cultivating this skill.",
+        "keyTakeaways": [
+            "Deep work produces rare and valuable outcomes",
+            "Schedule every minute of your day",
+            "Embrace boredom to strengthen focus",
+            "Quit social media (or be very selective)"
+        ],
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "book-3",
+        "title": "The Psychology of Money",
+        "author": "Morgan Housel",
+        "lifeWheelAreaId": "lw-3",
+        "coverUrl": null,
+        "content": "This book explores how people think about money and why financial decisions are often emotional rather than logical. Housel shares 19 short stories illustrating ways people think about money.",
+        "keyTakeaways": [
+            "Wealth is what you don't see - it's the money not spent",
+            "Enough is realizing when to stop taking risks",
+            "Compounding is the most powerful force in finance",
+            "Save money without a specific goal - flexibility has value"
+        ],
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "book-4",
+        "title": "The 7 Habits of Highly Effective People",
+        "author": "Stephen Covey",
+        "lifeWheelAreaId": "lw-4",
+        "coverUrl": null,
+        "content": "Covey presents an approach to being effective in attaining goals by aligning oneself to what he calls 'true north' principles based on a character ethic.",
+        "keyTakeaways": [
+            "Be proactive - take responsibility for your life",
+            "Begin with the end in mind",
+            "Put first things first - prioritize effectively",
+            "Seek first to understand, then to be understood"
+        ],
+        "createdAt": "2026-01-01T00:00:00Z"
+    }
+]

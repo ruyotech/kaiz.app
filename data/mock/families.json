@@ -1,0 +1,13 @@
+[
+    {
+        "id": "family-1",
+        "name": "Doe Family",
+        "ownerId": "user-1",
+        "memberIds": [
+            "user-1",
+            "user-2",
+            "user-3"
+        ],
+        "createdAt": "2026-01-01T00:00:00Z"
+    }
+]

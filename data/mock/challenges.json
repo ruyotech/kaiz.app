@@ -1,0 +1,46 @@
+[
+    {
+        "id": "challenge-1",
+        "challengeType": "group",
+        "goal": "10,000 steps daily",
+        "unit": "steps",
+        "targetValue": 10000,
+        "createdByUserId": "user-1",
+        "startDate": "2026-01-01",
+        "endDate": "2026-01-31",
+        "createdAt": "2025-12-28T10:00:00Z"
+    },
+    {
+        "id": "challenge-2",
+        "challengeType": "group",
+        "goal": "Read 1 book per week",
+        "unit": "books",
+        "targetValue": 1,
+        "createdByUserId": "user-2",
+        "startDate": "2026-01-01",
+        "endDate": "2026-12-31",
+        "createdAt": "2025-12-30T10:00:00Z"
+    },
+    {
+        "id": "challenge-3",
+        "challengeType": "solo",
+        "goal": "Meditate 20 minutes daily",
+        "unit": "minutes",
+        "targetValue": 20,
+        "createdByUserId": "user-1",
+        "startDate": "2026-01-15",
+        "endDate": "2026-02-15",
+        "createdAt": "2026-01-14T10:00:00Z"
+    },
+    {
+        "id": "challenge-4",
+        "challengeType": "group",
+        "goal": "Morning workout streak",
+        "unit": "days",
+        "targetValue": 30,
+        "createdByUserId": "user-1",
+        "startDate": "2026-01-01",
+        "endDate": "2026-01-31",
+        "createdAt": "2025-12-30T10:00:00Z"
+    }
+]

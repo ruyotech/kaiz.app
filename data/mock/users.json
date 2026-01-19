@@ -1,0 +1,34 @@
+{
+    "currentUser": {
+        "id": "user-1",
+        "email": "john.doe@example.com",
+        "fullName": "John Doe",
+        "accountType": "individual",
+        "subscriptionTier": "pro",
+        "timezone": "America/New_York",
+        "avatarUrl": null,
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    "familyMembers": [
+        {
+            "id": "user-2",
+            "email": "jane.doe@example.com",
+            "fullName": "Jane Doe",
+            "accountType": "family_adult",
+            "subscriptionTier": "family",
+            "timezone": "America/New_York",
+            "avatarUrl": null,
+            "createdAt": "2026-01-01T00:00:00Z"
+        },
+        {
+            "id": "user-3",
+            "email": "tommy.doe@example.com",
+            "fullName": "Tommy Doe",
+            "accountType": "family_child",
+            "subscriptionTier": "family",
+            "timezone": "America/New_York",
+            "avatarUrl": null,
+            "createdAt": "2026-01-01T00:00:00Z"
+        }
+    ]
+}

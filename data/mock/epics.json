@@ -1,0 +1,38 @@
+[
+    {
+        "id": "epic-1",
+        "title": "Launch Mobile App",
+        "description": "Build and launch the mobile version of our app",
+        "userId": "user-1",
+        "lifeWheelAreaId": "lw-2",
+        "targetSprintId": "sprint-6",
+        "status": "active",
+        "totalPoints": 34,
+        "completedPoints": 21,
+        "createdAt": "2026-01-01T10:00:00Z"
+    },
+    {
+        "id": "epic-2",
+        "title": "Health & Fitness Journey",
+        "description": "Get back in shape this year",
+        "userId": "user-1",
+        "lifeWheelAreaId": "lw-1",
+        "targetSprintId": "sprint-12",
+        "status": "active",
+        "totalPoints": 55,
+        "completedPoints": 13,
+        "createdAt": "2026-01-01T10:00:00Z"
+    },
+    {
+        "id": "epic-3",
+        "title": "Financial Independence Plan",
+        "description": "Build emergency fund and investment portfolio",
+        "userId": "user-1",
+        "lifeWheelAreaId": "lw-3",
+        "targetSprintId": "sprint-52",
+        "status": "planning",
+        "totalPoints": 89,
+        "completedPoints": 0,
+        "createdAt": "2026-01-10T10:00:00Z"
+    }
+]

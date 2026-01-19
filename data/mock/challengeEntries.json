@@ -1,0 +1,62 @@
+[
+    {
+        "id": "entry-1",
+        "challengeId": "challenge-1",
+        "userId": "user-1",
+        "entryValue": 12450,
+        "entryDate": "2026-01-18",
+        "timestamp": "2026-01-18T20:00:00Z",
+        "reactions": [
+            {
+                "userId": "user-2",
+                "type": "fire"
+            },
+            {
+                "userId": "user-3",
+                "type": "thumbsup"
+            }
+        ]
+    },
+    {
+        "id": "entry-2",
+        "challengeId": "challenge-1",
+        "userId": "user-2",
+        "entryValue": 15230,
+        "entryDate": "2026-01-18",
+        "timestamp": "2026-01-18T21:00:00Z",
+        "reactions": [
+            {
+                "userId": "user-1",
+                "type": "fire"
+            }
+        ]
+    },
+    {
+        "id": "entry-3",
+        "challengeId": "challenge-1",
+        "userId": "user-3",
+        "entryValue": 9820,
+        "entryDate": "2026-01-18",
+        "timestamp": "2026-01-18T19:00:00Z",
+        "reactions": [
+            {
+                "userId": "user-1",
+                "type": "thumbsup"
+            }
+        ]
+    },
+    {
+        "id": "entry-4",
+        "challengeId": "challenge-4",
+        "userId": "user-1",
+        "entryValue": 1,
+        "entryDate": "2026-01-18",
+        "timestamp": "2026-01-18T07:00:00Z",
+        "reactions": [
+            {
+                "userId": "user-2",
+                "type": "muscle"
+            }
+        ]
+    }
+]
