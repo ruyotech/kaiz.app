@@ -5,6 +5,8 @@ import { CustomTabBar } from '../../components/navigation/CustomTabBar';
 export default function TabsLayout() {
     return (
         <View className="flex-1">
+
+
             <Stack screenOptions={{ headerShown: false }}>
                 <Stack.Screen name="index" />
                 <Stack.Screen name="sdlc" />

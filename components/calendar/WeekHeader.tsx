@@ -3,6 +3,9 @@ import { format, addDays, isSameMonth, addMonths, subMonths } from 'date-fns';
 import { getWeekStartDate, getMonthCalendarDays, getSprintStatus } from '../../utils/dateHelpers';
 import { useState, useRef } from 'react';
 import { MonthSelector } from './MonthSelector';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { SettingsDrawer } from '../navigation/SettingsDrawer';
 
 interface WeekHeaderProps {
     currentDate: Date;
@@ -31,7 +34,9 @@ export function WeekHeader({
     onMonthSelect,
     viewType = 'week',
 }: WeekHeaderProps) {
+    const router = useRouter();
     const [monthViewDate, setMonthViewDate] = useState(currentDate);
+    const [drawerVisible, setDrawerVisible] = useState(false);
     const touchStart = useRef({ x: 0, y: 0 });
     const touchMove = useRef({ x: 0, y: 0 });
 
@@ -205,13 +210,39 @@ export function WeekHeader({
     };
 
     return (
-        <View className={bgColor + ' pt-12 pb-2 px-4'}>
-            {/* Sprint Name (left) and Toggle (right) in one row */}
-            <View className="flex-row justify-between items-center mb-1">
-                <TouchableOpacity onPress={onSprintNamePress}>
-                    <Text className="text-white text-lg font-bold">{sprintName}</Text>
+        <View className={`${bgColor} pt-12 pb-3 px-4`}>
+            <SettingsDrawer visible={drawerVisible} onClose={() => setDrawerVisible(false)} />
+
+            {/* Header row with icons */}
+            <View className="flex-row items-center justify-between mb-1">
+                {/* Hamburger Menu - Left */}
+                <TouchableOpacity
+                    onPress={() => setDrawerVisible(true)}
+                    className="p-2 -ml-2"
+                >
+                    <MaterialCommunityIcons name="menu" size={24} color="white" />
                 </TouchableOpacity>
+
+                {/* Sprint Name - Center/Left */}
+                <TouchableOpacity
+                    onPress={onSprintNamePress}
+                    className="flex-1"
+                >
+                    <Text className="text-white font-bold text-lg">
+                        {sprintName}
+                    </Text>
+                </TouchableOpacity>
+
+                {/* Toggle Element */}
                 {toggleElement}
+
+                {/* Notification Icon - Right */}
+                <TouchableOpacity
+                    onPress={() => router.push('/notifications' as any)}
+                    className="p-2 -mr-2"
+                >
+                    <MaterialCommunityIcons name="bell-outline" size={24} color="white" />
+                </TouchableOpacity>
             </View>
 
             {/* Week or Month View */}
