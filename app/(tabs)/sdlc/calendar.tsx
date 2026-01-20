@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, PanResponder, Animated } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { addDays, subDays } from 'date-fns';
+import { addDays, subDays, format } from 'date-fns';
 import { getSprintName, getWeekNumber } from '../../../utils/dateHelpers';
 import { WeekHeader } from '../../../components/calendar/WeekHeader';
 import { TaskViewSwitcher } from '../../../components/calendar/TaskViewSwitcher';
@@ -18,11 +18,18 @@ export default function SprintCalendar() {
     const [weekTasks, setWeekTasks] = useState<Task[]>([]);
     const [loading, setLoading] = useState(true);
     const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['eq-2', 'todo']));
-    const pan = useRef(new Animated.Value(0)).current;
+    const [viewType, setViewType] = useState<'day' | 'week'>('week'); // NEW: day vs week view
 
-    const sprintName = getSprintName(currentDate);
+    // Touch tracking for horizontal swipe
+    const touchStart = useRef({ x: 0, y: 0, time: 0 });
+    const touchMove = useRef({ x: 0, y: 0 });
+
     const currentWeek = getWeekNumber(currentDate);
     const currentYear = currentDate.getFullYear();
+
+    // Format: S04-Jan-2026
+    const monthName = format(currentDate, 'MMM');
+    const sprintName = `S${currentWeek.toString().padStart(2, '0')}-${monthName}-${currentYear}`;
 
     // Load tasks for current week
     useEffect(() => {
@@ -33,8 +40,9 @@ export default function SprintCalendar() {
                 const currentSprint = sprints.find((s: any) => s.weekNumber === currentWeek);
 
                 if (currentSprint) {
-                    const allTasks = await mockApi.getTasks({ sprintId: currentSprint.id });
-                    setWeekTasks(allTasks);
+                    const allTasksUnfiltered = await mockApi.getTasks();
+                    const filtered = allTasksUnfiltered.filter((t: any) => t.sprintId === currentSprint.id);
+                    setWeekTasks(filtered);
                 } else {
                     setWeekTasks([]);
                 }
@@ -47,6 +55,20 @@ export default function SprintCalendar() {
         loadTasks();
     }, [currentDate, currentWeek, currentYear]);
 
+    // Filter tasks by selected date if in day view
+    const displayedTasks = viewType === 'day'
+        ? weekTasks.filter(task => {
+            // For now, show all tasks assigned to sprint on any day
+            // In production, you'd check task.scheduledDate === currentDate
+            return true;
+        })
+        : weekTasks;
+
+    const handleDatePress = (date: Date) => {
+        setCurrentDate(date);
+        setViewType('day'); // Switch to day view when clicking a date
+    };
+
     const handlePrevWeek = () => {
         setCurrentDate(subDays(currentDate, 7));
     };
@@ -55,28 +77,37 @@ export default function SprintCalendar() {
         setCurrentDate(addDays(currentDate, 7));
     };
 
-    // PanResponder for swipe gestures
-    const panResponder = useRef(
-        PanResponder.create({
-            onMoveShouldSetPanResponder: (_, gestureState) => {
-                return Math.abs(gestureState.dx) > Math.abs(gestureState.dy) && Math.abs(gestureState.dx) > 10;
-            },
-            onPanResponderMove: (_, gestureState) => {
-                pan.setValue(gestureState.dx);
-            },
-            onPanResponderRelease: (_, gestureState) => {
-                if (gestureState.dx > 100) {
-                    handlePrevWeek();
-                } else if (gestureState.dx < -100) {
-                    handleNextWeek();
-                }
-                Animated.spring(pan, {
-                    toValue: 0,
-                    useNativeDriver: true,
-                }).start();
-            },
-        })
-    ).current;
+    // Touch handlers for horizontal swipe
+    const handleTouchStart = (e: any) => {
+        const touch = e.nativeEvent.touches[0];
+        touchStart.current = { x: touch.pageX, y: touch.pageY, time: Date.now() };
+        touchMove.current = { x: touch.pageX, y: touch.pageY };
+    };
+
+    const handleTouchMove = (e: any) => {
+        const touch = e.nativeEvent.touches[0];
+        touchMove.current = { x: touch.pageX, y: touch.pageY };
+    };
+
+    const handleTouchEnd = () => {
+        const deltaX = touchMove.current.x - touchStart.current.x;
+        const deltaY = touchMove.current.y - touchStart.current.y;
+        const deltaTime = Date.now() - touchStart.current.time;
+
+        // Only trigger if:
+        // 1. Horizontal movement is greater than vertical (it's a horizontal swipe)
+        // 2. Moved at least 50px
+        // 3. Completed in less than 300ms (it's a swipe, not a slow drag)
+        if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50 && deltaTime < 300) {
+            if (deltaX > 0) {
+                // Swiped right -> previous week
+                handlePrevWeek();
+            } else {
+                // Swiped left -> next week
+                handleNextWeek();
+            }
+        }
+    };
 
     const toggleSection = (sectionId: string) => {
         setExpandedSections(prev => {
@@ -101,7 +132,7 @@ export default function SprintCalendar() {
         return (
             <View className="px-4 pt-4">
                 {quadrants.map((quadrant) => {
-                    const quadrantTasks = weekTasks.filter(t => t.eisenhowerQuadrantId === quadrant.id);
+                    const quadrantTasks = displayedTasks.filter(t => t.eisenhowerQuadrantId === quadrant.id);
                     const isExpanded = expandedSections.has(quadrant.id);
 
                     return (
@@ -129,7 +160,7 @@ export default function SprintCalendar() {
                                         <TouchableOpacity
                                             key={task.id}
                                             className="bg-white rounded-lg p-3 mb-2 border border-gray-200"
-                                            onPress={() => router.push('/(tabs)/sdlc/task/' + task.id as any)}
+                                            onPress={() => router.push(`/ (tabs) / sdlc / task / ${task.id} `)}
                                         >
                                             <Text className="font-medium" numberOfLines={1}>{task.title}</Text>
                                             <Text className="text-xs text-gray-600 mt-1">{task.storyPoints || 0} pts • {task.status}</Text>
@@ -154,7 +185,7 @@ export default function SprintCalendar() {
         return (
             <View className="px-4 pt-4">
                 {statuses.map((status) => {
-                    const statusTasks = weekTasks.filter(t => t.status === status.value);
+                    const statusTasks = displayedTasks.filter(t => t.status === status.value);
                     const isExpanded = expandedSections.has(status.value);
 
                     return (
@@ -183,7 +214,7 @@ export default function SprintCalendar() {
                                         <TouchableOpacity
                                             key={task.id}
                                             className="bg-white rounded-lg p-3 mb-2 border border-gray-200"
-                                            onPress={() => router.push('/(tabs)/sdlc/task/' + task.id as any)}
+                                            onPress={() => router.push(`/ (tabs) / sdlc / task / ${task.id} `)}
                                         >
                                             <Text className="font-medium" numberOfLines={1}>{task.title}</Text>
                                             <Text className="text-xs text-gray-600 mt-1">{task.storyPoints || 0} pts</Text>
@@ -208,7 +239,7 @@ export default function SprintCalendar() {
         return (
             <View className="px-4 pt-4">
                 {sizes.map((size) => {
-                    const sizeTasks = weekTasks.filter(t =>
+                    const sizeTasks = displayedTasks.filter(t =>
                         t.storyPoints && t.storyPoints >= size.range[0] && t.storyPoints <= size.range[1]
                     );
                     const isExpanded = expandedSections.has(size.value);
@@ -239,7 +270,7 @@ export default function SprintCalendar() {
                                         <TouchableOpacity
                                             key={task.id}
                                             className="bg-white rounded-lg p-3 mb-2 border border-gray-200"
-                                            onPress={() => router.push('/(tabs)/sdlc/task/' + task.id as any)}
+                                            onPress={() => router.push(`/ (tabs) / sdlc / task / ${task.id} `)}
                                         >
                                             <Text className="font-medium" numberOfLines={1}>{task.title}</Text>
                                             <View className="flex-row items-center mt-1">
@@ -260,31 +291,49 @@ export default function SprintCalendar() {
     };
 
     return (
-        <View className="flex-1 bg-gray-50">
+        <View
+            className="flex-1 bg-gray-50"
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+        >
             <WeekHeader
                 currentDate={currentDate}
                 sprintName={sprintName}
+                onDatePress={handleDatePress}
+                toggleElement={
+                    <TouchableOpacity
+                        onPress={() => setViewType(viewType === 'week' ? 'day' : 'week')}
+                        className="bg-white/20 px-3 py-1 rounded border border-white/40"
+                    >
+                        <Text className="text-white text-xs font-semibold">
+                            {viewType === 'week' ? 'Weekly' : 'Daily'}
+                        </Text>
+                    </TouchableOpacity>
+                }
             />
+
 
             <TaskViewSwitcher
                 currentView={viewMode}
                 onViewChange={setViewMode}
             />
 
-            <View {...panResponder.panHandlers} className="flex-1">
-                <ScrollView className="flex-1">
-                    {viewMode === 'eisenhower' && renderEisenhowerView()}
-                    {viewMode === 'status' && renderStatusView()}
-                    {viewMode === 'size' && renderSizeView()}
+            {/* Normal ScrollView without gesture conflicts */}
+            <ScrollView className="flex-1">
+                {viewMode === 'eisenhower' && renderEisenhowerView()}
+                {viewMode === 'status' && renderStatusView()}
+                {viewMode === 'size' && renderSizeView()}
 
-                    {weekTasks.length === 0 && (
-                        <View className="items-center justify-center py-12">
-                            <MaterialCommunityIcons name="calendar-blank" size={64} color="#ccc" />
-                            <Text className="text-gray-500 mt-4">No tasks for this sprint</Text>
-                        </View>
-                    )}
-                </ScrollView>
-            </View>
+                {displayedTasks.length === 0 && (
+                    <View className="items-center justify-center py-12">
+                        <MaterialCommunityIcons name="calendar-blank" size={64} color="#ccc" />
+                        <Text className="text-gray-500 mt-4">
+                            {viewType === 'day' ? 'No tasks for this day' : 'No tasks for this sprint'}
+                        </Text>
+                    </View>
+                )}
+            </ScrollView>
         </View>
     );
 }

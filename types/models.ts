@@ -76,6 +76,13 @@ export interface Task {
     createdFromTemplateId: string | null;
     createdAt: string;
     completedAt: string | null;
+    // Recurring task support
+    isRecurring?: boolean;
+    recurrencePattern?: {
+        frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly';
+        interval: number; // e.g., every 2 weeks
+        endDate?: string | null; // when to stop recurring
+    };
 }
 
 export interface TaskHistory {
