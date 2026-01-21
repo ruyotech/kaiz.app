@@ -106,7 +106,7 @@ export default function SearchTasksScreen() {
 
     return (
         <Container>
-            <ScreenHeader title="Search Tasks" subtitle="Find any task quickly" />
+            <ScreenHeader title="Search Tasks" subtitle="Find any task quickly" showBack />
 
             <View className="p-4">
                 {/* Search Input */}
@@ -134,8 +134,8 @@ export default function SearchTasksScreen() {
                                 key={filter.label}
                                 onPress={() => setSelectedStatus(filter.value)}
                                 className={`px-4 py-2 rounded-full ${selectedStatus === filter.value
-                                        ? 'bg-blue-600'
-                                        : 'bg-gray-100'
+                                    ? 'bg-blue-600'
+                                    : 'bg-gray-100'
                                     }`}
                             >
                                 <Text
@@ -167,24 +167,25 @@ export default function SearchTasksScreen() {
                 )}
 
                 {/* Results */}
-                {searchQuery || selectedStatus ? (
-                    <View>
-                        <Text className="text-sm text-gray-600 mb-3">
-                            {filteredTasks.length} result{filteredTasks.length !== 1 ? 's' : ''} found
-                        </Text>
+                {/* Results - Always shown */}
+                <View>
+                    <Text className="text-sm text-gray-600 mb-3">
+                        {filteredTasks.length} {filteredTasks.length === 1 ? 'task' : 'tasks'} found
+                    </Text>
+                    {filteredTasks.length > 0 ? (
                         <FlatList
                             data={filteredTasks}
                             renderItem={renderTask}
                             keyExtractor={(item) => item.id}
                             scrollEnabled={false}
                         />
-                    </View>
-                ) : (
-                    <View className="items-center justify-center py-12">
-                        <MaterialCommunityIcons name="magnify" size={64} color="#E5E7EB" />
-                        <Text className="text-gray-500 mt-4">Start typing to search tasks</Text>
-                    </View>
-                )}
+                    ) : (
+                        <View className="items-center justify-center py-12">
+                            <MaterialCommunityIcons name="magnify" size={64} color="#E5E7EB" />
+                            <Text className="text-gray-500 mt-4">No tasks found</Text>
+                        </View>
+                    )}
+                </View>
             </View>
         </Container>
     );

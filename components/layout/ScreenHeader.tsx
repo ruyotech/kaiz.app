@@ -1,6 +1,6 @@
-import React from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 interface ScreenHeaderProps {
     title: string;
@@ -18,7 +18,7 @@ export function ScreenHeader({ title, subtitle, showBack = false, rightAction }:
                 <View className="flex-row items-center flex-1">
                     {showBack && (
                         <Pressable onPress={() => router.back()} className="mr-3">
-                            <Text className="text-blue-600 text-lg">←</Text>
+                            <MaterialCommunityIcons name="arrow-left" size={24} color="#2563EB" />
                         </Pressable>
                     )}
                     <View className="flex-1">

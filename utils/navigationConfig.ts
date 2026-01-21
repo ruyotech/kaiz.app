@@ -40,9 +40,10 @@ export const MORE_MENUS: Record<AppContext, MoreMenuItem[]> = {
         { name: 'Search Tasks', icon: 'magnify', route: '/(tabs)/sdlc/search' },
         { name: 'Backlog', icon: 'inbox', route: '/(tabs)/sdlc/backlog' },
         { name: 'Reports', icon: 'chart-line', route: '/(tabs)/sdlc/reports' },
-        { name: 'Velocity', icon: 'speedometer', route: 'velocity' },
-        { name: 'Retrospective', icon: 'comment-multiple', route: 'retro' },
-        { name: 'Epics', icon: 'bookmark-multiple', route: 'epics' },
+        { name: 'Velocity', icon: 'speedometer', route: '/(tabs)/sdlc/velocity' },
+        { name: 'Retrospective', icon: 'comment-multiple', route: '/(tabs)/sdlc/retro' },
+        { name: 'Epics', icon: 'bookmark-multiple', route: '/(tabs)/sdlc/epics' },
+        { name: 'Knowledge Hub', icon: 'school', route: '/(tabs)/sdlc/wiki' },
         { name: 'Templates', icon: 'file-document-multiple', route: 'templates' },
     ],
     motivation: [
