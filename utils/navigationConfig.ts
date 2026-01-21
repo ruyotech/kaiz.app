@@ -37,32 +37,38 @@ export const NAV_CONFIGS: Record<AppContext, NavIcon[]> = {
 
 export const MORE_MENUS: Record<AppContext, MoreMenuItem[]> = {
     sdlc: [
+        { name: 'Search Tasks', icon: 'magnify', route: '/(tabs)/sdlc/search' },
         { name: 'Backlog', icon: 'inbox', route: '/(tabs)/sdlc/backlog' },
         { name: 'Reports', icon: 'chart-line', route: '/(tabs)/sdlc/reports' },
         { name: 'Velocity', icon: 'speedometer', route: 'velocity' },
         { name: 'Retrospective', icon: 'comment-multiple', route: 'retro' },
         { name: 'Epics', icon: 'bookmark-multiple', route: 'epics' },
         { name: 'Templates', icon: 'file-document-multiple', route: 'templates' },
+        { name: 'Settings', icon: 'cog', route: '/(tabs)/settings' },
     ],
     motivation: [
         { name: 'Categories', icon: 'tag-multiple', route: 'categories' },
         { name: 'Favorites', icon: 'heart', route: 'favorites' },
         { name: 'History', icon: 'history', route: 'history' },
+        { name: 'Settings', icon: 'cog', route: '/(tabs)/settings' },
     ],
     books: [
         { name: 'Categories', icon: 'tag-multiple', route: 'categories' },
         { name: 'Reading List', icon: 'book-clock', route: 'reading-list' },
         { name: 'Notes', icon: 'note-text', route: 'notes' },
+        { name: 'Settings', icon: 'cog', route: '/(tabs)/settings' },
     ],
     bills: [
         { name: 'Categories', icon: 'tag-multiple', route: 'categories' },
         { name: 'Recurring', icon: 'sync', route: 'recurring' },
         { name: 'Analytics', icon: 'chart-pie', route: 'analytics' },
+        { name: 'Settings', icon: 'cog', route: '/(tabs)/settings' },
     ],
     challenges: [
         { name: 'Create', icon: 'plus-circle', route: 'create' },
         { name: 'Friends', icon: 'account-group', route: 'friends' },
         { name: 'Achievements', icon: 'trophy-variant', route: 'achievements' },
+        { name: 'Settings', icon: 'cog', route: '/(tabs)/settings' },
     ],
 };
 

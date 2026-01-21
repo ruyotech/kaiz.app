@@ -54,5 +54,124 @@
         "author": "Rikki Rogers",
         "categoryId": "qcat-1",
         "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-9",
+        "text": "Life is 10% what happens to you and 90% how you react to it.",
+        "author": "Charles R. Swindoll",
+        "categoryId": "qcat-6",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-10",
+        "text": "Don't watch the clock; do what it does. Keep going.",
+        "author": "Sam Levenson",
+        "categoryId": "qcat-2",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-11",
+        "text": "The future belongs to those who believe in the beauty of their dreams.",
+        "author": "Eleanor Roosevelt",
+        "categoryId": "qcat-3",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-12",
+        "text": "It does not matter how slowly you go as long as you do not stop.",
+        "author": "Confucius",
+        "categoryId": "qcat-2",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-13",
+        "text": "Everything you've ever wanted is on the other side of fear.",
+        "author": "George Addair",
+        "categoryId": "qcat-3",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-14",
+        "text": "Believe you can and you're halfway there.",
+        "author": "Theodore Roosevelt",
+        "categoryId": "qcat-6",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-15",
+        "text": "Act as if what you do makes a difference. It does.",
+        "author": "William James",
+        "categoryId": "qcat-2",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-16",
+        "text": "Success usually comes to those who are too busy to be looking for it.",
+        "author": "Henry David Thoreau",
+        "categoryId": "qcat-2",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-17",
+        "text": "The way to get started is to quit talking and begin doing.",
+        "author": "Walt Disney",
+        "categoryId": "qcat-2",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-18",
+        "text": "Don't be afraid to give up the good to go for the great.",
+        "author": "John D. Rockefeller",
+        "categoryId": "qcat-3",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-19",
+        "text": "I find that the harder I work, the more luck I seem to have.",
+        "author": "Thomas Jefferson",
+        "categoryId": "qcat-2",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-20",
+        "text": "Do not go where the path may lead, go instead where there is no path and leave a trail.",
+        "author": "Ralph Waldo Emerson",
+        "categoryId": "qcat-3",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-21",
+        "text": "You miss 100% of the shots you don't take.",
+        "author": "Wayne Gretzky",
+        "categoryId": "qcat-3",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-22",
+        "text": "The only impossible journey is the one you never begin.",
+        "author": "Tony Robbins",
+        "categoryId": "qcat-3",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-23",
+        "text": "In the middle of difficulty lies opportunity.",
+        "author": "Albert Einstein",
+        "categoryId": "qcat-3",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-24",
+        "text": "Your time is limited, don't waste it living someone else's life.",
+        "author": "Steve Jobs",
+        "categoryId": "qcat-6",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-25",
+        "text": "If you look at what you have in life, you'll always have more.",
+        "author": "Oprah Winfrey",
+        "categoryId": "qcat-6",
+        "createdAt": "2026-01-01T00:00:00Z"
     }
 ]
