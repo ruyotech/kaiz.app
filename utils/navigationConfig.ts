@@ -44,7 +44,6 @@ export const MORE_MENUS: Record<AppContext, MoreMenuItem[]> = {
         { name: 'Retrospective', icon: 'comment-multiple', route: 'retro' },
         { name: 'Epics', icon: 'bookmark-multiple', route: 'epics' },
         { name: 'Templates', icon: 'file-document-multiple', route: 'templates' },
-        { name: 'Settings', icon: 'cog', route: '/(tabs)/settings' },
     ],
     motivation: [
         { name: 'Categories', icon: 'tag-multiple', route: 'categories' },

@@ -334,58 +334,74 @@ export default function SprintCalendar() {
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
         >
-            <WeekHeader
-                currentDate={currentDate}
-                sprintName={sprintName}
-                onDatePress={handleDatePress}
-                isExpanded={isMonthExpanded}
-                onSprintNamePress={toggleMonthExpansion}
-                onMonthSelect={handleMonthSelect}
-                viewType={viewType}
-                sprintStartDate={currentSprint?.startDate}
-                sprintEndDate={currentSprint?.endDate}
-                toggleElement={
-                    <View className="flex-row items-center">
-                        <TouchableOpacity
-                            onPress={() => setViewMenuVisible(true)}
-                            className="bg-white/20 px-2 py-1 rounded border border-white/40 mr-2"
-                        >
-                            <MaterialCommunityIcons name="eye-outline" size={16} color="white" />
-                        </TouchableOpacity>
+            {/* Header Layer - High Z-Index to stay above overlay */}
+            <View style={{ zIndex: 20 }}>
+                <WeekHeader
+                    currentDate={currentDate}
+                    sprintName={sprintName}
+                    onDatePress={handleDatePress}
+                    isExpanded={isMonthExpanded}
+                    onSprintNamePress={toggleMonthExpansion}
+                    onMonthSelect={handleMonthSelect}
+                    viewType={viewType}
+                    sprintStartDate={currentSprint?.startDate}
+                    sprintEndDate={currentSprint?.endDate}
+                    toggleElement={
+                        <View className="flex-row items-center">
+                            <TouchableOpacity
+                                onPress={() => setViewMenuVisible(true)}
+                                className="bg-white/20 px-2 py-1 rounded border border-white/40 mr-2"
+                            >
+                                <MaterialCommunityIcons name="eye-outline" size={16} color="white" />
+                            </TouchableOpacity>
 
-                        <TouchableOpacity
-                            onPress={() => setViewType(viewType === 'week' ? 'day' : 'week')}
-                            className="bg-white/20 px-3 py-1 rounded border border-white/40"
-                        >
-                            <Text className="text-white text-xs font-semibold">
-                                {viewType === 'week' ? 'Weekly' : 'Daily'}
+                            <TouchableOpacity
+                                onPress={() => setViewType(viewType === 'week' ? 'day' : 'week')}
+                                className="bg-white/20 px-3 py-1 rounded border border-white/40"
+                            >
+                                <Text className="text-white text-xs font-semibold">
+                                    {viewType === 'week' ? 'Weekly' : 'Daily'}
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    }
+                />
+
+                <ViewOptionsMenu
+                    visible={viewMenuVisible}
+                    onClose={() => setViewMenuVisible(false)}
+                    currentView={viewMode}
+                    onViewChange={setViewMode}
+                />
+            </View>
+
+            {/* Overlay Layer - Medium Z-Index, covers content but behind header */}
+            {isMonthExpanded && (
+                <TouchableOpacity
+                    activeOpacity={1}
+                    onPress={() => setIsMonthExpanded(false)}
+                    className="absolute inset-0 bg-black/20"
+                    style={{ zIndex: 10 }}
+                />
+            )}
+
+            {/* Content Layer - Low Z-Index */}
+            <View className="flex-1" style={{ zIndex: 1 }}>
+                <ScrollView className="flex-1">
+                    {viewMode === 'eisenhower' && renderEisenhowerView()}
+                    {viewMode === 'status' && renderStatusView()}
+                    {viewMode === 'size' && renderSizeView()}
+
+                    {displayedTasks.length === 0 && (
+                        <View className="items-center justify-center py-12">
+                            <MaterialCommunityIcons name="calendar-blank" size={64} color="#ccc" />
+                            <Text className="text-gray-500 mt-4">
+                                {viewType === 'day' ? 'No tasks for this day' : 'No tasks for this sprint'}
                             </Text>
-                        </TouchableOpacity>
-                    </View>
-                }
-            />
-
-            <ViewOptionsMenu
-                visible={viewMenuVisible}
-                onClose={() => setViewMenuVisible(false)}
-                currentView={viewMode}
-                onViewChange={setViewMode}
-            />
-
-            <ScrollView className="flex-1">
-                {viewMode === 'eisenhower' && renderEisenhowerView()}
-                {viewMode === 'status' && renderStatusView()}
-                {viewMode === 'size' && renderSizeView()}
-
-                {displayedTasks.length === 0 && (
-                    <View className="items-center justify-center py-12">
-                        <MaterialCommunityIcons name="calendar-blank" size={64} color="#ccc" />
-                        <Text className="text-gray-500 mt-4">
-                            {viewType === 'day' ? 'No tasks for this day' : 'No tasks for this sprint'}
-                        </Text>
-                    </View>
-                )}
-            </ScrollView>
+                        </View>
+                    )}
+                </ScrollView>
+            </View>
         </View>
     );
 }

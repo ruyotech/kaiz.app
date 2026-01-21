@@ -8,7 +8,7 @@ export default function Index() {
     useEffect(() => {
         // Simple redirect to main app for testing
         const timer = setTimeout(() => {
-            router.replace('/(tabs)');
+            router.replace('/(tabs)/sdlc');
         }, 100);
 
         return () => clearTimeout(timer);

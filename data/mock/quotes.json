@@ -173,5 +173,355 @@
         "author": "Oprah Winfrey",
         "categoryId": "qcat-6",
         "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-26",
+        "text": "It always seems impossible until it's done.",
+        "author": "Nelson Mandela",
+        "categoryId": "qcat-4",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-27",
+        "text": "Keep your face always toward the sunshine—and shadows will fall behind you.",
+        "author": "Walt Whitman",
+        "categoryId": "qcat-6",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-28",
+        "text": "You are never too old to set another goal or to dream a new dream.",
+        "author": "C.S. Lewis",
+        "categoryId": "qcat-2",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-29",
+        "text": "Out of the mountain of despair, a stone of hope.",
+        "author": "Martin Luther King, Jr.",
+        "categoryId": "qcat-3",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-30",
+        "text": "I can accept failure, everyone fails at something. But I can't accept not trying.",
+        "author": "Michael Jordan",
+        "categoryId": "qcat-3",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-31",
+        "text": "A winner is a dreamer who never gives up.",
+        "author": "Nelson Mandela",
+        "categoryId": "qcat-4",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-32",
+        "text": "The power of imagination makes us infinite.",
+        "author": "John Muir",
+        "categoryId": "qcat-6",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-33",
+        "text": "Make your life a masterpiece; imagine no limitations on what you can be, have or do.",
+        "author": "Brian Tracy",
+        "categoryId": "qcat-2",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-34",
+        "text": "You must do the things you think you cannot do.",
+        "author": "Eleanor Roosevelt",
+        "categoryId": "qcat-3",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-35",
+        "text": "Happiness is not something ready made. It comes from your own actions.",
+        "author": "Dalai Lama",
+        "categoryId": "qcat-6",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-36",
+        "text": "Every moment is a fresh beginning.",
+        "author": "T.S. Eliot",
+        "categoryId": "qcat-1",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-37",
+        "text": "The greatest glory in living lies not in never falling, but in rising every time we fall.",
+        "author": "Nelson Mandela",
+        "categoryId": "qcat-4",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-38",
+        "text": "The purpose of our lives is to be happy.",
+        "author": "Dalai Lama",
+        "categoryId": "qcat-6",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-39",
+        "text": "Turn your wounds into wisdom.",
+        "author": "Oprah Winfrey",
+        "categoryId": "qcat-6",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-40",
+        "text": "The only limit to our realization of tomorrow will be our doubts of today.",
+        "author": "Franklin D. Roosevelt",
+        "categoryId": "qcat-3",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-41",
+        "text": "It is never too late to be what you might have been.",
+        "author": "George Eliot",
+        "categoryId": "qcat-2",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-42",
+        "text": "There are no secrets to success. It is the result of preparation, hard work, and learning from failure.",
+        "author": "Colin Powell",
+        "categoryId": "qcat-2",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-43",
+        "text": "One day or day one. You decide.",
+        "author": "Unknown",
+        "categoryId": "qcat-2",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-44",
+        "text": "If you want to lift yourself up, lift up someone else.",
+        "author": "Booker T. Washington",
+        "categoryId": "qcat-5",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-45",
+        "text": "The harder the conflict, the more glorious the triumph.",
+        "author": "Thomas Paine",
+        "categoryId": "qcat-3",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-46",
+        "text": "Energy and persistence conquer all things.",
+        "author": "Benjamin Franklin",
+        "categoryId": "qcat-2",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-47",
+        "text": "He who has a why to live can bear almost any how.",
+        "author": "Friedrich Nietzsche",
+        "categoryId": "qcat-6",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-48",
+        "text": "The successful warrior is the average man, with laser-like focus.",
+        "author": "Bruce Lee",
+        "categoryId": "qcat-2",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-49",
+        "text": "What lies behind us and what lies before us are tiny matters compared to what lies within us.",
+        "author": "Ralph Waldo Emerson",
+        "categoryId": "qcat-6",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-50",
+        "text": "Don't judge each day by the harvest you reap but by the seeds that you plant.",
+        "author": "Robert Louis Stevenson",
+        "categoryId": "qcat-2",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-51",
+        "text": "I attribute my success to this: I never gave or took any excuse.",
+        "author": "Florence Nightingale",
+        "categoryId": "qcat-2",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-52",
+        "text": "Do one thing every day that scares you.",
+        "author": "Eleanor Roosevelt",
+        "categoryId": "qcat-3",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-53",
+        "text": "Whatever you are, be a good one.",
+        "author": "Abraham Lincoln",
+        "categoryId": "qcat-2",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-54",
+        "text": "You can't use up creativity. The more you use, the more you have.",
+        "author": "Maya Angelou",
+        "categoryId": "qcat-6",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-55",
+        "text": "Go confidently in the direction of your dreams. Live the life you have imagined.",
+        "author": "Henry David Thoreau",
+        "categoryId": "qcat-2",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-56",
+        "text": "The pessimist sees difficulty in every opportunity. The optimist sees opportunity in every difficulty.",
+        "author": "Winston Churchill",
+        "categoryId": "qcat-1",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-57",
+        "text": "Don't let yesterday take up too much of today.",
+        "author": "Will Rogers",
+        "categoryId": "qcat-1",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-58",
+        "text": "We may encounter many defeats but we must not be defeated.",
+        "author": "Maya Angelou",
+        "categoryId": "qcat-3",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-59",
+        "text": "Whether you think you can or you think you can't, you're right.",
+        "author": "Henry Ford",
+        "categoryId": "qcat-6",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-60",
+        "text": "Security is mostly a superstition. Life is either a daring adventure or nothing.",
+        "author": "Helen Keller",
+        "categoryId": "qcat-3",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-61",
+        "text": "The only way to achieve the impossible is to believe it is possible.",
+        "author": "Charles Kingsleigh",
+        "categoryId": "qcat-6",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-62",
+        "text": "A goal is a dream with a deadline.",
+        "author": "Napoleon Hill",
+        "categoryId": "qcat-2",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-63",
+        "text": "Don't wait. The time will never be just right.",
+        "author": "Napoleon Hill",
+        "categoryId": "qcat-2",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-64",
+        "text": "Everything represents a lesson.",
+        "author": "Bon Jovi",
+        "categoryId": "qcat-6",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-65",
+        "text": "Try to be a rainbow in someone's cloud.",
+        "author": "Maya Angelou",
+        "categoryId": "qcat-5",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-66",
+        "text": "You do not find the happy life. You make it.",
+        "author": "Camilla Eyring Kimball",
+        "categoryId": "qcat-1",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-67",
+        "text": "The most wasted of days is one without laughter.",
+        "author": "E.E. Cummings",
+        "categoryId": "qcat-1",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-68",
+        "text": "You must expect great things of yourself before you can do them.",
+        "author": "Michael Jordan",
+        "categoryId": "qcat-4",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-69",
+        "text": "Dream big and dare to fail.",
+        "author": "Norman Vaughan",
+        "categoryId": "qcat-3",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-70",
+        "text": "What you do speaks so loudly that I cannot hear what you say.",
+        "author": "Ralph Waldo Emerson",
+        "categoryId": "qcat-2",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-71",
+        "text": "Tough times never last, but tough people do.",
+        "author": "Robert H. Schuller",
+        "categoryId": "qcat-3",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-72",
+        "text": "Keep looking up... that's the secret of life.",
+        "author": "Snoopy",
+        "categoryId": "qcat-1",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-73",
+        "text": "Not everything that is faced can be changed, but nothing can be changed until it is faced.",
+        "author": "James Baldwin",
+        "categoryId": "qcat-3",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-74",
+        "text": "Perfection is not attainable, but if we chase perfection we can catch excellence.",
+        "author": "Vince Lombardi",
+        "categoryId": "qcat-4",
+        "createdAt": "2026-01-01T00:00:00Z"
+    },
+    {
+        "id": "quote-75",
+        "text": "You cannot swim for new horizons until you have courage to lose sight of the shore.",
+        "author": "William Faulkner",
+        "categoryId": "qcat-3",
+        "createdAt": "2026-01-01T00:00:00Z"
     }
 ]

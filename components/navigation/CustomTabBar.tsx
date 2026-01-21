@@ -46,19 +46,19 @@ export function CustomTabBar() {
                     elevation: 20,
                 }}
             >
-                <View className="flex-row items-end justify-around px-3 pb-1" style={{ paddingTop: 8 }}>
+                <View className="flex-row items-end justify-around px-3 pb-1" style={{ paddingTop: 6 }}>
                     {/* 1. Apps Icon */}
                     <TouchableOpacity
                         className="items-center flex-1"
                         onPress={toggleAppSwitcher}
                     >
                         <MaterialCommunityIcons
-                            name="apps"
-                            size={36}
+                            name="view-grid"
+                            size={30}
                             color="#6B7280"
-                            style={{ marginBottom: 2 }}
+                            style={{ marginBottom: -3 }}
                         />
-                        <Text className="text-[8px] text-gray-600 font-semibold" style={{ marginTop: -2 }}>Apps</Text>
+                        <Text className="text-[10px] text-gray-600 font-medium">Apps</Text>
                     </TouchableOpacity>
 
                     {/* 2. Main App Icon */}
@@ -68,15 +68,14 @@ export function CustomTabBar() {
                     >
                         <MaterialCommunityIcons
                             name={mainIcon.icon as any}
-                            size={36}
+                            size={30}
                             color={isActive(mainIcon.route) ? '#3B82F6' : '#6B7280'}
-                            style={{ marginBottom: 2 }}
+                            style={{ marginBottom: -3 }}
                         />
                         <Text
-                            className="text-[8px] font-semibold"
+                            className="text-[10px] font-medium"
                             style={{
-                                color: isActive(mainIcon.route) ? '#3B82F6' : '#6B7280',
-                                marginTop: -2
+                                color: isActive(mainIcon.route) ? '#3B82F6' : '#6B7280'
                             }}
                         >
                             {mainIcon.name}
@@ -90,11 +89,11 @@ export function CustomTabBar() {
                     >
                         <MaterialCommunityIcons
                             name={moreIcon.icon as any}
-                            size={36}
+                            size={30}
                             color="#6B7280"
-                            style={{ marginBottom: 2 }}
+                            style={{ marginBottom: -3 }}
                         />
-                        <Text className="text-[8px] text-gray-600 font-semibold" style={{ marginTop: -2 }}>
+                        <Text className="text-[10px] text-gray-600 font-medium">
                             {moreIcon.name}
                         </Text>
                     </TouchableOpacity>
@@ -105,16 +104,15 @@ export function CustomTabBar() {
                         onPress={() => router.push('/(tabs)/command-center')}
                     >
                         <MaterialCommunityIcons
-                            name="plus-circle"
-                            size={36}
+                            name="plus" // Kept the simple plus as requested by "creative solid" earlier, but can revert if needed
+                            size={32}
                             color={pathname.startsWith('/(tabs)/command-center') ? '#3B82F6' : '#6B7280'}
-                            style={{ marginBottom: 2 }}
+                            style={{ marginBottom: -3 }}
                         />
                         <Text
-                            className="text-[8px] font-semibold"
+                            className="text-[10px] font-medium"
                             style={{
-                                color: pathname.startsWith('/(tabs)/command-center') ? '#3B82F6' : '#6B7280',
-                                marginTop: -2
+                                color: pathname.startsWith('/(tabs)/command-center') ? '#3B82F6' : '#6B7280'
                             }}
                         >
                             Create

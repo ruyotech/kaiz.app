@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, Share, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, Share, Dimensions, Image } from 'react-native';
 import { useEffect, useState } from 'react';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { mockApi } from '../../../services/mockApi';
@@ -11,6 +11,7 @@ export default function MotivationScreen() {
     const [bgColor, setBgColor] = useState('#3B82F6'); // Default blue, will be from settings later
 
     const translateY = useSharedValue(0);
+    const screenHeight = Dimensions.get('window').height;
 
     useEffect(() => {
         mockApi.getDailyQuote().then(setDailyQuote);
@@ -44,8 +45,7 @@ export default function MotivationScreen() {
             translateY.value = e.translationY;
         })
         .onEnd((e) => {
-            const height = Dimensions.get('window').height;
-            if (Math.abs(e.translationY) > height / 4) {
+            if (Math.abs(e.translationY) > screenHeight / 4) {
                 // Swipe threshold met
                 runOnJS(getNewQuote)();
             }
@@ -58,67 +58,44 @@ export default function MotivationScreen() {
 
     if (!dailyQuote) {
         return (
-            <View className="flex-1 items-center justify-center" style={{ backgroundColor: bgColor }}>
+            <View className="flex-1 items-center justify-center bg-gray-900">
                 <MaterialCommunityIcons name="format-quote-open" size={64} color="rgba(255, 255, 255, 0.3)" />
-                <Text className="text-white/90 mt-4">Loading inspiration</Text>
+                <Text className="text-white/90 mt-4">Loading inspiration...</Text>
             </View>
         );
     }
 
+    // Default nature background image
+    const bgImage = { uri: 'https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?q=80&w=2070&auto=format&fit=crop' };
+
     return (
-        <View className="flex-1" style={{ backgroundColor: bgColor }}>
+        <View className="flex-1">
+            <Image
+                source={bgImage}
+                className="absolute inset-0 w-full h-full"
+                resizeMode="cover"
+            />
+            {/* Dark overlay for text readability */}
+            <View className="absolute inset-0 bg-black/40" />
+
             <GestureDetector gesture={swipeGesture}>
                 <Animated.View
-                    className="flex-1"
+                    className="flex-1 flex-row"
                     style={animatedStyle}
                 >
-                    {/* Action Icons - Right Side (Vertical like Instagram/TikTok) */}
-                    <View className="absolute right-4 top-0 bottom-0 justify-center z-10 gap-5">
-                        <TouchableOpacity
-                            onPress={handleShare}
-                            className="bg-white/20 w-14 h-14 rounded-full items-center justify-center backdrop-blur-sm"
-                        >
-                            <MaterialCommunityIcons name="share-variant" size={28} color="white" />
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            onPress={toggleFavorite}
-                            className="bg-white/20 w-14 h-14 rounded-full items-center justify-center backdrop-blur-sm"
-                        >
-                            <MaterialCommunityIcons
-                                name={isFavorite ? 'heart' : 'heart-outline'}
-                                size={28}
-                                color={isFavorite ? '#EF4444' : 'white'}
-                            />
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            onPress={getNewQuote}
-                            className="bg-white/20 w-14 h-14 rounded-full items-center justify-center backdrop-blur-sm"
-                        >
-                            <MaterialCommunityIcons name="refresh" size={28} color="white" />
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            className="bg-white/20 w-14 h-14 rounded-full items-center justify-center backdrop-blur-sm"
-                        >
-                            <MaterialCommunityIcons name="dots-vertical" size={28} color="white" />
-                        </TouchableOpacity>
-                    </View>
-
-                    {/* Main Quote Card */}
-                    <View className="flex-1 items-center justify-center pl-8 pr-24">
+                    {/* Main Quote Card - Full width centered */}
+                    <View className="flex-1 items-center justify-center px-8">
                         <MaterialCommunityIcons
                             name="format-quote-open"
                             size={48}
                             color="rgba(255, 255, 255, 0.3)"
                         />
 
-                        <Text className="text-white text-3xl font-serif italic text-center my-8 leading-relaxed">
+                        <Text className="text-white text-3xl font-serif italic text-center my-8 leading-relaxed shadow-lg">
                             {dailyQuote.text}
                         </Text>
 
-                        <Text className="text-white/90 text-xl text-center font-medium">
+                        <Text className="text-white/90 text-xl text-center font-medium shadow-md">
                             — {dailyQuote.author}
                         </Text>
 
@@ -127,6 +104,34 @@ export default function MotivationScreen() {
                             <MaterialCommunityIcons name="gesture-swipe-vertical" size={20} color="rgba(255, 255, 255, 0.5)" />
                             <Text className="text-white/50 text-sm ml-2">Swipe up for new quote</Text>
                         </View>
+                    </View>
+
+                    {/* Action Icons - Bottom Absolute - Horizontal Centered */}
+                    <View className="absolute bottom-12 w-full flex-row justify-center gap-8">
+                        <TouchableOpacity
+                            onPress={handleShare}
+                            className="bg-black/30 w-12 h-12 rounded-full items-center justify-center backdrop-blur-md border border-white/10"
+                        >
+                            <MaterialCommunityIcons name="share-variant" size={24} color="white" />
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            onPress={toggleFavorite}
+                            className="bg-black/30 w-12 h-12 rounded-full items-center justify-center backdrop-blur-md border border-white/10"
+                        >
+                            <MaterialCommunityIcons
+                                name={isFavorite ? 'heart' : 'heart-outline'}
+                                size={24}
+                                color={isFavorite ? '#EF4444' : 'white'}
+                            />
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            onPress={getNewQuote}
+                            className="bg-black/30 w-12 h-12 rounded-full items-center justify-center backdrop-blur-md border border-white/10"
+                        >
+                            <MaterialCommunityIcons name="refresh" size={24} color="white" />
+                        </TouchableOpacity>
                     </View>
                 </Animated.View>
             </GestureDetector>
