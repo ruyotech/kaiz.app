@@ -146,13 +146,8 @@ export function CustomTabBar() {
                             <Text className="text-[10px] text-gray-600 font-medium">Apps</Text>
                         </TouchableOpacity>
 
-                        {/* 2 & 3. ONLY THESE 2 HAVE GROUPED BACKGROUND */}
-                        <View
-                            className="flex-row items-center gap-10 px-4 py-2 rounded-2xl"
-                            style={{
-                                backgroundColor: 'rgba(243, 244, 246, 0.5)',
-                            }}
-                        >
+                        {/* 2 & 3. Center Icons */}
+                        <View className="flex-row items-center gap-10">
                             {/* Main App Icon */}
                             <TouchableOpacity
                                 className="items-center"
