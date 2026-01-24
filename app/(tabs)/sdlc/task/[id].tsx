@@ -6,14 +6,9 @@ import { mockApi } from '../../../../services/mockApi';
 import { Task } from '../../../../types/models';
 import lifeWheelAreasData from '../../../../data/mock/lifeWheelAreas.json';
 import { useEpicStore } from '../../../../store/epicStore';
+import { useTaskStore } from '../../../../store/taskStore';
 
-type TabType = 'overview' | 'pomodoro' | 'comments' | 'checklist' | 'history';
-
-type PomodoroState = {
-    isRunning: boolean;
-    timeLeft: number; // in seconds
-    type: 'work' | 'break';
-};
+type TabType = 'overview' | 'comments' | 'checklist' | 'history';
 
 type Comment = {
     id: string;
@@ -42,6 +37,7 @@ export default function TaskWorkView() {
     const router = useRouter();
     const { id } = useLocalSearchParams();
     const { epics, fetchEpics } = useEpicStore();
+    const { getTaskHistory, addTaskHistory } = useTaskStore();
     const [loading, setLoading] = useState(true);
     const [task, setTask] = useState<Task | null>(null);
     const [activeTab, setActiveTab] = useState<TabType>('overview');
@@ -69,36 +65,11 @@ export default function TaskWorkView() {
     const [newChecklistItem, setNewChecklistItem] = useState('');
     const [showAddChecklist, setShowAddChecklist] = useState(false);
 
-    // History
-    const [history, setHistory] = useState<HistoryItem[]>([
-        {
-            id: '1',
-            userId: 'user1',
-            userName: 'John Doe',
-            action: 'Status changed',
-            details: 'Changed from "To Do" to "In Progress"',
-            timestamp: new Date(Date.now() - 7200000),
-        },
-        {
-            id: '2',
-            userId: 'user2',
-            userName: 'Jane Smith',
-            action: 'Task created',
-            details: 'Created task in Sprint 03',
-            timestamp: new Date(Date.now() - 86400000),
-        },
-    ]);
-
     // Quick status update
     const [showStatusMenu, setShowStatusMenu] = useState(false);
-    const [showMoreMenu, setShowMoreMenu] = useState(false);
 
-    // Pomodoro timer
-    const [pomodoro, setPomodoro] = useState<PomodoroState>({
-        isRunning: false,
-        timeLeft: 25 * 60, // 25 minutes
-        type: 'work',
-    });
+    // Get history from store
+    const history = task ? getTaskHistory(task.id) : [];
 
     useEffect(() => {
         loadTask();
@@ -112,6 +83,17 @@ export default function TaskWorkView() {
             const foundTask = tasks.find((t: Task) => t.id === id);
             if (foundTask) {
                 setTask(foundTask);
+                
+                // Initialize history if empty
+                const existingHistory = getTaskHistory(foundTask.id);
+                if (existingHistory.length === 0) {
+                    addTaskHistory(foundTask.id, {
+                        userId: 'user2',
+                        userName: 'Jane Smith',
+                        action: 'Task created',
+                        details: 'Created task in Sprint 03',
+                    });
+                }
             }
         } catch (error) {
             console.error('Error loading task:', error);
@@ -143,15 +125,12 @@ export default function TaskWorkView() {
         if (task) {
             setTask({ ...task, status: newStatus });
             // Add to history
-            const newHistoryItem: HistoryItem = {
-                id: Date.now().toString(),
+            addTaskHistory(task.id, {
                 userId: 'current-user',
                 userName: 'You',
                 action: 'Status changed',
                 details: `Changed from "${task.status}" to "${newStatus}"`,
-                timestamp: new Date(),
-            };
-            setHistory([newHistoryItem, ...history]);
+            });
         }
         setShowStatusMenu(false);
     };
@@ -227,10 +206,23 @@ export default function TaskWorkView() {
                             <MaterialCommunityIcons name="pencil" size={18} color="white" />
                         </TouchableOpacity>
                         <TouchableOpacity
-                            onPress={() => setShowMoreMenu(true)}
+                            onPress={() => {
+                                // Navigate to Pomodoro with task context
+                                router.push({
+                                    pathname: '/(tabs)/pomodoro',
+                                    params: { 
+                                        taskId: task.id, 
+                                        taskTitle: task.title,
+                                        taskDescription: task.description,
+                                        taskStoryPoints: task.storyPoints,
+                                        taskQuadrant: task.quadrant,
+                                        returnTo: 'task'
+                                    }
+                                } as any);
+                            }}
                             className="w-9 h-9 bg-white/20 rounded-lg items-center justify-center border border-white/40"
                         >
-                            <MaterialCommunityIcons name="dots-vertical" size={18} color="white" />
+                            <MaterialCommunityIcons name="bullseye-arrow" size={18} color="white" />
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -241,7 +233,6 @@ export default function TaskWorkView() {
             <View className="bg-white border-b border-gray-200 flex-row">
                 {[
                     { id: 'overview', label: 'Overview', icon: 'information-outline' },
-                    { id: 'pomodoro', label: 'Pomodoro', icon: 'timer-outline' },
                     { id: 'comments', label: 'Comments', icon: 'comment-outline', badge: comments.length },
                     { id: 'checklist', label: 'Checklist', icon: 'checkbox-marked-outline', badge: `${completedChecklist}/${totalChecklist}` },
                     { id: 'history', label: 'History', icon: 'history' },
@@ -371,59 +362,6 @@ export default function TaskWorkView() {
                                 <MaterialCommunityIcons name="link-variant-plus" size={20} color="#4B5563" />
                                 <Text className="text-gray-700 font-semibold ml-2">Add Related Task</Text>
                             </TouchableOpacity>
-                        </View>
-                    </View>
-                )}
-
-                {/* Pomodoro Tab */}
-                {activeTab === 'pomodoro' && (
-                    <View className="p-4">
-                        <View className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl p-6 mb-4 shadow-lg">
-                            <View className="flex-row items-center justify-between mb-6">
-                                <Text className="text-white font-bold text-lg">🍅 Pomodoro Timer</Text>
-                                <TouchableOpacity className="bg-white/20 px-4 py-2 rounded-lg border border-white/30">
-                                    <Text className="text-white text-sm font-semibold">
-                                        {pomodoro.type === 'work' ? '⚡ Work' : '☕ Break'}
-                                    </Text>
-                                </TouchableOpacity>
-                            </View>
-                            <View className="items-center mb-6">
-                                <Text className="text-white text-6xl font-bold tracking-wider">
-                                    {Math.floor(pomodoro.timeLeft / 60)}:{(pomodoro.timeLeft % 60).toString().padStart(2, '0')}
-                                </Text>
-                                <Text className="text-white/90 text-base mt-2">
-                                    {pomodoro.type === 'work' ? '25 minutes focus session' : '5 minutes break'}
-                                </Text>
-                            </View>
-                            <View className="flex-row gap-3">
-                                <TouchableOpacity className="flex-1 bg-white py-4 rounded-xl shadow-md">
-                                    <Text className="text-blue-600 font-bold text-center text-base">
-                                        {pomodoro.isRunning ? '⏸ Pause' : '▶️ Start'}
-                                    </Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity className="bg-white/20 px-5 py-4 rounded-xl border border-white/40">
-                                    <MaterialCommunityIcons name="refresh" size={22} color="white" />
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-
-                        {/* Pomodoro Stats */}
-                        <View className="bg-white rounded-xl p-4 shadow-sm">
-                            <Text className="text-sm font-semibold text-gray-700 mb-3">Today's Focus</Text>
-                            <View className="flex-row justify-around">
-                                <View className="items-center">
-                                    <Text className="text-2xl font-bold text-blue-600">4</Text>
-                                    <Text className="text-xs text-gray-500 mt-1">Pomodoros</Text>
-                                </View>
-                                <View className="items-center">
-                                    <Text className="text-2xl font-bold text-green-600">100m</Text>
-                                    <Text className="text-xs text-gray-500 mt-1">Focus Time</Text>
-                                </View>
-                                <View className="items-center">
-                                    <Text className="text-2xl font-bold text-purple-600">20m</Text>
-                                    <Text className="text-xs text-gray-500 mt-1">Break Time</Text>
-                                </View>
-                            </View>
                         </View>
                     </View>
                 )}

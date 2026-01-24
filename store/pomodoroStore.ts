@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTaskStore } from './taskStore';
 
 export interface PomodoroSession {
   id: string;
@@ -109,6 +110,17 @@ export const usePomodoroStore = create<PomodoroState>((set, get) => ({
       duration = state.longBreakDuration;
     }
 
+    // Add history entry for starting focus session
+    if (mode === 'focus' && taskId) {
+      const taskStore = useTaskStore.getState();
+      taskStore.addTaskHistory(taskId, {
+        userId: 'current-user',
+        userName: 'You',
+        action: 'Started Pomodoro session',
+        details: `Started a ${Math.floor(duration / 60)}-minute focus session`,
+      });
+    }
+
     // Start the interval timer
     const interval = setInterval(() => {
       get().tick();
@@ -179,6 +191,18 @@ export const usePomodoroStore = create<PomodoroState>((set, get) => ({
     if (state.mode === 'focus') {
       newSessionsCompleted += 1;
       newSessionsUntilLongBreak -= 1;
+      
+      // Add history entry for completing focus session
+      if (state.currentTaskId) {
+        const taskStore = useTaskStore.getState();
+        const durationMinutes = Math.floor(session.duration / 60);
+        taskStore.addTaskHistory(state.currentTaskId, {
+          userId: 'current-user',
+          userName: 'You',
+          action: 'Completed Pomodoro session',
+          details: `Completed a ${durationMinutes}-minute focus session`,
+        });
+      }
     }
 
     // Save sessions to storage
@@ -295,6 +319,18 @@ export const usePomodoroStore = create<PomodoroState>((set, get) => ({
 
       const newSessions = [...state.sessions, session];
       AsyncStorage.setItem(SESSIONS_KEY, JSON.stringify(newSessions));
+
+      // Add history entry for interrupted focus session
+      if (state.mode === 'focus' && state.currentTaskId) {
+        const taskStore = useTaskStore.getState();
+        const timeSpent = Math.floor((session.duration - state.timeRemaining) / 60);
+        taskStore.addTaskHistory(state.currentTaskId, {
+          userId: 'current-user',
+          userName: 'You',
+          action: 'Stopped Pomodoro session',
+          details: `Stopped focus session after ${timeSpent} minute${timeSpent !== 1 ? 's' : ''}`,
+        });
+      }
 
       set({ sessions: newSessions });
     }

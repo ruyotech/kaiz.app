@@ -1,11 +1,21 @@
 import { create } from 'zustand';
-import { Task } from '../types/models';
+import { Task, TaskHistory } from '../types/models';
 import { mockApi } from '../services/mockApi';
+
+export interface TaskHistoryEntry {
+    id: string;
+    userId: string;
+    userName: string;
+    action: string;
+    timestamp: Date;
+    details: string;
+}
 
 interface TaskState {
     tasks: Task[];
     loading: boolean;
     error: string | null;
+    taskHistory: Record<string, TaskHistoryEntry[]>; // taskId -> history entries
 
     fetchTasks: (filters?: any) => Promise<void>;
     getTaskById: (id: string) => Task | undefined;
@@ -15,12 +25,15 @@ interface TaskState {
     deleteTask: (id: string) => void;
     assignToEpic: (taskId: string, epicId: string | null) => void;
     clearTasks: () => void;
+    addTaskHistory: (taskId: string, entry: Omit<TaskHistoryEntry, 'id' | 'timestamp'>) => void;
+    getTaskHistory: (taskId: string) => TaskHistoryEntry[];
 }
 
 export const useTaskStore = create<TaskState>((set, get) => ({
     tasks: [],
     loading: false,
     error: null,
+    taskHistory: {},
 
     fetchTasks: async (filters) => {
         set({ loading: true, error: null });
@@ -77,5 +90,24 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
     clearTasks: () => {
         set({ tasks: [] });
+    },
+
+    addTaskHistory: (taskId, entry) => {
+        const newEntry: TaskHistoryEntry = {
+            ...entry,
+            id: `history-${Date.now()}-${Math.random()}`,
+            timestamp: new Date(),
+        };
+        
+        set(state => ({
+            taskHistory: {
+                ...state.taskHistory,
+                [taskId]: [newEntry, ...(state.taskHistory[taskId] || [])],
+            },
+        }));
+    },
+
+    getTaskHistory: (taskId) => {
+        return get().taskHistory[taskId] || [];
     },
 }));

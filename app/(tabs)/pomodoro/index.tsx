@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { usePomodoroStore } from '../../../store/pomodoroStore';
 import { useNavigationStore } from '../../../store/navigationStore';
@@ -12,6 +12,7 @@ import SessionControls from '../../../components/pomodoro/SessionControls';
 import TaskQuickPick from '../../../components/pomodoro/TaskQuickPick';
 
 export default function PomodoroScreen() {
+  const params = useLocalSearchParams();
   const {
     isActive,
     isPaused,
@@ -34,11 +35,29 @@ export default function PomodoroScreen() {
     storyPoints: number;
     quadrant: string;
   } | null>(null);
+  const [returnToTask, setReturnToTask] = useState<string | null>(null);
 
   useEffect(() => {
     setCurrentApp('pomodoro');
     loadSettings();
-  }, []);
+    
+    // Auto-start focus session if params are provided from task view
+    if (params.taskId && params.taskTitle && !isActive) {
+      const taskDetails = {
+        description: params.taskDescription as string || '',
+        storyPoints: parseInt(params.taskStoryPoints as string) || 0,
+        quadrant: params.taskQuadrant as string || '',
+      };
+      handleStartFocus(
+        params.taskId as string,
+        params.taskTitle as string,
+        taskDetails
+      );
+      if (params.returnTo === 'task') {
+        setReturnToTask(params.taskId as string);
+      }
+    }
+  }, [params.taskId]);
 
   const handleStartFocus = (
     taskId: string | null,
@@ -166,14 +185,28 @@ export default function PomodoroScreen() {
             {/* Session Controls */}
             <SessionControls />
 
-            {/* Stop Button */}
-            <TouchableOpacity
-              className="bg-red-100 rounded-lg p-2.5 flex-row items-center justify-center mt-3"
-              onPress={handleStopSession}
-            >
-              <MaterialCommunityIcons name="stop-circle" size={18} color="#DC2626" />
-              <Text className="text-red-600 text-sm font-semibold ml-2">End Session</Text>
-            </TouchableOpacity>
+            {/* Action Buttons */}
+            <View className="mt-3" style={{ gap: 8 }}>
+              {/* Back to Task Button - Show if returnToTask is set */}
+              {returnToTask && (
+                <TouchableOpacity
+                  className="bg-blue-100 rounded-lg p-2.5 flex-row items-center justify-center"
+                  onPress={() => router.push(`/(tabs)/sdlc/task/${returnToTask}` as any)}
+                >
+                  <MaterialCommunityIcons name="arrow-left" size={18} color="#2563EB" />
+                  <Text className="text-blue-600 text-sm font-semibold ml-2">Back to Task</Text>
+                </TouchableOpacity>
+              )}
+              
+              {/* Stop Button */}
+              <TouchableOpacity
+                className="bg-red-100 rounded-lg p-2.5 flex-row items-center justify-center"
+                onPress={handleStopSession}
+              >
+                <MaterialCommunityIcons name="stop-circle" size={18} color="#DC2626" />
+                <Text className="text-red-600 text-sm font-semibold ml-2">End Session</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         ) : isActive ? (
           <View>
