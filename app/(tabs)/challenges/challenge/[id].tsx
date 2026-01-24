@@ -100,8 +100,8 @@ export default function ChallengeDetailScreen() {
     
     if (!challenge) {
         return (
-            <Container>
-                <ScreenHeader title="Challenge" />
+            <Container safeArea={false}>
+                <ScreenHeader title="Challenge" useSafeArea={false} />
                 <View className="flex-1 items-center justify-center">
                     <Text className="text-gray-500">Loading challenge...</Text>
                 </View>
@@ -115,11 +115,12 @@ export default function ChallengeDetailScreen() {
     const daysRemaining = challenge.duration - daysElapsed;
     
     return (
-        <Container>
+        <Container safeArea={false}>
             <ScreenHeader
                 title={challenge.name}
                 subtitle={`${challenge.challengeType === 'solo' ? 'Solo' : 'Group'} Challenge`}
                 showBack
+                useSafeArea={false}
             />
             
             <ScrollView className="flex-1 p-4">
