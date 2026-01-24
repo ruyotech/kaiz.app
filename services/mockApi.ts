@@ -79,13 +79,17 @@ export const mockApi = {
     },
 
     // Tasks
-    async getTasks(filters?: { sprintId?: string; status?: string; epicId?: string; userId?: string }) {
+    async getTasks(filters?: { sprintId?: string | null; status?: string; epicId?: string; userId?: string; backlog?: boolean }) {
         await delay();
         let filtered = tasksData;
 
-        if (filters?.sprintId) {
+        // Filter for backlog items (no sprint assigned, not draft)
+        if (filters?.backlog) {
+            filtered = filtered.filter(t => t.sprintId === null && !t.isDraft);
+        } else if (filters?.sprintId !== undefined) {
             filtered = filtered.filter(t => t.sprintId === filters.sprintId);
         }
+        
         if (filters?.status) {
             filtered = filtered.filter(t => t.status === filters.status);
         }
