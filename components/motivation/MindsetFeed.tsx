@@ -118,21 +118,42 @@ export function MindsetFeed({ onLongPress }: MindsetFeedProps) {
     // Swipe gesture (TikTok-style vertical)
     const panGesture = Gesture.Pan()
         .onUpdate((event) => {
-            translateY.value = event.translationY;
+            // Only allow upward swipe for next content
+            if (event.translationY < 0) {
+                translateY.value = event.translationY;
+            } else if (localIndex > 0) {
+                // Allow downward swipe only if there's previous content
+                translateY.value = event.translationY * 0.3; // Dampen the reverse scroll
+            }
         })
         .onEnd((event) => {
             const velocity = event.velocityY;
             
-            // Swipe up (next)
-            if (event.translationY < -SWIPE_THRESHOLD || velocity < -500) {
-                translateY.value = withTiming(-SCREEN_HEIGHT, { duration: 300 }, () => {
-                    runOnJS(handleNext)();
-                    translateY.value = withSpring(0);
+            // Swipe up (next) - with velocity threshold or distance threshold
+            if (event.translationY < -SWIPE_THRESHOLD || velocity < -800) {
+                translateY.value = withTiming(-SCREEN_HEIGHT, { duration: 250 }, (finished) => {
+                    if (finished) {
+                        runOnJS(handleNext)();
+                        translateY.value = 0; // Reset immediately instead of spring
+                    }
                 });
             }
-            // Snap back
+            // Swipe down (previous) - less sensitive
+            else if ((event.translationY > SWIPE_THRESHOLD * 0.5 || velocity > 800) && localIndex > 0) {
+                translateY.value = withTiming(SCREEN_HEIGHT, { duration: 250 }, (finished) => {
+                    if (finished) {
+                        runOnJS(handlePrevious)();
+                        translateY.value = 0; // Reset immediately instead of spring
+                    }
+                });
+            }
+            // Snap back smoothly
             else {
-                translateY.value = withSpring(0);
+                translateY.value = withSpring(0, { 
+                    damping: 20,
+                    stiffness: 300,
+                    overshootClamping: true
+                });
             }
         });
 

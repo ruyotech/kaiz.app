@@ -7,8 +7,8 @@ import { useRouter } from 'expo-router';
 const CREATE_OPTIONS = [
     { id: 'task', icon: 'checkbox-marked-circle-outline', label: 'Task', color: '#3B82F6', route: '/(tabs)/sdlc/create-task' },
     { id: 'challenge', icon: 'trophy-outline', label: 'Challenge', color: '#F59E0B', route: '/(tabs)/challenges/create' },
-    { id: 'bill', icon: 'cash-multiple', label: 'Bill', color: '#10B981', route: '/(tabs)/bills/create' },
     { id: 'book', icon: 'book-open-variant', label: 'Book', color: '#EC4899', route: '/(tabs)/books/add' },
+    { id: 'event', icon: 'calendar-star', label: 'Event', color: '#06B6D4', route: '/(tabs)/command-center' },
 ];
 
 export default function CommandCenterScreen() {
@@ -16,10 +16,21 @@ export default function CommandCenterScreen() {
 
     return (
         <Container>
-            <ScreenHeader
-                title="Command Center"
-                subtitle="AI-powered quick input"
-            />
+            <View className="flex-row items-center justify-between px-4 pt-2">
+                <View className="flex-1">
+                    <ScreenHeader
+                        title="Create"
+                        subtitle="AI-powered quick input"
+                    />
+                </View>
+                {/* Close button */}
+                <TouchableOpacity 
+                    onPress={() => router.back()}
+                    className="w-10 h-10 items-center justify-center rounded-full bg-gray-100"
+                >
+                    <MaterialCommunityIcons name="close" size={22} color="#6B7280" />
+                </TouchableOpacity>
+            </View>
 
             {/* Quick Create Cards */}
             <ScrollView className="flex-1 px-4 pt-4">
@@ -78,12 +89,12 @@ export default function CommandCenterScreen() {
 
                 <View className="bg-white rounded-xl p-4 mb-20 shadow-sm">
                     <View className="flex-row items-center mb-2">
-                        <View className="w-8 h-8 bg-green-100 rounded-full items-center justify-center mr-3">
-                            <MaterialCommunityIcons name="cash" size={16} color="#10B981" />
+                        <View className="w-8 h-8 bg-amber-100 rounded-full items-center justify-center mr-3">
+                            <MaterialCommunityIcons name="trophy" size={16} color="#F59E0B" />
                         </View>
                         <View className="flex-1">
-                            <Text className="font-medium text-gray-800">Netflix subscription $15.99</Text>
-                            <Text className="text-xs text-gray-500">5 min ago • Bill</Text>
+                            <Text className="font-medium text-gray-800">Morning meditation streak</Text>
+                            <Text className="text-xs text-gray-500">10 min ago • Challenge</Text>
                         </View>
                     </View>
                 </View>

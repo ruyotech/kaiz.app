@@ -14,11 +14,11 @@ export interface MoreMenuItem {
 
 export const NAV_CONFIGS: Record<AppContext, NavIcon[]> = {
     sdlc: [
-        { name: 'Sprint', icon: 'clock-fast', route: '/(tabs)/sdlc/calendar' },
+        { name: 'Sprint', icon: 'view-dashboard-outline', route: '/(tabs)/sdlc/calendar' },
         { name: 'More', icon: 'dots-horizontal', route: 'more' },
     ],
     mindset: [
-        { name: 'Mindset', icon: 'lightbulb-on', route: '/(tabs)/motivation' },
+        { name: 'Mindset', icon: 'creation', route: '/(tabs)/motivation' },
         { name: 'More', icon: 'dots-horizontal', route: 'more' },
     ],
     essentia: [
@@ -28,11 +28,11 @@ export const NAV_CONFIGS: Record<AppContext, NavIcon[]> = {
         { name: 'Growth', icon: 'chart-line', route: '/(tabs)/essentia/growth' },
     ],
     challenges: [
-        { name: 'Active', icon: 'trophy', route: '/(tabs)/challenges' },
+        { name: 'Active', icon: 'target', route: '/(tabs)/challenges' },
         { name: 'More', icon: 'dots-horizontal', route: 'more' },
     ],
     pomodoro: [
-        { name: 'Focus', icon: 'timer-sand', route: '/(tabs)/pomodoro' },
+        { name: 'Focus', icon: 'circle-slice-8', route: '/(tabs)/pomodoro' },
         { name: 'More', icon: 'dots-horizontal', route: 'more' },
     ],
     bills: [
@@ -107,10 +107,10 @@ export interface App {
 }
 
 export const APPS: App[] = [
-    { id: 'sdlc', name: 'Tasks', icon: 'check-circle', color: '#3B82F6', route: '/(tabs)/sdlc' },
-    { id: 'challenges', name: 'Challenges', icon: 'trophy', color: '#F59E0B', route: '/(tabs)/challenges' },
-    { id: 'pomodoro', name: 'Focus', icon: 'timer-sand', color: '#EF4444', route: '/(tabs)/pomodoro' },
+    { id: 'sdlc', name: 'Tasks', icon: 'view-dashboard-outline', color: '#3B82F6', route: '/(tabs)/sdlc' },
+    { id: 'challenges', name: 'Challenges', icon: 'target', color: '#F59E0B', route: '/(tabs)/challenges' },
+    { id: 'pomodoro', name: 'Focus', icon: 'circle-slice-8', color: '#EF4444', route: '/(tabs)/pomodoro' },
     { id: 'essentia', name: 'Essentia', icon: 'brain', color: '#8B5CF6', route: '/(tabs)/essentia' },
-    { id: 'mindset', name: 'Mindset', icon: 'lightbulb-on', color: '#EC4899', route: '/(tabs)/motivation' },
+    { id: 'mindset', name: 'Mindset', icon: 'creation', color: '#EC4899', route: '/(tabs)/motivation' },
     { id: 'community', name: 'Community', icon: 'account-group', color: '#10B981', route: '/(tabs)/community' },
 ];
