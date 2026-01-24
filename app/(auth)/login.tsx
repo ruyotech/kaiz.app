@@ -71,18 +71,6 @@ export default function LoginScreen() {
         }
     };
 
-    const handleDemoLogin = async () => {
-        setEmail('john.doe@example.com');
-        setPassword('password123');
-        
-        try {
-            await login('john.doe@example.com', 'password123');
-            router.replace('/(tabs)');
-        } catch (error) {
-            Alert.alert('Error', 'Demo login failed');
-        }
-    };
-
     return (
         <Container safeArea={false}>
             <KeyboardAvoidingView
@@ -164,51 +152,11 @@ export default function LoginScreen() {
                             >
                                 Sign In
                             </Button>
-
-                            {/* Demo Login Button */}
-                            <Button
-                                onPress={handleDemoLogin}
-                                variant="outline"
-                                fullWidth
-                                size="lg"
-                            >
-                                Try Demo Account
-                            </Button>
-                        </Animated.View>
-
-                        {/* Divider */}
-                        <Animated.View
-                            entering={FadeInDown.delay(300).springify()}
-                            className="flex-row items-center my-8"
-                        >
-                            <View className="flex-1 h-px bg-gray-300" />
-                            <Text className="mx-4 text-gray-500 font-medium">OR</Text>
-                            <View className="flex-1 h-px bg-gray-300" />
-                        </Animated.View>
-
-                        {/* Social Login Options */}
-                        <Animated.View
-                            entering={FadeInDown.delay(400).springify()}
-                            className="gap-3"
-                        >
-                            <Pressable className="flex-row items-center justify-center py-4 border-2 border-gray-300 rounded-lg bg-white">
-                                <Text className="text-2xl mr-2">🍎</Text>
-                                <Text className="font-semibold text-gray-900">
-                                    Continue with Apple
-                                </Text>
-                            </Pressable>
-
-                            <Pressable className="flex-row items-center justify-center py-4 border-2 border-gray-300 rounded-lg bg-white">
-                                <Text className="text-2xl mr-2">📧</Text>
-                                <Text className="font-semibold text-gray-900">
-                                    Continue with Google
-                                </Text>
-                            </Pressable>
                         </Animated.View>
 
                         {/* Sign Up Link */}
                         <Animated.View
-                            entering={FadeInUp.delay(500).springify()}
+                            entering={FadeInUp.delay(300).springify()}
                             className="flex-row justify-center mt-8"
                         >
                             <Text className="text-gray-600">Don't have an account? </Text>

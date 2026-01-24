@@ -13,16 +13,20 @@ import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { Container } from '../../components/layout/Container';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
+import { useAuthStore } from '../../store/authStore';
+import { usePreferencesStore } from '../../store/preferencesStore';
 
 export default function RegisterScreen() {
     const router = useRouter();
+    const { loginDemo } = useAuthStore();
+    const { hasCompletedOnboarding } = usePreferencesStore();
     const [loading, setLoading] = useState(false);
+    const [demoLoading, setDemoLoading] = useState(false);
 
     // Form state
     const [fullName, setFullName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [agreeToTerms, setAgreeToTerms] = useState(false);
 
@@ -30,7 +34,6 @@ export default function RegisterScreen() {
     const [fullNameError, setFullNameError] = useState('');
     const [emailError, setEmailError] = useState('');
     const [passwordError, setPasswordError] = useState('');
-    const [confirmPasswordError, setConfirmPasswordError] = useState('');
 
     const validateFullName = (name: string): boolean => {
         if (!name.trim()) {
@@ -64,61 +67,20 @@ export default function RegisterScreen() {
             setPasswordError('Password is required');
             return false;
         }
-        if (password.length < 8) {
-            setPasswordError('Password must be at least 8 characters');
-            return false;
-        }
-        if (!/(?=.*[a-z])/.test(password)) {
-            setPasswordError('Password must contain a lowercase letter');
-            return false;
-        }
-        if (!/(?=.*[A-Z])/.test(password)) {
-            setPasswordError('Password must contain an uppercase letter');
-            return false;
-        }
-        if (!/(?=.*\d)/.test(password)) {
-            setPasswordError('Password must contain a number');
+        if (password.length < 6) {
+            setPasswordError('Password must be at least 6 characters');
             return false;
         }
         setPasswordError('');
         return true;
     };
 
-    const validateConfirmPassword = (confirmPwd: string): boolean => {
-        if (!confirmPwd) {
-            setConfirmPasswordError('Please confirm your password');
-            return false;
-        }
-        if (confirmPwd !== password) {
-            setConfirmPasswordError('Passwords do not match');
-            return false;
-        }
-        setConfirmPasswordError('');
-        return true;
-    };
-
-    const getPasswordStrength = (pwd: string): { strength: number; label: string; color: string } => {
-        let strength = 0;
-        if (pwd.length >= 8) strength++;
-        if (/[a-z]/.test(pwd) && /[A-Z]/.test(pwd)) strength++;
-        if (/\d/.test(pwd)) strength++;
-        if (/[^a-zA-Z\d]/.test(pwd)) strength++;
-
-        if (strength <= 1) return { strength: 25, label: 'Weak', color: 'bg-red-500' };
-        if (strength === 2) return { strength: 50, label: 'Fair', color: 'bg-yellow-500' };
-        if (strength === 3) return { strength: 75, label: 'Good', color: 'bg-blue-500' };
-        return { strength: 100, label: 'Strong', color: 'bg-green-500' };
-    };
-
-    const passwordStrength = getPasswordStrength(password);
-
     const handleRegister = async () => {
         const isNameValid = validateFullName(fullName);
         const isEmailValid = validateEmail(email);
         const isPasswordValid = validatePassword(password);
-        const isConfirmValid = validateConfirmPassword(confirmPassword);
 
-        if (!isNameValid || !isEmailValid || !isPasswordValid || !isConfirmValid) {
+        if (!isNameValid || !isEmailValid || !isPasswordValid) {
             return;
         }
 
@@ -135,11 +97,11 @@ export default function RegisterScreen() {
 
             Alert.alert(
                 'Success!',
-                'Your account has been created. Please check your email to verify your account.',
+                'Your account has been created. Welcome to Kaiz!',
                 [
                     {
                         text: 'OK',
-                        onPress: () => router.push('/(auth)/verify-email'),
+                        onPress: () => router.replace('/(auth)/login'),
                     },
                 ]
             );
@@ -147,6 +109,22 @@ export default function RegisterScreen() {
             Alert.alert('Error', 'Registration failed. Please try again.');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleTryDemo = async () => {
+        setDemoLoading(true);
+        try {
+            // Demo user will inherit all onboarding preferences
+            // (locale, life wheel areas, work style, etc. are already saved in preferences store)
+            await loginDemo();
+            // @ts-ignore - Dynamic route
+            router.replace('/(tabs)/sdlc/calendar');
+        } catch (error) {
+            console.error('Demo login failed:', error);
+            Alert.alert('Error', 'Demo mode failed. Please try again.');
+        } finally {
+            setDemoLoading(false);
         }
     };
 
@@ -176,12 +154,55 @@ export default function RegisterScreen() {
                                 Create Account
                             </Text>
                             <Text className="text-base text-gray-600 mt-2">
-                                Join thousands achieving their life goals
+                                Start your journey to better life management
                             </Text>
                         </Animated.View>
 
+                        {/* Demo Account Option - Only shown if onboarding completed */}
+                        {hasCompletedOnboarding && (
+                            <Animated.View
+                                entering={FadeInDown.delay(150).springify()}
+                                className="mb-6"
+                            >
+                                <View className="p-4 bg-purple-50 rounded-xl border-2 border-purple-200">
+                                    <View className="flex-row items-start mb-3">
+                                        <Text className="text-3xl mr-3">🎭</Text>
+                                        <View className="flex-1">
+                                            <Text className="text-lg font-bold text-purple-900 mb-1">
+                                                Try Demo Mode
+                                            </Text>
+                                            <Text className="text-sm text-purple-700 leading-5">
+                                                Experience Kaiz with your personalized settings and pre-filled data. No account needed.
+                                            </Text>
+                                        </View>
+                                    </View>
+                                    <Button
+                                        onPress={handleTryDemo}
+                                        variant="outline"
+                                        size="lg"
+                                        loading={demoLoading}
+                                        fullWidth
+                                    >
+                                        Launch Demo Account
+                                    </Button>
+                                </View>
+                            </Animated.View>
+                        )}
+
+                        {/* Divider - Only show if demo option was shown */}
+                        {hasCompletedOnboarding && (
+                            <Animated.View
+                                entering={FadeInDown.delay(200).springify()}
+                                className="flex-row items-center mb-6"
+                            >
+                                <View className="flex-1 h-px bg-gray-300" />
+                                <Text className="mx-4 text-gray-500 font-semibold text-sm">OR CREATE ACCOUNT</Text>
+                                <View className="flex-1 h-px bg-gray-300" />
+                            </Animated.View>
+                        )}
+
                         {/* Registration Form */}
-                        <Animated.View entering={FadeInDown.delay(200).springify()}>
+                        <Animated.View entering={FadeInDown.delay(250).springify()}>
                             <Input
                                 label="Full Name"
                                 value={fullName}
@@ -202,10 +223,11 @@ export default function RegisterScreen() {
                                 }}
                                 placeholder="your@email.com"
                                 keyboardType="email-address"
+                                autoCapitalize="none"
                                 error={emailError}
                             />
 
-                            <View className="relative">
+                            <View className="relative mb-4">
                                 <Input
                                     label="Password"
                                     value={password}
@@ -213,7 +235,7 @@ export default function RegisterScreen() {
                                         setPassword(text);
                                         if (passwordError) validatePassword(text);
                                     }}
-                                    placeholder="Create a strong password"
+                                    placeholder="At least 6 characters"
                                     secureTextEntry={!showPassword}
                                     error={passwordError}
                                 />
@@ -227,55 +249,23 @@ export default function RegisterScreen() {
                                 </Pressable>
                             </View>
 
-                            {/* Password Strength Indicator */}
-                            {password.length > 0 && (
-                                <View className="mb-4 -mt-2">
-                                    <View className="flex-row justify-between items-center mb-2">
-                                        <Text className="text-sm text-gray-600">
-                                            Password Strength
-                                        </Text>
-                                        <Text className={`text-sm font-semibold`}>
-                                            {passwordStrength.label}
-                                        </Text>
-                                    </View>
-                                    <View className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                                        <View
-                                            className={`h-full ${passwordStrength.color} rounded-full`}
-                                            style={{ width: `${passwordStrength.strength}%` }}
-                                        />
-                                    </View>
-                                </View>
-                            )}
-
-                            <Input
-                                label="Confirm Password"
-                                value={confirmPassword}
-                                onChangeText={(text) => {
-                                    setConfirmPassword(text);
-                                    if (confirmPasswordError) validateConfirmPassword(text);
-                                }}
-                                placeholder="Re-enter your password"
-                                secureTextEntry={!showPassword}
-                                error={confirmPasswordError}
-                            />
-
                             {/* Terms Checkbox */}
                             <Pressable
                                 onPress={() => setAgreeToTerms(!agreeToTerms)}
                                 className="flex-row items-start mb-6"
                             >
                                 <View
-                                    className={`w-5 h-5 rounded border-2 items-center justify-center mr-3 mt-1 ${
+                                    className={`w-6 h-6 rounded-md border-2 items-center justify-center mr-3 mt-0.5 ${
                                         agreeToTerms
                                             ? 'bg-blue-600 border-blue-600'
                                             : 'border-gray-300'
                                     }`}
                                 >
                                     {agreeToTerms && (
-                                        <Text className="text-white text-xs font-bold">✓</Text>
+                                        <Text className="text-white text-sm font-bold">✓</Text>
                                     )}
                                 </View>
-                                <Text className="flex-1 text-sm text-gray-600 leading-5">
+                                <Text className="flex-1 text-sm text-gray-600 leading-6">
                                     I agree to the{' '}
                                     <Text className="text-blue-600 font-semibold">
                                         Terms of Service
@@ -297,43 +287,13 @@ export default function RegisterScreen() {
                             </Button>
                         </Animated.View>
 
-                        {/* Divider */}
-                        <Animated.View
-                            entering={FadeInDown.delay(300).springify()}
-                            className="flex-row items-center my-6"
-                        >
-                            <View className="flex-1 h-px bg-gray-300" />
-                            <Text className="mx-4 text-gray-500 font-medium">OR</Text>
-                            <View className="flex-1 h-px bg-gray-300" />
-                        </Animated.View>
-
-                        {/* Social Registration */}
-                        <Animated.View
-                            entering={FadeInDown.delay(400).springify()}
-                            className="gap-3"
-                        >
-                            <Pressable className="flex-row items-center justify-center py-4 border-2 border-gray-300 rounded-lg bg-white">
-                                <Text className="text-2xl mr-2">🍎</Text>
-                                <Text className="font-semibold text-gray-900">
-                                    Sign up with Apple
-                                </Text>
-                            </Pressable>
-
-                            <Pressable className="flex-row items-center justify-center py-4 border-2 border-gray-300 rounded-lg bg-white">
-                                <Text className="text-2xl mr-2">📧</Text>
-                                <Text className="font-semibold text-gray-900">
-                                    Sign up with Google
-                                </Text>
-                            </Pressable>
-                        </Animated.View>
-
                         {/* Login Link */}
                         <Animated.View
-                            entering={FadeInUp.delay(500).springify()}
+                            entering={FadeInUp.delay(300).springify()}
                             className="flex-row justify-center mt-8"
                         >
                             <Text className="text-gray-600">Already have an account? </Text>
-                            <Pressable onPress={() => router.back()}>
+                            <Pressable onPress={() => router.push('/(auth)/login')}>
                                 <Text className="text-blue-600 font-semibold">Sign In</Text>
                             </Pressable>
                         </Animated.View>

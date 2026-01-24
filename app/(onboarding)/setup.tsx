@@ -1,11 +1,14 @@
-import { View, Text, Pressable, ScrollView, Alert } from 'react-native';
+import { View, Text, Pressable, ScrollView, Alert, Modal, TouchableOpacity } from 'react-native';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import Animated, { FadeInDown, FadeOutUp } from 'react-native-reanimated';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Container } from '../../components/layout/Container';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { useAppStore } from '../../store/appStore';
+import { usePreferencesStore, SupportedLocale } from '../../store/preferencesStore';
+import { SUPPORTED_LANGUAGES } from '../../utils/constants';
 
 interface LifeWheelArea {
     id: string;
@@ -15,63 +18,97 @@ interface LifeWheelArea {
 }
 
 const LIFE_WHEEL_AREAS: LifeWheelArea[] = [
-    { id: '1', name: 'Career', icon: '💼', color: 'bg-blue-500' },
-    { id: '2', name: 'Health', icon: '💪', color: 'bg-green-500' },
-    { id: '3', name: 'Finance', icon: '💰', color: 'bg-yellow-500' },
-    { id: '4', name: 'Relationships', icon: '❤️', color: 'bg-red-500' },
-    { id: '5', name: 'Personal Growth', icon: '🌱', color: 'bg-purple-500' },
-    { id: '6', name: 'Fun & Recreation', icon: '🎉', color: 'bg-pink-500' },
-    { id: '7', name: 'Physical Environment', icon: '🏡', color: 'bg-orange-500' },
-    { id: '8', name: 'Contribution', icon: '🤝', color: 'bg-teal-500' },
+    { id: 'lw-1', name: 'Health & Fitness', icon: '💪', color: 'bg-green-500' },
+    { id: 'lw-2', name: 'Career & Work', icon: '💼', color: 'bg-blue-500' },
+    { id: 'lw-3', name: 'Finance & Money', icon: '💰', color: 'bg-yellow-500' },
+    { id: 'lw-4', name: 'Personal Growth', icon: '📚', color: 'bg-purple-500' },
+    { id: 'lw-5', name: 'Relationships & Family', icon: '❤️', color: 'bg-red-500' },
+    { id: 'lw-6', name: 'Social Life', icon: '👥', color: 'bg-pink-500' },
+    { id: 'lw-7', name: 'Fun & Recreation', icon: '🎮', color: 'bg-teal-500' },
+    { id: 'lw-8', name: 'Environment & Home', icon: '🏡', color: 'bg-lime-500' },
 ];
 
-type SetupStep = 'profile' | 'areas' | 'preferences' | 'notifications';
+const WORK_STYLES = [
+    { id: 'consistent', label: 'Consistent', icon: '📊', description: 'Steady pace every day' },
+    { id: 'bursts', label: 'Burst Worker', icon: '⚡', description: 'Intense focus sessions' },
+    { id: 'flexible', label: 'Flexible', icon: '🌊', description: 'Adapt to the day' },
+    { id: 'structured', label: 'Structured', icon: '📋', description: 'Fixed schedule' },
+];
+
+const VELOCITY_LEVELS = [
+    { id: 'light', label: 'Light', points: '15-25', description: 'Part-time focus' },
+    { id: 'moderate', label: 'Moderate', points: '25-35', description: 'Balanced approach' },
+    { id: 'heavy', label: 'Heavy', points: '35-50', description: 'High intensity' },
+    { id: 'custom', label: 'Custom', points: 'Set later', description: 'I\'ll decide as I go' },
+];
+
+const PRIORITY_STYLES = [
+    { id: 'urgent-first', label: 'Urgent First', icon: '🔥', description: 'Handle crises immediately' },
+    { id: 'important-first', label: 'Important First', icon: '🎯', description: 'Q2 strategic work' },
+    { id: 'balanced', label: 'Balanced Mix', icon: '⚖️', description: 'Split focus daily' },
+    { id: 'ai-decides', label: 'AI Suggests', icon: '🤖', description: 'Let AI prioritize' },
+];
+
+const COACHING_STYLES = [
+    { id: 'aggressive', label: 'Push Me Hard', icon: '💪', description: 'Challenge me constantly' },
+    { id: 'supportive', label: 'Supportive Coach', icon: '🤝', description: 'Encourage and guide' },
+    { id: 'minimal', label: 'Minimal Nudges', icon: '👁️', description: 'Only when needed' },
+    { id: 'data-only', label: 'Just Data', icon: '📊', description: 'Show metrics, I decide' },
+];
+
+type OnboardingStep = 'personal' | 'balance' | 'capacity' | 'priorities' | 'coaching';
 
 export default function SetupScreen() {
     const router = useRouter();
     const { setOnboarded } = useAppStore();
-    const [currentStep, setCurrentStep] = useState<SetupStep>('profile');
+    const {
+        locale,
+        setLocale,
+        setTimezone,
+        setSelectedLifeWheelAreas,
+        toggleLifeWheelArea,
+        setNotificationPreferences,
+        markOnboardingComplete,
+        selectedLifeWheelAreaIds,
+    } = usePreferencesStore();
+
+    const [currentStep, setCurrentStep] = useState<OnboardingStep>('personal');
     const [loading, setLoading] = useState(false);
+    const [showLanguageModal, setShowLanguageModal] = useState(false);
 
-    // Profile state
+    // Step 1: Personal
     const [fullName, setFullName] = useState('');
-    const [timezone, setTimezone] = useState('America/New_York');
+    const [detectedTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York');
+    
+    const currentLanguage = SUPPORTED_LANGUAGES.find(lang => lang.code === locale) || SUPPORTED_LANGUAGES[0];
 
-    // Life wheel areas state
-    const [selectedAreas, setSelectedAreas] = useState<string[]>([]);
+    // Step 3: Capacity
+    const [workStyle, setWorkStyle] = useState('flexible');
+    const [velocityLevel, setVelocityLevel] = useState('moderate');
 
-    // Preferences state
-    const [weekStartsOn, setWeekStartsOn] = useState<'sunday' | 'monday'>('monday');
-    const [theme, setTheme] = useState<'light' | 'dark' | 'auto'>('auto');
+    // Step 4: Priorities
+    const [priorityStyle, setPriorityStyle] = useState('balanced');
 
-    // Notifications state
+    // Step 5: Coaching
+    const [coachingStyle, setCoachingStyle] = useState('supportive');
     const [enableDailyReminders, setEnableDailyReminders] = useState(true);
     const [enableAiInsights, setEnableAiInsights] = useState(true);
-    const [enableChallenges, setEnableChallenges] = useState(true);
 
-    const steps: SetupStep[] = ['profile', 'areas', 'preferences', 'notifications'];
+    const steps: OnboardingStep[] = ['personal', 'balance', 'capacity', 'priorities', 'coaching'];
     const currentStepIndex = steps.indexOf(currentStep);
     const progress = ((currentStepIndex + 1) / steps.length) * 100;
 
-    const toggleArea = (areaId: string) => {
-        setSelectedAreas((prev) =>
-            prev.includes(areaId)
-                ? prev.filter((id) => id !== areaId)
-                : [...prev, areaId]
-        );
-    };
-
     const validateCurrentStep = (): boolean => {
         switch (currentStep) {
-            case 'profile':
+            case 'personal':
                 if (!fullName.trim()) {
-                    Alert.alert('Required', 'Please enter your full name');
+                    Alert.alert('Required', 'Please enter your name');
                     return false;
                 }
                 return true;
-            case 'areas':
-                if (selectedAreas.length === 0) {
-                    Alert.alert('Required', 'Please select at least one life area to focus on');
+            case 'balance':
+                if (selectedLifeWheelAreaIds.length === 0) {
+                    Alert.alert('Required', 'Please select at least one life area');
                     return false;
                 }
                 return true;
@@ -100,13 +137,38 @@ export default function SetupScreen() {
 
     const handleComplete = async () => {
         setLoading(true);
-        
-        // Simulate API call to save preferences
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        
-        setOnboarded(true);
-        setLoading(false);
-        router.replace('/(auth)/login');
+
+        try {
+            // Save all preferences
+            setTimezone(detectedTimezone);
+            setNotificationPreferences({
+                enableDailyReminders,
+                enableAiInsights,
+                enableChallengeUpdates: true,
+                enableBillReminders: true,
+            });
+            markOnboardingComplete();
+
+            // Save work preferences (we'll add these to the store later if needed)
+            // For now, these can be stored in user profile when they create an account
+            
+            await new Promise((resolve) => setTimeout(resolve, 500));
+
+            setOnboarded(true);
+            setLoading(false);
+            
+            // Go to registration
+            // @ts-ignore - Dynamic route
+            router.replace('/(auth)/register');
+        } catch (error) {
+            Alert.alert('Error', 'Setup failed. Please try again.');
+            setLoading(false);
+        }
+    };
+
+    const handleLanguageSelect = (langCode: SupportedLocale) => {
+        setLocale(langCode);
+        setShowLanguageModal(false);
     };
 
     return (
@@ -116,14 +178,14 @@ export default function SetupScreen() {
                 <View className="px-6 mb-6">
                     <View className="flex-row justify-between items-center mb-2">
                         <Text className="text-sm font-semibold text-gray-900">
-                            {currentStepIndex + 1} of {steps.length}
+                            Step {currentStepIndex + 1} of {steps.length}
                         </Text>
                         <Text className="text-sm text-gray-600">
-                            {Math.round(progress)}% Complete
+                            {Math.round(progress)}%
                         </Text>
                     </View>
                     <View className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                        <Animated.View
+                        <View
                             className="h-full bg-blue-600 rounded-full"
                             style={{ width: `${progress}%` }}
                         />
@@ -132,115 +194,195 @@ export default function SetupScreen() {
 
                 {/* Content */}
                 <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-                    {currentStep === 'profile' && (
-                        <ProfileStep
+                    {currentStep === 'personal' && (
+                        <PersonalStep
                             fullName={fullName}
                             setFullName={setFullName}
-                            timezone={timezone}
-                            setTimezone={setTimezone}
+                            timezone={detectedTimezone}
+                            currentLanguage={currentLanguage}
+                            onLanguagePress={() => setShowLanguageModal(true)}
                         />
                     )}
 
-                    {currentStep === 'areas' && (
-                        <AreasStep
+                    {currentStep === 'balance' && (
+                        <BalanceStep
                             areas={LIFE_WHEEL_AREAS}
-                            selectedAreas={selectedAreas}
-                            toggleArea={toggleArea}
+                            selectedAreas={selectedLifeWheelAreaIds}
+                            toggleArea={toggleLifeWheelArea}
                         />
                     )}
 
-                    {currentStep === 'preferences' && (
-                        <PreferencesStep
-                            weekStartsOn={weekStartsOn}
-                            setWeekStartsOn={setWeekStartsOn}
-                            theme={theme}
-                            setTheme={setTheme}
+                    {currentStep === 'capacity' && (
+                        <CapacityStep
+                            workStyle={workStyle}
+                            setWorkStyle={setWorkStyle}
+                            velocityLevel={velocityLevel}
+                            setVelocityLevel={setVelocityLevel}
                         />
                     )}
 
-                    {currentStep === 'notifications' && (
-                        <NotificationsStep
+                    {currentStep === 'priorities' && (
+                        <PrioritiesStep
+                            priorityStyle={priorityStyle}
+                            setPriorityStyle={setPriorityStyle}
+                        />
+                    )}
+
+                    {currentStep === 'coaching' && (
+                        <CoachingStep
+                            coachingStyle={coachingStyle}
+                            setCoachingStyle={setCoachingStyle}
                             enableDailyReminders={enableDailyReminders}
                             setEnableDailyReminders={setEnableDailyReminders}
                             enableAiInsights={enableAiInsights}
                             setEnableAiInsights={setEnableAiInsights}
-                            enableChallenges={enableChallenges}
-                            setEnableChallenges={setEnableChallenges}
                         />
                     )}
                 </ScrollView>
 
-                {/* Bottom Actions */}
-                <View className="px-6 py-4 bg-white border-t border-gray-200">
+                {/* Bottom Actions - Fixed positioning */}
+                <View className="bg-white border-t border-gray-200 px-6 py-4">
                     <View className="flex-row gap-3">
                         {currentStepIndex > 0 && (
-                            <Button
-                                onPress={handleBack}
-                                variant="outline"
-                                size="lg"
-                                fullWidth
-                            >
-                                Back
-                            </Button>
+                            <View className="flex-1">
+                                <Button
+                                    onPress={handleBack}
+                                    variant="outline"
+                                    size="lg"
+                                >
+                                    Back
+                                </Button>
+                            </View>
                         )}
-                        <Button
-                            onPress={handleNext}
-                            size="lg"
-                            fullWidth
-                            loading={loading}
-                        >
-                            {currentStepIndex === steps.length - 1 ? 'Complete' : 'Continue'}
-                        </Button>
+                        <View className="flex-1">
+                            <Button
+                                onPress={handleNext}
+                                size="lg"
+                                loading={loading}
+                            >
+                                {currentStepIndex === steps.length - 1 ? 'Complete' : 'Continue'}
+                            </Button>
+                        </View>
                     </View>
                 </View>
+
+                {/* Language Selection Modal */}
+                <Modal
+                    visible={showLanguageModal}
+                    animationType="slide"
+                    transparent={true}
+                    onRequestClose={() => setShowLanguageModal(false)}
+                >
+                    <TouchableOpacity
+                        className="flex-1 bg-black/50 justify-end"
+                        activeOpacity={1}
+                        onPress={() => setShowLanguageModal(false)}
+                    >
+                        <TouchableOpacity
+                            activeOpacity={1}
+                            onPress={(e) => e.stopPropagation()}
+                            className="bg-white rounded-t-3xl"
+                        >
+                            <View className="p-6">
+                                <View className="flex-row justify-between items-center mb-4">
+                                    <Text className="text-2xl font-bold text-gray-900">Select Language</Text>
+                                    <TouchableOpacity onPress={() => setShowLanguageModal(false)}>
+                                        <MaterialCommunityIcons name="close" size={24} color="#374151" />
+                                    </TouchableOpacity>
+                                </View>
+
+                                <ScrollView className="max-h-96">
+                                    {SUPPORTED_LANGUAGES.map((lang) => (
+                                        <TouchableOpacity
+                                            key={lang.code}
+                                            onPress={() => handleLanguageSelect(lang.code)}
+                                            className={`flex-row items-center py-4 px-4 rounded-lg mb-2 ${
+                                                locale === lang.code ? 'bg-blue-50' : 'bg-gray-50'
+                                            }`}
+                                        >
+                                            <Text className="text-3xl mr-4">{lang.flag}</Text>
+                                            <View className="flex-1">
+                                                <Text className="text-base font-semibold text-gray-900">
+                                                    {lang.nativeName}
+                                                </Text>
+                                                <Text className="text-sm text-gray-600">{lang.name}</Text>
+                                            </View>
+                                            {locale === lang.code && (
+                                                <MaterialCommunityIcons name="check-circle" size={24} color="#3B82F6" />
+                                            )}
+                                        </TouchableOpacity>
+                                    ))}
+                                </ScrollView>
+                            </View>
+                        </TouchableOpacity>
+                    </TouchableOpacity>
+                </Modal>
             </View>
         </Container>
     );
 }
 
-function ProfileStep({
+// Step 1: Personal Setup
+function PersonalStep({
     fullName,
     setFullName,
     timezone,
-    setTimezone,
+    currentLanguage,
+    onLanguagePress,
 }: {
     fullName: string;
     setFullName: (value: string) => void;
     timezone: string;
-    setTimezone: (value: string) => void;
+    currentLanguage: any;
+    onLanguagePress: () => void;
 }) {
     return (
-        <Animated.View entering={FadeInDown} exiting={FadeOutUp} className="px-6">
-            <Text className="text-3xl font-bold mb-2">Tell us about yourself</Text>
+        <Animated.View entering={FadeInDown} exiting={FadeOutUp} className="px-6 pb-8">
+            <Text className="text-3xl font-bold mb-2">Let's personalize your experience</Text>
             <Text className="text-base text-gray-600 mb-8">
-                Let's personalize your experience
+                First, tell us a bit about yourself
             </Text>
 
             <Input
-                label="Full Name"
+                label="Your Name"
                 value={fullName}
                 onChangeText={setFullName}
                 placeholder="John Doe"
             />
 
-            <Input
-                label="Timezone"
-                value={timezone}
-                onChangeText={setTimezone}
-                placeholder="America/New_York"
-            />
+            <TouchableOpacity
+                onPress={onLanguagePress}
+                className="mb-4"
+            >
+                <Text className="text-sm font-semibold text-gray-700 mb-2">Language</Text>
+                <View className="bg-gray-50 rounded-lg px-4 py-4 flex-row items-center justify-between border border-gray-200">
+                    <View className="flex-row items-center">
+                        <Text className="text-3xl mr-3">{currentLanguage.flag}</Text>
+                        <Text className="text-base text-gray-800 font-medium">{currentLanguage.nativeName}</Text>
+                    </View>
+                    <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
+                </View>
+            </TouchableOpacity>
 
-            <View className="mt-6 p-4 bg-blue-50 rounded-lg">
+            <View className="mb-4">
+                <Text className="text-sm font-semibold text-gray-700 mb-2">Timezone</Text>
+                <View className="bg-gray-50 rounded-lg px-4 py-4 border border-gray-200">
+                    <Text className="text-base text-gray-800">{timezone}</Text>
+                </View>
+                <Text className="text-xs text-gray-500 mt-1">Auto-detected from your device</Text>
+            </View>
+
+            <View className="mt-6 p-4 bg-blue-50 rounded-xl">
                 <Text className="text-sm text-blue-900">
-                    💡 <Text className="font-semibold">Pro Tip:</Text> Your timezone helps us
-                    send reminders and insights at the perfect time for you.
+                    🌍 <Text className="font-semibold">International App:</Text> Kaiz works in your language and timezone, wherever you are.
                 </Text>
             </View>
         </Animated.View>
     );
 }
 
-function AreasStep({
+// Step 2: Life Balance
+function BalanceStep({
     areas,
     selectedAreas,
     toggleArea,
@@ -250,10 +392,10 @@ function AreasStep({
     toggleArea: (id: string) => void;
 }) {
     return (
-        <Animated.View entering={FadeInDown} exiting={FadeOutUp} className="px-6">
-            <Text className="text-3xl font-bold mb-2">Choose your focus areas</Text>
+        <Animated.View entering={FadeInDown} exiting={FadeOutUp} className="px-6 pb-8">
+            <Text className="text-3xl font-bold mb-2">What areas of life matter most?</Text>
             <Text className="text-base text-gray-600 mb-8">
-                Select the life areas you want to improve (choose at least one)
+                Select the dimensions you want to track and balance
             </Text>
 
             <View className="flex-row flex-wrap gap-3">
@@ -270,7 +412,7 @@ function AreasStep({
                         >
                             <Text className="text-2xl">{area.icon}</Text>
                             <Text
-                                className={`font-semibold ${
+                                className={`font-semibold text-sm ${
                                     isSelected ? 'text-blue-900' : 'text-gray-700'
                                 }`}
                             >
@@ -281,201 +423,253 @@ function AreasStep({
                 })}
             </View>
 
-            <View className="mt-6 p-4 bg-purple-50 rounded-lg">
+            <View className="mt-6 p-4 bg-purple-50 rounded-xl">
                 <Text className="text-sm text-purple-900">
-                    🎯 <Text className="font-semibold">Life Wheel:</Text> Balance across these
-                    areas leads to a fulfilling life. You can adjust these anytime.
+                    ⚖️ <Text className="font-semibold">Life Wheel:</Text> Kaiz tracks your sprint points across these areas, so you can see if you're neglecting anything important.
                 </Text>
             </View>
         </Animated.View>
     );
 }
 
-function PreferencesStep({
-    weekStartsOn,
-    setWeekStartsOn,
-    theme,
-    setTheme,
+// Step 3: Sprint Capacity
+function CapacityStep({
+    workStyle,
+    setWorkStyle,
+    velocityLevel,
+    setVelocityLevel,
 }: {
-    weekStartsOn: 'sunday' | 'monday';
-    setWeekStartsOn: (value: 'sunday' | 'monday') => void;
-    theme: 'light' | 'dark' | 'auto';
-    setTheme: (value: 'light' | 'dark' | 'auto') => void;
+    workStyle: string;
+    setWorkStyle: (style: string) => void;
+    velocityLevel: string;
+    setVelocityLevel: (level: string) => void;
 }) {
     return (
-        <Animated.View entering={FadeInDown} exiting={FadeOutUp} className="px-6">
-            <Text className="text-3xl font-bold mb-2">Set your preferences</Text>
+        <Animated.View entering={FadeInDown} exiting={FadeOutUp} className="px-6 pb-8">
+            <Text className="text-3xl font-bold mb-2">How do you work best?</Text>
             <Text className="text-base text-gray-600 mb-8">
-                Customize how the app works for you
+                Help us set your weekly sprint capacity
             </Text>
 
-            <View className="mb-6">
-                <Text className="text-base font-semibold text-gray-900 mb-3">
-                    Week starts on
-                </Text>
-                <View className="flex-row gap-3">
+            <Text className="text-lg font-bold text-gray-900 mb-3">Work Style</Text>
+            <View className="gap-3 mb-6">
+                {WORK_STYLES.map((style) => (
                     <Pressable
-                        onPress={() => setWeekStartsOn('monday')}
+                        key={style.id}
+                        onPress={() => setWorkStyle(style.id)}
                         className={`
-                            flex-1 py-4 rounded-lg border-2
-                            ${weekStartsOn === 'monday' ? 'border-blue-600 bg-blue-50' : 'border-gray-300'}
+                            p-4 rounded-xl border-2 flex-row items-center
+                            ${workStyle === style.id ? 'border-blue-600 bg-blue-50' : 'border-gray-300 bg-white'}
                         `}
                     >
-                        <Text
-                            className={`text-center font-semibold ${
-                                weekStartsOn === 'monday' ? 'text-blue-900' : 'text-gray-700'
-                            }`}
-                        >
-                            Monday
-                        </Text>
+                        <Text className="text-3xl mr-3">{style.icon}</Text>
+                        <View className="flex-1">
+                            <Text className={`text-base font-bold ${
+                                workStyle === style.id ? 'text-blue-900' : 'text-gray-900'
+                            }`}>
+                                {style.label}
+                            </Text>
+                            <Text className="text-sm text-gray-600">{style.description}</Text>
+                        </View>
+                        {workStyle === style.id && (
+                            <View className="w-6 h-6 rounded-full bg-blue-600 items-center justify-center">
+                                <Text className="text-white text-xs font-bold">✓</Text>
+                            </View>
+                        )}
                     </Pressable>
-                    <Pressable
-                        onPress={() => setWeekStartsOn('sunday')}
-                        className={`
-                            flex-1 py-4 rounded-lg border-2
-                            ${weekStartsOn === 'sunday' ? 'border-blue-600 bg-blue-50' : 'border-gray-300'}
-                        `}
-                    >
-                        <Text
-                            className={`text-center font-semibold ${
-                                weekStartsOn === 'sunday' ? 'text-blue-900' : 'text-gray-700'
-                            }`}
-                        >
-                            Sunday
-                        </Text>
-                    </Pressable>
-                </View>
+                ))}
             </View>
 
-            <View className="mb-6">
-                <Text className="text-base font-semibold text-gray-900 mb-3">Theme</Text>
-                <View className="gap-3">
-                    {(['light', 'dark', 'auto'] as const).map((themeOption) => (
-                        <Pressable
-                            key={themeOption}
-                            onPress={() => setTheme(themeOption)}
-                            className={`
-                                py-4 px-4 rounded-lg border-2 flex-row items-center justify-between
-                                ${theme === themeOption ? 'border-blue-600 bg-blue-50' : 'border-gray-300'}
-                            `}
-                        >
-                            <Text
-                                className={`font-semibold capitalize ${
-                                    theme === themeOption ? 'text-blue-900' : 'text-gray-700'
-                                }`}
-                            >
-                                {themeOption === 'auto' ? 'Auto (System)' : themeOption}
-                            </Text>
-                            {theme === themeOption && (
-                                <Text className="text-blue-600 text-xl">✓</Text>
+            <Text className="text-lg font-bold text-gray-900 mb-3">Weekly Velocity</Text>
+            <View className="gap-3">
+                {VELOCITY_LEVELS.map((level) => (
+                    <Pressable
+                        key={level.id}
+                        onPress={() => setVelocityLevel(level.id)}
+                        className={`
+                            p-4 rounded-xl border-2
+                            ${velocityLevel === level.id ? 'border-blue-600 bg-blue-50' : 'border-gray-300 bg-white'}
+                        `}
+                    >
+                        <View className="flex-row items-center justify-between">
+                            <View className="flex-1">
+                                <Text className={`text-base font-bold mb-1 ${
+                                    velocityLevel === level.id ? 'text-blue-900' : 'text-gray-900'
+                                }`}>
+                                    {level.label} ({level.points} points)
+                                </Text>
+                                <Text className="text-sm text-gray-600">{level.description}</Text>
+                            </View>
+                            {velocityLevel === level.id && (
+                                <View className="w-6 h-6 rounded-full bg-blue-600 items-center justify-center">
+                                    <Text className="text-white text-xs font-bold">✓</Text>
+                                </View>
                             )}
-                        </Pressable>
-                    ))}
-                </View>
+                        </View>
+                    </Pressable>
+                ))}
+            </View>
+
+            <View className="mt-6 p-4 bg-green-50 rounded-xl">
+                <Text className="text-sm text-green-900">
+                    📊 <Text className="font-semibold">Velocity Protection:</Text> Kaiz will warn you when you're overcommitting and track your real capacity over time.
+                </Text>
             </View>
         </Animated.View>
     );
 }
 
-function NotificationsStep({
+// Step 4: Priorities
+function PrioritiesStep({
+    priorityStyle,
+    setPriorityStyle,
+}: {
+    priorityStyle: string;
+    setPriorityStyle: (style: string) => void;
+}) {
+    return (
+        <Animated.View entering={FadeInDown} exiting={FadeOutUp} className="px-6 pb-8">
+            <Text className="text-3xl font-bold mb-2">How do you prioritize?</Text>
+            <Text className="text-base text-gray-600 mb-8">
+                Choose your approach to the Eisenhower Matrix
+            </Text>
+
+            <View className="gap-3">
+                {PRIORITY_STYLES.map((style) => (
+                    <Pressable
+                        key={style.id}
+                        onPress={() => setPriorityStyle(style.id)}
+                        className={`
+                            p-4 rounded-xl border-2 flex-row items-center
+                            ${priorityStyle === style.id ? 'border-blue-600 bg-blue-50' : 'border-gray-300 bg-white'}
+                        `}
+                    >
+                        <Text className="text-3xl mr-3">{style.icon}</Text>
+                        <View className="flex-1">
+                            <Text className={`text-base font-bold ${
+                                priorityStyle === style.id ? 'text-blue-900' : 'text-gray-900'
+                            }`}>
+                                {style.label}
+                            </Text>
+                            <Text className="text-sm text-gray-600">{style.description}</Text>
+                        </View>
+                        {priorityStyle === style.id && (
+                            <View className="w-6 h-6 rounded-full bg-blue-600 items-center justify-center">
+                                <Text className="text-white text-xs font-bold">✓</Text>
+                            </View>
+                        )}
+                    </Pressable>
+                ))}
+            </View>
+
+            <View className="mt-6 p-4 bg-yellow-50 rounded-xl">
+                <Text className="text-sm text-yellow-900">
+                    🎯 <Text className="font-semibold">Q2 Matters:</Text> Kaiz watches your Q2 (Important, Not Urgent) work. That's where your future is built.
+                </Text>
+            </View>
+        </Animated.View>
+    );
+}
+
+// Step 5: AI Coaching
+function CoachingStep({
+    coachingStyle,
+    setCoachingStyle,
     enableDailyReminders,
     setEnableDailyReminders,
     enableAiInsights,
     setEnableAiInsights,
-    enableChallenges,
-    setEnableChallenges,
 }: {
+    coachingStyle: string;
+    setCoachingStyle: (style: string) => void;
     enableDailyReminders: boolean;
     setEnableDailyReminders: (value: boolean) => void;
     enableAiInsights: boolean;
     setEnableAiInsights: (value: boolean) => void;
-    enableChallenges: boolean;
-    setEnableChallenges: (value: boolean) => void;
 }) {
-    const NotificationToggle = ({
-        title,
-        description,
-        icon,
-        enabled,
-        onToggle,
-    }: {
-        title: string;
-        description: string;
-        icon: string;
-        enabled: boolean;
-        onToggle: () => void;
-    }) => (
-        <Pressable
-            onPress={onToggle}
-            className={`
-                p-4 rounded-lg border-2 mb-3
-                ${enabled ? 'border-blue-600 bg-blue-50' : 'border-gray-300 bg-white'}
-            `}
-        >
-            <View className="flex-row items-start justify-between">
-                <View className="flex-1 flex-row gap-3">
-                    <Text className="text-2xl">{icon}</Text>
-                    <View className="flex-1">
-                        <Text
-                            className={`font-semibold text-base mb-1 ${
-                                enabled ? 'text-blue-900' : 'text-gray-900'
-                            }`}
-                        >
-                            {title}
-                        </Text>
-                        <Text className="text-sm text-gray-600">{description}</Text>
-                    </View>
-                </View>
-                <View
-                    className={`w-12 h-7 rounded-full p-1 ${
-                        enabled ? 'bg-blue-600' : 'bg-gray-300'
-                    }`}
-                >
-                    <View
-                        className={`w-5 h-5 rounded-full bg-white ${
-                            enabled ? 'ml-auto' : ''
-                        }`}
-                    />
-                </View>
-            </View>
-        </Pressable>
-    );
-
     return (
-        <Animated.View entering={FadeInDown} exiting={FadeOutUp} className="px-6">
-            <Text className="text-3xl font-bold mb-2">Stay in the loop</Text>
+        <Animated.View entering={FadeInDown} exiting={FadeOutUp} className="px-6 pb-8">
+            <Text className="text-3xl font-bold mb-2">What kind of coach do you need?</Text>
             <Text className="text-base text-gray-600 mb-8">
-                Choose which notifications you'd like to receive
+                Configure your AI Scrum Master
             </Text>
 
-            <NotificationToggle
-                title="Daily Reminders"
-                description="Get reminded about your tasks and goals each morning"
-                icon="⏰"
-                enabled={enableDailyReminders}
-                onToggle={() => setEnableDailyReminders(!enableDailyReminders)}
-            />
+            <View className="gap-3 mb-6">
+                {COACHING_STYLES.map((style) => (
+                    <Pressable
+                        key={style.id}
+                        onPress={() => setCoachingStyle(style.id)}
+                        className={`
+                            p-4 rounded-xl border-2 flex-row items-center
+                            ${coachingStyle === style.id ? 'border-blue-600 bg-blue-50' : 'border-gray-300 bg-white'}
+                        `}
+                    >
+                        <Text className="text-3xl mr-3">{style.icon}</Text>
+                        <View className="flex-1">
+                            <Text className={`text-base font-bold ${
+                                coachingStyle === style.id ? 'text-blue-900' : 'text-gray-900'
+                            }`}>
+                                {style.label}
+                            </Text>
+                            <Text className="text-sm text-gray-600">{style.description}</Text>
+                        </View>
+                        {coachingStyle === style.id && (
+                            <View className="w-6 h-6 rounded-full bg-blue-600 items-center justify-center">
+                                <Text className="text-white text-xs font-bold">✓</Text>
+                            </View>
+                        )}
+                    </Pressable>
+                ))}
+            </View>
 
-            <NotificationToggle
-                title="AI Scrum Master Insights"
-                description="Receive smart suggestions and sprint planning tips"
-                icon="🤖"
-                enabled={enableAiInsights}
-                onToggle={() => setEnableAiInsights(!enableAiInsights)}
-            />
+            <Text className="text-lg font-bold text-gray-900 mb-3">Notifications</Text>
+            <View className="gap-3">
+                <Pressable
+                    onPress={() => setEnableDailyReminders(!enableDailyReminders)}
+                    className="flex-row items-center justify-between p-4 rounded-xl bg-gray-50"
+                >
+                    <View className="flex-1 mr-3">
+                        <Text className="font-semibold text-base text-gray-900">Daily Sprint Reminders</Text>
+                        <Text className="text-sm text-gray-600">Morning planning & evening review</Text>
+                    </View>
+                    <View
+                        className={`w-12 h-7 rounded-full p-1 ${
+                            enableDailyReminders ? 'bg-blue-600' : 'bg-gray-300'
+                        }`}
+                    >
+                        <View
+                            className={`w-5 h-5 rounded-full bg-white ${
+                                enableDailyReminders ? 'ml-auto' : ''
+                            }`}
+                        />
+                    </View>
+                </Pressable>
 
-            <NotificationToggle
-                title="Challenge Updates"
-                description="Get notified when friends complete challenges"
-                icon="🏆"
-                enabled={enableChallenges}
-                onToggle={() => setEnableChallenges(!enableChallenges)}
-            />
+                <Pressable
+                    onPress={() => setEnableAiInsights(!enableAiInsights)}
+                    className="flex-row items-center justify-between p-4 rounded-xl bg-gray-50"
+                >
+                    <View className="flex-1 mr-3">
+                        <Text className="font-semibold text-base text-gray-900">AI Insights & Warnings</Text>
+                        <Text className="text-sm text-gray-600">Capacity alerts & smart suggestions</Text>
+                    </View>
+                    <View
+                        className={`w-12 h-7 rounded-full p-1 ${
+                            enableAiInsights ? 'bg-blue-600' : 'bg-gray-300'
+                        }`}
+                    >
+                        <View
+                            className={`w-5 h-5 rounded-full bg-white ${
+                                enableAiInsights ? 'ml-auto' : ''
+                            }`}
+                        />
+                    </View>
+                </Pressable>
+            </View>
 
-            <View className="mt-6 p-4 bg-green-50 rounded-lg">
-                <Text className="text-sm text-green-900">
-                    🔔 <Text className="font-semibold">You're in control:</Text> You can always
-                    change these settings later in your profile.
+            <View className="mt-6 p-4 bg-indigo-50 rounded-xl">
+                <Text className="text-sm text-indigo-900">
+                    🤖 <Text className="font-semibold">AI Proposes, You Decide:</Text> Your AI Scrum Master never changes anything without your permission.
                 </Text>
             </View>
         </Animated.View>

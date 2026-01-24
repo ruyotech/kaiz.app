@@ -16,7 +16,8 @@ export function SettingsDrawer({ visible, onClose }: SettingsDrawerProps) {
     const slideAnim = useRef(new Animated.Value(-320)).current;
     const router = useRouter();
     const { reset: resetApp } = useAppStore();
-    const { reset: resetAuth, logout } = useAuthStore();
+    const { reset: resetAuth, logout, user, isDemoUser } = useAuthStore();
+    const { reset: resetPreferences } = require('../../store/preferencesStore').usePreferencesStore();
 
     useEffect(() => {
         if (visible) {
@@ -50,6 +51,7 @@ export function SettingsDrawer({ visible, onClose }: SettingsDrawerProps) {
                         onClose();
                         resetApp();
                         resetAuth();
+                        resetPreferences();
                         setTimeout(() => {
                             // @ts-ignore - Dynamic route
                             router.replace('/');
@@ -113,11 +115,20 @@ export function SettingsDrawer({ visible, onClose }: SettingsDrawerProps) {
                     >
                         <View className="flex-1">
                             {/* Header */}
-                            <View className="flex-row items-center justify-between p-4 border-b border-gray-200">
-                                <Text className="text-xl font-bold text-gray-800">Settings</Text>
-                                <TouchableOpacity onPress={onClose} className="p-2">
-                                    <MaterialCommunityIcons name="close" size={24} color="#374151" />
-                                </TouchableOpacity>
+                            <View className="p-4 border-b border-gray-200">
+                                <View className="flex-row items-center justify-between mb-2">
+                                    <Text className="text-xl font-bold text-gray-800">Settings</Text>
+                                    <TouchableOpacity onPress={onClose} className="p-2">
+                                        <MaterialCommunityIcons name="close" size={24} color="#374151" />
+                                    </TouchableOpacity>
+                                </View>
+                                {isDemoUser && (
+                                    <View className="bg-purple-100 px-3 py-2 rounded-lg flex-row items-center">
+                                        <Text className="text-purple-900 font-semibold text-sm">
+                                            🎭 Demo Mode Active
+                                        </Text>
+                                    </View>
+                                )}
                             </View>
 
                             {/* Settings Options */}
