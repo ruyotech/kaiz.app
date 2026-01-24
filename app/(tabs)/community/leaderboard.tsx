@@ -99,7 +99,8 @@ export default function LeaderboardScreen() {
                 horizontal 
                 showsHorizontalScrollIndicator={false}
                 className="bg-white border-b border-gray-100"
-                contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 12 }}
+                style={{ flexGrow: 0 }}
+                contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 12, alignItems: 'center' }}
             >
                 {CATEGORIES.map((cat) => (
                     <TouchableOpacity

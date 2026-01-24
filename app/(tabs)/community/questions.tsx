@@ -112,7 +112,8 @@ export default function QuestionsScreen() {
                 horizontal 
                 showsHorizontalScrollIndicator={false}
                 className="bg-gray-50"
-                contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 12 }}
+                style={{ flexGrow: 0 }}
+                contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 12, alignItems: 'center' }}
             >
                 {POPULAR_TAGS.map((tag) => (
                     <TouchableOpacity
