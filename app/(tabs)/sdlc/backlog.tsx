@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
-import { View, Text, FlatList, Pressable, ScrollView, Modal, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList, Pressable, ScrollView, Modal, TouchableOpacity, TextInput } from 'react-native';
 import { Container } from '../../../components/layout/Container';
 import { Card } from '../../../components/ui/Card';
 import { Badge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { Loading } from '../../../components/ui/Loading';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Task, LifeWheelArea, EisenhowerQuadrant, Sprint } from '../../../types/models';
 import { useTaskStore } from '../../../store/taskStore';
@@ -21,6 +22,7 @@ export default function BacklogScreen() {
     const [selectedQuadrant, setSelectedQuadrant] = useState<string | null>(null);
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
     const [showSprintPicker, setShowSprintPicker] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
 
     useEffect(() => {
         loadData();
@@ -40,19 +42,34 @@ export default function BacklogScreen() {
 
     const filteredTasks = useMemo(() => {
         let filtered = tasks;
+        
+        // Search filter
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase();
+            filtered = filtered.filter(
+                (task) =>
+                    task.title.toLowerCase().includes(query) ||
+                    task.description?.toLowerCase().includes(query)
+            );
+        }
+        
+        // Life wheel filter
         if (selectedLifeWheel) {
             filtered = filtered.filter(t => t.lifeWheelAreaId === selectedLifeWheel);
         }
+        
+        // Quadrant filter
         if (selectedQuadrant) {
             filtered = filtered.filter(t => t.eisenhowerQuadrantId === selectedQuadrant);
         }
+        
         return filtered.sort((a, b) => {
             // Sort by quadrant priority: Q1 > Q2 > Q3 > Q4
             const qOrder = { 'eq-1': 0, 'eq-2': 1, 'eq-3': 2, 'eq-4': 3 };
             return (qOrder[a.eisenhowerQuadrantId as keyof typeof qOrder] || 4) - 
                    (qOrder[b.eisenhowerQuadrantId as keyof typeof qOrder] || 4);
         });
-    }, [tasks, selectedLifeWheel, selectedQuadrant]);
+    }, [tasks, selectedLifeWheel, selectedQuadrant, searchQuery]);
 
     const getLifeWheelInfo = (id: string) => lifeWheelAreas.find(a => a.id === id);
     const getQuadrantInfo = (id: string) => eisenhowerQuadrants.find(q => q.id === id);
@@ -144,7 +161,27 @@ export default function BacklogScreen() {
     };
 
     const renderFilters = () => (
-        <View className="bg-white border-b border-gray-200 py-2">
+        <View className="bg-white border-b border-gray-200 py-3">
+            {/* Search Input */}
+            <View className="px-4 mb-3">
+                <View className="bg-gray-50 rounded-xl p-3 flex-row items-center border border-gray-200">
+                    <MaterialCommunityIcons name="magnify" size={20} color="#9CA3AF" />
+                    <TextInput
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                        placeholder="Search backlog items..."
+                        className="flex-1 ml-2 text-base"
+                        placeholderTextColor="#9CA3AF"
+                    />
+                    {searchQuery.length > 0 && (
+                        <Pressable onPress={() => setSearchQuery('')}>
+                            <MaterialCommunityIcons name="close-circle" size={18} color="#9CA3AF" />
+                        </Pressable>
+                    )}
+                </View>
+            </View>
+
+            {/* Life Wheel Filters */}
             <ScrollView 
                 horizontal 
                 showsHorizontalScrollIndicator={false}
@@ -185,6 +222,7 @@ export default function BacklogScreen() {
                 </View>
             </ScrollView>
             
+            {/* Eisenhower Quadrant Filters - Distinct Style */}
             <ScrollView 
                 horizontal 
                 showsHorizontalScrollIndicator={false}
@@ -195,15 +233,16 @@ export default function BacklogScreen() {
                         const count = tasks.filter(t => t.eisenhowerQuadrantId === quadrant.id).length;
                         if (count === 0) return null;
                         const style = getQuadrantStyle(quadrant.id);
+                        const isSelected = selectedQuadrant === quadrant.id;
                         return (
                             <Pressable
                                 key={quadrant.id}
                                 onPress={() => {
                                     setSelectedQuadrant(quadrant.id === selectedQuadrant ? null : quadrant.id);
                                 }}
-                                className={`px-3 py-1.5 rounded-full ${selectedQuadrant === quadrant.id ? `${style.bg} border-2 ${style.border}` : 'bg-gray-50 border border-gray-300'}`}
+                                className={`px-3 py-1.5 rounded-lg ${isSelected ? `${style.bg} border-2 ${style.border}` : `${style.bg} border ${style.border} opacity-60`}`}
                             >
-                                <Text className={`text-xs font-semibold ${selectedQuadrant === quadrant.id ? style.text : 'text-gray-600'}`}>
+                                <Text className={`text-xs font-bold ${style.text}`}>
                                     {quadrant.label} ({count})
                                 </Text>
                             </Pressable>
@@ -219,9 +258,14 @@ export default function BacklogScreen() {
             <Container safeArea={false}>
                 <View className="bg-white border-b border-gray-200 px-4 pt-12 pb-3">
                     <View className="flex-row items-center justify-between">
-                        <View>
-                            <Text className="text-lg font-bold text-gray-900">Backlog</Text>
-                            <Text className="text-xs text-gray-600">{tasks.length} unplanned items</Text>
+                        <View className="flex-row items-center flex-1">
+                            <Pressable onPress={() => router.back()} className="mr-3">
+                                <MaterialCommunityIcons name="arrow-left" size={24} color="#2563EB" />
+                            </Pressable>
+                            <View className="flex-1">
+                                <Text className="text-lg font-bold text-gray-900">Backlog</Text>
+                                <Text className="text-xs text-gray-600">{tasks.length} unplanned items</Text>
+                            </View>
                         </View>
                     </View>
                 </View>
@@ -234,9 +278,14 @@ export default function BacklogScreen() {
         <Container safeArea={false}>
             <View className="bg-white border-b border-gray-200 px-4 pt-12 pb-3">
                 <View className="flex-row items-center justify-between">
-                    <View>
-                        <Text className="text-lg font-bold text-gray-900">Backlog</Text>
-                        <Text className="text-xs text-gray-600">{filteredTasks.length} unplanned items</Text>
+                    <View className="flex-row items-center flex-1">
+                        <Pressable onPress={() => router.back()} className="mr-3">
+                            <MaterialCommunityIcons name="arrow-left" size={24} color="#2563EB" />
+                        </Pressable>
+                        <View className="flex-1">
+                            <Text className="text-lg font-bold text-gray-900">Backlog</Text>
+                            <Text className="text-xs text-gray-600">{filteredTasks.length} unplanned items</Text>
+                        </View>
                     </View>
                     <Button
                         onPress={() => router.push('/(tabs)/sdlc/create-task' as any)}
