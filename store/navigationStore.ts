@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type AppContext = 'sdlc' | 'mindset' | 'books' | 'bills' | 'challenges' | 'pomodoro';
+export type AppContext = 'sdlc' | 'mindset' | 'essentia' | 'bills' | 'challenges' | 'pomodoro';
 
 interface NavigationState {
     currentApp: AppContext;

@@ -1,0 +1,93 @@
+[
+    {
+        "id": "ec-001",
+        "name": "Build Unshakeable Confidence",
+        "description": "28 days of psychology-backed strategies to boost your self-confidence and overcome self-doubt. Transform how you see yourself and how others see you.",
+        "lifeWheelAreaId": "lw-4",
+        "coverImageUrl": "https://via.placeholder.com/400x600/8B5CF6/FFFFFF?text=Confidence",
+        "duration": 28,
+        "difficulty": "intermediate",
+        "enrollmentCount": 1250,
+        "completionRate": 68,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "bookIds": [
+            { "day": 1, "bookId": "eb-005" },
+            { "day": 2, "bookId": "eb-006" },
+            { "day": 3, "bookId": "eb-001" },
+            { "day": 4, "bookId": "eb-008" },
+            { "day": 5, "bookId": "eb-010" },
+            { "day": 6, "bookId": "eb-007" },
+            { "day": 7, "bookId": "eb-004" }
+        ],
+        "rewards": {
+            "xp": 500,
+            "badge": "confident"
+        }
+    },
+    {
+        "id": "ec-002",
+        "name": "Master Your Money",
+        "description": "28-day financial literacy challenge. Learn timeless wealth-building principles from the world's best finance books.",
+        "lifeWheelAreaId": "lw-3",
+        "coverImageUrl": "https://via.placeholder.com/400x600/F59E0B/FFFFFF?text=Money",
+        "duration": 28,
+        "difficulty": "beginner",
+        "enrollmentCount": 980,
+        "completionRate": 72,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "bookIds": [
+            { "day": 1, "bookId": "eb-003" },
+            { "day": 2, "bookId": "eb-003" },
+            { "day": 3, "bookId": "eb-003" },
+            { "day": 4, "bookId": "eb-003" }
+        ],
+        "rewards": {
+            "xp": 500,
+            "badge": "category_master"
+        }
+    },
+    {
+        "id": "ec-003",
+        "name": "Career Acceleration",
+        "description": "Advance your career with proven strategies from top business thinkers. 28 days to level up professionally.",
+        "lifeWheelAreaId": "lw-2",
+        "coverImageUrl": "https://via.placeholder.com/400x600/3B82F6/FFFFFF?text=Career",
+        "duration": 28,
+        "difficulty": "intermediate",
+        "enrollmentCount": 1100,
+        "completionRate": 65,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "bookIds": [
+            { "day": 1, "bookId": "eb-002" },
+            { "day": 2, "bookId": "eb-009" },
+            { "day": 3, "bookId": "eb-005" },
+            { "day": 4, "bookId": "eb-008" }
+        ],
+        "rewards": {
+            "xp": 500,
+            "badge": "category_master"
+        }
+    },
+    {
+        "id": "ec-004",
+        "name": "Fitness & Mental Toughness",
+        "description": "Build an unbreakable body and mind. 28 days of insights from elite athletes and performance coaches.",
+        "lifeWheelAreaId": "lw-1",
+        "coverImageUrl": "https://via.placeholder.com/400x600/10B981/FFFFFF?text=Fitness",
+        "duration": 28,
+        "difficulty": "intermediate",
+        "enrollmentCount": 890,
+        "completionRate": 58,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "bookIds": [
+            { "day": 1, "bookId": "eb-004" },
+            { "day": 2, "bookId": "eb-001" },
+            { "day": 3, "bookId": "eb-004" },
+            { "day": 4, "bookId": "eb-010" }
+        ],
+        "rewards": {
+            "xp": 500,
+            "badge": "category_master"
+        }
+    }
+]

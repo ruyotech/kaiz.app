@@ -18,7 +18,9 @@ import notificationsData from '../data/mock/notifications.json';
 import familiesData from '../data/mock/families.json';
 import mindsetContentData from '../data/mock/mindsetContent.json';
 import mindsetThemesData from '../data/mock/mindsetThemes.json';
-import { Challenge, ChallengeEntry, ChallengeTemplate, MindsetContent, MindsetTheme, LifeWheelDimensionTag } from '../types/models';
+import essentiaBooksData from '../data/mock/essentiaBooks.json';
+import essentiaChallengesData from '../data/mock/essentiaChallenges.json';
+import { Challenge, ChallengeEntry, ChallengeTemplate, MindsetContent, MindsetTheme, LifeWheelDimensionTag, EssentiaBook, EssentiaChallenge } from '../types/models';
 
 // Simulate API delay
 const delay = (ms: number = 500) => new Promise(resolve => setTimeout(resolve, ms));
@@ -392,5 +394,49 @@ export const mockApi = {
         return (mindsetContentData as MindsetContent[]).filter(c => 
             dimensions.includes(c.dimensionTag) && c.interventionWeight >= 70
         );
+    },
+
+    // Essentia - Micro-Learning
+    async getEssentiaBooks(filters?: { lifeWheelAreaId?: LifeWheelDimensionTag; difficulty?: string; search?: string }) {
+        await delay();
+        let filtered = essentiaBooksData as EssentiaBook[];
+
+        if (filters?.lifeWheelAreaId) {
+            filtered = filtered.filter(b => b.lifeWheelAreaId === filters.lifeWheelAreaId);
+        }
+        if (filters?.difficulty) {
+            filtered = filtered.filter(b => b.difficulty === filters.difficulty);
+        }
+        if (filters?.search) {
+            const searchLower = filters.search.toLowerCase();
+            filtered = filtered.filter(b => 
+                b.title.toLowerCase().includes(searchLower) ||
+                b.author.toLowerCase().includes(searchLower) ||
+                b.tags.some(tag => tag.toLowerCase().includes(searchLower))
+            );
+        }
+
+        return filtered;
+    },
+
+    async getEssentiaBookById(id: string) {
+        await delay();
+        return (essentiaBooksData as EssentiaBook[]).find(b => b.id === id);
+    },
+
+    async getEssentiaChallenges(filters?: { lifeWheelAreaId?: LifeWheelDimensionTag }) {
+        await delay();
+        let filtered = essentiaChallengesData as EssentiaChallenge[];
+
+        if (filters?.lifeWheelAreaId) {
+            filtered = filtered.filter(c => c.lifeWheelAreaId === filters.lifeWheelAreaId);
+        }
+
+        return filtered;
+    },
+
+    async getEssentiaChallengeById(id: string) {
+        await delay();
+        return (essentiaChallengesData as EssentiaChallenge[]).find(c => c.id === id);
     },
 };

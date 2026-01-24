@@ -21,9 +21,11 @@ export const NAV_CONFIGS: Record<AppContext, NavIcon[]> = {
         { name: 'Mindset', icon: 'lightbulb-on', route: '/(tabs)/motivation' },
         { name: 'More', icon: 'dots-horizontal', route: 'more' },
     ],
-    books: [
-        { name: 'Library', icon: 'book-open-variant', route: '/(tabs)/books' },
-        { name: 'More', icon: 'dots-horizontal', route: 'more' },
+    essentia: [
+        { name: 'Today', icon: 'home', route: '/(tabs)/essentia' },
+        { name: 'Explore', icon: 'compass', route: '/(tabs)/essentia/explore' },
+        { name: 'Library', icon: 'bookshelf', route: '/(tabs)/essentia/library' },
+        { name: 'Growth', icon: 'chart-line', route: '/(tabs)/essentia/growth' },
     ],
     challenges: [
         { name: 'Active', icon: 'trophy', route: '/(tabs)/challenges' },
@@ -56,10 +58,10 @@ export const MORE_MENUS: Record<AppContext, MoreMenuItem[]> = {
         { name: 'Analytics', icon: 'chart-box', route: '/(tabs)/motivation/analytics' },
         { name: 'Settings', icon: 'cog', route: '/(tabs)/settings' },
     ],
-    books: [
-        { name: 'Categories', icon: 'tag-multiple', route: 'categories' },
-        { name: 'Reading List', icon: 'book-clock', route: 'reading-list' },
-        { name: 'Notes', icon: 'note-text', route: 'notes' },
+    essentia: [
+        { name: 'Challenges', icon: 'trophy-variant', route: '/(tabs)/essentia/challenges' },
+        { name: 'Highlights', icon: 'marker', route: '/(tabs)/essentia/highlights' },
+        { name: 'Flashcards', icon: 'cards', route: '/(tabs)/essentia/flashcards' },
         { name: 'Settings', icon: 'cog', route: '/(tabs)/settings' },
     ],
     challenges: [
@@ -95,7 +97,7 @@ export const APPS: App[] = [
     { id: 'sdlc', name: 'Tasks', icon: 'check-circle', color: '#3B82F6', route: '/(tabs)/sdlc' },
     { id: 'challenges', name: 'Challenges', icon: 'trophy', color: '#F59E0B', route: '/(tabs)/challenges' },
     { id: 'pomodoro', name: 'Focus', icon: 'timer-sand', color: '#EF4444', route: '/(tabs)/pomodoro' },
-    { id: 'books', name: 'Books', icon: 'book-open-variant', color: '#8B5CF6', route: '/(tabs)/books' },
+    { id: 'essentia', name: 'Essentia', icon: 'brain', color: '#8B5CF6', route: '/(tabs)/essentia' },
     { id: 'mindset', name: 'Mindset', icon: 'lightbulb-on', color: '#EC4899', route: '/(tabs)/motivation' },
     { id: 'community', name: 'Community', icon: 'account-group', color: '#EF4444', route: '/community' },
 ];

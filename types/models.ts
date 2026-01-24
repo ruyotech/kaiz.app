@@ -218,7 +218,7 @@ export interface MindsetSession {
 
 // Note: Legacy Quote interfaces removed - replaced by MindsetContent system
 
-// Books
+// Books (Legacy - replaced by Essentia)
 export interface BookSummary {
     id: string;
     title: string;
@@ -228,6 +228,172 @@ export interface BookSummary {
     content: string;
     keyTakeaways: string[];
     createdAt: string;
+}
+
+// Essentia - Micro-Learning Module
+export type EssentiaCardType = 'intro' | 'concept' | 'quote' | 'quiz' | 'summary';
+export type EssentiaDifficulty = 'beginner' | 'intermediate' | 'advanced';
+export type EssentiaBadgeType = 'early_bird' | 'night_owl' | 'speed_reader' | 'consistent' | 
+    'scholar' | 'category_master' | '7_day_streak' | '30_day_streak' | '100_day_streak' | 
+    '365_day_streak' | 'first_book' | '100_books';
+
+export interface EssentiaCard {
+    id: string;
+    type: EssentiaCardType;
+    order: number;
+    title: string;
+    text: string;
+    imageUrl?: string;
+    audioUrl?: string;
+    audioDuration?: number; // seconds
+    audioStartTime?: number; // seconds from beginning of full audio track
+    // Quiz-specific fields
+    quizQuestion?: string;
+    quizOptions?: string[];
+    quizCorrectIndex?: number;
+    quizExplanation?: string;
+}
+
+export interface EssentiaBook {
+    id: string;
+    title: string;
+    author: string;
+    coverImageUrl?: string;
+    lifeWheelAreaId: LifeWheelDimensionTag;
+    category: string; // Display name like "Personal Growth"
+    duration: number; // minutes
+    cardCount: number;
+    difficulty: EssentiaDifficulty;
+    tags: string[];
+    description: string;
+    keyTakeaways: string[];
+    cards: EssentiaCard[];
+    publicationYear?: number;
+    rating?: number; // 0-5
+    completionCount?: number; // popularity metric
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface EssentiaProgress {
+    bookId: string;
+    userId: string;
+    currentCardId: string;
+    currentCardIndex: number;
+    percentComplete: number;
+    startedAt: string;
+    lastReadAt: string;
+    completedAt?: string;
+    timeSpent: number; // seconds
+}
+
+export interface EssentiaHighlight {
+    id: string;
+    userId: string;
+    bookId: string;
+    cardId: string;
+    text: string;
+    createdAt: string;
+    note?: string;
+}
+
+export interface EssentiaFlashcard {
+    id: string;
+    userId: string;
+    highlightId: string;
+    bookId: string;
+    question: string;
+    answer: string;
+    nextReviewDate: string;
+    reviewCount: number;
+    correctCount: number;
+    incorrectCount: number;
+    easeFactor: number; // for spaced repetition algorithm
+    interval: number; // days until next review
+    createdAt: string;
+    lastReviewedAt?: string;
+}
+
+export interface EssentiaStreak {
+    userId: string;
+    currentStreak: number;
+    longestStreak: number;
+    lastActiveDate: string;
+    streakFreezes: number; // available "skip days"
+    streakHistory: Array<{
+        date: string; // YYYY-MM-DD
+        booksCompleted: number;
+        minutesRead: number;
+    }>;
+}
+
+export interface EssentiaUserStats {
+    userId: string;
+    totalXP: number;
+    level: number;
+    levelName: string; // "Beginner", "Scholar", "Expert", "Master"
+    nextLevelXP: number;
+    booksCompleted: number;
+    totalMinutesRead: number;
+    highlightsCreated: number;
+    flashcardsReviewed: number;
+    badges: EssentiaBadgeType[];
+    dailyGoalMinutes: number;
+    preferredReadingTime?: 'morning' | 'afternoon' | 'evening' | 'anytime';
+    joinedAt: string;
+    lastActiveAt: string;
+}
+
+export interface EssentiaChallenge {
+    id: string;
+    name: string;
+    description: string;
+    lifeWheelAreaId: LifeWheelDimensionTag;
+    coverImageUrl?: string;
+    duration: number; // days (typically 28)
+    difficulty: EssentiaDifficulty;
+    bookIds: Array<{
+        day: number;
+        bookId: string;
+    }>;
+    rewards: {
+        xp: number;
+        badge?: EssentiaBadgeType;
+    };
+    enrollmentCount?: number;
+    completionRate?: number;
+    createdAt: string;
+}
+
+export interface EssentiaUserChallenge {
+    id: string;
+    userId: string;
+    challengeId: string;
+    startDate: string;
+    currentDay: number;
+    completedBookIds: string[];
+    status: 'active' | 'completed' | 'abandoned';
+    completedAt?: string;
+}
+
+export interface EssentiaBadge {
+    type: EssentiaBadgeType;
+    name: string;
+    description: string;
+    iconUrl?: string;
+    unlockedAt?: string;
+}
+
+export interface EssentiaSession {
+    id: string;
+    userId: string;
+    bookId: string;
+    startedAt: string;
+    endedAt?: string;
+    cardsViewed: number;
+    audioPlayed: boolean;
+    highlightsCreated: number;
+    completed: boolean;
 }
 
 // Challenges

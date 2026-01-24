@@ -1,0 +1,556 @@
+[
+    {
+        "id": "eb-001",
+        "title": "Atomic Habits",
+        "author": "James Clear",
+        "lifeWheelAreaId": "lw-4",
+        "category": "Personal Growth",
+        "duration": 8,
+        "cardCount": 20,
+        "difficulty": "beginner",
+        "tags": ["habits", "productivity", "self-improvement"],
+        "description": "Learn how tiny changes can lead to remarkable results. James Clear reveals the surprising science behind habit formation and provides practical strategies to build good habits and break bad ones.",
+        "keyTakeaways": [
+            "Small habits make a big difference over time",
+            "Focus on systems, not goals",
+            "Make habits obvious, attractive, easy, and satisfying",
+            "Environment shapes behavior more than motivation"
+        ],
+        "publicationYear": 2018,
+        "rating": 4.8,
+        "completionCount": 1250,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-01T00:00:00Z",
+        "cards": [
+            {
+                "id": "c-001-1",
+                "type": "intro",
+                "order": 1,
+                "title": "Welcome to Atomic Habits",
+                "text": "James Clear spent years studying the science of habits. After a devastating injury ended his baseball career, he discovered that small, consistent improvements could lead to extraordinary results. This book reveals his proven system for building better habits.",
+                "imageUrl": "https://via.placeholder.com/400x600/8B5CF6/FFFFFF?text=Atomic+Habits"
+            },
+            {
+                "id": "c-001-2",
+                "type": "concept",
+                "order": 2,
+                "title": "The 1% Rule",
+                "text": "If you get 1% better each day for a year, you'll be 37 times better by the end. Small changes seem insignificant, but they compound over time. Success is the product of daily habits, not once-in-a-lifetime transformations.",
+                "imageUrl": "https://via.placeholder.com/400x600/8B5CF6/FFFFFF?text=1%25+Better"
+            },
+            {
+                "id": "c-001-3",
+                "type": "concept",
+                "order": 3,
+                "title": "Systems vs Goals",
+                "text": "Winners and losers have the same goals. The difference is in their systems. Goals are about the results you want to achieve. Systems are about the processes that lead to those results. Focus on building better systems.",
+                "imageUrl": "https://via.placeholder.com/400x600/8B5CF6/FFFFFF?text=Systems"
+            },
+            {
+                "id": "c-001-4",
+                "type": "quote",
+                "order": 4,
+                "title": "Identity Change",
+                "text": "\"The ultimate form of intrinsic motivation is when a habit becomes part of your identity. It's one thing to say I'm the type of person who wants this. It's something very different to say I'm the type of person who is this.\"",
+                "imageUrl": "https://via.placeholder.com/400x600/8B5CF6/FFFFFF?text=Identity"
+            },
+            {
+                "id": "c-001-5",
+                "type": "concept",
+                "order": 5,
+                "title": "The Four Laws",
+                "text": "Every habit follows the same pattern: Cue → Craving → Response → Reward. To build good habits: Make it obvious, make it attractive, make it easy, make it satisfying. To break bad habits, invert these laws.",
+                "imageUrl": "https://via.placeholder.com/400x600/8B5CF6/FFFFFF?text=Four+Laws"
+            },
+            {
+                "id": "c-001-6",
+                "type": "summary",
+                "order": 6,
+                "title": "Your Action Steps",
+                "text": "1. Start with a habit that takes less than 2 minutes\n2. Design your environment to make good habits obvious\n3. Join a culture where your desired behavior is normal\n4. Never miss twice - get back on track immediately",
+                "imageUrl": "https://via.placeholder.com/400x600/8B5CF6/FFFFFF?text=Take+Action"
+            }
+        ]
+    },
+    {
+        "id": "eb-002",
+        "title": "Deep Work",
+        "author": "Cal Newport",
+        "lifeWheelAreaId": "lw-2",
+        "category": "Career & Work",
+        "duration": 7,
+        "cardCount": 18,
+        "difficulty": "intermediate",
+        "tags": ["productivity", "focus", "career"],
+        "description": "In a world of distraction, the ability to focus deeply is becoming rare and valuable. Cal Newport shows how to cultivate deep work and produce your best results.",
+        "keyTakeaways": [
+            "Deep work produces rare and valuable outcomes",
+            "Shallow work is inevitable but should be minimized",
+            "Schedule every minute of your day",
+            "Embrace boredom to strengthen focus"
+        ],
+        "publicationYear": 2016,
+        "rating": 4.6,
+        "completionCount": 980,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-01T00:00:00Z",
+        "cards": [
+            {
+                "id": "c-002-1",
+                "type": "intro",
+                "order": 1,
+                "title": "The Deep Work Hypothesis",
+                "text": "Deep Work is professional activities performed in a state of distraction-free concentration that push your cognitive capabilities to their limit. These efforts create new value and improve your skill.",
+                "imageUrl": "https://via.placeholder.com/400x600/3B82F6/FFFFFF?text=Deep+Work"
+            },
+            {
+                "id": "c-002-2",
+                "type": "concept",
+                "order": 2,
+                "title": "Why Deep Work Matters",
+                "text": "In our economy, three groups will thrive: those who can work with intelligent machines, those who are the best in their field, and those with capital. The first two require deep work to master complex systems and produce at an elite level.",
+                "imageUrl": "https://via.placeholder.com/400x600/3B82F6/FFFFFF?text=Why+It+Matters"
+            },
+            {
+                "id": "c-002-3",
+                "type": "concept",
+                "order": 3,
+                "title": "The Four Philosophies",
+                "text": "Monastic: Eliminate all shallow work. Bimodal: Deep work in chunks. Rhythmic: Daily deep work habit. Journalistic: Fit deep work wherever you can. Choose the philosophy that fits your life.",
+                "imageUrl": "https://via.placeholder.com/400x600/3B82F6/FFFFFF?text=Philosophies"
+            },
+            {
+                "id": "c-002-4",
+                "type": "summary",
+                "order": 4,
+                "title": "Start Today",
+                "text": "Schedule deep work blocks on your calendar. Quit social media. Embrace boredom instead of checking your phone. Drain the shallows from your day. Your career will thank you.",
+                "imageUrl": "https://via.placeholder.com/400x600/3B82F6/FFFFFF?text=Action"
+            }
+        ]
+    },
+    {
+        "id": "eb-003",
+        "title": "The Psychology of Money",
+        "author": "Morgan Housel",
+        "lifeWheelAreaId": "lw-3",
+        "category": "Finance & Money",
+        "duration": 6,
+        "cardCount": 15,
+        "difficulty": "beginner",
+        "tags": ["finance", "investing", "money-mindset"],
+        "description": "Money decisions are rarely about math. They're about behavior, emotions, and how we think. Morgan Housel shares timeless lessons on wealth, greed, and happiness.",
+        "keyTakeaways": [
+            "Wealth is what you don't see",
+            "Enough is realizing when to stop taking risks",
+            "Compounding is the most powerful force",
+            "Save money without a specific goal"
+        ],
+        "publicationYear": 2020,
+        "rating": 4.7,
+        "completionCount": 1100,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-01T00:00:00Z",
+        "cards": [
+            {
+                "id": "c-003-1",
+                "type": "intro",
+                "order": 1,
+                "title": "It's Not About Math",
+                "text": "Financial success is not about what you know. It's about how you behave. A genius who loses control of their emotions will be a financial disaster. An average person with good behavior will be wealthy.",
+                "imageUrl": "https://via.placeholder.com/400x600/F59E0B/FFFFFF?text=Psychology+of+Money"
+            },
+            {
+                "id": "c-003-2",
+                "type": "concept",
+                "order": 2,
+                "title": "Luck and Risk",
+                "text": "Nothing is as good or as bad as it seems. Bill Gates and his friend both went to one of the only high schools with a computer. Bill became the richest man. His friend died in a mountaineering accident. Luck and risk are twins.",
+                "imageUrl": "https://via.placeholder.com/400x600/F59E0B/FFFFFF?text=Luck"
+            },
+            {
+                "id": "c-003-3",
+                "type": "quote",
+                "order": 3,
+                "title": "Enough",
+                "text": "\"The hardest financial skill is getting the goalpost to stop moving. Modern capitalism makes you think you need more. But the only way to know how much you need is to know when you have enough.\"",
+                "imageUrl": "https://via.placeholder.com/400x600/F59E0B/FFFFFF?text=Enough"
+            },
+            {
+                "id": "c-003-4",
+                "type": "summary",
+                "order": 4,
+                "title": "Build Wealth",
+                "text": "Save more than you think you need. Invest in low-cost index funds. Be patient. Don't confuse being rich (income) with being wealthy (assets). Wealth is what you don't see.",
+                "imageUrl": "https://via.placeholder.com/400x600/F59E0B/FFFFFF?text=Build+Wealth"
+            }
+        ]
+    },
+    {
+        "id": "eb-004",
+        "title": "Can't Hurt Me",
+        "author": "David Goggins",
+        "lifeWheelAreaId": "lw-1",
+        "category": "Health & Fitness",
+        "duration": 9,
+        "cardCount": 22,
+        "difficulty": "intermediate",
+        "tags": ["mental-toughness", "fitness", "resilience"],
+        "description": "From poverty and abuse to Navy SEAL and ultramarathon runner, David Goggins shares his journey of transforming himself through self-discipline and mental toughness.",
+        "keyTakeaways": [
+            "Your mind quits before your body",
+            "The 40% rule: when you think you're done, you're only 40% done",
+            "Embrace suffering to grow stronger",
+            "Take accountability for your life"
+        ],
+        "publicationYear": 2018,
+        "rating": 4.9,
+        "completionCount": 850,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-01T00:00:00Z",
+        "cards": [
+            {
+                "id": "c-004-1",
+                "type": "intro",
+                "order": 1,
+                "title": "The Toughest Man Alive",
+                "text": "David Goggins grew up in poverty with an abusive father. He was overweight, depressed, and working as a night-shift exterminator. Then he decided to become a Navy SEAL. This is his story of transformation.",
+                "imageUrl": "https://via.placeholder.com/400x600/10B981/FFFFFF?text=Can%27t+Hurt+Me"
+            },
+            {
+                "id": "c-004-2",
+                "type": "concept",
+                "order": 2,
+                "title": "The 40% Rule",
+                "text": "When your mind tells you you're done, you're only 40% done. Most people quit at 40% of their true capability. There's always more in the tank. Push through the discomfort.",
+                "imageUrl": "https://via.placeholder.com/400x600/10B981/FFFFFF?text=40%25"
+            },
+            {
+                "id": "c-004-3",
+                "type": "concept",
+                "order": 3,
+                "title": "The Accountability Mirror",
+                "text": "Face yourself in the mirror and be honest about who you are and what you need to change. Write your goals on sticky notes and post them on your mirror. Look at them every day. Hold yourself accountable.",
+                "imageUrl": "https://via.placeholder.com/400x600/10B981/FFFFFF?text=Accountability"
+            },
+            {
+                "id": "c-004-4",
+                "type": "summary",
+                "order": 4,
+                "title": "Callous Your Mind",
+                "text": "Do hard things every day. Run when you don't want to. Study when you're tired. Face your fears head-on. Each time you push through discomfort, you build mental calluses that make you stronger.",
+                "imageUrl": "https://via.placeholder.com/400x600/10B981/FFFFFF?text=Callous"
+            }
+        ]
+    },
+    {
+        "id": "eb-005",
+        "title": "The 7 Habits of Highly Effective People",
+        "author": "Stephen Covey",
+        "lifeWheelAreaId": "lw-4",
+        "category": "Personal Growth",
+        "duration": 10,
+        "cardCount": 25,
+        "difficulty": "beginner",
+        "tags": ["effectiveness", "leadership", "principles"],
+        "description": "Stephen Covey's timeless principles for personal and professional effectiveness. Learn the 7 habits that transform how you work and live.",
+        "keyTakeaways": [
+            "Be proactive, not reactive",
+            "Begin with the end in mind",
+            "Put first things first",
+            "Seek first to understand, then to be understood"
+        ],
+        "publicationYear": 1989,
+        "rating": 4.7,
+        "completionCount": 1500,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-01T00:00:00Z",
+        "cards": [
+            {
+                "id": "c-005-1",
+                "type": "intro",
+                "order": 1,
+                "title": "The Character Ethic",
+                "text": "For decades, success literature focused on personality techniques. Covey argues for a return to character-based success: principles like integrity, courage, and justice. These 7 habits build that foundation.",
+                "imageUrl": "https://via.placeholder.com/400x600/8B5CF6/FFFFFF?text=7+Habits"
+            },
+            {
+                "id": "c-005-2",
+                "type": "concept",
+                "order": 2,
+                "title": "Habit 1: Be Proactive",
+                "text": "Take responsibility for your life. Between stimulus and response, you have the freedom to choose. Focus on your circle of influence, not your circle of concern. Act, don't react.",
+                "imageUrl": "https://via.placeholder.com/400x600/8B5CF6/FFFFFF?text=Proactive"
+            },
+            {
+                "id": "c-005-3",
+                "type": "concept",
+                "order": 3,
+                "title": "Habit 2: Begin With the End in Mind",
+                "text": "Imagine your funeral. What do you want people to say about you? Define your personal mission statement. Every action should align with your core values and long-term vision.",
+                "imageUrl": "https://via.placeholder.com/400x600/8B5CF6/FFFFFF?text=End+In+Mind"
+            },
+            {
+                "id": "c-005-4",
+                "type": "summary",
+                "order": 4,
+                "title": "The Path to Effectiveness",
+                "text": "Master the private victory (Habits 1-3: be proactive, begin with the end, put first things first). Then achieve public victory (Habits 4-6: win-win, understand first, synergize). Finally, renew yourself (Habit 7: sharpen the saw).",
+                "imageUrl": "https://via.placeholder.com/400x600/8B5CF6/FFFFFF?text=Effective"
+            }
+        ]
+    },
+    {
+        "id": "eb-006",
+        "title": "How to Win Friends and Influence People",
+        "author": "Dale Carnegie",
+        "lifeWheelAreaId": "lw-5",
+        "category": "Relationships & Family",
+        "duration": 7,
+        "cardCount": 18,
+        "difficulty": "beginner",
+        "tags": ["relationships", "communication", "influence"],
+        "description": "Dale Carnegie's timeless advice on building relationships and influencing others. Learn the fundamental techniques for handling people, winning friends, and changing people without giving offense.",
+        "keyTakeaways": [
+            "Don't criticize, condemn, or complain",
+            "Give honest and sincere appreciation",
+            "Become genuinely interested in other people",
+            "Remember that a person's name is the sweetest sound"
+        ],
+        "publicationYear": 1936,
+        "rating": 4.6,
+        "completionCount": 1300,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-01T00:00:00Z",
+        "cards": [
+            {
+                "id": "c-006-1",
+                "type": "intro",
+                "order": 1,
+                "title": "The Secret to Success",
+                "text": "Technical skills account for only 15% of success. The other 85%? People skills. Carnegie spent years studying how the most successful people built relationships. Here are his discoveries.",
+                "imageUrl": "https://via.placeholder.com/400x600/EF4444/FFFFFF?text=Win+Friends"
+            },
+            {
+                "id": "c-006-2",
+                "type": "concept",
+                "order": 2,
+                "title": "Don't Criticize",
+                "text": "Criticism puts people on the defensive and makes them justify themselves. Abraham Lincoln learned to never criticize. Even when generals failed, he wrote letters of criticism but never sent them. He vented, then chose understanding.",
+                "imageUrl": "https://via.placeholder.com/400x600/EF4444/FFFFFF?text=No+Criticism"
+            },
+            {
+                "id": "c-006-3",
+                "type": "quote",
+                "order": 3,
+                "title": "The Name Principle",
+                "text": "\"A person's name is to that person the sweetest and most important sound in any language. Remember it. Use it often. People love hearing their own name.\"",
+                "imageUrl": "https://via.placeholder.com/400x600/EF4444/FFFFFF?text=Names"
+            },
+            {
+                "id": "c-006-4",
+                "type": "summary",
+                "order": 4,
+                "title": "Win People Over",
+                "text": "Smile. Remember names. Listen more than you talk. Make others feel important. Admit your mistakes. Let others save face. These simple techniques will transform your relationships.",
+                "imageUrl": "https://via.placeholder.com/400x600/EF4444/FFFFFF?text=Transform"
+            }
+        ]
+    },
+    {
+        "id": "eb-007",
+        "title": "Thinking, Fast and Slow",
+        "author": "Daniel Kahneman",
+        "lifeWheelAreaId": "lw-4",
+        "category": "Personal Growth",
+        "duration": 12,
+        "cardCount": 28,
+        "difficulty": "advanced",
+        "tags": ["psychology", "decision-making", "cognitive-bias"],
+        "description": "Nobel Prize winner Daniel Kahneman reveals the two systems that drive how we think: fast, intuitive thinking and slow, logical thinking. Learn how to make better decisions.",
+        "keyTakeaways": [
+            "System 1 is fast and emotional, System 2 is slow and logical",
+            "We're overconfident in our judgments",
+            "Losses loom larger than gains",
+            "What you see is all there is (WYSIATI)"
+        ],
+        "publicationYear": 2011,
+        "rating": 4.5,
+        "completionCount": 750,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-01T00:00:00Z",
+        "cards": [
+            {
+                "id": "c-007-1",
+                "type": "intro",
+                "order": 1,
+                "title": "Two Systems",
+                "text": "Your mind has two systems. System 1 operates automatically and quickly. System 2 allocates attention to effortful mental activities. Most of the time, System 1 runs the show.",
+                "imageUrl": "https://via.placeholder.com/400x600/8B5CF6/FFFFFF?text=Fast+Slow"
+            },
+            {
+                "id": "c-007-2",
+                "type": "concept",
+                "order": 2,
+                "title": "Cognitive Ease",
+                "text": "When things feel easy, System 1 trusts them. Repeated statements become believable. Clear fonts feel true. Familiar things feel safe. This is why marketing works and misinformation spreads.",
+                "imageUrl": "https://via.placeholder.com/400x600/8B5CF6/FFFFFF?text=Cognitive+Ease"
+            },
+            {
+                "id": "c-007-3",
+                "type": "summary",
+                "order": 3,
+                "title": "Better Decisions",
+                "text": "Slow down for important decisions. Challenge your first instinct. Seek disconfirming evidence. Use checklists. Remember: confidence is not the same as competence.",
+                "imageUrl": "https://via.placeholder.com/400x600/8B5CF6/FFFFFF?text=Decide+Better"
+            }
+        ]
+    },
+    {
+        "id": "eb-008",
+        "title": "Essentialism",
+        "author": "Greg McKeown",
+        "lifeWheelAreaId": "lw-4",
+        "category": "Personal Growth",
+        "duration": 6,
+        "cardCount": 16,
+        "difficulty": "beginner",
+        "tags": ["focus", "priorities", "simplicity"],
+        "description": "The disciplined pursuit of less. Learn how to do less but better, focusing only on what truly matters.",
+        "keyTakeaways": [
+            "If it isn't a clear yes, it's a clear no",
+            "Less but better",
+            "Protect your time like you protect your money",
+            "The main thing is to keep the main thing the main thing"
+        ],
+        "publicationYear": 2014,
+        "rating": 4.6,
+        "completionCount": 920,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-01T00:00:00Z",
+        "cards": [
+            {
+                "id": "c-008-1",
+                "type": "intro",
+                "order": 1,
+                "title": "The Way of the Essentialist",
+                "text": "Essentialism is not about getting more done in less time. It's about getting only the right things done. It's about making the wisest possible investment of your time and energy.",
+                "imageUrl": "https://via.placeholder.com/400x600/8B5CF6/FFFFFF?text=Essentialism"
+            },
+            {
+                "id": "c-008-2",
+                "type": "concept",
+                "order": 2,
+                "title": "Trade-Offs",
+                "text": "You can do anything, but not everything. Every time you say yes to something, you're saying no to something else. The question is not 'How can I do it all?' but 'What will I say no to?'",
+                "imageUrl": "https://via.placeholder.com/400x600/8B5CF6/FFFFFF?text=Trade-offs"
+            },
+            {
+                "id": "c-008-3",
+                "type": "summary",
+                "order": 3,
+                "title": "Live Essentially",
+                "text": "Eliminate the non-essential. Say no gracefully. Create space to think. Focus on your highest contribution. Design your ideal day, then protect it fiercely.",
+                "imageUrl": "https://via.placeholder.com/400x600/8B5CF6/FFFFFF?text=Essential"
+            }
+        ]
+    },
+    {
+        "id": "eb-009",
+        "title": "The Lean Startup",
+        "author": "Eric Ries",
+        "lifeWheelAreaId": "lw-2",
+        "category": "Career & Work",
+        "duration": 8,
+        "cardCount": 20,
+        "difficulty": "intermediate",
+        "tags": ["entrepreneurship", "innovation", "business"],
+        "description": "How today's entrepreneurs use continuous innovation to create radically successful businesses. Learn the build-measure-learn feedback loop.",
+        "keyTakeaways": [
+            "Build a minimum viable product (MVP)",
+            "Use validated learning over vanity metrics",
+            "Pivot or persevere based on data",
+            "Innovation accounting measures progress"
+        ],
+        "publicationYear": 2011,
+        "rating": 4.5,
+        "completionCount": 680,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-01T00:00:00Z",
+        "cards": [
+            {
+                "id": "c-009-1",
+                "type": "intro",
+                "order": 1,
+                "title": "A New Way to Build",
+                "text": "Most startups fail not because they can't build a product, but because they build something nobody wants. The Lean Startup methodology helps you avoid this fate through rapid experimentation.",
+                "imageUrl": "https://via.placeholder.com/400x600/3B82F6/FFFFFF?text=Lean+Startup"
+            },
+            {
+                "id": "c-009-2",
+                "type": "concept",
+                "order": 2,
+                "title": "Build-Measure-Learn",
+                "text": "Turn ideas into products, measure customer responses, and learn whether to pivot or persevere. This feedback loop should be as fast as possible. Speed is your competitive advantage.",
+                "imageUrl": "https://via.placeholder.com/400x600/3B82F6/FFFFFF?text=Feedback+Loop"
+            },
+            {
+                "id": "c-009-3",
+                "type": "summary",
+                "order": 3,
+                "title": "Start Lean",
+                "text": "Build an MVP. Get it in front of customers. Measure what matters. Learn fast. Don't be afraid to pivot. Your goal is validated learning, not building features.",
+                "imageUrl": "https://via.placeholder.com/400x600/3B82F6/FFFFFF?text=Lean"
+            }
+        ]
+    },
+    {
+        "id": "eb-010",
+        "title": "The Power of Now",
+        "author": "Eckhart Tolle",
+        "lifeWheelAreaId": "lw-4",
+        "category": "Personal Growth",
+        "duration": 7,
+        "cardCount": 18,
+        "difficulty": "intermediate",
+        "tags": ["mindfulness", "spirituality", "presence"],
+        "description": "A guide to spiritual enlightenment. Learn to live in the present moment and free yourself from the pain of past and anxiety about the future.",
+        "keyTakeaways": [
+            "The present moment is all you have",
+            "Your mind is a tool, not who you are",
+            "Acceptance of the present ends suffering",
+            "Observe your thoughts without judgment"
+        ],
+        "publicationYear": 1997,
+        "rating": 4.6,
+        "completionCount": 890,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-01T00:00:00Z",
+        "cards": [
+            {
+                "id": "c-010-1",
+                "type": "intro",
+                "order": 1,
+                "title": "The Eternal Now",
+                "text": "The past is memory. The future is imagination. The only reality is this moment, right now. Your entire life unfolds in the present moment. Learn to be here.",
+                "imageUrl": "https://via.placeholder.com/400x600/8B5CF6/FFFFFF?text=Power+of+Now"
+            },
+            {
+                "id": "c-010-2",
+                "type": "concept",
+                "order": 2,
+                "title": "The Pain-Body",
+                "text": "We carry accumulated pain from the past - the pain-body. It feeds on negative thinking and drama. Recognizing it is the first step to dissolving it. Presence is the solution.",
+                "imageUrl": "https://via.placeholder.com/400x600/8B5CF6/FFFFFF?text=Pain-Body"
+            },
+            {
+                "id": "c-010-3",
+                "type": "summary",
+                "order": 3,
+                "title": "Be Present",
+                "text": "Focus on your breath. Feel your inner body. Observe your thoughts without identifying with them. Accept what is. This moment is all you need to handle.",
+                "imageUrl": "https://via.placeholder.com/400x600/8B5CF6/FFFFFF?text=Be+Here"
+            }
+        ]
+    }
+]
