@@ -38,7 +38,7 @@ export function SettingsDrawer({ visible, onClose }: SettingsDrawerProps) {
     const handleResetDemo = () => {
         Alert.alert(
             '🔄 Reset Demo',
-            'This will clear all app data and show the onboarding screens again. Perfect for testing!',
+            'This will clear all app data and show the welcome screen. Perfect for testing the complete flow from the beginning!',
             [
                 {
                     text: 'Cancel',
@@ -58,9 +58,9 @@ export function SettingsDrawer({ visible, onClose }: SettingsDrawerProps) {
                         // Wait a moment for AsyncStorage to clear
                         await new Promise(resolve => setTimeout(resolve, 100));
                         
-                        // Go directly to onboarding setup
+                        // Go to the very beginning (welcome/splash screen)
                         // @ts-ignore - Dynamic route
-                        router.replace('/(onboarding)/setup');
+                        router.replace('/');
                     },
                 },
             ]

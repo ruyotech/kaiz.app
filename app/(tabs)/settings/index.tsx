@@ -52,7 +52,7 @@ export default function SettingsScreen() {
     const handleResetDemo = async () => {
         Alert.alert(
             '🔄 Reset Demo',
-            'This will clear all app data and show the onboarding screens again. Perfect for testing the complete flow!',
+            'This will clear all app data and show the welcome screen. Perfect for testing the complete flow from the beginning!',
             [
                 {
                     text: 'Cancel',
@@ -70,9 +70,9 @@ export default function SettingsScreen() {
                         // Wait a moment for AsyncStorage to clear
                         await new Promise(resolve => setTimeout(resolve, 100));
                         
-                        // Go directly to onboarding setup
+                        // Go to the very beginning (welcome/splash screen)
                         // @ts-ignore - Dynamic route
-                        router.replace('/(onboarding)/setup');
+                        router.replace('/');
                     },
                 },
             ]
@@ -114,9 +114,9 @@ export default function SettingsScreen() {
     const isAreaSelected = (areaId: string) => selectedLifeWheelAreaIds.includes(areaId);
 
     return (
-        <Container>
+        <Container safeArea={false}>
             {/* Header with Close Button */}
-            <View className="bg-white border-b border-gray-200 px-4 pt-12 pb-4">
+            <View className="bg-white border-b border-gray-200 px-4 pt-12 pb-3">
                 <View className="flex-row items-center justify-between">
                     <View className="flex-1">
                         <Text className="text-2xl font-bold text-gray-900">Settings</Text>

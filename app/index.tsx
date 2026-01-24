@@ -26,11 +26,11 @@ export default function Index() {
             // Determine where to navigate based on app state
             console.log('🚀 Navigating based on state...');
             
-            // Check onboarding first - if not onboarded, go to setup
+            // Check onboarding first - if not onboarded, go to welcome
             if (!isOnboarded) {
-                console.log('→ Going to Onboarding Setup (not onboarded)');
+                console.log('→ Going to Welcome Screen (not onboarded)');
                 // @ts-ignore - Dynamic route
-                router.replace('/(onboarding)/setup');
+                router.replace('/(onboarding)/welcome');
             } else if (!user) {
                 console.log('→ Going to Login (onboarded but no user)');
                 // @ts-ignore - Dynamic route
@@ -60,9 +60,9 @@ export default function Index() {
         // Wait for AsyncStorage to clear
         await new Promise(resolve => setTimeout(resolve, 100));
         
-        // Go directly to onboarding setup
+        // Go to welcome screen (start of onboarding flow)
         // @ts-ignore - Dynamic route
-        router.replace('/(onboarding)/setup');
+        router.replace('/(onboarding)/welcome');
     };
 
     if (showSplash) {
