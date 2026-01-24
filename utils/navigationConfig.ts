@@ -39,6 +39,10 @@ export const NAV_CONFIGS: Record<AppContext, NavIcon[]> = {
         { name: 'Bills', icon: 'currency-usd', route: '/(tabs)/bills' },
         { name: 'More', icon: 'dots-horizontal', route: 'more' },
     ],
+    community: [
+        { name: 'Hub', icon: 'account-group', route: '/(tabs)/community' },
+        { name: 'More', icon: 'dots-horizontal', route: 'more' },
+    ],
 };
 
 export const MORE_MENUS: Record<AppContext, MoreMenuItem[]> = {
@@ -83,10 +87,19 @@ export const MORE_MENUS: Record<AppContext, MoreMenuItem[]> = {
         { name: 'Reports', icon: 'chart-pie', route: '/(tabs)/bills/reports' },
         { name: 'Settings', icon: 'cog', route: '/(tabs)/settings' },
     ],
+    community: [
+        { name: 'Knowledge Hub', icon: 'school', route: '/(tabs)/community/knowledge' },
+        { name: 'Q&A Forum', icon: 'help-circle', route: '/(tabs)/community/questions' },
+        { name: 'Success Stories', icon: 'party-popper', route: '/(tabs)/community/wins' },
+        { name: 'Templates', icon: 'file-document-multiple', route: '/(tabs)/community/templates' },
+        { name: 'Leaderboard', icon: 'podium-gold', route: '/(tabs)/community/leaderboard' },
+        { name: 'Support Circle', icon: 'account-heart', route: '/(tabs)/community/support' },
+        { name: 'My Profile', icon: 'account-circle', route: '/(tabs)/community/profile' },
+    ],
 };
 
 export interface App {
-    id: AppContext | 'community';
+    id: AppContext;
     name: string;
     icon: string;
     color: string;
@@ -99,5 +112,5 @@ export const APPS: App[] = [
     { id: 'pomodoro', name: 'Focus', icon: 'timer-sand', color: '#EF4444', route: '/(tabs)/pomodoro' },
     { id: 'essentia', name: 'Essentia', icon: 'brain', color: '#8B5CF6', route: '/(tabs)/essentia' },
     { id: 'mindset', name: 'Mindset', icon: 'lightbulb-on', color: '#EC4899', route: '/(tabs)/motivation' },
-    { id: 'community', name: 'Community', icon: 'account-group', color: '#EF4444', route: '/community' },
+    { id: 'community', name: 'Community', icon: 'account-group', color: '#10B981', route: '/(tabs)/community' },
 ];

@@ -519,6 +519,371 @@ export interface Notification {
     createdAt: string;
 }
 
+// ==========================================
+// Community Module
+// ==========================================
+
+// User Reputation & Gamification
+export type CommunityBadgeType = 
+    | 'sprint_starter' // Completed first sprint
+    | 'sprint_mentor' // Helped 10+ users
+    | 'velocity_master' // Achieved consistent velocity
+    | 'community_champion' // Top contributor
+    | 'knowledge_keeper' // Answered 50+ questions
+    | 'template_creator' // Created popular templates
+    | 'streak_legend' // 100+ day streak
+    | 'first_post' // First community post
+    | 'helpful_hero' // Got 100+ upvotes
+    | 'accountability_ace' // Supported 5+ partners
+    | 'early_adopter' // Joined in first month
+    | 'bug_hunter' // Reported valid bugs
+    | 'ama_participant'; // Participated in AMA
+
+export type CommunityRole = 'member' | 'contributor' | 'mentor' | 'moderator' | 'admin';
+
+export interface CommunityMember {
+    id: string;
+    userId: string;
+    displayName: string;
+    avatar: string;
+    bio?: string;
+    level: number;
+    levelTitle: string; // "Novice", "Achiever", "Master", "Legend"
+    reputationPoints: number;
+    badges: CommunityBadgeType[];
+    role: CommunityRole;
+    joinedAt: string;
+    isOnline: boolean;
+    sprintsCompleted: number;
+    helpfulAnswers: number;
+    templatesShared: number;
+    currentStreak: number;
+    // Privacy settings
+    showActivity: boolean;
+    acceptPartnerRequests: boolean;
+}
+
+export interface CommunityBadge {
+    type: CommunityBadgeType;
+    name: string;
+    description: string;
+    icon: string;
+    rarity: 'common' | 'rare' | 'epic' | 'legendary';
+    xpReward: number;
+    unlockedAt?: string;
+}
+
+// Knowledge Hub - Articles & News
+export type ArticleCategory = 'feature' | 'strategy' | 'productivity' | 'wellness' | 'finance' | 'announcement';
+
+export interface KnowledgeArticle {
+    id: string;
+    title: string;
+    excerpt: string;
+    content: string;
+    category: ArticleCategory;
+    coverImageUrl?: string;
+    authorId: string;
+    authorName: string;
+    publishedAt: string;
+    readTimeMinutes: number;
+    viewCount: number;
+    likeCount: number;
+    isBookmarked?: boolean;
+    tags: string[];
+}
+
+export interface ReleaseNote {
+    id: string;
+    version: string;
+    title: string;
+    description: string;
+    changes: Array<{
+        type: 'feature' | 'improvement' | 'fix' | 'breaking';
+        text: string;
+    }>;
+    publishedAt: string;
+    imageUrl?: string;
+}
+
+export interface WikiEntry {
+    id: string;
+    term: string;
+    definition: string;
+    category: 'glossary' | 'tutorial' | 'faq' | 'troubleshooting';
+    relatedTerms?: string[];
+    lastUpdated: string;
+}
+
+// Q&A Forum
+export type QuestionStatus = 'open' | 'answered' | 'closed';
+
+export interface CommunityQuestion {
+    id: string;
+    title: string;
+    body: string;
+    authorId: string;
+    authorName: string;
+    authorAvatar: string;
+    tags: string[];
+    status: QuestionStatus;
+    viewCount: number;
+    upvoteCount: number;
+    answerCount: number;
+    acceptedAnswerId?: string;
+    createdAt: string;
+    updatedAt: string;
+    isUpvotedByUser?: boolean;
+}
+
+export interface CommunityAnswer {
+    id: string;
+    questionId: string;
+    body: string;
+    authorId: string;
+    authorName: string;
+    authorAvatar: string;
+    authorRole: CommunityRole;
+    upvoteCount: number;
+    isVerified: boolean; // Official answer from team
+    isAccepted: boolean; // Accepted by question author
+    createdAt: string;
+    updatedAt: string;
+    isUpvotedByUser?: boolean;
+}
+
+// Success Stories / Wins Board
+export type WinCategory = 'sprint_complete' | 'challenge_done' | 'habit_streak' | 'milestone' | 'transformation' | 'other';
+
+export interface SuccessStory {
+    id: string;
+    authorId: string;
+    authorName: string;
+    authorAvatar: string;
+    title: string;
+    story: string;
+    category: WinCategory;
+    imageUrls?: string[];
+    lifeWheelAreaId?: string;
+    metrics?: {
+        label: string;
+        value: string;
+    }[];
+    likeCount: number;
+    commentCount: number;
+    celebrateCount: number; // 🎉 reactions
+    createdAt: string;
+    isLikedByUser?: boolean;
+    isCelebratedByUser?: boolean;
+}
+
+export interface StoryComment {
+    id: string;
+    storyId: string;
+    authorId: string;
+    authorName: string;
+    authorAvatar: string;
+    text: string;
+    createdAt: string;
+}
+
+// Community Templates
+export type TemplateType = 'sprint_plan' | 'epic' | 'ritual' | 'challenge' | 'process' | 'checklist';
+
+export interface CommunityTemplate {
+    id: string;
+    name: string;
+    description: string;
+    type: TemplateType;
+    authorId: string;
+    authorName: string;
+    content: Record<string, any>; // Template-specific structure
+    lifeWheelAreaId?: string;
+    tags: string[];
+    downloadCount: number;
+    rating: number; // 0-5
+    ratingCount: number;
+    previewImageUrl?: string;
+    createdAt: string;
+    updatedAt: string;
+    isBookmarked?: boolean;
+}
+
+export interface TemplateReview {
+    id: string;
+    templateId: string;
+    authorId: string;
+    authorName: string;
+    rating: number;
+    comment?: string;
+    createdAt: string;
+}
+
+// Leaderboard
+export type LeaderboardPeriod = 'weekly' | 'monthly' | 'all_time';
+export type LeaderboardCategory = 'reputation' | 'helpful' | 'streaks' | 'velocity';
+
+export interface LeaderboardEntry {
+    rank: number;
+    memberId: string;
+    displayName: string;
+    avatar: string;
+    level: number;
+    value: number; // Points/score for this category
+    change: number; // Rank change from previous period (+/-)
+    badges: CommunityBadgeType[];
+}
+
+// Support Circle - Accountability Partners
+export type PartnerRequestStatus = 'pending' | 'accepted' | 'declined';
+
+export interface AccountabilityPartner {
+    id: string;
+    partnerId: string;
+    partnerName: string;
+    partnerAvatar: string;
+    partnerLevel: number;
+    connectedSince: string;
+    sharedChallenges: string[]; // Challenge IDs
+    lastInteraction: string;
+    checkInStreak: number;
+}
+
+export interface PartnerRequest {
+    id: string;
+    fromUserId: string;
+    fromUserName: string;
+    fromUserAvatar: string;
+    toUserId: string;
+    message?: string;
+    status: PartnerRequestStatus;
+    createdAt: string;
+}
+
+export interface MotivationGroup {
+    id: string;
+    name: string;
+    description: string;
+    coverImageUrl?: string;
+    lifeWheelAreaId?: string;
+    memberCount: number;
+    maxMembers: number;
+    isPrivate: boolean;
+    createdByUserId: string;
+    createdAt: string;
+    isJoined?: boolean;
+    tags: string[];
+}
+
+// Feedback & Feature Requests
+export type FeatureRequestStatus = 'submitted' | 'under_review' | 'planned' | 'in_progress' | 'completed' | 'declined';
+
+export interface FeatureRequest {
+    id: string;
+    title: string;
+    description: string;
+    authorId: string;
+    authorName: string;
+    status: FeatureRequestStatus;
+    upvoteCount: number;
+    commentCount: number;
+    createdAt: string;
+    updatedAt: string;
+    officialResponse?: string;
+    isUpvotedByUser?: boolean;
+}
+
+export interface BugReport {
+    id: string;
+    title: string;
+    description: string;
+    stepsToReproduce?: string;
+    authorId: string;
+    status: 'reported' | 'confirmed' | 'in_progress' | 'resolved' | 'wont_fix';
+    severity: 'low' | 'medium' | 'high' | 'critical';
+    createdAt: string;
+    resolvedAt?: string;
+}
+
+// Community Activity Feed
+export type ActivityType = 
+    | 'sprint_completed' 
+    | 'challenge_joined'
+    | 'challenge_completed'
+    | 'badge_earned'
+    | 'streak_milestone'
+    | 'template_shared'
+    | 'question_answered'
+    | 'story_posted'
+    | 'level_up';
+
+export interface CommunityActivity {
+    id: string;
+    userId: string;
+    userName: string;
+    userAvatar: string;
+    type: ActivityType;
+    title: string;
+    description?: string;
+    metadata?: Record<string, any>;
+    timestamp: string;
+    celebrateCount: number;
+}
+
+// Secret Compliment / Kudos
+export interface SecretCompliment {
+    id: string;
+    toUserId: string;
+    message: string;
+    category: 'encouragement' | 'appreciation' | 'recognition' | 'motivation';
+    createdAt: string;
+    isRead: boolean;
+}
+
+export interface PublicKudos {
+    id: string;
+    fromUserId: string;
+    fromUserName: string;
+    fromUserAvatar: string;
+    toUserId: string;
+    toUserName: string;
+    toUserAvatar: string;
+    message: string;
+    category: string;
+    likeCount: number;
+    createdAt: string;
+}
+
+// Weekly Poll / Sprint Challenge
+export interface CommunityPoll {
+    id: string;
+    question: string;
+    options: Array<{
+        id: string;
+        text: string;
+        voteCount: number;
+    }>;
+    totalVotes: number;
+    endsAt: string;
+    createdAt: string;
+    userVotedOptionId?: string;
+}
+
+export interface WeeklyChallenge {
+    id: string;
+    title: string;
+    description: string;
+    lifeWheelAreaId: string;
+    startDate: string;
+    endDate: string;
+    participantCount: number;
+    completionCount: number;
+    rewardXp: number;
+    rewardBadge?: CommunityBadgeType;
+    isJoined?: boolean;
+    isCompleted?: boolean;
+}
+
 // Helper types for API responses
 export interface ApiResponse<T> {
     data: T;

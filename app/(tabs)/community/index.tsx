@@ -3,10 +3,10 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useCommunityStore } from '../../store/communityStore';
-import { ActivityCard } from '../../components/community/ActivityCard';
-import { StoryCard } from '../../components/community/StoryCard';
-import { TemplateCard } from '../../components/community/TemplateCard';
+import { useCommunityStore } from '../../../store/communityStore';
+import { ActivityCard } from '../../../components/community/ActivityCard';
+import { StoryCard } from '../../../components/community/StoryCard';
+import { TemplateCard } from '../../../components/community/TemplateCard';
 
 export default function CommunityHubScreen() {
     const router = useRouter();
