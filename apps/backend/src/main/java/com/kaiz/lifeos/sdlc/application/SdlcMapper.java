@@ -48,7 +48,19 @@ public interface SdlcMapper {
   @Mapping(target = "history", ignore = true)
   TaskDto toTaskDtoWithoutDetails(Task task);
 
+  @IterableMapping(qualifiedByName = "toTaskDtoFull")
   List<TaskDto> toTaskDtoList(List<Task> tasks);
+
+  @Named("toTaskDtoFull")
+  @Mapping(target = "epicId", source = "epic.id")
+  @Mapping(target = "epicTitle", source = "epic.title")
+  @Mapping(target = "lifeWheelAreaId", source = "lifeWheelArea.id")
+  @Mapping(target = "eisenhowerQuadrantId", source = "eisenhowerQuadrant.id")
+  @Mapping(target = "sprintId", source = "sprint.id")
+  @Mapping(target = "createdFromTemplateId", source = "createdFromTemplate.id")
+  default TaskDto toTaskDtoForList(Task task) {
+    return toTaskDtoWithoutDetails(task);
+  }
 
   default List<TaskDto> toTaskDtoListWithoutDetails(List<Task> tasks) {
     if (tasks == null) {

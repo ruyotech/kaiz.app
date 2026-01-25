@@ -11,6 +11,8 @@ CREATE TABLE notifications (
     metadata JSONB,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(36),
+    updated_by VARCHAR(36),
 
     CONSTRAINT chk_notification_type CHECK (type IN ('ai_scrum_master', 'system', 'challenge', 'family', 'reminder', 'achievement'))
 );

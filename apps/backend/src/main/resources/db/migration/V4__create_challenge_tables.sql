@@ -66,6 +66,8 @@ CREATE TABLE challenge_participants (
     is_accountability_partner BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(36),
+    updated_by VARCHAR(36),
 
     CONSTRAINT uk_challenge_participant UNIQUE (challenge_id, user_id)
 );
@@ -80,6 +82,9 @@ CREATE TABLE challenge_entries (
     value_boolean BOOLEAN,
     note TEXT,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(36),
+    updated_by VARCHAR(36),
 
     CONSTRAINT uk_challenge_entry_date UNIQUE (challenge_id, user_id, entry_date)
 );

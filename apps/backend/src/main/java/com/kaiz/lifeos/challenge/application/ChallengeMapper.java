@@ -24,7 +24,16 @@ public interface ChallengeMapper {
   @Mapping(target = "participants", ignore = true)
   ChallengeDto toChallengeDtoWithoutParticipants(Challenge challenge);
 
+  @IterableMapping(qualifiedByName = "toChallengeDtoForList")
   List<ChallengeDto> toChallengeDtoList(List<Challenge> challenges);
+
+  @Named("toChallengeDtoForList")
+  @Mapping(target = "lifeWheelAreaId", source = "lifeWheelArea.id")
+  @Mapping(target = "createdFromTemplateId", source = "createdFromTemplate.id")
+  @Mapping(target = "participants", ignore = true)
+  default ChallengeDto toChallengeDtoForList(Challenge challenge) {
+    return toChallengeDtoWithoutParticipants(challenge);
+  }
 
   default List<ChallengeDto> toChallengeDtoListWithoutParticipants(List<Challenge> challenges) {
     if (challenges == null) {
