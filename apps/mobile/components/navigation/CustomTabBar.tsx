@@ -124,7 +124,7 @@ export function CustomTabBar() {
     };
 
     // Actual launcher functions (called from useEffect after modal closes)
-    const launchCamera = async () => {
+    const launchCamera = useCallback(async () => {
         try {
             console.log('📷 Requesting camera permission...');
             const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
@@ -165,9 +165,9 @@ export function CustomTabBar() {
             console.error('📷 Camera error:', error);
             Alert.alert('Error', 'Failed to access camera. Please try again.');
         }
-    };
+    }, []);
 
-    const launchImagePicker = async () => {
+    const launchImagePicker = useCallback(async () => {
         try {
             console.log('🖼️ Requesting media library permission...');
             const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -210,9 +210,9 @@ export function CustomTabBar() {
             console.error('🖼️ Image picker error:', error);
             Alert.alert('Error', 'Failed to access photo library. Please try again.');
         }
-    };
+    }, []);
 
-    const launchFilePicker = async () => {
+    const launchFilePicker = useCallback(async () => {
         try {
             console.log('📄 Launching document picker...');
             
@@ -220,7 +220,7 @@ export function CustomTabBar() {
             // It works better on real devices
             const result = await DocumentPicker.getDocumentAsync({
                 type: ['*/*'],
-                copyToCacheDirectory: false,
+                copyToCacheDirectory: true,
                 multiple: false,
             });
             console.log('📄 Document picker result:', JSON.stringify(result));
@@ -239,16 +239,27 @@ export function CustomTabBar() {
             console.error('📄 Document picker error:', error);
             Alert.alert('Error', 'Failed to pick file. Please try again.');
         }
-    };
+    }, []);
 
-    const startVoiceRecording = async () => {
+    const startVoiceRecording = useCallback(async () => {
         try {
             console.log('🎤 Requesting audio permission...');
             const permission = await Audio.requestPermissionsAsync();
             console.log('🎤 Audio permission result:', permission);
             
             if (!permission.granted) {
-                Alert.alert('Permission Required', 'Microphone access is needed to record voice. Please enable it in Settings.');
+                if (!permission.canAskAgain) {
+                    Alert.alert(
+                        'Microphone Permission Required',
+                        'Microphone access was denied. Please enable it in Settings to record voice.',
+                        [
+                            { text: 'Cancel', style: 'cancel' },
+                            { text: 'Open Settings', onPress: () => Linking.openSettings() }
+                        ]
+                    );
+                } else {
+                    Alert.alert('Permission Required', 'Microphone access is needed to record voice.');
+                }
                 return;
             }
 
@@ -269,7 +280,7 @@ export function CustomTabBar() {
             console.error('🎤 Voice recording error:', error);
             Alert.alert('Error', 'Failed to start recording. Please try again.');
         }
-    };
+    }, []);
 
     // Execute pending action after modal is closed
     // This useEffect must be after the launcher functions are defined
@@ -307,7 +318,7 @@ export function CustomTabBar() {
                 isExecutingAction.current = false;
             };
         }
-    }, [pendingAction, showCreateMenu]);
+    }, [pendingAction, showCreateMenu, launchCamera, launchImagePicker, launchFilePicker, startVoiceRecording]);
     
     // Cancel voice recording
     const cancelVoiceRecording = async () => {
