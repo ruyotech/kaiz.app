@@ -1,0 +1,151 @@
+{
+  "common": {
+    "cancel": "İptal",
+    "save": "Kaydet",
+    "delete": "Sil",
+    "edit": "Düzenle",
+    "done": "Tamam",
+    "loading": "Yükleniyor...",
+    "error": "Hata",
+    "success": "Başarılı",
+    "confirm": "Onayla",
+    "reset": "Sıfırla",
+    "clear": "Temizle",
+    "close": "Kapat"
+  },
+  "settings": {
+    "title": "Ayarlar",
+    "subtitle": "Deneyiminizi özelleştirin",
+    "demoMode": {
+      "title": "Demo Modu Aktif",
+      "subtitle": "Örnek veriler kullanılıyor • İstediğiniz zaman sıfırlayın",
+      "exitButton": "Demo Modundan Çık",
+      "tryTitle": "Demo Modunu Dene",
+      "trySubtitle": "Örnek verilerle keşfet",
+      "enterTitle": "Demo Moduna Gir",
+      "enterMessage": "Önceden doldurulmuş örnek verilerle tüm özellikleri keşfetmek için demo hesabına geçin.",
+      "enterButton": "Demo'ya Gir",
+      "alreadyActive": "Zaten Demo Modunda",
+      "alreadyActiveMessage": "Zaten bir demo hesabı kullanıyorsunuz.",
+      "activeAlert": "Demo Modu Aktif",
+      "activeAlertMessage": "Artık bir demo hesabı kullanıyorsunuz!"
+    },
+    "resetDemo": {
+      "title": "Demo'yu Sıfırla",
+      "message": "Bu işlem tüm uygulama verilerini temizleyecek ve karşılama ekranından yeniden başlatacak. Demo oturumunuz sona erecek."
+    },
+    "sections": {
+      "accountProfile": "Hesap ve Profil",
+      "commandCenter": "Komut Merkezi",
+      "sprintsWorkflow": "Sprintler ve İş Akışı",
+      "appearance": "Görünüm",
+      "storageData": "Depolama ve Veri",
+      "about": "Hakkında"
+    },
+    "account": {
+      "editProfile": "Profili Düzenle",
+      "editProfileSubtitle": "Bilgilerinizi güncelleyin",
+      "avatar": "Avatar",
+      "avatarSubtitle": "Profil resmini değiştir"
+    },
+    "commandCenter": {
+      "autoPlayVoice": "Sesli Notları Otomatik Oynat",
+      "autoPlayVoiceSubtitle": "Ses mesajlarını otomatik olarak oynat",
+      "hapticFeedback": "Dokunsal Geri Bildirim",
+      "hapticFeedbackSubtitle": "Etkileşimlerde titreşim",
+      "messagePreview": "Mesaj Önizleme",
+      "messagePreviewSubtitle": "Bildirimlerde mesaj önizlemelerini göster",
+      "typingIndicator": "Yazıyor Göstergesi",
+      "typingIndicatorSubtitle": "AI yanıt verirken göster",
+      "sendWithEnter": "Enter ile Gönder",
+      "sendWithEnterSubtitle": "Mesaj göndermek için Enter'a basın",
+      "aiModel": "AI Modeli",
+      "aiModelSubtitle": "AI asistanınızı seçin",
+      "aiModels": {
+        "auto": "Otomatik",
+        "autoSubtitle": "Her görev için en iyi model",
+        "gpt4": "GPT-4",
+        "gpt4Subtitle": "En yetenekli, daha yavaş",
+        "gpt35": "GPT-3.5",
+        "gpt35Subtitle": "Daha hızlı yanıtlar",
+        "claude": "Claude",
+        "claudeSubtitle": "Anthropic AI"
+      }
+    },
+    "sprints": {
+      "defaultView": "Varsayılan Görünüm",
+      "defaultViewSubtitle": "Görevler nasıl görüntülenir",
+      "weekStartsOn": "Hafta Başlangıcı",
+      "weekStartsOnSubtitle": "Haftanın ilk günü",
+      "showCompleted": "Tamamlanan Görevleri Göster",
+      "showCompletedSubtitle": "Sprintte bitmiş öğeleri göster",
+      "taskNotifications": "Görev Bildirimleri",
+      "taskNotificationsSubtitle": "Son tarihler için hatırlatmalar",
+      "autoStartPomodoro": "Pomodoro'yu Otomatik Başlat",
+      "autoStartPomodoroSubtitle": "Görev başladığında zamanlayıcıyı başlat",
+      "views": {
+        "calendar": "Takvim",
+        "calendarSubtitle": "Görevleri takvim ızgarasında görüntüle",
+        "kanban": "Kanban",
+        "kanbanSubtitle": "Sürükle ve bırak sütunları",
+        "list": "Liste",
+        "listSubtitle": "Basit görev listesi görünümü"
+      },
+      "weekDays": {
+        "sunday": "Pazar",
+        "sundaySubtitle": "Hafta Pazar günü başlar",
+        "monday": "Pazartesi",
+        "mondaySubtitle": "Hafta Pazartesi günü başlar"
+      }
+    },
+    "appearance": {
+      "theme": "Tema",
+      "themeSubtitle": "Uygulama renk şeması",
+      "language": "Dil",
+      "reducedMotion": "Azaltılmış Hareket",
+      "reducedMotionSubtitle": "Animasyonları minimize et",
+      "soundEffects": "Ses Efektleri",
+      "soundEffectsSubtitle": "Arayüz sesleri ve geri bildirim",
+      "themes": {
+        "light": "Açık",
+        "lightSubtitle": "Her zaman açık tema kullan",
+        "dark": "Koyu",
+        "darkSubtitle": "Her zaman koyu tema kullan",
+        "system": "Sistem",
+        "systemSubtitle": "Cihaz ayarlarıyla eşleştir"
+      },
+      "chooseTheme": "Tema Seçin",
+      "chooseLanguage": "Dil Seçin"
+    },
+    "storage": {
+      "clearCache": "Önbelleği Temizle",
+      "clearCacheSubtitle": "Depolama alanı aç",
+      "clearCacheTitle": "Önbelleği Temizle",
+      "clearCacheMessage": "Bu işlem önbelleğe alınmış resimler ve sesli notlar dahil geçici dosyaları kaldıracak. Verileriniz etkilenmeyecek.",
+      "clearCacheSuccess": "Önbellek başarıyla temizlendi!",
+      "timezone": "Saat Dilimi"
+    },
+    "about": {
+      "appVersion": "Uygulama Sürümü",
+      "website": "Web Sitesi",
+      "privacyPolicy": "Gizlilik Politikası",
+      "termsOfService": "Hizmet Şartları"
+    },
+    "signOut": {
+      "button": "Çıkış Yap",
+      "title": "Çıkış Yap",
+      "message": "Çıkış yapmak istediğinizden emin misiniz?"
+    },
+    "footer": {
+      "madeWith": "Kaiz Ekibi tarafından ❤️ ile yapıldı",
+      "copyright": "© 2026 Kaiz LifeOS"
+    },
+    "modals": {
+      "chooseTheme": "Tema Seçin",
+      "chooseLanguage": "Dil Seçin",
+      "defaultSprintView": "Varsayılan Sprint Görünümü",
+      "aiModel": "AI Modeli",
+      "weekStartsOn": "Hafta Başlangıcı"
+    }
+  }
+}

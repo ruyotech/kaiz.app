@@ -4,9 +4,18 @@
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
+    "start:clear": "expo start --clear",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "web": "expo start --web"
+    "ios:clean": "rm -rf ios/build ~/Library/Developer/Xcode/DerivedData/KaizApp-* && expo run:ios",
+    "ios:device": "expo run:ios --device",
+    "prebuild": "expo prebuild",
+    "prebuild:clean": "expo prebuild --clean",
+    "web": "expo start --web",
+    "clean": "rm -rf node_modules/.cache ios/build android/build ios/Pods ~/Library/Developer/Xcode/DerivedData/KaizApp-*",
+    "clean:all": "rm -rf node_modules ios android && npm install && expo prebuild",
+    "pods": "cd ios && pod install && cd ..",
+    "pods:clean": "rm -rf ios/Pods ios/Podfile.lock && cd ios && pod install && cd .."
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -26,10 +35,12 @@
     "expo-image-picker": "^17.0.10",
     "expo-linear-gradient": "^15.0.8",
     "expo-linking": "^8.0.11",
+    "expo-localization": "^17.0.8",
     "expo-router": "^6.0.21",
     "expo-splash-screen": "^31.0.13",
     "expo-status-bar": "^3.0.9",
     "expo-updates": "~29.0.16",
+    "i18n-js": "^4.5.1",
     "nativewind": "^2.0.11",
     "react": "19.1.0",
     "react-hook-form": "^7.54.2",

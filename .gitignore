@@ -3,6 +3,15 @@
 # ===================
 
 # =====================
+# Root level files to ignore
+# =====================
+# These can be generated at root by accident
+/ios/
+/android/
+/package-lock.json
+/app.json
+
+# =====================
 # Mobile (React Native)
 # =====================
 
@@ -13,6 +22,13 @@ node_modules/
 .expo/
 dist/
 web-build/
+
+# Native builds (generated, should use prebuild)
+**/ios/Pods/
+**/ios/build/
+**/android/build/
+**/android/.gradle/
+**/android/app/build/
 
 # Native
 *.orig.*
@@ -98,6 +114,7 @@ Thumbs.db
 *.swp
 *.swo
 *~
+.vscode/settings.json
 
 # Logs
 logs/
@@ -105,3 +122,21 @@ logs/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# =====================
+# Xcode
+# =====================
+*.xcuserstate
+xcuserdata/
+DerivedData/
+*.xccheckout
+*.moved-aside
+*.hmap
+*.ipa
+*.xcuserstate
+
+# =====================
+# Build artifacts
+# =====================
+*.jsbundle
+*.bundle

@@ -1,0 +1,31 @@
+{
+  "name": "kaiz-lifeos",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/mobile",
+    "apps/backend",
+    "apps/web"
+  ],
+  "scripts": {
+    "mobile": "npm --prefix apps/mobile run",
+    "mobile:start": "npm --prefix apps/mobile run start",
+    "mobile:start:clear": "npm --prefix apps/mobile run start:clear",
+    "mobile:ios": "npm --prefix apps/mobile run ios",
+    "mobile:ios:clean": "npm --prefix apps/mobile run ios:clean",
+    "mobile:android": "npm --prefix apps/mobile run android",
+    "mobile:prebuild": "npm --prefix apps/mobile run prebuild",
+    "mobile:prebuild:clean": "npm --prefix apps/mobile run prebuild:clean",
+    "mobile:clean": "npm --prefix apps/mobile run clean",
+    "mobile:clean:all": "npm --prefix apps/mobile run clean:all",
+    "backend": "cd apps/backend && mvn",
+    "backend:start": "cd apps/backend && mvn spring-boot:run",
+    "android": "expo run:android",
+    "ios": "expo run:ios"
+  },
+  "dependencies": {
+    "expo": "~54.0.32",
+    "react": "19.1.0",
+    "react-native": "0.81.5"
+  }
+}

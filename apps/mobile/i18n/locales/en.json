@@ -1,0 +1,151 @@
+{
+  "common": {
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "done": "Done",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "confirm": "Confirm",
+    "reset": "Reset",
+    "clear": "Clear",
+    "close": "Close"
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Customize your experience",
+    "demoMode": {
+      "title": "Demo Mode Active",
+      "subtitle": "Using sample data • Reset anytime",
+      "exitButton": "Exit Demo Mode",
+      "tryTitle": "Try Demo Mode",
+      "trySubtitle": "Explore with sample data",
+      "enterTitle": "Enter Demo Mode",
+      "enterMessage": "Switch to a demo account to explore all features with pre-filled sample data.",
+      "enterButton": "Enter Demo",
+      "alreadyActive": "Already in Demo Mode",
+      "alreadyActiveMessage": "You are already using a demo account.",
+      "activeAlert": "Demo Mode Active",
+      "activeAlertMessage": "You are now using a demo account!"
+    },
+    "resetDemo": {
+      "title": "Reset Demo",
+      "message": "This will clear all app data and restart from the welcome screen. Your demo session will end."
+    },
+    "sections": {
+      "accountProfile": "Account & Profile",
+      "commandCenter": "Command Center",
+      "sprintsWorkflow": "Sprints & Workflow",
+      "appearance": "Appearance",
+      "storageData": "Storage & Data",
+      "about": "About"
+    },
+    "account": {
+      "editProfile": "Edit Profile",
+      "editProfileSubtitle": "Update your details",
+      "avatar": "Avatar",
+      "avatarSubtitle": "Change profile picture"
+    },
+    "commandCenter": {
+      "autoPlayVoice": "Auto-play Voice Notes",
+      "autoPlayVoiceSubtitle": "Play audio messages automatically",
+      "hapticFeedback": "Haptic Feedback",
+      "hapticFeedbackSubtitle": "Vibration on interactions",
+      "messagePreview": "Message Preview",
+      "messagePreviewSubtitle": "Show message previews in notifications",
+      "typingIndicator": "Typing Indicator",
+      "typingIndicatorSubtitle": "Show when AI is responding",
+      "sendWithEnter": "Send with Enter",
+      "sendWithEnterSubtitle": "Press Enter to send messages",
+      "aiModel": "AI Model",
+      "aiModelSubtitle": "Choose your AI assistant",
+      "aiModels": {
+        "auto": "Auto",
+        "autoSubtitle": "Best model for each task",
+        "gpt4": "GPT-4",
+        "gpt4Subtitle": "Most capable, slower",
+        "gpt35": "GPT-3.5",
+        "gpt35Subtitle": "Faster responses",
+        "claude": "Claude",
+        "claudeSubtitle": "Anthropic AI"
+      }
+    },
+    "sprints": {
+      "defaultView": "Default View",
+      "defaultViewSubtitle": "How tasks are displayed",
+      "weekStartsOn": "Week Starts On",
+      "weekStartsOnSubtitle": "First day of the week",
+      "showCompleted": "Show Completed Tasks",
+      "showCompletedSubtitle": "Display finished items in sprint",
+      "taskNotifications": "Task Notifications",
+      "taskNotificationsSubtitle": "Reminders for deadlines",
+      "autoStartPomodoro": "Auto-start Pomodoro",
+      "autoStartPomodoroSubtitle": "Begin timer when task starts",
+      "views": {
+        "calendar": "Calendar",
+        "calendarSubtitle": "View tasks on a calendar grid",
+        "kanban": "Kanban",
+        "kanbanSubtitle": "Drag and drop columns",
+        "list": "List",
+        "listSubtitle": "Simple task list view"
+      },
+      "weekDays": {
+        "sunday": "Sunday",
+        "sundaySubtitle": "Week starts on Sunday",
+        "monday": "Monday",
+        "mondaySubtitle": "Week starts on Monday"
+      }
+    },
+    "appearance": {
+      "theme": "Theme",
+      "themeSubtitle": "App color scheme",
+      "language": "Language",
+      "reducedMotion": "Reduced Motion",
+      "reducedMotionSubtitle": "Minimize animations",
+      "soundEffects": "Sound Effects",
+      "soundEffectsSubtitle": "UI sounds and feedback",
+      "themes": {
+        "light": "Light",
+        "lightSubtitle": "Always use light theme",
+        "dark": "Dark",
+        "darkSubtitle": "Always use dark theme",
+        "system": "System",
+        "systemSubtitle": "Match device settings"
+      },
+      "chooseTheme": "Choose Theme",
+      "chooseLanguage": "Choose Language"
+    },
+    "storage": {
+      "clearCache": "Clear Cache",
+      "clearCacheSubtitle": "Free up storage space",
+      "clearCacheTitle": "Clear Cache",
+      "clearCacheMessage": "This will remove temporary files including cached images and voice notes. Your data will not be affected.",
+      "clearCacheSuccess": "Cache cleared successfully!",
+      "timezone": "Timezone"
+    },
+    "about": {
+      "appVersion": "App Version",
+      "website": "Website",
+      "privacyPolicy": "Privacy Policy",
+      "termsOfService": "Terms of Service"
+    },
+    "signOut": {
+      "button": "Sign Out",
+      "title": "Sign Out",
+      "message": "Are you sure you want to sign out?"
+    },
+    "footer": {
+      "madeWith": "Made with ❤️ by Kaiz Team",
+      "copyright": "© 2026 Kaiz LifeOS"
+    },
+    "modals": {
+      "chooseTheme": "Choose Theme",
+      "chooseLanguage": "Choose Language",
+      "defaultSprintView": "Default Sprint View",
+      "aiModel": "AI Model",
+      "weekStartsOn": "Week Starts On"
+    }
+  }
+}

@@ -309,7 +309,7 @@ export function SettingsDrawer({ visible, onClose }: SettingsDrawerProps) {
     
     // Stores
     const { reset: resetApp } = useAppStore();
-    const { reset: resetAuth, logout, user } = useAuthStore();
+    const { reset: resetAuth, logout, user, isDemoUser, loginDemo } = useAuthStore();
     const {
         locale,
         setLocale,
@@ -562,6 +562,25 @@ export function SettingsDrawer({ visible, onClose }: SettingsDrawerProps) {
                         showsVerticalScrollIndicator={false}
                         contentContainerStyle={{ paddingTop: 8, paddingBottom: 24 }}
                     >
+                        
+                        {/* ============================================ */}
+                        {/* DEMO MODE INDICATOR */}
+                        {/* ============================================ */}
+                        {isDemoUser && (
+                            <View className="mb-5 bg-purple-50 border-2 border-purple-200 rounded-2xl p-3">
+                                <View className="flex-row items-center">
+                                    <View className="w-10 h-10 bg-purple-500 rounded-xl items-center justify-center mr-3">
+                                        <Text className="text-lg">🎭</Text>
+                                    </View>
+                                    <View className="flex-1">
+                                        <Text className="text-base font-bold text-purple-900">Demo Mode</Text>
+                                        <Text className="text-xs text-purple-700">
+                                            Using sample data
+                                        </Text>
+                                    </View>
+                                </View>
+                            </View>
+                        )}
                         
                         {/* ============================================ */}
                         {/* ACCOUNT & PROFILE */}

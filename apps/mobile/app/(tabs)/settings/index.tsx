@@ -1,676 +1,885 @@
-import { View, Text, ScrollView, TouchableOpacity, Switch, Alert, Modal, Pressable } from 'react-native';
-import { useState } from 'react';
-import { Container } from '../../../components/layout/Container';
-import { ScreenHeader } from '../../../components/layout/ScreenHeader';
-import { Card } from '../../../components/ui/Card';
+/**
+ * SettingsScreen.tsx - Modern Settings Page for Kaiz LifeOS
+ * 
+ * A beautifully designed settings screen featuring:
+ * - Modern inset grouped card layout (iOS-style)
+ * - Real data bindings from Zustand stores
+ * - Tri-state theme mode (Light/Dark/System)
+ * - Demo mode toggle with prominent indicator
+ * - Command Center, Sprints & App System settings
+ * - Dynamic app version from expo-constants
+ * - Full i18n localization support
+ * 
+ * @author Kaiz Team
+ * @version 2.1.0
+ */
+
+import React, { useState, useCallback } from 'react';
+import {
+    View,
+    Text,
+    ScrollView,
+    TouchableOpacity,
+    Switch,
+    Alert,
+    Modal,
+    Linking,
+    Platform,
+} from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Constants from 'expo-constants';
+
+// Stores
 import { useAppStore } from '../../../store/appStore';
 import { useAuthStore } from '../../../store/authStore';
-import { usePreferencesStore, SupportedLocale } from '../../../store/preferencesStore';
+import { usePreferencesStore, type ThemeMode, type SupportedLocale } from '../../../store/preferencesStore';
+import { useSettingsStore, type SprintViewMode, type AIModel } from '../../../store/settingsStore';
+
+// Hooks
+import { useTranslation } from '../../../hooks/useTranslation';
+
+// Constants
 import { SUPPORTED_LANGUAGES } from '../../../utils/constants';
 
-const LIFE_WHEEL_AREAS = [
-    { id: 'lw-1', name: 'Health & Fitness', icon: '💪' },
-    { id: 'lw-2', name: 'Career & Work', icon: '💼' },
-    { id: 'lw-3', name: 'Finance & Money', icon: '💰' },
-    { id: 'lw-4', name: 'Personal Growth', icon: '📚' },
-    { id: 'lw-5', name: 'Relationships & Family', icon: '❤️' },
-    { id: 'lw-6', name: 'Social Life', icon: '👥' },
-    { id: 'lw-7', name: 'Fun & Recreation', icon: '🎮' },
-    { id: 'lw-8', name: 'Environment & Home', icon: '🏡' },
-];
+// ============================================================================
+// Types
+// ============================================================================
+
+type IconName = keyof typeof MaterialCommunityIcons.glyphMap;
+
+interface SettingItemProps {
+    icon: IconName;
+    iconColor: string;
+    iconBgColor: string;
+    label: string;
+    sublabel?: string;
+    value?: string;
+    onPress?: () => void;
+    rightElement?: React.ReactNode;
+    showChevron?: boolean;
+    isLast?: boolean;
+}
+
+interface SettingSectionProps {
+    title: string;
+    titleIcon?: string;
+    children: React.ReactNode;
+}
+
+interface ToggleSettingProps {
+    icon: IconName;
+    iconColor: string;
+    iconBgColor: string;
+    label: string;
+    sublabel?: string;
+    value: boolean;
+    onValueChange: (value: boolean) => void;
+    isLast?: boolean;
+}
+
+// ============================================================================
+// Reusable Components
+// ============================================================================
+
+/**
+ * Modern inset grouped section container
+ */
+function SettingSection({ title, titleIcon, children }: SettingSectionProps) {
+    return (
+        <View className="mb-6">
+            <View className="flex-row items-center mb-2.5 px-1">
+                {titleIcon && (
+                    <Text className="text-base mr-1.5">{titleIcon}</Text>
+                )}
+                <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    {title}
+                </Text>
+            </View>
+            <View className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100">
+                {children}
+            </View>
+        </View>
+    );
+}
+
+/**
+ * Modern setting item with icon, labels, and optional chevron
+ */
+function SettingItem({
+    icon,
+    iconColor,
+    iconBgColor,
+    label,
+    sublabel,
+    value,
+    onPress,
+    rightElement,
+    showChevron = true,
+    isLast = false,
+}: SettingItemProps) {
+    return (
+        <TouchableOpacity
+            onPress={onPress}
+            disabled={!onPress}
+            activeOpacity={onPress ? 0.6 : 1}
+            className={`flex-row items-center px-4 py-3.5 ${!isLast ? 'border-b border-gray-100' : ''}`}
+        >
+            {/* Icon */}
+            <View
+                className="w-9 h-9 rounded-xl items-center justify-center mr-3"
+                style={{ backgroundColor: iconBgColor }}
+            >
+                <MaterialCommunityIcons name={icon} size={20} color={iconColor} />
+            </View>
+            
+            {/* Labels */}
+            <View className="flex-1">
+                <Text className="text-[15px] font-medium text-gray-900">{label}</Text>
+                {sublabel && (
+                    <Text className="text-xs text-gray-500 mt-0.5">{sublabel}</Text>
+                )}
+            </View>
+            
+            {/* Right side */}
+            {rightElement ? (
+                rightElement
+            ) : (
+                <View className="flex-row items-center">
+                    {value && (
+                        <Text className="text-sm text-gray-500 mr-2">{value}</Text>
+                    )}
+                    {showChevron && onPress && (
+                        <MaterialCommunityIcons name="chevron-right" size={20} color="#C7C7CC" />
+                    )}
+                </View>
+            )}
+        </TouchableOpacity>
+    );
+}
+
+/**
+ * Toggle setting item with native Switch
+ */
+function ToggleSetting({
+    icon,
+    iconColor,
+    iconBgColor,
+    label,
+    sublabel,
+    value,
+    onValueChange,
+    isLast = false,
+}: ToggleSettingProps) {
+    return (
+        <View
+            className={`flex-row items-center px-4 py-3.5 ${!isLast ? 'border-b border-gray-100' : ''}`}
+        >
+            {/* Icon */}
+            <View
+                className="w-9 h-9 rounded-xl items-center justify-center mr-3"
+                style={{ backgroundColor: iconBgColor }}
+            >
+                <MaterialCommunityIcons name={icon} size={20} color={iconColor} />
+            </View>
+            
+            {/* Labels */}
+            <View className="flex-1">
+                <Text className="text-[15px] font-medium text-gray-900">{label}</Text>
+                {sublabel && (
+                    <Text className="text-xs text-gray-500 mt-0.5">{sublabel}</Text>
+                )}
+            </View>
+            
+            {/* Toggle */}
+            <Switch
+                value={value}
+                onValueChange={onValueChange}
+                trackColor={{ false: '#E5E5EA', true: '#34C759' }}
+                thumbColor="#FFFFFF"
+                ios_backgroundColor="#E5E5EA"
+            />
+        </View>
+    );
+}
+
+// ============================================================================
+// Selection Modal Component
+// ============================================================================
+
+interface SelectionModalProps<T extends string> {
+    visible: boolean;
+    onClose: () => void;
+    title: string;
+    options: Array<{ value: T; label: string; sublabel?: string; icon?: string }>;
+    selectedValue: T;
+    onSelect: (value: T) => void;
+}
+
+function SelectionModal<T extends string>({
+    visible,
+    onClose,
+    title,
+    options,
+    selectedValue,
+    onSelect,
+}: SelectionModalProps<T>) {
+    return (
+        <Modal
+            visible={visible}
+            animationType="slide"
+            transparent
+            onRequestClose={onClose}
+        >
+            <TouchableOpacity
+                className="flex-1 bg-black/50 justify-end"
+                activeOpacity={1}
+                onPress={onClose}
+            >
+                <TouchableOpacity
+                    activeOpacity={1}
+                    onPress={(e) => e.stopPropagation()}
+                    className="bg-white rounded-t-3xl max-h-[70%]"
+                >
+                    {/* Handle */}
+                    <View className="items-center pt-3 pb-2">
+                        <View className="w-10 h-1 bg-gray-300 rounded-full" />
+                    </View>
+                    
+                    {/* Header */}
+                    <View className="flex-row justify-between items-center px-5 pb-4 border-b border-gray-100">
+                        <Text className="text-xl font-bold text-gray-900">{title}</Text>
+                        <TouchableOpacity onPress={onClose} className="p-1">
+                            <MaterialCommunityIcons name="close" size={24} color="#8E8E93" />
+                        </TouchableOpacity>
+                    </View>
+                    
+                    {/* Options */}
+                    <ScrollView className="px-5 py-4" bounces={false}>
+                        {options.map((option, index) => (
+                            <TouchableOpacity
+                                key={option.value}
+                                onPress={() => {
+                                    onSelect(option.value);
+                                    onClose();
+                                }}
+                                className={`flex-row items-center py-4 ${
+                                    index < options.length - 1 ? 'border-b border-gray-100' : ''
+                                }`}
+                            >
+                                {option.icon && (
+                                    <Text className="text-2xl mr-3">{option.icon}</Text>
+                                )}
+                                <View className="flex-1">
+                                    <Text className="text-[16px] font-medium text-gray-900">
+                                        {option.label}
+                                    </Text>
+                                    {option.sublabel && (
+                                        <Text className="text-sm text-gray-500 mt-0.5">
+                                            {option.sublabel}
+                                        </Text>
+                                    )}
+                                </View>
+                                {selectedValue === option.value && (
+                                    <MaterialCommunityIcons name="check" size={22} color="#007AFF" />
+                                )}
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
+                    
+                    {/* Safe area bottom padding */}
+                    <View className="h-8" />
+                </TouchableOpacity>
+            </TouchableOpacity>
+        </Modal>
+    );
+}
+
+// ============================================================================
+// Main Component
+// ============================================================================
 
 export default function SettingsScreen() {
+    const insets = useSafeAreaInsets();
     const router = useRouter();
+    const { t } = useTranslation();
+    
+    // Stores
     const { reset: resetApp } = useAppStore();
-    const { reset: resetAuth, logout, isDemoUser } = useAuthStore();
+    const { 
+        reset: resetAuth, 
+        logout, 
+        user, 
+        isDemoUser, 
+        loginDemo 
+    } = useAuthStore();
     const {
         locale,
         setLocale,
         timezone,
-        theme,
-        setTheme,
-        selectedLifeWheelAreaIds,
-        toggleLifeWheelArea,
-        enableDailyReminders,
-        enableAiInsights,
-        enableChallengeUpdates,
-        enableBillReminders,
-        allowAnalytics,
-        allowPersonalization,
-        setNotificationPreferences,
-        setPrivacyPreferences,
+        theme: preferencesTheme,
+        setTheme: setPreferencesTheme,
         reset: resetPreferences,
     } = usePreferencesStore();
-
+    
+    const {
+        commandCenter,
+        sprints,
+        system,
+        setAutoPlayVoiceNotes,
+        setHapticFeedback,
+        setAIModel,
+        setShowTypingIndicator,
+        setMessagePreview,
+        setSendWithEnter,
+        setDefaultSprintView,
+        setShowCompletedTasks,
+        setEnableTaskNotifications,
+        setAutoStartPomodoro,
+        setWeekStartsOn,
+        setThemeMode,
+        setReducedMotion,
+        setSoundEffects,
+        clearCache,
+        reset: resetSettings,
+    } = useSettingsStore();
+    
+    // Modal states
     const [showLanguageModal, setShowLanguageModal] = useState(false);
     const [showThemeModal, setShowThemeModal] = useState(false);
-
+    const [showSprintViewModal, setShowSprintViewModal] = useState(false);
+    const [showAIModelModal, setShowAIModelModal] = useState(false);
+    const [showWeekStartModal, setShowWeekStartModal] = useState(false);
+    
+    // App version - dynamic from Expo
+    const appVersion = Constants.expoConfig?.version || '1.0.0';
+    const buildNumber = Platform.select({
+        ios: Constants.expoConfig?.ios?.buildNumber,
+        android: Constants.expoConfig?.android?.versionCode?.toString(),
+        default: '1',
+    }) || '1';
+    
+    // Get current language
     const currentLanguage = SUPPORTED_LANGUAGES.find(lang => lang.code === locale) || SUPPORTED_LANGUAGES[0];
-
-    const handleResetDemo = async () => {
+    
+    // Handlers
+    const handleResetDemo = useCallback(() => {
         Alert.alert(
-            '🔄 Reset Demo',
-            'This will clear all app data and show the welcome screen. Perfect for testing the complete flow from the beginning!',
+            `🔄 ${t('settings.resetDemo.title')}`,
+            t('settings.resetDemo.message'),
             [
+                { text: t('common.cancel'), style: 'cancel' },
                 {
-                    text: 'Cancel',
-                    style: 'cancel',
-                },
-                {
-                    text: 'Reset',
+                    text: t('common.reset'),
                     style: 'destructive',
                     onPress: async () => {
-                        // Clear all stores
                         resetApp();
                         resetAuth();
                         resetPreferences();
-                        
-                        // Wait a moment for AsyncStorage to clear
-                        await new Promise(resolve => setTimeout(resolve, 100));
-                        
-                        // Go to the very beginning (welcome/splash screen)
-                        // @ts-ignore - Dynamic route
+                        resetSettings();
+                        await new Promise(r => setTimeout(r, 100));
                         router.replace('/');
                     },
                 },
             ]
         );
-    };
-
-    const handleLogout = () => {
+    }, [resetApp, resetAuth, resetPreferences, resetSettings, router, t]);
+    
+    const handleLogout = useCallback(() => {
         Alert.alert(
-            'Logout',
-            'Are you sure you want to logout?',
+            `👋 ${t('settings.signOut.title')}`,
+            t('settings.signOut.message'),
             [
+                { text: t('common.cancel'), style: 'cancel' },
                 {
-                    text: 'Cancel',
-                    style: 'cancel',
-                },
-                {
-                    text: 'Logout',
+                    text: t('settings.signOut.button'),
                     style: 'destructive',
                     onPress: async () => {
                         await logout();
-                        // @ts-ignore - Dynamic route
-                        router.replace('/(auth)/login');
+                        setTimeout(() => router.replace('/(auth)/login'), 100);
                     },
                 },
             ]
         );
+    }, [logout, router, t]);
+    
+    const handleClearCache = useCallback(() => {
+        Alert.alert(
+            `🗑️ ${t('settings.storage.clearCacheTitle')}`,
+            t('settings.storage.clearCacheMessage'),
+            [
+                { text: t('common.cancel'), style: 'cancel' },
+                {
+                    text: t('common.clear'),
+                    onPress: async () => {
+                        await clearCache();
+                        Alert.alert(`✅ ${t('common.done')}`, t('settings.storage.clearCacheSuccess'));
+                    },
+                },
+            ]
+        );
+    }, [clearCache, t]);
+    
+    const handleEnterDemoMode = useCallback(async () => {
+        if (isDemoUser) {
+            Alert.alert(t('settings.demoMode.alreadyActive'), t('settings.demoMode.alreadyActiveMessage'));
+            return;
+        }
+        Alert.alert(
+            `🎭 ${t('settings.demoMode.enterTitle')}`,
+            t('settings.demoMode.enterMessage'),
+            [
+                { text: t('common.cancel'), style: 'cancel' },
+                {
+                    text: t('settings.demoMode.enterButton'),
+                    onPress: async () => {
+                        await loginDemo();
+                        Alert.alert(`🎭 ${t('settings.demoMode.activeAlert')}`, t('settings.demoMode.activeAlertMessage'));
+                    },
+                },
+            ]
+        );
+    }, [isDemoUser, loginDemo, t]);
+    
+    const handleThemeSelect = useCallback((mode: ThemeMode) => {
+        setPreferencesTheme(mode);
+        setThemeMode(mode);
+    }, [setPreferencesTheme, setThemeMode]);
+    
+    // Theme mode label
+    const getThemeModeLabel = (mode: ThemeMode): string => {
+        switch (mode) {
+            case 'light': return t('settings.appearance.themes.light');
+            case 'dark': return t('settings.appearance.themes.dark');
+            case 'auto': return t('settings.appearance.themes.system');
+            default: return t('settings.appearance.themes.system');
+        }
     };
-
-    const handleLanguageSelect = (langCode: SupportedLocale) => {
-        setLocale(langCode);
-        setShowLanguageModal(false);
-    };
-
-    const handleThemeSelect = (newTheme: 'light' | 'dark' | 'auto') => {
-        setTheme(newTheme);
-        setShowThemeModal(false);
-    };
-
-    const isAreaSelected = (areaId: string) => selectedLifeWheelAreaIds.includes(areaId);
-
+    
+    // Options for modals (with translations)
+    const themeOptions: Array<{ value: ThemeMode; label: string; sublabel: string; icon: string }> = [
+        { value: 'light', label: t('settings.appearance.themes.light'), sublabel: t('settings.appearance.themes.lightSubtitle'), icon: '☀️' },
+        { value: 'dark', label: t('settings.appearance.themes.dark'), sublabel: t('settings.appearance.themes.darkSubtitle'), icon: '🌙' },
+        { value: 'auto', label: t('settings.appearance.themes.system'), sublabel: t('settings.appearance.themes.systemSubtitle'), icon: '📱' },
+    ];
+    
+    const sprintViewOptions: Array<{ value: SprintViewMode; label: string; sublabel: string; icon: string }> = [
+        { value: 'calendar', label: t('settings.sprints.views.calendar'), sublabel: t('settings.sprints.views.calendarSubtitle'), icon: '📅' },
+        { value: 'kanban', label: t('settings.sprints.views.kanban'), sublabel: t('settings.sprints.views.kanbanSubtitle'), icon: '📋' },
+        { value: 'list', label: t('settings.sprints.views.list'), sublabel: t('settings.sprints.views.listSubtitle'), icon: '📝' },
+    ];
+    
+    const aiModelOptions: Array<{ value: AIModel; label: string; sublabel: string; icon: string }> = [
+        { value: 'auto', label: t('settings.commandCenter.aiModels.auto'), sublabel: t('settings.commandCenter.aiModels.autoSubtitle'), icon: '🤖' },
+        { value: 'gpt-4', label: t('settings.commandCenter.aiModels.gpt4'), sublabel: t('settings.commandCenter.aiModels.gpt4Subtitle'), icon: '🧠' },
+        { value: 'gpt-3.5', label: t('settings.commandCenter.aiModels.gpt35'), sublabel: t('settings.commandCenter.aiModels.gpt35Subtitle'), icon: '⚡' },
+        { value: 'claude', label: t('settings.commandCenter.aiModels.claude'), sublabel: t('settings.commandCenter.aiModels.claudeSubtitle'), icon: '🎭' },
+    ];
+    
+    const weekStartOptions: Array<{ value: 'sunday' | 'monday'; label: string; sublabel: string; icon: string }> = [
+        { value: 'sunday', label: t('settings.sprints.weekDays.sunday'), sublabel: t('settings.sprints.weekDays.sundaySubtitle'), icon: '🌅' },
+        { value: 'monday', label: t('settings.sprints.weekDays.monday'), sublabel: t('settings.sprints.weekDays.mondaySubtitle'), icon: '📆' },
+    ];
+    
+    const languageOptions = SUPPORTED_LANGUAGES.map(lang => ({
+        value: lang.code as SupportedLocale,
+        label: lang.nativeName,
+        sublabel: lang.name,
+        icon: lang.flag,
+    }));
+    
     return (
-        <Container safeArea={false}>
-            {/* Header with Close Button */}
-            <View className="bg-white border-b border-gray-200 px-4 pt-12 pb-3">
+        <View className="flex-1 bg-gray-50" style={{ paddingTop: insets.top }}>
+            {/* Header */}
+            <View className="px-5 pt-2 pb-4 bg-gray-50">
                 <View className="flex-row items-center justify-between">
-                    <View className="flex-1">
-                        <Text className="text-2xl font-bold text-gray-900">Settings</Text>
-                        <Text className="text-sm text-gray-600 mt-1">Customize your experience</Text>
+                    <View className="flex-row items-center">
+                        <View className="w-11 h-11 bg-blue-500 rounded-2xl items-center justify-center mr-3 shadow-sm">
+                            <MaterialCommunityIcons name="cog" size={24} color="white" />
+                        </View>
+                        <View>
+                            <Text className="text-2xl font-bold text-gray-900">{t('settings.title')}</Text>
+                            <Text className="text-sm text-gray-500">{t('settings.subtitle')}</Text>
+                        </View>
                     </View>
                     <TouchableOpacity
                         onPress={() => router.back()}
-                        className="w-10 h-10 rounded-full bg-gray-100 items-center justify-center ml-3"
+                        className="w-10 h-10 bg-gray-100 rounded-full items-center justify-center"
                     >
-                        <MaterialCommunityIcons name="close" size={24} color="#374151" />
+                        <MaterialCommunityIcons name="close" size={22} color="#6B7280" />
                     </TouchableOpacity>
                 </View>
             </View>
-
-            <ScrollView className="flex-1 p-4">
-                {/* Demo Mode Indicator */}
-                {isDemoUser && (
-                    <View className="mb-4 bg-purple-100 p-4 rounded-xl flex-row items-center">
-                        <Text className="text-3xl mr-3">🎭</Text>
-                        <View className="flex-1">
-                            <Text className="text-purple-900 font-bold text-base">Demo Mode Active</Text>
-                            <Text className="text-purple-700 text-sm mt-0.5">
-                                You're using a demo account with pre-filled data
-                            </Text>
-                        </View>
-                    </View>
-                )}
-
-                {/* Localization Section */}
-                <Text className="text-lg font-bold text-gray-800 mb-3 mt-2">Localization</Text>
-                <Card className="mb-4">
-                    <TouchableOpacity 
-                        onPress={() => setShowLanguageModal(true)}
-                        className="flex-row items-center justify-between py-4 border-b border-gray-100"
-                    >
-                        <View className="flex-row items-center flex-1">
-                            <Text className="text-3xl mr-3">{currentLanguage.flag}</Text>
+            
+            {/* Content */}
+            <ScrollView
+                className="flex-1 px-4"
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingTop: 8, paddingBottom: 40 }}
+            >
+                
+                {/* ============================================ */}
+                {/* DEMO MODE INDICATOR / TOGGLE */}
+                {/* ============================================ */}
+                {isDemoUser ? (
+                    <View className="mb-6 bg-purple-50 border-2 border-purple-200 rounded-2xl p-4">
+                        <View className="flex-row items-center">
+                            <View className="w-12 h-12 bg-purple-500 rounded-xl items-center justify-center mr-3">
+                                <Text className="text-2xl">🎭</Text>
+                            </View>
                             <View className="flex-1">
-                                <Text className="text-sm font-semibold text-gray-900">Language</Text>
-                                <Text className="text-xs text-gray-500 mt-0.5">
-                                    {currentLanguage.nativeName}
+                                <Text className="text-lg font-bold text-purple-900">{t('settings.demoMode.title')}</Text>
+                                <Text className="text-sm text-purple-700 mt-0.5">
+                                    {t('settings.demoMode.subtitle')}
                                 </Text>
                             </View>
                         </View>
-                        <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
-                    </TouchableOpacity>
-
-                    <View className="py-4">
-                        <View className="flex-row items-center flex-1">
-                            <MaterialCommunityIcons name="clock-outline" size={24} color="#6B7280" className="mr-3" />
-                            <View className="flex-1 ml-3">
-                                <Text className="text-sm font-semibold text-gray-900">Timezone</Text>
-                                <Text className="text-xs text-gray-500 mt-0.5">{timezone}</Text>
-                            </View>
-                        </View>
-                    </View>
-                </Card>
-
-                {/* Appearance Section */}
-                <Text className="text-lg font-bold text-gray-800 mb-3 mt-4">Appearance</Text>
-                <Card className="mb-4">
-                    <TouchableOpacity 
-                        onPress={() => setShowThemeModal(true)}
-                        className="flex-row items-center justify-between py-4"
-                    >
-                        <View className="flex-row items-center flex-1">
-                            <MaterialCommunityIcons name="theme-light-dark" size={24} color="#6B7280" />
-                            <View className="flex-1 ml-3">
-                                <Text className="text-sm font-semibold text-gray-900">Theme</Text>
-                                <Text className="text-xs text-gray-500 mt-0.5 capitalize">{theme === 'auto' ? 'Auto (System)' : theme}</Text>
-                            </View>
-                        </View>
-                        <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
-                    </TouchableOpacity>
-                </Card>
-
-                {/* Life Wheel Areas Section */}
-                <Text className="text-lg font-bold text-gray-800 mb-3 mt-4">Life Wheel Areas</Text>
-                <Card className="mb-4">
-                    <Text className="text-xs text-gray-500 mb-3">
-                        Select which life dimensions you want to track and balance
-                    </Text>
-                    {LIFE_WHEEL_AREAS.map((area, index) => (
-                        <View
-                            key={area.id}
-                            className={`flex-row items-center justify-between py-3 ${
-                                index < LIFE_WHEEL_AREAS.length - 1 ? 'border-b border-gray-100' : ''
-                            }`}
+                        <TouchableOpacity
+                            onPress={handleResetDemo}
+                            className="mt-3 bg-purple-500 rounded-xl py-2.5 items-center"
                         >
-                            <View className="flex-row items-center flex-1">
-                                <Text className="text-2xl mr-3">{area.icon}</Text>
-                                <Text className="text-gray-700">{area.name}</Text>
-                            </View>
-                            <Switch
-                                value={isAreaSelected(area.id)}
-                                onValueChange={() => toggleLifeWheelArea(area.id)}
-                                trackColor={{ false: '#D1D5DB', true: '#93C5FD' }}
-                                thumbColor={isAreaSelected(area.id) ? '#3B82F6' : '#F3F4F6'}
-                            />
-                        </View>
-                    ))}
-                </Card>
-
-                {/* Notifications Section */}
-                <Text className="text-lg font-bold text-gray-800 mb-3 mt-4">Notifications</Text>
-                <Card className="mb-4">
-                    <View className="flex-row items-center justify-between py-3 border-b border-gray-100">
-                        <View className="flex-1">
-                            <Text className="text-sm font-semibold text-gray-700">Daily Sprint Reminders</Text>
-                            <Text className="text-xs text-gray-500 mt-1">
-                                Morning planning & evening review prompts
-                            </Text>
-                        </View>
-                        <Switch
-                            value={enableDailyReminders}
-                            onValueChange={(value) => setNotificationPreferences({ enableDailyReminders: value })}
-                            trackColor={{ false: '#D1D5DB', true: '#93C5FD' }}
-                            thumbColor={enableDailyReminders ? '#3B82F6' : '#F3F4F6'}
-                        />
+                            <Text className="text-white font-semibold">{t('settings.demoMode.exitButton')}</Text>
+                        </TouchableOpacity>
                     </View>
-
-                    <View className="flex-row items-center justify-between py-3 border-b border-gray-100">
-                        <View className="flex-1">
-                            <Text className="text-sm font-semibold text-gray-700">AI Scrum Master Insights</Text>
-                            <Text className="text-xs text-gray-500 mt-1">
-                                Smart coaching & capacity warnings
-                            </Text>
-                        </View>
-                        <Switch
-                            value={enableAiInsights}
-                            onValueChange={(value) => setNotificationPreferences({ enableAiInsights: value })}
-                            trackColor={{ false: '#D1D5DB', true: '#93C5FD' }}
-                            thumbColor={enableAiInsights ? '#3B82F6' : '#F3F4F6'}
-                        />
-                    </View>
-
-                    <View className="flex-row items-center justify-between py-3 border-b border-gray-100">
-                        <View className="flex-1">
-                            <Text className="text-sm font-semibold text-gray-700">Challenge Updates</Text>
-                            <Text className="text-xs text-gray-500 mt-1">
-                                Streak tracking & team progress
-                            </Text>
-                        </View>
-                        <Switch
-                            value={enableChallengeUpdates}
-                            onValueChange={(value) => setNotificationPreferences({ enableChallengeUpdates: value })}
-                            trackColor={{ false: '#D1D5DB', true: '#93C5FD' }}
-                            thumbColor={enableChallengeUpdates ? '#3B82F6' : '#F3F4F6'}
-                        />
-                    </View>
-
-                    <View className="flex-row items-center justify-between py-3">
-                        <View className="flex-1">
-                            <Text className="text-sm font-semibold text-gray-700">Bill Reminders</Text>
-                            <Text className="text-xs text-gray-500 mt-1">
-                                Payment due dates & alerts
-                            </Text>
-                        </View>
-                        <Switch
-                            value={enableBillReminders}
-                            onValueChange={(value) => setNotificationPreferences({ enableBillReminders: value })}
-                            trackColor={{ false: '#D1D5DB', true: '#93C5FD' }}
-                            thumbColor={enableBillReminders ? '#3B82F6' : '#F3F4F6'}
-                        />
-                    </View>
-                </Card>
-
-                {/* Privacy Section */}
-                <Text className="text-lg font-bold text-gray-800 mb-3 mt-4">Privacy</Text>
-                <Card className="mb-4">
-                    <View className="flex-row items-center justify-between py-3 border-b border-gray-100">
-                        <View className="flex-1">
-                            <Text className="text-sm font-semibold text-gray-700">Analytics</Text>
-                            <Text className="text-xs text-gray-500 mt-1">
-                                Help improve Kaiz (anonymous data only)
-                            </Text>
-                        </View>
-                        <Switch
-                            value={allowAnalytics}
-                            onValueChange={(value) => setPrivacyPreferences({ allowAnalytics: value })}
-                            trackColor={{ false: '#D1D5DB', true: '#93C5FD' }}
-                            thumbColor={allowAnalytics ? '#3B82F6' : '#F3F4F6'}
-                        />
-                    </View>
-
-                    <View className="flex-row items-center justify-between py-3">
-                        <View className="flex-1">
-                            <Text className="text-sm font-semibold text-gray-700">Personalization</Text>
-                            <Text className="text-xs text-gray-500 mt-1">
-                                AI recommendations based on your patterns
-                            </Text>
-                        </View>
-                        <Switch
-                            value={allowPersonalization}
-                            onValueChange={(value) => setPrivacyPreferences({ allowPersonalization: value })}
-                            trackColor={{ false: '#D1D5DB', true: '#93C5FD' }}
-                            thumbColor={allowPersonalization ? '#3B82F6' : '#F3F4F6'}
-                        />
-                    </View>
-                </Card>
-
-                {/* Account Section */}
-                <Text className="text-lg font-bold text-gray-800 mb-3 mt-4">Account</Text>
-                <Card className="mb-4">
-                    <TouchableOpacity 
-                        onPress={handleResetDemo}
-                        className="flex-row items-center justify-between py-4 border-b border-gray-100"
+                ) : (
+                    <TouchableOpacity
+                        onPress={handleEnterDemoMode}
+                        className="mb-6 bg-purple-50 border border-purple-100 rounded-2xl p-4"
                     >
-                        <View className="flex-row items-center flex-1">
-                            <View className="w-10 h-10 rounded-full bg-blue-100 items-center justify-center">
-                                <MaterialCommunityIcons name="restart" size={20} color="#3B82F6" />
+                        <View className="flex-row items-center">
+                            <View className="w-10 h-10 bg-purple-100 rounded-xl items-center justify-center mr-3">
+                                <Text className="text-xl">🎭</Text>
                             </View>
-                            <View className="ml-3 flex-1">
-                                <Text className="text-sm font-semibold text-gray-900">Reset Demo</Text>
-                                <Text className="text-xs text-gray-500 mt-0.5">
-                                    Clear data and restart onboarding flow
+                            <View className="flex-1">
+                                <Text className="text-base font-semibold text-purple-900">{t('settings.demoMode.tryTitle')}</Text>
+                                <Text className="text-xs text-purple-600 mt-0.5">
+                                    {t('settings.demoMode.trySubtitle')}
                                 </Text>
                             </View>
+                            <MaterialCommunityIcons name="chevron-right" size={20} color="#9333EA" />
                         </View>
-                        <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
                     </TouchableOpacity>
-
-                    <TouchableOpacity 
-                        onPress={handleLogout}
-                        className="flex-row items-center justify-between py-4"
-                    >
-                        <View className="flex-row items-center flex-1">
-                            <View className="w-10 h-10 rounded-full bg-red-100 items-center justify-center">
-                                <MaterialCommunityIcons name="logout" size={20} color="#EF4444" />
-                            </View>
-                            <View className="ml-3 flex-1">
-                                <Text className="text-sm font-semibold text-gray-900">Logout</Text>
-                                <Text className="text-xs text-gray-500 mt-0.5">
-                                    Return to login screen
-                                </Text>
-                            </View>
-                        </View>
-                        <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
-                    </TouchableOpacity>
-                </Card>
-
-                {/* Sprint Preferences */}
-                <Text className="text-lg font-bold text-gray-800 mb-3 mt-4">Sprint Settings</Text>
-                <Card className="mb-4">
-                    <TouchableOpacity 
-                        className="flex-row items-center justify-between py-4 border-b border-gray-100"
-                    >
-                        <View className="flex-row items-center flex-1">
-                            <MaterialCommunityIcons name="calendar-week" size={24} color="#6B7280" />
-                            <View className="flex-1 ml-3">
-                                <Text className="text-sm font-semibold text-gray-900">Week Starts On</Text>
-                                <Text className="text-xs text-gray-500 mt-0.5">Monday</Text>
-                            </View>
-                        </View>
-                        <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
-                    </TouchableOpacity>
-
-                    <TouchableOpacity 
-                        className="flex-row items-center justify-between py-4 border-b border-gray-100"
-                    >
-                        <View className="flex-row items-center flex-1">
-                            <MaterialCommunityIcons name="speedometer" size={24} color="#6B7280" />
-                            <View className="flex-1 ml-3">
-                                <Text className="text-sm font-semibold text-gray-900">Velocity Target</Text>
-                                <Text className="text-xs text-gray-500 mt-0.5">25-35 points/week (Moderate)</Text>
-                            </View>
-                        </View>
-                        <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
-                    </TouchableOpacity>
-
-                    <TouchableOpacity 
-                        className="flex-row items-center justify-between py-4"
-                    >
-                        <View className="flex-row items-center flex-1">
-                            <MaterialCommunityIcons name="format-list-checks" size={24} color="#6B7280" />
-                            <View className="flex-1 ml-3">
-                                <Text className="text-sm font-semibold text-gray-900">Default Task Points</Text>
-                                <Text className="text-xs text-gray-500 mt-0.5">3 points (Medium)</Text>
-                            </View>
-                        </View>
-                        <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
-                    </TouchableOpacity>
-                </Card>
-
-                {/* AI Coach Settings */}
-                <Text className="text-lg font-bold text-gray-800 mb-3 mt-4">AI Scrum Master</Text>
-                <Card className="mb-4">
-                    <TouchableOpacity 
-                        className="flex-row items-center justify-between py-4 border-b border-gray-100"
-                    >
-                        <View className="flex-row items-center flex-1">
-                            <MaterialCommunityIcons name="robot-happy" size={24} color="#6B7280" />
-                            <View className="flex-1 ml-3">
-                                <Text className="text-sm font-semibold text-gray-900">Coaching Style</Text>
-                                <Text className="text-xs text-gray-500 mt-0.5">Supportive Coach</Text>
-                            </View>
-                        </View>
-                        <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
-                    </TouchableOpacity>
-
-                    <View className="flex-row items-center justify-between py-3 border-b border-gray-100">
-                        <View className="flex-1">
-                            <Text className="text-sm font-semibold text-gray-700">Overcommit Warnings</Text>
-                            <Text className="text-xs text-gray-500 mt-1">
-                                Alert when sprint scope exceeds velocity
-                            </Text>
-                        </View>
-                        <Switch
-                            value={true}
-                            trackColor={{ false: '#D1D5DB', true: '#93C5FD' }}
-                            thumbColor={'#3B82F6'}
-                        />
+                )}
+                
+                {/* ============================================ */}
+                {/* ACCOUNT & PROFILE */}
+                {/* ============================================ */}
+                <SettingSection title={t('settings.sections.accountProfile')} titleIcon="👤">
+                    <SettingItem
+                        icon="account-edit-outline"
+                        iconColor="#3B82F6"
+                        iconBgColor="#DBEAFE"
+                        label={t('settings.account.editProfile')}
+                        sublabel={user?.fullName || user?.email || t('settings.account.editProfileSubtitle')}
+                        onPress={() => {/* Navigate to profile edit */}}
+                    />
+                    <SettingItem
+                        icon="image-edit-outline"
+                        iconColor="#8B5CF6"
+                        iconBgColor="#EDE9FE"
+                        label={t('settings.account.avatar')}
+                        sublabel={t('settings.account.avatarSubtitle')}
+                        onPress={() => {/* Open avatar picker */}}
+                        isLast
+                    />
+                </SettingSection>
+                
+                {/* ============================================ */}
+                {/* COMMAND CENTER (AI/CHAT) */}
+                {/* ============================================ */}
+                <SettingSection title={t('settings.sections.commandCenter')} titleIcon="🤖">
+                    <ToggleSetting
+                        icon="volume-high"
+                        iconColor="#10B981"
+                        iconBgColor="#D1FAE5"
+                        label={t('settings.commandCenter.autoPlayVoice')}
+                        sublabel={t('settings.commandCenter.autoPlayVoiceSubtitle')}
+                        value={commandCenter.autoPlayVoiceNotes}
+                        onValueChange={setAutoPlayVoiceNotes}
+                    />
+                    <ToggleSetting
+                        icon="vibrate"
+                        iconColor="#F59E0B"
+                        iconBgColor="#FEF3C7"
+                        label={t('settings.commandCenter.hapticFeedback')}
+                        sublabel={t('settings.commandCenter.hapticFeedbackSubtitle')}
+                        value={commandCenter.hapticFeedback}
+                        onValueChange={setHapticFeedback}
+                    />
+                    <ToggleSetting
+                        icon="text-box-outline"
+                        iconColor="#06B6D4"
+                        iconBgColor="#CFFAFE"
+                        label={t('settings.commandCenter.messagePreview')}
+                        sublabel={t('settings.commandCenter.messagePreviewSubtitle')}
+                        value={commandCenter.messagePreview}
+                        onValueChange={setMessagePreview}
+                    />
+                    <ToggleSetting
+                        icon="loading"
+                        iconColor="#8B5CF6"
+                        iconBgColor="#EDE9FE"
+                        label={t('settings.commandCenter.typingIndicator')}
+                        sublabel={t('settings.commandCenter.typingIndicatorSubtitle')}
+                        value={commandCenter.showTypingIndicator}
+                        onValueChange={setShowTypingIndicator}
+                    />
+                    <ToggleSetting
+                        icon="send"
+                        iconColor="#EC4899"
+                        iconBgColor="#FCE7F3"
+                        label={t('settings.commandCenter.sendWithEnter')}
+                        sublabel={t('settings.commandCenter.sendWithEnterSubtitle')}
+                        value={commandCenter.sendWithEnter}
+                        onValueChange={setSendWithEnter}
+                    />
+                    <SettingItem
+                        icon="robot-outline"
+                        iconColor="#6366F1"
+                        iconBgColor="#E0E7FF"
+                        label={t('settings.commandCenter.aiModel')}
+                        sublabel={t('settings.commandCenter.aiModelSubtitle')}
+                        value={aiModelOptions.find(o => o.value === commandCenter.aiModel)?.label || t('settings.commandCenter.aiModels.auto')}
+                        onPress={() => setShowAIModelModal(true)}
+                        isLast
+                    />
+                </SettingSection>
+                
+                {/* ============================================ */}
+                {/* SPRINTS & WORKFLOW */}
+                {/* ============================================ */}
+                <SettingSection title={t('settings.sections.sprintsWorkflow')} titleIcon="🏃">
+                    <SettingItem
+                        icon="view-dashboard-outline"
+                        iconColor="#0EA5E9"
+                        iconBgColor="#E0F2FE"
+                        label={t('settings.sprints.defaultView')}
+                        sublabel={t('settings.sprints.defaultViewSubtitle')}
+                        value={sprintViewOptions.find(o => o.value === sprints.defaultView)?.label || t('settings.sprints.views.calendar')}
+                        onPress={() => setShowSprintViewModal(true)}
+                    />
+                    <SettingItem
+                        icon="calendar-week"
+                        iconColor="#14B8A6"
+                        iconBgColor="#CCFBF1"
+                        label={t('settings.sprints.weekStartsOn')}
+                        sublabel={t('settings.sprints.weekStartsOnSubtitle')}
+                        value={sprints.weekStartsOn === 'monday' ? t('settings.sprints.weekDays.monday') : t('settings.sprints.weekDays.sunday')}
+                        onPress={() => setShowWeekStartModal(true)}
+                    />
+                    <ToggleSetting
+                        icon="checkbox-marked-circle-outline"
+                        iconColor="#22C55E"
+                        iconBgColor="#DCFCE7"
+                        label={t('settings.sprints.showCompleted')}
+                        sublabel={t('settings.sprints.showCompletedSubtitle')}
+                        value={sprints.showCompletedTasks}
+                        onValueChange={setShowCompletedTasks}
+                    />
+                    <ToggleSetting
+                        icon="bell-ring-outline"
+                        iconColor="#EF4444"
+                        iconBgColor="#FEE2E2"
+                        label={t('settings.sprints.taskNotifications')}
+                        sublabel={t('settings.sprints.taskNotificationsSubtitle')}
+                        value={sprints.enableTaskNotifications}
+                        onValueChange={setEnableTaskNotifications}
+                    />
+                    <ToggleSetting
+                        icon="timer-outline"
+                        iconColor="#F97316"
+                        iconBgColor="#FFEDD5"
+                        label={t('settings.sprints.autoStartPomodoro')}
+                        sublabel={t('settings.sprints.autoStartPomodoroSubtitle')}
+                        value={sprints.autoStartPomodoro}
+                        onValueChange={setAutoStartPomodoro}
+                        isLast
+                    />
+                </SettingSection>
+                
+                {/* ============================================ */}
+                {/* APPEARANCE */}
+                {/* ============================================ */}
+                <SettingSection title={t('settings.sections.appearance')} titleIcon="🎨">
+                    <SettingItem
+                        icon="theme-light-dark"
+                        iconColor="#8B5CF6"
+                        iconBgColor="#EDE9FE"
+                        label={t('settings.appearance.theme')}
+                        sublabel={t('settings.appearance.themeSubtitle')}
+                        value={getThemeModeLabel(preferencesTheme)}
+                        onPress={() => setShowThemeModal(true)}
+                    />
+                    <SettingItem
+                        icon="translate"
+                        iconColor="#0891B2"
+                        iconBgColor="#CFFAFE"
+                        label={t('settings.appearance.language')}
+                        sublabel={currentLanguage.name}
+                        value={currentLanguage.flag}
+                        onPress={() => setShowLanguageModal(true)}
+                    />
+                    <ToggleSetting
+                        icon="motion-outline"
+                        iconColor="#64748B"
+                        iconBgColor="#F1F5F9"
+                        label={t('settings.appearance.reducedMotion')}
+                        sublabel={t('settings.appearance.reducedMotionSubtitle')}
+                        value={system.reducedMotion}
+                        onValueChange={setReducedMotion}
+                    />
+                    <ToggleSetting
+                        icon="volume-vibrate"
+                        iconColor="#0D9488"
+                        iconBgColor="#CCFBF1"
+                        label={t('settings.appearance.soundEffects')}
+                        sublabel={t('settings.appearance.soundEffectsSubtitle')}
+                        value={system.soundEffects}
+                        onValueChange={setSoundEffects}
+                        isLast
+                    />
+                </SettingSection>
+                
+                {/* ============================================ */}
+                {/* STORAGE & DATA */}
+                {/* ============================================ */}
+                <SettingSection title={t('settings.sections.storageData')} titleIcon="💾">
+                    <SettingItem
+                        icon="broom"
+                        iconColor="#F59E0B"
+                        iconBgColor="#FEF3C7"
+                        label={t('settings.storage.clearCache')}
+                        sublabel={t('settings.storage.clearCacheSubtitle')}
+                        onPress={handleClearCache}
+                    />
+                    <SettingItem
+                        icon="clock-outline"
+                        iconColor="#6B7280"
+                        iconBgColor="#F3F4F6"
+                        label={t('settings.storage.timezone')}
+                        sublabel={timezone}
+                        showChevron={false}
+                        isLast
+                    />
+                </SettingSection>
+                
+                {/* ============================================ */}
+                {/* ABOUT */}
+                {/* ============================================ */}
+                <SettingSection title={t('settings.sections.about')} titleIcon="ℹ️">
+                    <SettingItem
+                        icon="information-outline"
+                        iconColor="#6B7280"
+                        iconBgColor="#F3F4F6"
+                        label={t('settings.about.appVersion')}
+                        value={`${appVersion} (${buildNumber})`}
+                        showChevron={false}
+                    />
+                    <SettingItem
+                        icon="web"
+                        iconColor="#3B82F6"
+                        iconBgColor="#DBEAFE"
+                        label={t('settings.about.website')}
+                        sublabel="kaizlifeos.com"
+                        onPress={() => Linking.openURL('https://kaizlifeos.com')}
+                    />
+                    <SettingItem
+                        icon="file-document-outline"
+                        iconColor="#6B7280"
+                        iconBgColor="#F3F4F6"
+                        label={t('settings.about.privacyPolicy')}
+                        onPress={() => Linking.openURL('https://kaizlifeos.com/privacy')}
+                    />
+                    <SettingItem
+                        icon="text-box-outline"
+                        iconColor="#6B7280"
+                        iconBgColor="#F3F4F6"
+                        label={t('settings.about.termsOfService')}
+                        onPress={() => Linking.openURL('https://kaizlifeos.com/terms')}
+                        isLast
+                    />
+                </SettingSection>
+                
+                {/* ============================================ */}
+                {/* SIGN OUT */}
+                {/* ============================================ */}
+                <TouchableOpacity
+                    onPress={handleLogout}
+                    className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 mb-6"
+                >
+                    <View className="flex-row items-center justify-center py-4">
+                        <MaterialCommunityIcons name="logout" size={20} color="#EF4444" />
+                        <Text className="text-[15px] font-semibold text-red-500 ml-2">
+                            {t('settings.signOut.button')}
+                        </Text>
                     </View>
-
-                    <View className="flex-row items-center justify-between py-3">
-                        <View className="flex-1">
-                            <Text className="text-sm font-semibold text-gray-700">Q2 Balance Monitor</Text>
-                            <Text className="text-xs text-gray-500 mt-1">
-                                Nudge when important tasks are neglected
-                            </Text>
-                        </View>
-                        <Switch
-                            value={true}
-                            trackColor={{ false: '#D1D5DB', true: '#93C5FD' }}
-                            thumbColor={'#3B82F6'}
-                        />
-                    </View>
-                </Card>
-
-                {/* Data & Sync */}
-                <Text className="text-lg font-bold text-gray-800 mb-3 mt-4">Data & Sync</Text>
-                <Card className="mb-4">
-                    <TouchableOpacity 
-                        className="flex-row items-center justify-between py-4 border-b border-gray-100"
-                    >
-                        <View className="flex-row items-center flex-1">
-                            <MaterialCommunityIcons name="cloud-sync" size={24} color="#6B7280" />
-                            <View className="flex-1 ml-3">
-                                <Text className="text-sm font-semibold text-gray-900">Sync Status</Text>
-                                <Text className="text-xs text-green-600 mt-0.5">✓ All data synced</Text>
-                            </View>
-                        </View>
-                        <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
-                    </TouchableOpacity>
-
-                    <View className="flex-row items-center justify-between py-3 border-b border-gray-100">
-                        <View className="flex-1">
-                            <Text className="text-sm font-semibold text-gray-700">Offline Mode</Text>
-                            <Text className="text-xs text-gray-500 mt-1">
-                                Work without internet, sync later
-                            </Text>
-                        </View>
-                        <Switch
-                            value={true}
-                            trackColor={{ false: '#D1D5DB', true: '#93C5FD' }}
-                            thumbColor={'#3B82F6'}
-                        />
-                    </View>
-
-                    <TouchableOpacity 
-                        className="flex-row items-center justify-between py-4"
-                    >
-                        <View className="flex-row items-center flex-1">
-                            <MaterialCommunityIcons name="database-export" size={24} color="#6B7280" />
-                            <View className="flex-1 ml-3">
-                                <Text className="text-sm font-semibold text-gray-900">Export Data</Text>
-                                <Text className="text-xs text-gray-500 mt-0.5">Download your data (CSV/PDF)</Text>
-                            </View>
-                        </View>
-                        <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
-                    </TouchableOpacity>
-                </Card>
-
-                {/* About & Support */}
-                <Text className="text-lg font-bold text-gray-800 mb-3 mt-4">About & Support</Text>
-                <Card className="mb-4">
-                    <TouchableOpacity 
-                        className="flex-row items-center justify-between py-4 border-b border-gray-100"
-                    >
-                        <View className="flex-row items-center flex-1">
-                            <MaterialCommunityIcons name="help-circle" size={24} color="#6B7280" />
-                            <View className="flex-1 ml-3">
-                                <Text className="text-sm font-semibold text-gray-900">Help Center</Text>
-                                <Text className="text-xs text-gray-500 mt-0.5">Guides, tutorials & FAQs</Text>
-                            </View>
-                        </View>
-                        <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
-                    </TouchableOpacity>
-
-                    <TouchableOpacity 
-                        className="flex-row items-center justify-between py-4 border-b border-gray-100"
-                    >
-                        <View className="flex-row items-center flex-1">
-                            <MaterialCommunityIcons name="book-open-variant" size={24} color="#6B7280" />
-                            <View className="flex-1 ml-3">
-                                <Text className="text-sm font-semibold text-gray-900">About Kaiz LifeOS</Text>
-                                <Text className="text-xs text-gray-500 mt-0.5">Learn about the system</Text>
-                            </View>
-                        </View>
-                        <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
-                    </TouchableOpacity>
-
-                    <TouchableOpacity 
-                        className="flex-row items-center justify-between py-4"
-                    >
-                        <View className="flex-row items-center flex-1">
-                            <MaterialCommunityIcons name="information" size={24} color="#6B7280" />
-                            <View className="flex-1 ml-3">
-                                <Text className="text-sm font-semibold text-gray-900">Version</Text>
-                                <Text className="text-xs text-gray-500 mt-0.5">1.0.0 (Build 100)</Text>
-                            </View>
-                        </View>
-                    </TouchableOpacity>
-                </Card>
-
-                {/* Follow Us */}
-                <Text className="text-lg font-bold text-gray-800 mb-3 mt-4">Follow Us</Text>
-                <Card className="mb-8">
-                    <Text className="text-sm text-gray-600 text-center mb-4">
-                        Join our community and stay updated
+                </TouchableOpacity>
+                
+                {/* Footer */}
+                <View className="items-center pt-2 pb-6">
+                    <Text className="text-xs text-gray-400">
+                        {t('settings.footer.madeWith')}
                     </Text>
-                    <View className="flex-row justify-center items-center gap-4">
-                        <TouchableOpacity className="w-14 h-14 rounded-full bg-blue-100 items-center justify-center">
-                            <MaterialCommunityIcons name="twitter" size={28} color="#1DA1F2" />
-                        </TouchableOpacity>
-                        <TouchableOpacity className="w-14 h-14 rounded-full bg-purple-100 items-center justify-center">
-                            <MaterialCommunityIcons name="instagram" size={28} color="#E4405F" />
-                        </TouchableOpacity>
-                        <TouchableOpacity className="w-14 h-14 rounded-full bg-blue-100 items-center justify-center">
-                            <MaterialCommunityIcons name="linkedin" size={28} color="#0A66C2" />
-                        </TouchableOpacity>
-                        <TouchableOpacity className="w-14 h-14 rounded-full bg-gray-100 items-center justify-center">
-                            <MaterialCommunityIcons name="youtube" size={28} color="#FF0000" />
-                        </TouchableOpacity>
-                    </View>
-                    <View className="mt-4 pt-4 border-t border-gray-100">
-                        <TouchableOpacity className="flex-row items-center justify-center py-2">
-                            <MaterialCommunityIcons name="web" size={20} color="#6B7280" />
-                            <Text className="text-sm text-gray-700 ml-2 font-medium">kaizlifeos.com</Text>
-                        </TouchableOpacity>
-                    </View>
-                </Card>
+                    <Text className="text-[10px] text-gray-300 mt-1">
+                        {t('settings.footer.copyright')}
+                    </Text>
+                </View>
             </ScrollView>
-
-            {/* Language Selection Modal */}
-            <Modal
-                visible={showLanguageModal}
-                animationType="slide"
-                transparent={true}
-                onRequestClose={() => setShowLanguageModal(false)}
-            >
-                <TouchableOpacity
-                    className="flex-1 bg-black/50 justify-end"
-                    activeOpacity={1}
-                    onPress={() => setShowLanguageModal(false)}
-                >
-                    <TouchableOpacity
-                        activeOpacity={1}
-                        onPress={(e) => e.stopPropagation()}
-                        className="bg-white rounded-t-3xl"
-                    >
-                        <View className="p-6">
-                            <View className="flex-row justify-between items-center mb-4">
-                                <Text className="text-2xl font-bold text-gray-900">Select Language</Text>
-                                <TouchableOpacity onPress={() => setShowLanguageModal(false)}>
-                                    <MaterialCommunityIcons name="close" size={24} color="#374151" />
-                                </TouchableOpacity>
-                            </View>
-
-                            <ScrollView className="max-h-96">
-                                {SUPPORTED_LANGUAGES.map((lang) => (
-                                    <TouchableOpacity
-                                        key={lang.code}
-                                        onPress={() => handleLanguageSelect(lang.code)}
-                                        className={`flex-row items-center py-4 px-4 rounded-lg mb-2 ${
-                                            locale === lang.code ? 'bg-blue-50' : 'bg-gray-50'
-                                        }`}
-                                    >
-                                        <Text className="text-3xl mr-4">{lang.flag}</Text>
-                                        <View className="flex-1">
-                                            <Text className="text-base font-semibold text-gray-900">
-                                                {lang.nativeName}
-                                            </Text>
-                                            <Text className="text-sm text-gray-600">{lang.name}</Text>
-                                        </View>
-                                        {locale === lang.code && (
-                                            <MaterialCommunityIcons name="check-circle" size={24} color="#3B82F6" />
-                                        )}
-                                    </TouchableOpacity>
-                                ))}
-                            </ScrollView>
-                        </View>
-                    </TouchableOpacity>
-                </TouchableOpacity>
-            </Modal>
-
-            {/* Theme Selection Modal */}
-            <Modal
+            
+            {/* ============================================ */}
+            {/* SELECTION MODALS */}
+            {/* ============================================ */}
+            
+            {/* Theme Selection */}
+            <SelectionModal<ThemeMode>
                 visible={showThemeModal}
-                animationType="slide"
-                transparent={true}
-                onRequestClose={() => setShowThemeModal(false)}
-            >
-                <TouchableOpacity
-                    className="flex-1 bg-black/50 justify-end"
-                    activeOpacity={1}
-                    onPress={() => setShowThemeModal(false)}
-                >
-                    <TouchableOpacity
-                        activeOpacity={1}
-                        onPress={(e) => e.stopPropagation()}
-                        className="bg-white rounded-t-3xl"
-                    >
-                        <View className="p-6">
-                            <View className="flex-row justify-between items-center mb-4">
-                                <Text className="text-2xl font-bold text-gray-900">Select Theme</Text>
-                                <TouchableOpacity onPress={() => setShowThemeModal(false)}>
-                                    <MaterialCommunityIcons name="close" size={24} color="#374151" />
-                                </TouchableOpacity>
-                            </View>
-
-                            <View className="gap-3">
-                                {[
-                                    { value: 'light' as const, label: 'Light', icon: 'white-balance-sunny' },
-                                    { value: 'dark' as const, label: 'Dark', icon: 'moon-waning-crescent' },
-                                    { value: 'auto' as const, label: 'Auto (System)', icon: 'theme-light-dark' },
-                                ].map((themeOption) => (
-                                    <TouchableOpacity
-                                        key={themeOption.value}
-                                        onPress={() => handleThemeSelect(themeOption.value)}
-                                        className={`flex-row items-center py-4 px-4 rounded-lg ${
-                                            theme === themeOption.value ? 'bg-blue-50' : 'bg-gray-50'
-                                        }`}
-                                    >
-                                        <MaterialCommunityIcons 
-                                            name={themeOption.icon as any} 
-                                            size={24} 
-                                            color={theme === themeOption.value ? '#3B82F6' : '#6B7280'} 
-                                        />
-                                        <Text className={`text-base font-semibold ml-4 flex-1 ${
-                                            theme === themeOption.value ? 'text-blue-900' : 'text-gray-900'
-                                        }`}>
-                                            {themeOption.label}
-                                        </Text>
-                                        {theme === themeOption.value && (
-                                            <MaterialCommunityIcons name="check-circle" size={24} color="#3B82F6" />
-                                        )}
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
-                        </View>
-                    </TouchableOpacity>
-                </TouchableOpacity>
-            </Modal>
-        </Container>
+                onClose={() => setShowThemeModal(false)}
+                title={t('settings.modals.chooseTheme')}
+                options={themeOptions}
+                selectedValue={preferencesTheme}
+                onSelect={handleThemeSelect}
+            />
+            
+            {/* Language Selection */}
+            <SelectionModal<SupportedLocale>
+                visible={showLanguageModal}
+                onClose={() => setShowLanguageModal(false)}
+                title={t('settings.modals.chooseLanguage')}
+                options={languageOptions}
+                selectedValue={locale}
+                onSelect={setLocale}
+            />
+            
+            {/* Sprint View Selection */}
+            <SelectionModal<SprintViewMode>
+                visible={showSprintViewModal}
+                onClose={() => setShowSprintViewModal(false)}
+                title={t('settings.modals.defaultSprintView')}
+                options={sprintViewOptions}
+                selectedValue={sprints.defaultView}
+                onSelect={setDefaultSprintView}
+            />
+            
+            {/* AI Model Selection */}
+            <SelectionModal<AIModel>
+                visible={showAIModelModal}
+                onClose={() => setShowAIModelModal(false)}
+                title={t('settings.modals.aiModel')}
+                options={aiModelOptions}
+                selectedValue={commandCenter.aiModel}
+                onSelect={setAIModel}
+            />
+            
+            {/* Week Start Selection */}
+            <SelectionModal<'sunday' | 'monday'>
+                visible={showWeekStartModal}
+                onClose={() => setShowWeekStartModal(false)}
+                title={t('settings.modals.weekStartsOn')}
+                options={weekStartOptions}
+                selectedValue={sprints.weekStartsOn}
+                onSelect={setWeekStartsOn}
+            />
+        </View>
     );
 }
