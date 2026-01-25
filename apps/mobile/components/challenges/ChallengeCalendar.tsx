@@ -26,7 +26,8 @@ export function ChallengeCalendar({ entries, startDate, daysToShow = 14 }: Chall
     // Map entries by date
     const entryMap = new Map<string, ChallengeEntry>();
     entries.forEach(entry => {
-        entryMap.set(entry.date, entry);
+        const dateKey = entry.date || entry.entryDate || '';
+        if (dateKey) entryMap.set(dateKey, entry);
     });
     
     const getDayStatus = (date: Date): 'completed' | 'missed' | 'future' => {
@@ -36,10 +37,11 @@ export function ChallengeCalendar({ entries, startDate, daysToShow = 14 }: Chall
         if (date > today) return 'future';
         if (!entry) return 'missed';
         
-        if (typeof entry.value === 'boolean') {
-            return entry.value ? 'completed' : 'missed';
+        const value = entry.value ?? entry.entryValue;
+        if (typeof value === 'boolean') {
+            return value ? 'completed' : 'missed';
         } else {
-            return entry.value > 0 ? 'completed' : 'missed';
+            return (value ?? 0) > 0 ? 'completed' : 'missed';
         }
     };
     

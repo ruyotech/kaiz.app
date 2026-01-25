@@ -5,9 +5,10 @@ interface BadgeProps {
     children: React.ReactNode;
     variant?: 'default' | 'success' | 'warning' | 'error' | 'info';
     size?: 'sm' | 'md';
+    className?: string;
 }
 
-export function Badge({ children, variant = 'default', size = 'md' }: BadgeProps) {
+export function Badge({ children, variant = 'default', size = 'md', className = '' }: BadgeProps) {
     const getVariantStyles = () => {
         switch (variant) {
             case 'success':
@@ -33,7 +34,7 @@ export function Badge({ children, variant = 'default', size = 'md' }: BadgeProps
     const [bgColor, textColor] = getVariantStyles().split(' ');
 
     return (
-        <View className={`${bgColor} ${getSizeStyles()} rounded-full self-start`}>
+        <View className={`${bgColor} ${getSizeStyles()} rounded-full self-start ${className}`}>
             <Text className={`${textColor} font-medium`}>
                 {children}
             </Text>

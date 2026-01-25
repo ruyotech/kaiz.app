@@ -296,7 +296,7 @@ export default function CommunityHubScreen() {
                     <ScrollView 
                         horizontal 
                         showsHorizontalScrollIndicator={false}
-                        contentContainerClassName="px-4"
+                        contentContainerStyle={{ paddingHorizontal: 16 }}
                     >
                         {featuredTemplates.map((template) => (
                             <TemplateCard 

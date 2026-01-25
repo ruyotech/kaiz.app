@@ -22,7 +22,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     fetchNotifications: async (userId) => {
         set({ loading: true, error: null });
         try {
-            const notifications = await mockApi.getNotifications(userId);
+            const notifications = await mockApi.getNotifications(userId) as Notification[];
             const unreadCount = await mockApi.getUnreadCount(userId);
             set({ notifications, unreadCount, loading: false });
         } catch (error) {

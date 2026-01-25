@@ -9,6 +9,7 @@ interface ButtonProps {
     disabled?: boolean;
     loading?: boolean;
     fullWidth?: boolean;
+    className?: string;
 }
 
 export function Button({
@@ -19,6 +20,7 @@ export function Button({
     disabled = false,
     loading = false,
     fullWidth = false,
+    className = '',
 }: ButtonProps) {
     const getVariantStyles = () => {
         switch (variant) {
@@ -78,6 +80,7 @@ export function Button({
         rounded-lg
         ${fullWidth ? 'w-full' : ''}
         ${disabled ? 'opacity-50' : ''}
+        ${className}
       `}
         >
             <View className="flex-row items-center justify-center">

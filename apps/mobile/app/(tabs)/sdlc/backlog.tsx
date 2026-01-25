@@ -342,7 +342,7 @@ export default function BacklogScreen() {
                             data={filteredTasks}
                             renderItem={renderTask}
                             keyExtractor={(item) => item.id}
-                            contentContainerClassName="px-4 pt-4 pb-6"
+                            contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 24 }}
                             ItemSeparatorComponent={() => <View className="h-1" />}
                         />
                     )}

@@ -90,7 +90,7 @@ export default function NotificationsScreen() {
                     data={notifications}
                     renderItem={renderNotification}
                     keyExtractor={(item) => item.id}
-                    contentContainerClassName="p-4"
+                    contentContainerStyle={{ padding: 16 }}
                 />
             )}
         </Container>

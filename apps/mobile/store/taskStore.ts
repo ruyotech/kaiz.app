@@ -38,7 +38,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     fetchTasks: async (filters) => {
         set({ loading: true, error: null });
         try {
-            const tasks = await mockApi.getTasks(filters);
+            const tasks = await mockApi.getTasks(filters) as Task[];
             set({ tasks, loading: false });
         } catch (error) {
             set({ error: 'Failed to fetch tasks', loading: false });

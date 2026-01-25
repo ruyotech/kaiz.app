@@ -23,7 +23,7 @@ export const useBillStore = create<BillState>((set, get) => ({
     fetchBills: async (filters) => {
         set({ loading: true, error: null });
         try {
-            const bills = await mockApi.getBills(filters);
+            const bills = await mockApi.getBills(filters) as Bill[];
             set({ bills, loading: false });
         } catch (error) {
             set({ error: 'Failed to fetch bills', loading: false });

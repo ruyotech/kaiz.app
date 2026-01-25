@@ -37,7 +37,7 @@ interface PomodoroState {
   weekSessions: number;
 
   // Timer interval reference
-  timerInterval: NodeJS.Timeout | null;
+  timerInterval: ReturnType<typeof setInterval> | null;
 
   // Actions
   startSession: (taskId: string | null, taskTitle: string | null, mode?: 'focus' | 'shortBreak' | 'longBreak') => void;
@@ -209,7 +209,7 @@ export const usePomodoroStore = create<PomodoroState>((set, get) => ({
     AsyncStorage.setItem(SESSIONS_KEY, JSON.stringify(newSessions));
 
     // Determine next mode
-    let nextMode: 'focus' | 'shortBreak' | 'longBreak' | 'idle' = 'idle';
+    let nextMode: 'focus' | 'shortBreak' | 'longBreak' = 'focus';
     let shouldAutoStart = false;
 
     if (state.mode === 'focus') {

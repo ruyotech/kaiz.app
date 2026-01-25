@@ -1,14 +1,16 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 
 interface EmptyStateProps {
     icon?: string;
     title: string;
     message: string;
     action?: React.ReactNode;
+    actionLabel?: string;
+    onAction?: () => void;
 }
 
-export function EmptyState({ icon = '📭', title, message, action }: EmptyStateProps) {
+export function EmptyState({ icon = '📭', title, message, action, actionLabel, onAction }: EmptyStateProps) {
     return (
         <View className="flex-1 items-center justify-center p-8">
             <Text className="text-6xl mb-4">{icon}</Text>
@@ -19,6 +21,11 @@ export function EmptyState({ icon = '📭', title, message, action }: EmptyState
                 {message}
             </Text>
             {action}
+            {actionLabel && onAction && (
+                <TouchableOpacity onPress={onAction} className="mt-2 px-4 py-2 bg-blue-600 rounded-lg">
+                    <Text className="text-white font-medium">{actionLabel}</Text>
+                </TouchableOpacity>
+            )}
         </View>
     );
 }

@@ -25,7 +25,7 @@ export const useEpicStore = create<EpicState>((set, get) => ({
     fetchEpics: async () => {
         set({ loading: true, error: null });
         try {
-            const epics = await mockApi.getEpics();
+            const epics = await mockApi.getEpics() as Epic[];
             set({ epics, loading: false });
         } catch (error) {
             set({ error: 'Failed to fetch epics', loading: false });

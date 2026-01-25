@@ -74,13 +74,15 @@ export interface Task {
     lifeWheelAreaId: string;
     eisenhowerQuadrantId: string;
     sprintId: string | null;
-    storyPoints: 1 | 2 | 3 | 5 | 8 | 13 | 21;
-    status: 'draft' | 'todo' | 'in_progress' | 'done';
+    storyPoints: number;
+    status: 'draft' | 'todo' | 'in_progress' | 'done' | 'blocked';
     isDraft: boolean;
     aiConfidence: number | null;
     createdFromTemplateId: string | null;
     createdAt: string;
     completedAt: string | null;
+    // Alias for eisenhowerQuadrantId (used in some screens)
+    quadrant?: string;
     // Recurring task support
     isRecurring?: boolean;
     recurrencePattern?: {
@@ -476,25 +478,27 @@ export interface ChallengeParticipant {
     id: string;
     challengeId: string;
     userId: string;
-    joinedAt: string;
+    joinedAt?: string;
     currentProgress: number;
     lastUpdated: string;
     streakDays: number;
-    isAccountabilityPartner: boolean; // can view only, not log
+    isAccountabilityPartner?: boolean; // can view only, not log
 }
 
 export interface ChallengeEntry {
     id: string;
     challengeId: string;
     userId: string;
-    date: string; // YYYY-MM-DD
-    value: number | boolean; // depends on metric type
+    date?: string; // YYYY-MM-DD
+    entryDate?: string; // Alternative date field
+    value?: number | boolean; // depends on metric type
+    entryValue?: number | boolean; // Alternative value field
     note?: string;
     timestamp: string;
-    synced: boolean; // offline support
+    synced?: boolean; // offline support
     reactions: Array<{
         userId: string;
-        type: 'thumbsup' | 'fire' | 'muscle' | 'celebrate';
+        type: 'thumbsup' | 'fire' | 'muscle' | 'celebrate' | string;
     }>;
 }
 

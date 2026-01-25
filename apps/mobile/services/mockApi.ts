@@ -8,6 +8,7 @@ import taskHistoryData from '../data/mock/taskHistory.json';
 import taskCommentsData from '../data/mock/taskComments.json';
 import templatesData from '../data/mock/templates.json';
 import billCategoriesData from '../data/mock/billCategories.json';
+import { User, Sprint, Task } from '../types/models';
 import billsData from '../data/mock/bills.json';
 import booksData from '../data/mock/bookSummaries.json';
 import challengesData from '../data/mock/challenges.json';
@@ -29,18 +30,18 @@ export const mockApi = {
     // Auth
     async login(email: string, password: string) {
         await delay();
-        return usersData.currentUser;
+        return usersData.currentUser as User;
     },
 
     // Users
     async getCurrentUser() {
         await delay();
-        return usersData.currentUser;
+        return usersData.currentUser as User;
     },
 
     async getFamilyMembers() {
         await delay();
-        return usersData.familyMembers;
+        return usersData.familyMembers as User[];
     },
 
     // Life Wheel
@@ -58,17 +59,17 @@ export const mockApi = {
     // Sprints
     async getSprints(year: number = 2026) {
         await delay();
-        return sprintsData.sprints;
+        return sprintsData.sprints as Sprint[];
     },
 
     async getCurrentSprint() {
         await delay();
-        return sprintsData.sprints.find(s => s.status === 'active');
+        return (sprintsData.sprints as Sprint[]).find(s => s.status === 'active');
     },
 
     async getSprintById(id: string) {
         await delay();
-        return sprintsData.sprints.find(s => s.id === id);
+        return (sprintsData.sprints as Sprint[]).find(s => s.id === id);
     },
 
     // Epics
@@ -85,7 +86,7 @@ export const mockApi = {
     // Tasks
     async getTasks(filters?: { sprintId?: string | null; status?: string; epicId?: string; userId?: string; backlog?: boolean }) {
         await delay();
-        let filtered = tasksData;
+        let filtered = tasksData as Task[];
 
         // Filter for backlog items (no sprint assigned, not draft)
         if (filters?.backlog) {
@@ -109,12 +110,12 @@ export const mockApi = {
 
     async getTaskById(id: string) {
         await delay();
-        return tasksData.find(t => t.id === id);
+        return (tasksData as Task[]).find(t => t.id === id);
     },
 
     async getDraftTasks() {
         await delay();
-        return tasksData.filter(t => t.isDraft);
+        return (tasksData as Task[]).filter(t => t.isDraft);
     },
 
     async getTaskHistory(taskId: string) {

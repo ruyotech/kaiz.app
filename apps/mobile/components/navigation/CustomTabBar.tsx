@@ -58,7 +58,7 @@ export function CustomTabBar() {
     const waveAnim3 = useRef(new Animated.Value(0.7)).current;
     const waveAnim4 = useRef(new Animated.Value(0.4)).current;
     const waveAnim5 = useRef(new Animated.Value(0.6)).current;
-    const recordingTimer = useRef<NodeJS.Timeout | null>(null);
+    const recordingTimer = useRef<ReturnType<typeof setInterval> | null>(null);
     
     // Animate voice waves when recording
     useEffect(() => {
@@ -495,7 +495,7 @@ export function CustomTabBar() {
         
         setIsProcessing(true);
         try {
-            let response;
+            let response: { success: boolean; detectedType: string; parsedData: { title: string; description?: string } } | undefined;
             
             if (attachment) {
                 // Process attachment
@@ -530,9 +530,12 @@ export function CustomTabBar() {
                     ? `Attachment: ${attachment.type === 'image' ? 'Photo' : attachment.type === 'file' ? attachment.name : 'Voice'}\n\n`
                     : '';
                 
+                const detectedType = response.detectedType;
+                const parsedData = response.parsedData;
+                
                 Alert.alert(
                     'AI Parsed Input',
-                    `${attachmentInfo}Detected: ${response.detectedType}\n\nTitle: ${response.parsedData.title}\n\nDescription: ${response.parsedData.description || 'None'}`,
+                    `${attachmentInfo}Detected: ${detectedType}\n\nTitle: ${parsedData.title}\n\nDescription: ${parsedData.description || 'None'}`,
                     [
                         { text: 'Cancel', style: 'cancel' },
                         { 
@@ -540,7 +543,7 @@ export function CustomTabBar() {
                             onPress: () => {
                                 setInput('');
                                 setAttachment(null);
-                                navigateToCreate(response.detectedType, response.parsedData);
+                                navigateToCreate(detectedType, parsedData);
                             }
                         },
                     ]

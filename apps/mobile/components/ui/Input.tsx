@@ -1,5 +1,5 @@
 import React from 'react';
-import { TextInput, Text, View } from 'react-native';
+import { TextInput, Text, View, TextInputProps } from 'react-native';
 
 interface InputProps {
     value: string;
@@ -11,6 +11,7 @@ interface InputProps {
     numberOfLines?: number;
     secureTextEntry?: boolean;
     keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad';
+    autoCapitalize?: TextInputProps['autoCapitalize'];
 }
 
 export function Input({
@@ -23,6 +24,7 @@ export function Input({
     numberOfLines = 1,
     secureTextEntry = false,
     keyboardType = 'default',
+    autoCapitalize,
 }: InputProps) {
     return (
         <View className="mb-4">
@@ -39,6 +41,7 @@ export function Input({
                 numberOfLines={numberOfLines}
                 secureTextEntry={secureTextEntry}
                 keyboardType={keyboardType}
+                autoCapitalize={autoCapitalize}
                 className={`
           border rounded-lg px-4 py-3 text-base
           ${error ? 'border-red-500' : 'border-gray-300'}

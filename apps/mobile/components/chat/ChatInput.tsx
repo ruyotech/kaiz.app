@@ -173,7 +173,7 @@ export function ChatInput({
     const [playingAudioUri, setPlayingAudioUri] = useState<string | null>(null);
     
     // Recording timer ref
-    const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
     
     // Voice wave animation refs
     const waveAnims = useRef([

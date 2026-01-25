@@ -68,10 +68,10 @@ export const useChallengeStore = create<ChallengeState>((set, get) => ({
         set({ loading: true, error: null });
         try {
             const challengeData = await mockApi.getChallengeById(challengeId);
-            const entries = await mockApi.getChallengeEntries(challengeId);
+            const entries = await mockApi.getChallengeEntries(challengeId) as ChallengeEntry[];
 
             set({
-                participants: challengeData.participants || [],
+                participants: (challengeData.participants || []) as ChallengeParticipant[],
                 entries,
                 loading: false,
             });
@@ -184,20 +184,20 @@ export const useChallengeStore = create<ChallengeState>((set, get) => ({
     calculateStreak: (challengeId) => {
         const entries = get().entries
             .filter(e => e.challengeId === challengeId)
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            .sort((a, b) => new Date(b.date || b.entryDate || '').getTime() - new Date(a.date || a.entryDate || '').getTime());
 
         let streak = 0;
         let currentDate = new Date();
         currentDate.setHours(0, 0, 0, 0);
 
         for (const entry of entries) {
-            const entryDate = new Date(entry.date);
+            const entryDate = new Date(entry.date || entry.entryDate || '');
             entryDate.setHours(0, 0, 0, 0);
             
             const daysDiff = Math.floor((currentDate.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24));
             
             if (daysDiff === streak) {
-                if (entry.value) {
+                if (entry.value ?? entry.entryValue) {
                     streak++;
                 } else {
                     break;
@@ -296,13 +296,13 @@ export const useChallengeStore = create<ChallengeState>((set, get) => ({
         });
     },
 
-    addEntry: (challengeId, entryValue) => {
+    addEntry: (challengeId: string, entryValue: number) => {
         const newEntry: ChallengeEntry = {
             id: `entry-${Date.now()}`,
             challengeId,
             userId: 'user-1',
-            entryValue,
-            entryDate: new Date().toISOString().split('T')[0],
+            value: entryValue,
+            date: new Date().toISOString().split('T')[0],
             timestamp: new Date().toISOString(),
             reactions: [],
         };
@@ -315,19 +315,6 @@ export const useChallengeStore = create<ChallengeState>((set, get) => ({
                 p.userId === 'user-1' && p.challengeId === challengeId
                     ? { ...p, currentProgress: p.currentProgress + entryValue, lastUpdated: new Date().toISOString() }
                     : p
-            ),
-        }));
-    },
-
-    addReaction: (entryId, userId, type) => {
-        set(state => ({
-            entries: state.entries.map(e =>
-                e.id === entryId
-                    ? {
-                        ...e,
-                        reactions: [...e.reactions, { userId, type }],
-                    }
-                    : e
             ),
         }));
     },
