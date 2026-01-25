@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { View, Text, TouchableOpacity, TextInput, Modal, Pressable, KeyboardAvoidingView, Platform, Alert, ActivityIndicator } from 'react-native';
+import { useState, useEffect, useRef } from 'react';
+import { View, Text, TouchableOpacity, TextInput, Modal, Pressable, KeyboardAvoidingView, Platform, Alert, ActivityIndicator, Image, Animated } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigationStore, AppContext } from '../../store/navigationStore';
 import { usePomodoroStore } from '../../store/pomodoroStore';
@@ -26,6 +26,13 @@ const INPUT_OPTIONS = [
     { id: 'voice', icon: 'microphone', label: 'Voice', color: '#EF4444' },
 ];
 
+type AttachmentType = {
+    type: 'image' | 'file' | 'voice';
+    uri: string;
+    name?: string;
+    source?: 'camera' | 'gallery';
+} | null;
+
 export function CustomTabBar() {
     const { currentApp, toggleAppSwitcher, toggleMoreMenu } = useNavigationStore();
     const { isActive: isPomodoroActive, timeRemaining, isPaused } = usePomodoroStore();
@@ -36,6 +43,58 @@ export function CustomTabBar() {
     const [showCreateMenu, setShowCreateMenu] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
+    const [recordingDuration, setRecordingDuration] = useState(0);
+    const [attachment, setAttachment] = useState<AttachmentType>(null);
+    
+    // Voice wave animation
+    const waveAnim1 = useRef(new Animated.Value(0.3)).current;
+    const waveAnim2 = useRef(new Animated.Value(0.5)).current;
+    const waveAnim3 = useRef(new Animated.Value(0.7)).current;
+    const waveAnim4 = useRef(new Animated.Value(0.4)).current;
+    const waveAnim5 = useRef(new Animated.Value(0.6)).current;
+    const recordingTimer = useRef<NodeJS.Timeout | null>(null);
+    
+    // Animate voice waves when recording
+    useEffect(() => {
+        if (isRecording) {
+            const animateWave = (anim: Animated.Value, duration: number) => {
+                Animated.loop(
+                    Animated.sequence([
+                        Animated.timing(anim, { toValue: 1, duration, useNativeDriver: false }),
+                        Animated.timing(anim, { toValue: 0.2, duration, useNativeDriver: false }),
+                    ])
+                ).start();
+            };
+            animateWave(waveAnim1, 300);
+            animateWave(waveAnim2, 400);
+            animateWave(waveAnim3, 250);
+            animateWave(waveAnim4, 350);
+            animateWave(waveAnim5, 280);
+            
+            // Start recording timer
+            recordingTimer.current = setInterval(() => {
+                setRecordingDuration(prev => prev + 1);
+            }, 1000);
+        } else {
+            waveAnim1.setValue(0.3);
+            waveAnim2.setValue(0.5);
+            waveAnim3.setValue(0.7);
+            waveAnim4.setValue(0.4);
+            waveAnim5.setValue(0.6);
+            
+            // Clear timer
+            if (recordingTimer.current) {
+                clearInterval(recordingTimer.current);
+                recordingTimer.current = null;
+            }
+        }
+        
+        return () => {
+            if (recordingTimer.current) {
+                clearInterval(recordingTimer.current);
+            }
+        };
+    }, [isRecording]);
 
     // Handle camera capture
     const handleCamera = async () => {
@@ -49,13 +108,17 @@ export function CustomTabBar() {
             }
 
             const result = await ImagePicker.launchCameraAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                mediaTypes: ['images'],
                 allowsEditing: true,
                 quality: 0.8,
             });
 
             if (!result.canceled && result.assets[0]) {
-                await processImageInput(result.assets[0].uri, 'camera');
+                setAttachment({
+                    type: 'image',
+                    uri: result.assets[0].uri,
+                    source: 'camera',
+                });
             }
         } catch (error) {
             Alert.alert('Error', 'Failed to access camera');
@@ -74,13 +137,17 @@ export function CustomTabBar() {
             }
 
             const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                mediaTypes: ['images'],
                 allowsEditing: true,
                 quality: 0.8,
             });
 
             if (!result.canceled && result.assets[0]) {
-                await processImageInput(result.assets[0].uri, 'gallery');
+                setAttachment({
+                    type: 'image',
+                    uri: result.assets[0].uri,
+                    source: 'gallery',
+                });
             }
         } catch (error) {
             Alert.alert('Error', 'Failed to access gallery');
@@ -92,32 +159,79 @@ export function CustomTabBar() {
         setShowCreateMenu(false);
         try {
             const result = await DocumentPicker.getDocumentAsync({
-                type: ['application/pdf', 'text/*', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+                type: ['*/*'],
                 copyToCacheDirectory: true,
             });
 
-            if (!result.canceled && result.assets[0]) {
-                await processFileInput(result.assets[0].uri, result.assets[0].name);
+            if (!result.canceled && result.assets && result.assets[0]) {
+                setAttachment({
+                    type: 'file',
+                    uri: result.assets[0].uri,
+                    name: result.assets[0].name || 'Document',
+                });
             }
-        } catch (error) {
-            Alert.alert('Error', 'Failed to pick file');
+        } catch (error: any) {
+            console.log('DocumentPicker error:', error);
+            // In simulator, file picker may not work - provide mock attachment for testing
+            if (__DEV__) {
+                Alert.alert(
+                    'Simulator Limitation',
+                    'File picker may not work in simulator. Would you like to add a mock file attachment for testing?',
+                    [
+                        { text: 'Cancel', style: 'cancel' },
+                        {
+                            text: 'Add Mock File',
+                            onPress: () => {
+                                setAttachment({
+                                    type: 'file',
+                                    uri: 'mock-file://document.pdf',
+                                    name: 'Sample Document.pdf',
+                                });
+                            }
+                        },
+                    ]
+                );
+            } else {
+                Alert.alert('Error', 'Failed to pick file. Please try again.');
+            }
         }
     };
 
-    // Handle voice input
+    // Handle voice input - start recording
     const handleVoiceInput = async () => {
         setShowCreateMenu(false);
-        if (isRecording) {
-            setIsRecording(false);
-            await processVoiceInput();
-        } else {
-            setIsRecording(true);
-            // Simulate voice recording for 3 seconds
-            setTimeout(async () => {
-                setIsRecording(false);
-                await processVoiceInput();
-            }, 3000);
-        }
+        setIsRecording(true);
+        setRecordingDuration(0);
+    };
+    
+    // Cancel voice recording
+    const cancelVoiceRecording = () => {
+        setIsRecording(false);
+        setRecordingDuration(0);
+    };
+    
+    // Accept voice recording
+    const acceptVoiceRecording = () => {
+        setIsRecording(false);
+        const duration = recordingDuration;
+        setRecordingDuration(0);
+        setAttachment({
+            type: 'voice',
+            uri: 'voice-recording',
+            name: `Voice Message (${formatRecordingTime(duration)})`,
+        });
+    };
+    
+    // Format recording time
+    const formatRecordingTime = (seconds: number) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    // Clear attachment
+    const clearAttachment = () => {
+        setAttachment(null);
     };
 
     // Process image input through mock API
@@ -233,35 +347,66 @@ export function CustomTabBar() {
     };
 
     const handleQuickCreate = async () => {
-        if (input.trim()) {
-            setIsProcessing(true);
-            try {
-                const response = await mockApi.parseAIInput({
+        // Check if there's an attachment or text to process
+        if (!attachment && !input.trim()) return;
+        
+        setIsProcessing(true);
+        try {
+            let response;
+            
+            if (attachment) {
+                // Process attachment
+                if (attachment.type === 'image') {
+                    response = await mockApi.parseAIInput({
+                        type: 'image',
+                        content: attachment.uri,
+                        source: attachment.source,
+                    });
+                } else if (attachment.type === 'file') {
+                    response = await mockApi.parseAIInput({
+                        type: 'file',
+                        content: attachment.uri,
+                        fileName: attachment.name,
+                    });
+                } else if (attachment.type === 'voice') {
+                    response = await mockApi.parseAIInput({
+                        type: 'voice',
+                        content: 'Simulated voice transcription: Add a new task to review the project designs by Friday',
+                    });
+                }
+            } else {
+                // Process text input
+                response = await mockApi.parseAIInput({
                     type: 'text',
                     content: input,
                 });
-                
-                if (response.success) {
-                    Alert.alert(
-                        'AI Parsed Input',
-                        `Detected: ${response.detectedType}\n\nTitle: ${response.parsedData.title}\n\nDescription: ${response.parsedData.description || 'None'}`,
-                        [
-                            { text: 'Cancel', style: 'cancel' },
-                            { 
-                                text: 'Create', 
-                                onPress: () => {
-                                    setInput('');
-                                    navigateToCreate(response.detectedType, response.parsedData);
-                                }
-                            },
-                        ]
-                    );
-                }
-            } catch (error) {
-                Alert.alert('Error', 'Failed to process input');
-            } finally {
-                setIsProcessing(false);
             }
+            
+            if (response?.success) {
+                const attachmentInfo = attachment 
+                    ? `Attachment: ${attachment.type === 'image' ? 'Photo' : attachment.type === 'file' ? attachment.name : 'Voice'}\n\n`
+                    : '';
+                
+                Alert.alert(
+                    'AI Parsed Input',
+                    `${attachmentInfo}Detected: ${response.detectedType}\n\nTitle: ${response.parsedData.title}\n\nDescription: ${response.parsedData.description || 'None'}`,
+                    [
+                        { text: 'Cancel', style: 'cancel' },
+                        { 
+                            text: 'Create', 
+                            onPress: () => {
+                                setInput('');
+                                setAttachment(null);
+                                navigateToCreate(response.detectedType, response.parsedData);
+                            }
+                        },
+                    ]
+                );
+            }
+        } catch (error) {
+            Alert.alert('Error', 'Failed to process input');
+        } finally {
+            setIsProcessing(false);
         }
     };
 
@@ -311,40 +456,136 @@ export function CustomTabBar() {
             <View style={{ paddingBottom: insets.bottom }}>
                 {isOnCommandCenter ? (
                     // Command Center Input Interface
-                    <View className="flex-row items-center px-3 py-2">
-                        {/* Input Interface Container - Full width */}
-                        <View className="flex-1 bg-gray-50 rounded-3xl border border-gray-200 flex-row items-center px-3 py-2">
-                            {/* Plus Icon */}
-                            <TouchableOpacity
-                                onPress={() => setShowCreateMenu(true)}
-                                className="w-8 h-8 items-center justify-center"
-                            >
-                                <MaterialCommunityIcons name="plus-circle" size={24} color="#6B7280" />
-                            </TouchableOpacity>
+                    <View className="px-3 py-2">
+                        {/* Voice Recording UI or Normal Input */}
+                        {isRecording ? (
+                            // Voice Recording Interface
+                            <View className="flex-row items-center">
+                                <View className="flex-1 bg-red-50 rounded-3xl border border-red-200 flex-row items-center px-3 py-2">
+                                    {/* Cancel/Stop Button */}
+                                    <TouchableOpacity
+                                        onPress={cancelVoiceRecording}
+                                        className="w-10 h-10 rounded-full items-center justify-center bg-red-100"
+                                    >
+                                        <MaterialCommunityIcons name="close" size={22} color="#EF4444" />
+                                    </TouchableOpacity>
 
-                            {/* Text Input */}
-                            <TextInput
-                                value={input}
-                                onChangeText={setInput}
-                                placeholder="Type a message..."
-                                placeholderTextColor="#9CA3AF"
-                                className="flex-1 px-2 py-1 text-base text-gray-800"
-                                maxLength={500}
-                            />
+                                    {/* Voice Wave Animation */}
+                                    <View className="flex-1 flex-row items-center justify-center px-4">
+                                        <View className="flex-row items-center space-x-1">
+                                            {[waveAnim1, waveAnim2, waveAnim3, waveAnim4, waveAnim5].map((anim, index) => (
+                                                <Animated.View
+                                                    key={index}
+                                                    style={{
+                                                        width: 4,
+                                                        height: anim.interpolate({
+                                                            inputRange: [0, 1],
+                                                            outputRange: [8, 28],
+                                                        }),
+                                                        backgroundColor: '#EF4444',
+                                                        borderRadius: 2,
+                                                        marginHorizontal: 2,
+                                                    }}
+                                                />
+                                            ))}
+                                        </View>
+                                        <Text className="ml-4 text-red-500 font-semibold text-base">
+                                            {formatRecordingTime(recordingDuration)}
+                                        </Text>
+                                    </View>
 
-                            {/* Send Button */}
-                            <TouchableOpacity
-                                onPress={handleQuickCreate}
-                                disabled={!input.trim()}
-                                className={`w-9 h-9 rounded-full items-center justify-center ${input.trim() ? 'bg-blue-600' : 'bg-gray-300'}`}
-                            >
-                                <MaterialCommunityIcons
-                                    name="send"
-                                    size={18}
-                                    color="white"
-                                />
-                            </TouchableOpacity>
-                        </View>
+                                    {/* Accept/Check Button */}
+                                    <TouchableOpacity
+                                        onPress={acceptVoiceRecording}
+                                        className="w-10 h-10 rounded-full items-center justify-center bg-green-500"
+                                    >
+                                        <MaterialCommunityIcons name="check" size={22} color="white" />
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        ) : (
+                            // Normal Input Interface Container
+                            <View className="flex-row items-center">
+                                <View className="flex-1 bg-gray-50 rounded-3xl border border-gray-200 px-2 py-1.5">
+                                    {/* Attachment Chip - Small inline preview like AI chats */}
+                                    {attachment && (
+                                        <View className="flex-row items-center mb-1.5">
+                                            <View className="flex-row items-center bg-white rounded-xl px-2 py-1.5 border border-gray-200 shadow-sm">
+                                                {attachment.type === 'image' ? (
+                                                    <Image 
+                                                        source={{ uri: attachment.uri }} 
+                                                        className="w-8 h-8 rounded-lg"
+                                                        resizeMode="cover"
+                                                    />
+                                                ) : (
+                                                    <View 
+                                                        className="w-8 h-8 rounded-lg items-center justify-center"
+                                                        style={{ backgroundColor: attachment.type === 'file' ? '#FEF3C7' : '#FEE2E2' }}
+                                                    >
+                                                        <MaterialCommunityIcons 
+                                                            name={attachment.type === 'file' ? 'file-document' : 'microphone'} 
+                                                            size={18} 
+                                                            color={attachment.type === 'file' ? '#F59E0B' : '#EF4444'} 
+                                                        />
+                                                    </View>
+                                                )}
+                                                <Text className="ml-2 text-xs text-gray-600 max-w-[120px]" numberOfLines={1}>
+                                                    {attachment.type === 'image' 
+                                                        ? `Photo` 
+                                                        : attachment.name || 'File'}
+                                                </Text>
+                                                <TouchableOpacity 
+                                                    onPress={clearAttachment}
+                                                    className="ml-1 w-5 h-5 items-center justify-center"
+                                                >
+                                                    <MaterialCommunityIcons name="close-circle" size={16} color="#9CA3AF" />
+                                                </TouchableOpacity>
+                                            </View>
+                                        </View>
+                                    )}
+                                    
+                                    {/* Input Row */}
+                                    <View className="flex-row items-center">
+                                        {/* Plus Icon */}
+                                        <TouchableOpacity
+                                            onPress={() => setShowCreateMenu(true)}
+                                            className="w-8 h-8 items-center justify-center"
+                                        >
+                                            <MaterialCommunityIcons name="plus-circle" size={24} color="#6B7280" />
+                                        </TouchableOpacity>
+
+                                        {/* Text Input */}
+                                        <TextInput
+                                            value={input}
+                                            onChangeText={setInput}
+                                            placeholder={attachment ? "Add a message..." : "Type a message..."}
+                                            placeholderTextColor="#9CA3AF"
+                                            className="flex-1 px-2 py-1 text-base text-gray-800"
+                                            maxLength={500}
+                                        />
+
+                                        {/* Send Button */}
+                                        <TouchableOpacity
+                                            onPress={handleQuickCreate}
+                                            disabled={(!input.trim() && !attachment) || isProcessing}
+                                            className={`w-9 h-9 rounded-full items-center justify-center ${
+                                                (input.trim() || attachment) ? 'bg-blue-600' : 'bg-gray-300'
+                                            }`}
+                                        >
+                                            {isProcessing ? (
+                                                <ActivityIndicator color="white" size="small" />
+                                            ) : (
+                                                <MaterialCommunityIcons
+                                                    name="send"
+                                                    size={18}
+                                                    color="white"
+                                                />
+                                            )}
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+                            </View>
+                        )}
                     </View>
                 ) : (
                     // Clean Tab Bar - All icons bigger with colored backgrounds
