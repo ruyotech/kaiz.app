@@ -6,16 +6,13 @@ import { Container } from '../../../components/layout/Container';
 import { Card } from '../../../components/ui/Card';
 import { useEssentiaStore } from '../../../store/essentiaStore';
 import { LifeWheelDimensionTag } from '../../../types/models';
-import lifeWheelData from '../../../data/mock/lifeWheelAreas.json';
+import { lifeWheelApi } from '../../../services/api';
 
-const CATEGORIES = [
-    { id: 'all' as const, name: 'All', icon: '📚' },
-    ...lifeWheelData.map(lw => ({
-        id: lw.id as LifeWheelDimensionTag,
-        name: lw.name.split(' & ')[0], // Shorten names
-        icon: lw.icon,
-    })),
-];
+interface CategoryItem {
+    id: 'all' | LifeWheelDimensionTag;
+    name: string;
+    icon: string;
+}
 
 export default function EssentiaExploreScreen() {
     const router = useRouter();
@@ -24,6 +21,28 @@ export default function EssentiaExploreScreen() {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<'all' | LifeWheelDimensionTag>('all');
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+    const [categories, setCategories] = useState<CategoryItem[]>([{ id: 'all', name: 'All', icon: '📚' }]);
+
+    useEffect(() => {
+        loadCategories();
+    }, []);
+
+    const loadCategories = async () => {
+        try {
+            const lifeWheelAreas = await lifeWheelApi.getLifeWheelAreas();
+            const mappedCategories: CategoryItem[] = [
+                { id: 'all', name: 'All', icon: '📚' },
+                ...lifeWheelAreas.map((lw: any) => ({
+                    id: lw.displayId as LifeWheelDimensionTag,
+                    name: lw.name.split(' & ')[0],
+                    icon: lw.icon,
+                })),
+            ];
+            setCategories(mappedCategories);
+        } catch (error) {
+            console.error('Failed to load categories:', error);
+        }
+    };
 
     const filteredBooks = allBooks.filter(book => {
         const matchesCategory = selectedCategory === 'all' || book.lifeWheelAreaId === selectedCategory;
@@ -98,7 +117,7 @@ export default function EssentiaExploreScreen() {
                     className="mb-4"
                     contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
                 >
-                    {CATEGORIES.map(category => (
+                    {categories.map(category => (
                         <TouchableOpacity
                             key={category.id}
                             onPress={() => setSelectedCategory(category.id)}

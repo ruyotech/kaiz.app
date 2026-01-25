@@ -12,7 +12,7 @@ import { BlurView } from 'expo-blur';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { Audio } from 'expo-av';
-import { mockApi } from '../../services/mockApi';
+import { aiApi } from '../../services/api';
 
 const CREATE_OPTIONS = [
     { id: 'task', icon: 'checkbox-marked-circle-outline', label: 'Task', color: '#3B82F6', route: '/(tabs)/sdlc/create-task' },
@@ -381,7 +381,7 @@ export function CustomTabBar() {
     const processImageInput = async (imageUri: string, source: 'camera' | 'gallery') => {
         setIsProcessing(true);
         try {
-            const response = await mockApi.parseAIInput({
+            const response = await aiApi.parseInput({
                 type: 'image',
                 content: imageUri,
                 source,
@@ -411,7 +411,7 @@ export function CustomTabBar() {
     const processFileInput = async (fileUri: string, fileName: string) => {
         setIsProcessing(true);
         try {
-            const response = await mockApi.parseAIInput({
+            const response = await aiApi.parseInput({
                 type: 'file',
                 content: fileUri,
                 fileName,
@@ -441,7 +441,7 @@ export function CustomTabBar() {
     const processVoiceInput = async () => {
         setIsProcessing(true);
         try {
-            const response = await mockApi.parseAIInput({
+            const response = await aiApi.parseInput({
                 type: 'voice',
                 content: 'Simulated voice transcription: Add a new task to review the project designs by Friday',
             });
@@ -500,26 +500,26 @@ export function CustomTabBar() {
             if (attachment) {
                 // Process attachment
                 if (attachment.type === 'image') {
-                    response = await mockApi.parseAIInput({
+                    response = await aiApi.parseInput({
                         type: 'image',
                         content: attachment.uri,
                         source: attachment.source,
                     });
                 } else if (attachment.type === 'file') {
-                    response = await mockApi.parseAIInput({
+                    response = await aiApi.parseInput({
                         type: 'file',
                         content: attachment.uri,
                         fileName: attachment.name,
                     });
                 } else if (attachment.type === 'voice') {
-                    response = await mockApi.parseAIInput({
+                    response = await aiApi.parseInput({
                         type: 'voice',
                         content: 'Simulated voice transcription: Add a new task to review the project designs by Friday',
                     });
                 }
             } else {
                 // Process text input
-                response = await mockApi.parseAIInput({
+                response = await aiApi.parseInput({
                     type: 'text',
                     content: input,
                 });

@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Dimensions, Alert } from 'react-native';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -6,7 +6,7 @@ import { Container } from '../../../components/layout/Container';
 import { Card } from '../../../components/ui/Card';
 import { useEssentiaStore } from '../../../store/essentiaStore';
 import { EssentiaBook } from '../../../types/models';
-import essentiaBooksData from '../../../data/mock/essentiaBooks.json';
+import { essentiaApi } from '../../../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -31,7 +31,37 @@ export default function EssentiaTodayScreen() {
 
     const loadData = async () => {
         try {
-            setAllBooks(essentiaBooksData as EssentiaBook[]);
+            const booksData = await essentiaApi.getAllBooks();
+            
+            // Map API response to mobile types
+            const mappedBooks: EssentiaBook[] = booksData.map((book: any) => ({
+                id: book.id,
+                title: book.title,
+                author: book.author,
+                lifeWheelAreaId: book.lifeWheelAreaId,
+                category: book.category,
+                duration: book.duration,
+                cardCount: book.cardCount,
+                difficulty: book.difficulty?.toLowerCase() as EssentiaBook['difficulty'],
+                tags: book.tags || [],
+                description: book.description,
+                keyTakeaways: book.keyTakeaways || [],
+                publicationYear: book.publicationYear,
+                rating: Number(book.rating),
+                completionCount: book.completionCount,
+                createdAt: book.createdAt,
+                updatedAt: book.updatedAt,
+                cards: (book.cards || []).map((card: any) => ({
+                    id: card.id,
+                    type: card.type?.toLowerCase(),
+                    order: card.order,
+                    title: card.title,
+                    text: card.text,
+                    imageUrl: card.imageUrl,
+                })),
+            }));
+            
+            setAllBooks(mappedBooks);
             
             // Initialize user stats if needed
             if (!userStats) {
@@ -59,6 +89,7 @@ export default function EssentiaTodayScreen() {
             setDailyPick(pick);
         } catch (error) {
             console.error('Failed to load Essentia data:', error);
+            Alert.alert('Error', 'Failed to load books. Please try again.');
         } finally {
             setLoading(false);
         }

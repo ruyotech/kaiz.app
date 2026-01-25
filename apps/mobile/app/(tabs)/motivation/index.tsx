@@ -6,8 +6,7 @@ import { useTaskStore } from '../../../store/taskStore';
 import { MindsetFeed } from '../../../components/motivation/MindsetFeed';
 import { ActionIntakeModal } from '../../../components/motivation/ActionIntakeModal';
 import { MindsetContent, LifeWheelDimensionTag } from '../../../types/models';
-import mindsetContentData from '../../../data/mock/mindsetContent.json';
-import mindsetThemesData from '../../../data/mock/mindsetThemes.json';
+import { mindsetApi } from '../../../services/api';
 
 export default function MotivationScreen() {
     const router = useRouter();
@@ -26,6 +25,7 @@ export default function MotivationScreen() {
     
     const [selectedContent, setSelectedContent] = useState<MindsetContent | null>(null);
     const [showActionModal, setShowActionModal] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         loadMindsetData();
@@ -56,10 +56,34 @@ export default function MotivationScreen() {
 
     const loadMindsetData = async () => {
         try {
-            setAllContent(mindsetContentData as MindsetContent[]);
-            setThemes(mindsetThemesData as any[]);
+            setIsLoading(true);
+            const [contentData, themesData] = await Promise.all([
+                mindsetApi.getAllContent(),
+                mindsetApi.getAllThemes(),
+            ]);
+            
+            // Map API response to mobile types
+            const mappedContent: MindsetContent[] = contentData.map((item: any) => ({
+                id: item.id,
+                body: item.body,
+                author: item.author,
+                dimensionTag: item.dimensionTag as LifeWheelDimensionTag,
+                secondaryTags: item.secondaryTags || [],
+                themePreset: item.themePreset,
+                interventionWeight: item.interventionWeight,
+                emotionalTone: item.emotionalTone?.toLowerCase() as MindsetContent['emotionalTone'],
+                dwellTimeMs: item.dwellTimeMs,
+                isFavorite: item.isFavorite,
+                createdAt: item.createdAt,
+            }));
+            
+            setAllContent(mappedContent);
+            setThemes(themesData);
         } catch (error) {
             console.error('Failed to load mindset data:', error);
+            Alert.alert('Error', 'Failed to load motivation content. Please try again.');
+        } finally {
+            setIsLoading(false);
         }
     };
 

@@ -309,7 +309,7 @@ export function SettingsDrawer({ visible, onClose }: SettingsDrawerProps) {
     
     // Stores
     const { reset: resetApp } = useAppStore();
-    const { reset: resetAuth, logout, user, isDemoUser } = useAuthStore();
+    const { reset: resetAuth, logout, user } = useAuthStore();
     const {
         locale,
         setLocale,
@@ -545,12 +545,6 @@ export function SettingsDrawer({ visible, onClose }: SettingsDrawerProps) {
                                 </View>
                                 <View>
                                     <Text className="text-xl font-bold text-gray-900">Settings</Text>
-                                    {isDemoUser && (
-                                        <View className="flex-row items-center mt-0.5">
-                                            <View className="w-2 h-2 bg-purple-500 rounded-full mr-1.5" />
-                                            <Text className="text-xs font-medium text-purple-600">Demo Mode</Text>
-                                        </View>
-                                    )}
                                 </View>
                             </View>
                             <TouchableOpacity
@@ -568,26 +562,6 @@ export function SettingsDrawer({ visible, onClose }: SettingsDrawerProps) {
                         showsVerticalScrollIndicator={false}
                         contentContainerStyle={{ paddingTop: 8, paddingBottom: 24 }}
                     >
-                        {/* Demo Mode Banner */}
-                        {isDemoUser && (
-                            <View className="bg-purple-50 border border-purple-200 rounded-2xl p-4 mb-5">
-                                <View className="flex-row items-center">
-                                    <Text className="text-2xl mr-3">🎭</Text>
-                                    <View className="flex-1">
-                                        <Text className="text-sm font-semibold text-purple-900">Demo Mode Active</Text>
-                                        <Text className="text-xs text-purple-700 mt-0.5">
-                                            Exploring with sample data
-                                        </Text>
-                                    </View>
-                                    <TouchableOpacity
-                                        onPress={handleResetDemo}
-                                        className="bg-purple-100 px-3 py-1.5 rounded-lg"
-                                    >
-                                        <Text className="text-xs font-semibold text-purple-700">Reset</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            </View>
-                        )}
                         
                         {/* ============================================ */}
                         {/* ACCOUNT & PROFILE */}

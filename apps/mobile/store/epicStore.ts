@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { Epic } from '../types/models';
-import { mockApi } from '../services/mockApi';
+import { epicApi } from '../services/api';
 
 interface EpicState {
     epics: Epic[];
@@ -9,9 +9,9 @@ interface EpicState {
 
     fetchEpics: () => Promise<void>;
     getEpicById: (id: string) => Epic | undefined;
-    addEpic: (epic: Partial<Epic>) => void;
-    updateEpic: (id: string, updates: Partial<Epic>) => void;
-    deleteEpic: (id: string) => void;
+    addEpic: (epic: Partial<Epic>) => Promise<Epic>;
+    updateEpic: (id: string, updates: Partial<Epic>) => Promise<void>;
+    deleteEpic: (id: string) => Promise<void>;
     addTaskToEpic: (epicId: string, taskId: string) => void;
     removeTaskFromEpic: (epicId: string, taskId: string) => void;
     clearEpics: () => void;
@@ -25,7 +25,7 @@ export const useEpicStore = create<EpicState>((set, get) => ({
     fetchEpics: async () => {
         set({ loading: true, error: null });
         try {
-            const epics = await mockApi.getEpics() as Epic[];
+            const epics = await epicApi.getEpics() as Epic[];
             set({ epics, loading: false });
         } catch (error) {
             set({ error: 'Failed to fetch epics', loading: false });
@@ -36,33 +36,46 @@ export const useEpicStore = create<EpicState>((set, get) => ({
         return get().epics.find(e => e.id === id);
     },
 
-    addEpic: (epic) => {
-        const newEpic = {
-            id: `epic-${Date.now()}`,
-            userId: 'user-1',
-            status: 'planning',
-            totalPoints: 0,
-            completedPoints: 0,
-            color: '#3B82F6',
-            icon: 'rocket-launch',
-            taskIds: [],
-            createdAt: new Date().toISOString(),
-            ...epic,
-        } as Epic;
-
-        set(state => ({ epics: [...state.epics, newEpic] }));
+    addEpic: async (epic) => {
+        set({ loading: true, error: null });
+        try {
+            const newEpic = await epicApi.createEpic({
+                title: epic.title || 'New Epic',
+                description: epic.description,
+                lifeWheelAreaId: epic.lifeWheelAreaId || 'life-health',
+                targetSprintId: epic.targetSprintId,
+                color: epic.color,
+                icon: epic.icon,
+            }) as Epic;
+            set(state => ({ epics: [...state.epics, newEpic], loading: false }));
+            return newEpic;
+        } catch (error) {
+            set({ error: 'Failed to create epic', loading: false });
+            throw error;
+        }
     },
 
-    updateEpic: (id, updates) => {
-        set(state => ({
-            epics: state.epics.map(e =>
-                e.id === id ? { ...e, ...updates } : e
-            ),
-        }));
+    updateEpic: async (id, updates) => {
+        set({ loading: true, error: null });
+        try {
+            const updatedEpic = await epicApi.updateEpic(id, updates) as Epic;
+            set(state => ({
+                epics: state.epics.map(e => e.id === id ? updatedEpic : e),
+                loading: false,
+            }));
+        } catch (error) {
+            set({ error: 'Failed to update epic', loading: false });
+        }
     },
 
-    deleteEpic: (id) => {
-        set(state => ({ epics: state.epics.filter(e => e.id !== id) }));
+    deleteEpic: async (id) => {
+        set({ loading: true, error: null });
+        try {
+            await epicApi.deleteEpic(id);
+            set(state => ({ epics: state.epics.filter(e => e.id !== id), loading: false }));
+        } catch (error) {
+            set({ error: 'Failed to delete epic', loading: false });
+        }
     },
 
     addTaskToEpic: (epicId, taskId) => {

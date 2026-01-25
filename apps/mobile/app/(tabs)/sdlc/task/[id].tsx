@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, TextInput, Modal, Pressable }
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Task } from '../../../../types/models';
-import lifeWheelAreasData from '../../../../data/mock/lifeWheelAreas.json';
+import { lifeWheelApi } from '../../../../services/api';
 import { useEpicStore } from '../../../../store/epicStore';
 import { useTaskStore } from '../../../../store/taskStore';
 
@@ -32,6 +32,13 @@ type HistoryItem = {
     details: string;
 };
 
+interface LifeWheelArea {
+    id: string;
+    displayId: string;
+    name: string;
+    icon: string;
+}
+
 export default function TaskWorkView() {
     const router = useRouter();
     const { id } = useLocalSearchParams();
@@ -40,6 +47,7 @@ export default function TaskWorkView() {
     const [loading, setLoading] = useState(true);
     const [task, setTask] = useState<Task | null>(null);
     const [activeTab, setActiveTab] = useState<TabType>('overview');
+    const [lifeWheelAreas, setLifeWheelAreas] = useState<LifeWheelArea[]>([]);
 
     // Comments
     const [comments, setComments] = useState<Comment[]>([
@@ -73,6 +81,7 @@ export default function TaskWorkView() {
     useEffect(() => {
         loadTask();
         fetchEpics();
+        loadLifeWheelAreas();
     }, [id]);
 
     const loadTask = async () => {
@@ -83,6 +92,15 @@ export default function TaskWorkView() {
             console.error('Error loading task:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const loadLifeWheelAreas = async () => {
+        try {
+            const areas = await lifeWheelApi.getLifeWheelAreas();
+            setLifeWheelAreas(areas);
+        } catch (error) {
+            console.error('Error loading life wheel areas:', error);
         }
     };
 
@@ -112,7 +130,7 @@ export default function TaskWorkView() {
 
     const getLifeWheelName = () => {
         if (!task) return '';
-        const area = lifeWheelAreasData.find(a => a.id === task.lifeWheelAreaId);
+        const area = lifeWheelAreas.find(a => a.displayId === task.lifeWheelAreaId || a.id === task.lifeWheelAreaId);
         return area ? `${area.icon} ${area.name}` : '';
     };
 

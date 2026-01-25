@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { Challenge, ChallengeParticipant, ChallengeEntry, ChallengeTemplate, ChallengeAnalytics } from '../types/models';
-import { mockApi } from '../services/mockApi';
+import { challengeApi } from '../services/api';
 
 interface ChallengeState {
     challenges: Challenge[];
@@ -11,7 +11,7 @@ interface ChallengeState {
     error: string | null;
 
     // Fetch operations
-    fetchChallenges: (userId?: string, status?: string) => Promise<void>;
+    fetchChallenges: (status?: string) => Promise<void>;
     fetchTemplates: (lifeWheelAreaId?: string) => Promise<void>;
     fetchChallengeDetail: (challengeId: string) => Promise<void>;
     
@@ -44,10 +44,10 @@ export const useChallengeStore = create<ChallengeState>((set, get) => ({
     loading: false,
     error: null,
 
-    fetchChallenges: async (userId, status) => {
+    fetchChallenges: async (status) => {
         set({ loading: true, error: null });
         try {
-            const challenges = await mockApi.getChallenges(userId, status);
+            const challenges = await challengeApi.getChallenges(status) as Challenge[];
             set({ challenges, loading: false });
         } catch (error) {
             set({ error: 'Failed to fetch challenges', loading: false });
@@ -57,7 +57,7 @@ export const useChallengeStore = create<ChallengeState>((set, get) => ({
     fetchTemplates: async (lifeWheelAreaId) => {
         set({ loading: true, error: null });
         try {
-            const templates = await mockApi.getChallengeTemplates(lifeWheelAreaId);
+            const templates = await challengeApi.getTemplates(lifeWheelAreaId) as ChallengeTemplate[];
             set({ templates, loading: false });
         } catch (error) {
             set({ error: 'Failed to fetch templates', loading: false });
@@ -67,12 +67,13 @@ export const useChallengeStore = create<ChallengeState>((set, get) => ({
     fetchChallengeDetail: async (challengeId) => {
         set({ loading: true, error: null });
         try {
-            const challengeData = await mockApi.getChallengeById(challengeId);
-            const entries = await mockApi.getChallengeEntries(challengeId) as ChallengeEntry[];
-
+            const [challengeData, entries] = await Promise.all([
+                challengeApi.getChallengeById(challengeId),
+                challengeApi.getEntries(challengeId),
+            ]);
             set({
                 participants: (challengeData.participants || []) as ChallengeParticipant[],
-                entries,
+                entries: entries as ChallengeEntry[],
                 loading: false,
             });
         } catch (error) {
@@ -83,7 +84,7 @@ export const useChallengeStore = create<ChallengeState>((set, get) => ({
     createChallenge: async (challengeData) => {
         set({ loading: true, error: null });
         try {
-            const newChallenge = await mockApi.createChallenge(challengeData);
+            const newChallenge = await challengeApi.createChallenge(challengeData) as Challenge;
             set(state => ({
                 challenges: [...state.challenges, newChallenge],
                 loading: false,
@@ -113,7 +114,7 @@ export const useChallengeStore = create<ChallengeState>((set, get) => ({
                 ...overrides,
             };
 
-            const newChallenge = await mockApi.createChallenge(challengeData);
+            const newChallenge = await challengeApi.createChallenge(challengeData) as Challenge;
             set(state => ({
                 challenges: [...state.challenges, newChallenge],
                 loading: false,
@@ -128,10 +129,10 @@ export const useChallengeStore = create<ChallengeState>((set, get) => ({
     updateChallenge: async (challengeId, updates) => {
         set({ loading: true, error: null });
         try {
-            await mockApi.updateChallenge(challengeId, updates);
+            const updatedChallenge = await challengeApi.updateChallenge(challengeId, updates) as Challenge;
             set(state => ({
                 challenges: state.challenges.map(c =>
-                    c.id === challengeId ? { ...c, ...updates } : c
+                    c.id === challengeId ? updatedChallenge : c
                 ),
                 loading: false,
             }));
@@ -143,7 +144,7 @@ export const useChallengeStore = create<ChallengeState>((set, get) => ({
     deleteChallenge: async (challengeId) => {
         set({ loading: true, error: null });
         try {
-            await mockApi.deleteChallenge(challengeId);
+            await challengeApi.deleteChallenge(challengeId);
             set(state => ({
                 challenges: state.challenges.filter(c => c.id !== challengeId),
                 loading: false,
@@ -158,12 +159,11 @@ export const useChallengeStore = create<ChallengeState>((set, get) => ({
             const challenge = get().challenges.find(c => c.id === challengeId);
             if (!challenge) throw new Error('Challenge not found');
 
-            const entry = await mockApi.logChallengeEntry({
-                challengeId,
+            const entry = await challengeApi.logEntry(challengeId, {
                 value,
                 note,
                 date: new Date().toISOString().split('T')[0],
-            });
+            }) as ChallengeEntry;
 
             set(state => ({
                 entries: [...state.entries, entry],
@@ -231,7 +231,6 @@ export const useChallengeStore = create<ChallengeState>((set, get) => ({
             ? numericEntries.reduce((sum, e) => sum + (e.value as number), 0) / numericEntries.length
             : undefined;
 
-        // Find best and worst days
         const entriesByValue = [...numericEntries].sort((a, b) => (b.value as number) - (a.value as number));
         const bestDay = entriesByValue[0]?.date;
         const worstDay = entriesByValue[entriesByValue.length - 1]?.date;
@@ -273,8 +272,7 @@ export const useChallengeStore = create<ChallengeState>((set, get) => ({
 
     inviteAccountabilityPartner: async (challengeId, userId) => {
         try {
-            await mockApi.inviteAccountabilityPartner(challengeId, userId);
-            // Refresh challenge data
+            await challengeApi.inviteParticipant(challengeId, userId);
             await get().fetchChallengeDetail(challengeId);
         } catch (error) {
             set({ error: 'Failed to invite partner' });
@@ -294,28 +292,5 @@ export const useChallengeStore = create<ChallengeState>((set, get) => ({
             status: 'completed',
             completedAt: new Date().toISOString(),
         });
-    },
-
-    addEntry: (challengeId: string, entryValue: number) => {
-        const newEntry: ChallengeEntry = {
-            id: `entry-${Date.now()}`,
-            challengeId,
-            userId: 'user-1',
-            value: entryValue,
-            date: new Date().toISOString().split('T')[0],
-            timestamp: new Date().toISOString(),
-            reactions: [],
-        };
-
-        set(state => ({ entries: [...state.entries, newEntry] }));
-
-        // Also update participant progress
-        set(state => ({
-            participants: state.participants.map(p =>
-                p.userId === 'user-1' && p.challengeId === challengeId
-                    ? { ...p, currentProgress: p.currentProgress + entryValue, lastUpdated: new Date().toISOString() }
-                    : p
-            ),
-        }));
     },
 }));
