@@ -7,7 +7,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Task, LifeWheelArea, EisenhowerQuadrant } from '../../../types/models';
 import { useTaskStore } from '../../../store/taskStore';
-import { mockApi } from '../../../services/mockApi';
+import { useEpicStore } from '../../../store/epicStore';
+import { lifeWheelApi } from '../../../services/api';
 
 export default function SearchTasksScreen() {
     const router = useRouter();
@@ -28,14 +29,13 @@ export default function SearchTasksScreen() {
 
     const loadData = async () => {
         await fetchTasks({});
-        const [areas, quadrants, epicsData] = await Promise.all([
-            mockApi.getLifeWheelAreas(),
-            mockApi.getEisenhowerQuadrants(),
-            mockApi.getEpics()
+        const [areas, quadrants] = await Promise.all([
+            lifeWheelApi.getLifeWheelAreas(),
+            lifeWheelApi.getEisenhowerQuadrants()
         ]);
         setLifeWheelAreas(areas);
         setEisenhowerQuadrants(quadrants);
-        setEpics(epicsData);
+        // Epics are loaded from epicStore
     };
 
     useEffect(() => {

@@ -3,10 +3,11 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { useMindsetStore } from '../../../store/mindsetStore';
 import { useTaskStore } from '../../../store/taskStore';
-import { mockApi } from '../../../services/mockApi';
 import { MindsetFeed } from '../../../components/motivation/MindsetFeed';
 import { ActionIntakeModal } from '../../../components/motivation/ActionIntakeModal';
 import { MindsetContent, LifeWheelDimensionTag } from '../../../types/models';
+import mindsetContentData from '../../../data/mock/mindsetContent.json';
+import mindsetThemesData from '../../../data/mock/mindsetThemes.json';
 
 export default function MotivationScreen() {
     const router = useRouter();
@@ -55,13 +56,8 @@ export default function MotivationScreen() {
 
     const loadMindsetData = async () => {
         try {
-            const [content, themes] = await Promise.all([
-                mockApi.getMindsetContent(),
-                mockApi.getMindsetThemes(),
-            ]);
-
-            setAllContent(content);
-            setThemes(themes);
+            setAllContent(mindsetContentData as MindsetContent[]);
+            setThemes(mindsetThemesData as any[]);
         } catch (error) {
             console.error('Failed to load mindset data:', error);
         }

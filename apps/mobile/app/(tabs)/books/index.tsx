@@ -3,13 +3,13 @@ import { useEffect, useState } from 'react';
 import { Container } from '../../../components/layout/Container';
 import { ScreenHeader } from '../../../components/layout/ScreenHeader';
 import { Card } from '../../../components/ui/Card';
-import { mockApi } from '../../../services/mockApi';
+import booksData from '../../../data/mock/bookSummaries.json';
 
 export default function BooksScreen() {
     const [books, setBooks] = useState<any[]>([]);
 
     useEffect(() => {
-        mockApi.getBookSummaries().then(setBooks);
+        setBooks(booksData);
     }, []);
 
     return (

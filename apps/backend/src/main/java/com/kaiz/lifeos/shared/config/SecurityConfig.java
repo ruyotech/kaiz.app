@@ -47,6 +47,12 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers("/api/v1/eisenhower-quadrants/**")
                     .permitAll()
+                    // Sprints are public (reference data)
+                    .requestMatchers("/api/v1/sprints/**")
+                    .permitAll()
+                    // Challenge templates are public
+                    .requestMatchers("/api/v1/challenges/templates/**")
+                    .permitAll()
                     // Actuator endpoints
                     .requestMatchers("/actuator/health/**")
                     .permitAll()

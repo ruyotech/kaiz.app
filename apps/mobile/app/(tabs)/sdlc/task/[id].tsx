@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Modal, Pressable } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { mockApi } from '../../../../services/mockApi';
 import { Task } from '../../../../types/models';
 import lifeWheelAreasData from '../../../../data/mock/lifeWheelAreas.json';
 import { useEpicStore } from '../../../../store/epicStore';
@@ -37,7 +36,7 @@ export default function TaskWorkView() {
     const router = useRouter();
     const { id } = useLocalSearchParams();
     const { epics, fetchEpics } = useEpicStore();
-    const { getTaskHistory, addTaskHistory } = useTaskStore();
+    const { tasks, fetchTasks, getTaskHistory, addTaskHistory } = useTaskStore();
     const [loading, setLoading] = useState(true);
     const [task, setTask] = useState<Task | null>(null);
     const [activeTab, setActiveTab] = useState<TabType>('overview');
@@ -79,28 +78,32 @@ export default function TaskWorkView() {
     const loadTask = async () => {
         try {
             setLoading(true);
-            const tasks = await mockApi.getTasks();
-            const foundTask = tasks.find((t: Task) => t.id === id);
-            if (foundTask) {
-                setTask(foundTask);
-                
-                // Initialize history if empty
-                const existingHistory = getTaskHistory(foundTask.id);
-                if (existingHistory.length === 0) {
-                    addTaskHistory(foundTask.id, {
-                        userId: 'user2',
-                        userName: 'Jane Smith',
-                        action: 'Task created',
-                        details: 'Created task in Sprint 03',
-                    });
-                }
-            }
+            await fetchTasks();
         } catch (error) {
             console.error('Error loading task:', error);
         } finally {
             setLoading(false);
         }
     };
+
+    // Update task when tasks are loaded
+    useEffect(() => {
+        const foundTask = tasks.find((t: Task) => t.id === id);
+        if (foundTask) {
+            setTask(foundTask);
+
+            // Initialize history if empty
+            const existingHistory = getTaskHistory(foundTask.id);
+            if (existingHistory.length === 0) {
+                addTaskHistory(foundTask.id, {
+                    userId: 'user2',
+                    userName: 'Jane Smith',
+                    action: 'Task created',
+                    details: 'Created task in Sprint 03',
+                });
+            }
+        }
+    }, [tasks, id]);
 
     const getTaskEpic = () => {
         if (!task || !task.epicId) return null;

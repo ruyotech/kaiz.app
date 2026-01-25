@@ -6,7 +6,7 @@ import { Container } from '../../../components/layout/Container';
 import { ScreenHeader } from '../../../components/layout/ScreenHeader';
 import { useTaskStore } from '../../../store/taskStore';
 import { useEpicStore } from '../../../store/epicStore';
-import { mockApi } from '../../../services/mockApi';
+import { lifeWheelApi, epicApi } from '../../../services/api';
 import { STORY_POINTS } from '../../../utils/constants';
 
 export default function CreateTaskScreen() {
@@ -27,9 +27,11 @@ export default function CreateTaskScreen() {
 
     useEffect(() => {
         const loadData = async () => {
-            const areas = await mockApi.getLifeWheelAreas();
-            const quads = await mockApi.getEisenhowerQuadrants();
-            const epicsData = await mockApi.getEpics();
+            const [areas, quads, epicsData] = await Promise.all([
+                lifeWheelApi.getLifeWheelAreas(),
+                lifeWheelApi.getEisenhowerQuadrants(),
+                epicApi.getEpics()
+            ]);
 
             setLifeWheelAreas(areas);
             setQuadrants(quads);
