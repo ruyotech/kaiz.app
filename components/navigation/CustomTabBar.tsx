@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, TextInput, Modal, Pressable, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, Modal, Pressable, KeyboardAvoidingView, Platform, Alert, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigationStore, AppContext } from '../../store/navigationStore';
 import { usePomodoroStore } from '../../store/pomodoroStore';
@@ -9,12 +9,21 @@ import { AppSwitcher } from './AppSwitcher';
 import { MoreMenu } from './MoreMenu';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
+import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
+import { mockApi } from '../../services/mockApi';
 
 const CREATE_OPTIONS = [
     { id: 'task', icon: 'checkbox-marked-circle-outline', label: 'Task', color: '#3B82F6', route: '/(tabs)/sdlc/create-task' },
     { id: 'challenge', icon: 'trophy-outline', label: 'Challenge', color: '#F59E0B', route: '/(tabs)/challenges/create' },
-    { id: 'book', icon: 'book-open-variant', label: 'Book', color: '#EC4899', route: '/(tabs)/books/add' },
     { id: 'event', icon: 'calendar-star', label: 'Event', color: '#06B6D4', route: '/(tabs)/command-center' },
+];
+
+const INPUT_OPTIONS = [
+    { id: 'camera', icon: 'camera', label: 'Camera', color: '#10B981' },
+    { id: 'image', icon: 'image', label: 'Image', color: '#8B5CF6' },
+    { id: 'file', icon: 'file-document', label: 'File', color: '#F59E0B' },
+    { id: 'voice', icon: 'microphone', label: 'Voice', color: '#EF4444' },
 ];
 
 export function CustomTabBar() {
@@ -25,12 +34,234 @@ export function CustomTabBar() {
     const insets = useSafeAreaInsets();
     const [input, setInput] = useState('');
     const [showCreateMenu, setShowCreateMenu] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [isRecording, setIsRecording] = useState(false);
 
-    const handleQuickCreate = () => {
+    // Handle camera capture
+    const handleCamera = async () => {
+        setShowCreateMenu(false);
+        try {
+            const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+            
+            if (!permissionResult.granted) {
+                Alert.alert('Permission Required', 'Camera access is needed to take photos');
+                return;
+            }
+
+            const result = await ImagePicker.launchCameraAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                quality: 0.8,
+            });
+
+            if (!result.canceled && result.assets[0]) {
+                await processImageInput(result.assets[0].uri, 'camera');
+            }
+        } catch (error) {
+            Alert.alert('Error', 'Failed to access camera');
+        }
+    };
+
+    // Handle image picker
+    const handleImagePicker = async () => {
+        setShowCreateMenu(false);
+        try {
+            const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            
+            if (!permissionResult.granted) {
+                Alert.alert('Permission Required', 'Gallery access is needed to select images');
+                return;
+            }
+
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                quality: 0.8,
+            });
+
+            if (!result.canceled && result.assets[0]) {
+                await processImageInput(result.assets[0].uri, 'gallery');
+            }
+        } catch (error) {
+            Alert.alert('Error', 'Failed to access gallery');
+        }
+    };
+
+    // Handle file picker
+    const handleFilePicker = async () => {
+        setShowCreateMenu(false);
+        try {
+            const result = await DocumentPicker.getDocumentAsync({
+                type: ['application/pdf', 'text/*', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+                copyToCacheDirectory: true,
+            });
+
+            if (!result.canceled && result.assets[0]) {
+                await processFileInput(result.assets[0].uri, result.assets[0].name);
+            }
+        } catch (error) {
+            Alert.alert('Error', 'Failed to pick file');
+        }
+    };
+
+    // Handle voice input
+    const handleVoiceInput = async () => {
+        setShowCreateMenu(false);
+        if (isRecording) {
+            setIsRecording(false);
+            await processVoiceInput();
+        } else {
+            setIsRecording(true);
+            // Simulate voice recording for 3 seconds
+            setTimeout(async () => {
+                setIsRecording(false);
+                await processVoiceInput();
+            }, 3000);
+        }
+    };
+
+    // Process image input through mock API
+    const processImageInput = async (imageUri: string, source: 'camera' | 'gallery') => {
+        setIsProcessing(true);
+        try {
+            const response = await mockApi.parseAIInput({
+                type: 'image',
+                content: imageUri,
+                source,
+            });
+            
+            if (response.success) {
+                Alert.alert(
+                    'AI Parsed Input',
+                    `Detected: ${response.detectedType}\n\nTitle: ${response.parsedData.title}\n\nDescription: ${response.parsedData.description || 'None'}`,
+                    [
+                        { text: 'Cancel', style: 'cancel' },
+                        { 
+                            text: 'Create', 
+                            onPress: () => navigateToCreate(response.detectedType, response.parsedData)
+                        },
+                    ]
+                );
+            }
+        } catch (error) {
+            Alert.alert('Error', 'Failed to process image');
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    // Process file input through mock API
+    const processFileInput = async (fileUri: string, fileName: string) => {
+        setIsProcessing(true);
+        try {
+            const response = await mockApi.parseAIInput({
+                type: 'file',
+                content: fileUri,
+                fileName,
+            });
+            
+            if (response.success) {
+                Alert.alert(
+                    'AI Parsed File',
+                    `File: ${fileName}\n\nDetected: ${response.detectedType}\n\nTitle: ${response.parsedData.title}\n\nDescription: ${response.parsedData.description || 'None'}`,
+                    [
+                        { text: 'Cancel', style: 'cancel' },
+                        { 
+                            text: 'Create', 
+                            onPress: () => navigateToCreate(response.detectedType, response.parsedData)
+                        },
+                    ]
+                );
+            }
+        } catch (error) {
+            Alert.alert('Error', 'Failed to process file');
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    // Process voice input through mock API
+    const processVoiceInput = async () => {
+        setIsProcessing(true);
+        try {
+            const response = await mockApi.parseAIInput({
+                type: 'voice',
+                content: 'Simulated voice transcription: Add a new task to review the project designs by Friday',
+            });
+            
+            if (response.success) {
+                Alert.alert(
+                    'AI Parsed Voice Input',
+                    `Detected: ${response.detectedType}\n\nTitle: ${response.parsedData.title}\n\nDescription: ${response.parsedData.description || 'None'}`,
+                    [
+                        { text: 'Cancel', style: 'cancel' },
+                        { 
+                            text: 'Create', 
+                            onPress: () => navigateToCreate(response.detectedType, response.parsedData)
+                        },
+                    ]
+                );
+            }
+        } catch (error) {
+            Alert.alert('Error', 'Failed to process voice input');
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    // Navigate to appropriate create screen with pre-filled data
+    const navigateToCreate = (type: string, data: any) => {
+        switch (type) {
+            case 'task':
+                router.push({
+                    pathname: '/(tabs)/sdlc/create-task',
+                    params: { prefillTitle: data.title, prefillDescription: data.description },
+                });
+                break;
+            case 'challenge':
+                router.push({
+                    pathname: '/(tabs)/challenges/create',
+                    params: { prefillName: data.title, prefillDescription: data.description },
+                });
+                break;
+            case 'event':
+                router.push('/(tabs)/command-center');
+                break;
+            default:
+                router.push('/(tabs)/sdlc/create-task');
+        }
+    };
+
+    const handleQuickCreate = async () => {
         if (input.trim()) {
-            // AI processing logic would go here
-            console.log('Processing input:', input);
-            setInput('');
+            setIsProcessing(true);
+            try {
+                const response = await mockApi.parseAIInput({
+                    type: 'text',
+                    content: input,
+                });
+                
+                if (response.success) {
+                    Alert.alert(
+                        'AI Parsed Input',
+                        `Detected: ${response.detectedType}\n\nTitle: ${response.parsedData.title}\n\nDescription: ${response.parsedData.description || 'None'}`,
+                        [
+                            { text: 'Cancel', style: 'cancel' },
+                            { 
+                                text: 'Create', 
+                                onPress: () => {
+                                    setInput('');
+                                    navigateToCreate(response.detectedType, response.parsedData);
+                                }
+                            },
+                        ]
+                    );
+                }
+            } catch (error) {
+                Alert.alert('Error', 'Failed to process input');
+            } finally {
+                setIsProcessing(false);
+            }
         }
     };
 
@@ -217,62 +448,64 @@ export function CustomTabBar() {
                                 </TouchableOpacity>
                             </View>
 
-                            {/* Attachment Options Row */}
-                            <View className="flex-row gap-3 mb-6 pb-4 border-b border-gray-200">
-                                <TouchableOpacity
-                                    onPress={() => {
-                                        setShowCreateMenu(false);
-                                        console.log('Camera');
-                                    }}
-                                    className="flex-1 items-center py-4 bg-gray-50 rounded-xl"
-                                >
-                                    <MaterialCommunityIcons name="camera" size={28} color="#6B7280" />
-                                    <Text className="text-sm font-medium text-gray-700 mt-2">Camera</Text>
-                                </TouchableOpacity>
-
-                                <TouchableOpacity
-                                    onPress={() => {
-                                        setShowCreateMenu(false);
-                                        console.log('Image');
-                                    }}
-                                    className="flex-1 items-center py-4 bg-gray-50 rounded-xl"
-                                >
-                                    <MaterialCommunityIcons name="image" size={28} color="#6B7280" />
-                                    <Text className="text-sm font-medium text-gray-700 mt-2">Image</Text>
-                                </TouchableOpacity>
-
-                                <TouchableOpacity
-                                    onPress={() => {
-                                        setShowCreateMenu(false);
-                                        console.log('Microphone');
-                                    }}
-                                    className="flex-1 items-center py-4 bg-gray-50 rounded-xl"
-                                >
-                                    <MaterialCommunityIcons name="microphone" size={28} color="#6B7280" />
-                                    <Text className="text-sm font-medium text-gray-700 mt-2">Voice</Text>
-                                </TouchableOpacity>
-                            </View>
-
                             {/* Create Options */}
                             <Text className="text-sm font-semibold text-gray-700 mb-3">Create New</Text>
-                            <View className="flex-row flex-wrap gap-3">
+                            <View className="flex-row gap-3 mb-6 pb-4 border-b border-gray-200">
                                 {CREATE_OPTIONS.map((option) => (
                                     <TouchableOpacity
                                         key={option.id}
                                         onPress={() => handleCreateOption(option)}
-                                        className="flex-1 min-w-[30%] items-center py-4"
+                                        className="flex-1 items-center py-4 bg-gray-50 rounded-xl"
                                     >
                                         <View
-                                            className="w-16 h-16 rounded-2xl items-center justify-center mb-2"
+                                            className="w-12 h-12 rounded-2xl items-center justify-center mb-2"
                                             style={{ backgroundColor: option.color + '20' }}
                                         >
                                             <MaterialCommunityIcons
                                                 name={option.icon as any}
-                                                size={28}
+                                                size={24}
                                                 color={option.color}
                                             />
                                         </View>
-                                        <Text className="text-sm font-medium text-gray-700">{option.label}</Text>
+                                        <Text className="text-xs font-medium" style={{ color: option.color }}>{option.label}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+
+                            {/* Smart Input Options Row */}
+                            <Text className="text-sm font-semibold text-gray-700 mb-3">Smart Input</Text>
+                            <View className="flex-row gap-3">
+                                {INPUT_OPTIONS.map((option) => (
+                                    <TouchableOpacity
+                                        key={option.id}
+                                        onPress={() => {
+                                            if (option.id === 'camera') handleCamera();
+                                            else if (option.id === 'image') handleImagePicker();
+                                            else if (option.id === 'file') handleFilePicker();
+                                            else if (option.id === 'voice') handleVoiceInput();
+                                        }}
+                                        disabled={isProcessing}
+                                        className={`flex-1 items-center py-4 rounded-xl ${
+                                            option.id === 'voice' && isRecording ? 'bg-red-50' : 'bg-gray-50'
+                                        }`}
+                                    >
+                                        <View
+                                            className="w-12 h-12 rounded-full items-center justify-center mb-2"
+                                            style={{ backgroundColor: option.color + '20' }}
+                                        >
+                                            {isProcessing ? (
+                                                <ActivityIndicator color={option.color} />
+                                            ) : (
+                                                <MaterialCommunityIcons 
+                                                    name={option.id === 'voice' && isRecording ? 'stop' : option.icon as any} 
+                                                    size={24} 
+                                                    color={option.color} 
+                                                />
+                                            )}
+                                        </View>
+                                        <Text className="text-xs font-medium" style={{ color: option.color }}>
+                                            {option.id === 'voice' && isRecording ? 'Recording...' : option.label}
+                                        </Text>
                                     </TouchableOpacity>
                                 ))}
                             </View>

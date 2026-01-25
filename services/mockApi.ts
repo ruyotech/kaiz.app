@@ -439,4 +439,66 @@ export const mockApi = {
         await delay();
         return (essentiaChallengesData as EssentiaChallenge[]).find(c => c.id === id);
     },
+
+    // AI Input Parsing (Mock)
+    async parseAIInput(input: { 
+        type: 'text' | 'image' | 'voice' | 'file'; 
+        content: string; 
+        source?: string;
+        fileName?: string;
+    }) {
+        await delay(1000); // Simulate AI processing time
+        
+        // Mock AI parsing logic - randomly detect type based on input
+        const detectedTypes = ['task', 'challenge', 'book', 'event'];
+        
+        // Simple heuristics for demo purposes
+        let detectedType = 'task';
+        const contentLower = input.content.toLowerCase();
+        
+        if (contentLower.includes('challenge') || contentLower.includes('streak') || contentLower.includes('habit')) {
+            detectedType = 'challenge';
+        } else if (contentLower.includes('book') || contentLower.includes('read') || contentLower.includes('reading')) {
+            detectedType = 'book';
+        } else if (contentLower.includes('event') || contentLower.includes('meeting') || contentLower.includes('appointment')) {
+            detectedType = 'event';
+        }
+        
+        // Generate mock parsed data based on input type
+        let title = '';
+        let description = '';
+        
+        switch (input.type) {
+            case 'text':
+                // Extract title from text (simplified)
+                title = input.content.slice(0, 50).replace(/^(add|create|new)\s+(a\s+)?(task|challenge|book|event)?\s*/i, '');
+                title = title.charAt(0).toUpperCase() + title.slice(1);
+                description = input.content.length > 50 ? input.content : '';
+                break;
+            case 'image':
+                title = `Task from ${input.source === 'camera' ? 'photo' : 'image'}`;
+                description = 'AI detected content from image. Review and edit as needed.';
+                break;
+            case 'file':
+                title = `Task from ${input.fileName || 'document'}`;
+                description = `Extracted from file: ${input.fileName}. AI parsed key action items.`;
+                break;
+            case 'voice':
+                title = 'Review project designs by Friday';
+                description = 'Voice transcription: Add a new task to review the project designs by Friday';
+                break;
+        }
+        
+        return {
+            success: true,
+            detectedType,
+            confidence: 0.85 + Math.random() * 0.1,
+            parsedData: {
+                title,
+                description,
+                suggestedPriority: 'medium',
+                suggestedDueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+            },
+        };
+    },
 };
