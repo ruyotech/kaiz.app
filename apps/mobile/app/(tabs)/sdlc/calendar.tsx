@@ -7,7 +7,7 @@ import { getSprintName, getWeekNumber, getWeekStartDate } from '../../../utils/d
 import { WeekHeader } from '../../../components/calendar/WeekHeader';
 import { MonthSelector } from '../../../components/calendar/MonthSelector';
 import { ViewOptionsMenu } from '../../../components/calendar/ViewOptionsMenu';
-import { mockApi } from '../../../services/mockApi';
+import { taskApi, sprintApi, epicApi } from '../../../services/api';
 import { Task } from '../../../types/models';
 
 type ViewMode = 'eisenhower' | 'status' | 'size';
@@ -57,15 +57,14 @@ export default function SprintCalendar() {
         const loadTasks = async () => {
             setLoading(true);
             try {
-                const sprints = await mockApi.getSprints(currentYear);
+                const sprints = await sprintApi.getSprints(currentYear);
                 const sprint = sprints.find((s: any) => s.weekNumber === currentWeek);
-                const epicsData = await mockApi.getEpics();
+                const epicsData = await epicApi.getEpics();
                 setEpics(epicsData);
 
                 if (sprint) {
                     setCurrentSprint(sprint); // Store sprint data for color coding
-                    const allTasksUnfiltered = await mockApi.getTasks();
-                    const filtered = allTasksUnfiltered.filter((t: any) => t.sprintId === sprint.id);
+                    const filtered = await taskApi.getTasksBySprint(sprint.id);
                     setWeekTasks(filtered);
                 } else {
                     setCurrentSprint(null);

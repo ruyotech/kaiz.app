@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { Task, TaskHistory } from '../types/models';
-import { mockApi } from '../services/mockApi';
+import { taskApi } from '../services/api';
 
 export interface TaskHistoryEntry {
     id: string;
@@ -38,7 +38,19 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     fetchTasks: async (filters) => {
         set({ loading: true, error: null });
         try {
-            const tasks = await mockApi.getTasks(filters);
+            let tasks: Task[];
+            if (filters?.backlog) {
+                tasks = await taskApi.getBacklogTasks();
+            } else if (filters?.sprintId) {
+                tasks = await taskApi.getTasksBySprint(filters.sprintId);
+            } else if (filters?.epicId) {
+                tasks = await taskApi.getTasksByEpic(filters.epicId);
+            } else if (filters?.status) {
+                tasks = await taskApi.getTasksByStatus(filters.status);
+            } else {
+                const response = await taskApi.getTasks();
+                tasks = response.content;
+            }
             set({ tasks, loading: false });
         } catch (error) {
             set({ error: 'Failed to fetch tasks', loading: false });
@@ -53,31 +65,35 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         return get().tasks.filter(t => t.epicId === epicId);
     },
 
-    addTask: (task) => {
-        const newTask = {
-            id: `task-${Date.now()}`,
-            userId: 'user-1',
-            isDraft: false,
-            status: 'todo',
-            createdAt: new Date().toISOString(),
-            completedAt: null,
-            epicId: null,
-            ...task,
-        } as Task;
-
-        set(state => ({ tasks: [...state.tasks, newTask] }));
+    addTask: async (task) => {
+        try {
+            const newTask = await taskApi.createTask(task);
+            set(state => ({ tasks: [...state.tasks, newTask] }));
+        } catch (error) {
+            console.error('Failed to create task:', error);
+        }
     },
 
-    updateTask: (id, updates) => {
-        set(state => ({
-            tasks: state.tasks.map(t =>
-                t.id === id ? { ...t, ...updates } : t
-            ),
-        }));
+    updateTask: async (id, updates) => {
+        try {
+            const updatedTask = await taskApi.updateTask(id, updates);
+            set(state => ({
+                tasks: state.tasks.map(t =>
+                    t.id === id ? updatedTask : t
+                ),
+            }));
+        } catch (error) {
+            console.error('Failed to update task:', error);
+        }
     },
 
-    deleteTask: (id) => {
-        set(state => ({ tasks: state.tasks.filter(t => t.id !== id) }));
+    deleteTask: async (id) => {
+        try {
+            await taskApi.deleteTask(id);
+            set(state => ({ tasks: state.tasks.filter(t => t.id !== id) }));
+        } catch (error) {
+            console.error('Failed to delete task:', error);
+        }
     },
 
     assignToEpic: (taskId, epicId) => {

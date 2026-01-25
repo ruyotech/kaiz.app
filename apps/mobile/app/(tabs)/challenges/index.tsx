@@ -9,7 +9,7 @@ import { EmptyState } from '../../../components/ui/EmptyState';
 import { useChallengeStore } from '../../../store/challengeStore';
 import { Challenge, LifeWheelArea } from '../../../types/models';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { mockApi } from '../../../services/mockApi';
+import { lifeWheelApi } from '../../../services/api';
 
 // Map challenge Life Wheel IDs to actual Life Wheel area IDs
 const LIFE_WHEEL_ID_MAP: Record<string, string> = {
@@ -96,7 +96,7 @@ export default function ChallengesScreen() {
     }, []);
     
     const loadLifeWheelAreas = async () => {
-        const areas = await mockApi.getLifeWheelAreas();
+        const areas = await lifeWheelApi.getLifeWheelAreas();
         setLifeWheelAreas(areas);
     };
     

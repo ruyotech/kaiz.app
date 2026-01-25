@@ -4,7 +4,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTaskStore } from '@/store/taskStore';
 import { Task } from '@/types/models';
 import { getWeekNumber } from '@/utils/dateHelpers';
-import { mockApi } from '@/services/mockApi';
+import { sprintApi, taskApi } from '@/services/api';
 
 interface TaskQuickPickProps {
   onSelectTask: (taskId: string | null, taskTitle: string | null, taskDetails?: { description: string; storyPoints: number; quadrant: string }) => void;
@@ -25,15 +25,15 @@ export default function TaskQuickPick({ onSelectTask }: TaskQuickPickProps) {
     try {
       const currentWeek = getWeekNumber(new Date());
       const currentYear = new Date().getFullYear();
-      const sprints = await mockApi.getSprints(currentYear);
+      const sprints = await sprintApi.getAll(currentYear);
       const sprint = sprints.find((s: any) => s.weekNumber === currentWeek);
-      
+
       if (sprint) {
         setCurrentSprintName(`Sprint ${currentWeek}`);
         await fetchTasks();
-        const allTasks = await mockApi.getTasks();
+        const allTasks = await taskApi.getAll({ sprintId: sprint.id });
         const filtered = allTasks.filter(
-          (t: any) => t.sprintId === sprint.id && !t.isDraft && (t.status === 'todo' || t.status === 'in_progress')
+          (t: any) => !t.isDraft && (t.status === 'todo' || t.status === 'in_progress')
         ) as Task[];
         setSprintTasks(filtered);
       }

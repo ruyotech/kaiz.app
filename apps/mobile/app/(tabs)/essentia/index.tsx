@@ -5,8 +5,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Container } from '../../../components/layout/Container';
 import { Card } from '../../../components/ui/Card';
 import { useEssentiaStore } from '../../../store/essentiaStore';
-import { mockApi } from '../../../services/mockApi';
 import { EssentiaBook } from '../../../types/models';
+import essentiaBooksData from '../../../data/mock/essentiaBooks.json';
 
 const { width } = Dimensions.get('window');
 
@@ -31,8 +31,7 @@ export default function EssentiaTodayScreen() {
 
     const loadData = async () => {
         try {
-            const books = await mockApi.getEssentiaBooks();
-            setAllBooks(books);
+            setAllBooks(essentiaBooksData as EssentiaBook[]);
             
             // Initialize user stats if needed
             if (!userStats) {

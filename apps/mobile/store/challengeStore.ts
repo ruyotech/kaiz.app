@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { Challenge, ChallengeParticipant, ChallengeEntry, ChallengeTemplate, ChallengeAnalytics } from '../types/models';
-import { mockApi } from '../services/mockApi';
+import { challengeApi } from '../services/api';
 
 interface ChallengeState {
     challenges: Challenge[];
@@ -14,22 +14,22 @@ interface ChallengeState {
     fetchChallenges: (userId?: string, status?: string) => Promise<void>;
     fetchTemplates: (lifeWheelAreaId?: string) => Promise<void>;
     fetchChallengeDetail: (challengeId: string) => Promise<void>;
-    
+
     // CRUD operations
     createChallenge: (challenge: Partial<Challenge>) => Promise<Challenge>;
     createChallengeFromTemplate: (templateId: string, overrides?: Partial<Challenge>) => Promise<Challenge>;
     updateChallenge: (challengeId: string, updates: Partial<Challenge>) => Promise<void>;
     deleteChallenge: (challengeId: string) => Promise<void>;
-    
+
     // Progress tracking
     logEntry: (challengeId: string, value: number | boolean, note?: string) => Promise<void>;
     calculateStreak: (challengeId: string) => number;
     getAnalytics: (challengeId: string) => ChallengeAnalytics;
-    
+
     // Social features
     addReaction: (entryId: string, userId: string, type: 'thumbsup' | 'fire' | 'muscle' | 'celebrate') => void;
     inviteAccountabilityPartner: (challengeId: string, userId: string) => Promise<void>;
-    
+
     // Utility
     pauseChallenge: (challengeId: string) => Promise<void>;
     resumeChallenge: (challengeId: string) => Promise<void>;
@@ -47,7 +47,7 @@ export const useChallengeStore = create<ChallengeState>((set, get) => ({
     fetchChallenges: async (userId, status) => {
         set({ loading: true, error: null });
         try {
-            const challenges = await mockApi.getChallenges(userId, status);
+            const challenges = await challengeApi.getChallenges(status);
             set({ challenges, loading: false });
         } catch (error) {
             set({ error: 'Failed to fetch challenges', loading: false });
@@ -57,7 +57,7 @@ export const useChallengeStore = create<ChallengeState>((set, get) => ({
     fetchTemplates: async (lifeWheelAreaId) => {
         set({ loading: true, error: null });
         try {
-            const templates = await mockApi.getChallengeTemplates(lifeWheelAreaId);
+            const templates = await challengeApi.getChallengeTemplates(lifeWheelAreaId);
             set({ templates, loading: false });
         } catch (error) {
             set({ error: 'Failed to fetch templates', loading: false });
@@ -67,8 +67,8 @@ export const useChallengeStore = create<ChallengeState>((set, get) => ({
     fetchChallengeDetail: async (challengeId) => {
         set({ loading: true, error: null });
         try {
-            const challengeData = await mockApi.getChallengeById(challengeId);
-            const entries = await mockApi.getChallengeEntries(challengeId);
+            const challengeData = await challengeApi.getChallengeById(challengeId);
+            const entries = await challengeApi.getChallengeEntries(challengeId);
 
             set({
                 participants: challengeData.participants || [],
@@ -83,7 +83,7 @@ export const useChallengeStore = create<ChallengeState>((set, get) => ({
     createChallenge: async (challengeData) => {
         set({ loading: true, error: null });
         try {
-            const newChallenge = await mockApi.createChallenge(challengeData);
+            const newChallenge = await challengeApi.createChallenge(challengeData);
             set(state => ({
                 challenges: [...state.challenges, newChallenge],
                 loading: false,
@@ -110,10 +110,11 @@ export const useChallengeStore = create<ChallengeState>((set, get) => ({
                 unit: template.unit,
                 duration: template.suggestedDuration,
                 recurrence: template.recurrence,
+                createdFromTemplateId: templateId,
                 ...overrides,
             };
 
-            const newChallenge = await mockApi.createChallenge(challengeData);
+            const newChallenge = await challengeApi.createChallenge(challengeData);
             set(state => ({
                 challenges: [...state.challenges, newChallenge],
                 loading: false,
@@ -128,10 +129,10 @@ export const useChallengeStore = create<ChallengeState>((set, get) => ({
     updateChallenge: async (challengeId, updates) => {
         set({ loading: true, error: null });
         try {
-            await mockApi.updateChallenge(challengeId, updates);
+            const updatedChallenge = await challengeApi.updateChallenge(challengeId, updates);
             set(state => ({
                 challenges: state.challenges.map(c =>
-                    c.id === challengeId ? { ...c, ...updates } : c
+                    c.id === challengeId ? updatedChallenge : c
                 ),
                 loading: false,
             }));
@@ -143,7 +144,7 @@ export const useChallengeStore = create<ChallengeState>((set, get) => ({
     deleteChallenge: async (challengeId) => {
         set({ loading: true, error: null });
         try {
-            await mockApi.deleteChallenge(challengeId);
+            await challengeApi.deleteChallenge(challengeId);
             set(state => ({
                 challenges: state.challenges.filter(c => c.id !== challengeId),
                 loading: false,
@@ -158,24 +159,28 @@ export const useChallengeStore = create<ChallengeState>((set, get) => ({
             const challenge = get().challenges.find(c => c.id === challengeId);
             if (!challenge) throw new Error('Challenge not found');
 
-            const entry = await mockApi.logChallengeEntry({
-                challengeId,
-                value,
+            const entryDate = new Date().toISOString().split('T')[0];
+            const entryData = {
+                entryDate,
+                ...(typeof value === 'boolean'
+                    ? { valueBoolean: value }
+                    : { valueNumeric: value }),
                 note,
-                date: new Date().toISOString().split('T')[0],
-            });
+            };
+
+            const entry = await challengeApi.logChallengeEntry(challengeId, entryData);
 
             set(state => ({
                 entries: [...state.entries, entry],
             }));
 
-            // Recalculate streak
-            const newStreak = get().calculateStreak(challengeId);
-            await get().updateChallenge(challengeId, {
-                currentStreak: newStreak,
-                bestStreak: Math.max(challenge.bestStreak, newStreak),
-                totalCompletions: challenge.totalCompletions + 1,
-            });
+            // Refresh challenge to get updated streak
+            const updatedChallenge = await challengeApi.getChallengeById(challengeId);
+            set(state => ({
+                challenges: state.challenges.map(c =>
+                    c.id === challengeId ? updatedChallenge : c
+                ),
+            }));
         } catch (error) {
             set({ error: 'Failed to log entry' });
         }
@@ -184,20 +189,21 @@ export const useChallengeStore = create<ChallengeState>((set, get) => ({
     calculateStreak: (challengeId) => {
         const entries = get().entries
             .filter(e => e.challengeId === challengeId)
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            .sort((a, b) => new Date(b.date || b.entryDate).getTime() - new Date(a.date || a.entryDate).getTime());
 
         let streak = 0;
         let currentDate = new Date();
         currentDate.setHours(0, 0, 0, 0);
 
         for (const entry of entries) {
-            const entryDate = new Date(entry.date);
+            const entryDate = new Date(entry.date || entry.entryDate);
             entryDate.setHours(0, 0, 0, 0);
-            
+
             const daysDiff = Math.floor((currentDate.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24));
-            
+
             if (daysDiff === streak) {
-                if (entry.value) {
+                const entryValue = entry.value ?? entry.valueBoolean ?? entry.valueNumeric;
+                if (entryValue) {
                     streak++;
                 } else {
                     break;
@@ -223,18 +229,23 @@ export const useChallengeStore = create<ChallengeState>((set, get) => ({
             };
         }
 
-        const completedEntries = entries.filter(e => e.value === true || (typeof e.value === 'number' && e.value > 0));
+        const completedEntries = entries.filter(e => {
+            const val = e.value ?? e.valueBoolean ?? e.valueNumeric;
+            return val === true || (typeof val === 'number' && val > 0);
+        });
         const completionRate = (completedEntries.length / entries.length) * 100;
 
-        const numericEntries = entries.filter(e => typeof e.value === 'number');
+        const numericEntries = entries.filter(e => typeof (e.value ?? e.valueNumeric) === 'number');
         const averageValue = numericEntries.length > 0
-            ? numericEntries.reduce((sum, e) => sum + (e.value as number), 0) / numericEntries.length
+            ? numericEntries.reduce((sum, e) => sum + ((e.value ?? e.valueNumeric) as number), 0) / numericEntries.length
             : undefined;
 
         // Find best and worst days
-        const entriesByValue = [...numericEntries].sort((a, b) => (b.value as number) - (a.value as number));
-        const bestDay = entriesByValue[0]?.date;
-        const worstDay = entriesByValue[entriesByValue.length - 1]?.date;
+        const entriesByValue = [...numericEntries].sort((a, b) =>
+            ((b.value ?? b.valueNumeric) as number) - ((a.value ?? a.valueNumeric) as number)
+        );
+        const bestDay = entriesByValue[0]?.date || entriesByValue[0]?.entryDate;
+        const worstDay = entriesByValue[entriesByValue.length - 1]?.date || entriesByValue[entriesByValue.length - 1]?.entryDate;
 
         return {
             challengeId,
@@ -242,7 +253,7 @@ export const useChallengeStore = create<ChallengeState>((set, get) => ({
             averageValue,
             bestDay,
             worstDay,
-            totalImpact: challenge.totalCompletions * (challenge.pointValue || 1),
+            totalImpact: (challenge.totalCompletions || 0) * (challenge.pointValue || 1),
             consistencyScore: Math.min(100, (challenge.currentStreak / challenge.duration) * 100),
         };
     },
@@ -251,18 +262,19 @@ export const useChallengeStore = create<ChallengeState>((set, get) => ({
         set(state => ({
             entries: state.entries.map(entry => {
                 if (entry.id === entryId) {
-                    const existingReaction = entry.reactions.find(r => r.userId === userId);
+                    const reactions = entry.reactions || [];
+                    const existingReaction = reactions.find(r => r.userId === userId);
                     if (existingReaction) {
                         return {
                             ...entry,
-                            reactions: entry.reactions.map(r =>
+                            reactions: reactions.map(r =>
                                 r.userId === userId ? { ...r, type } : r
                             ),
                         };
                     } else {
                         return {
                             ...entry,
-                            reactions: [...entry.reactions, { userId, type }],
+                            reactions: [...reactions, { userId, type }],
                         };
                     }
                 }
@@ -273,7 +285,7 @@ export const useChallengeStore = create<ChallengeState>((set, get) => ({
 
     inviteAccountabilityPartner: async (challengeId, userId) => {
         try {
-            await mockApi.inviteAccountabilityPartner(challengeId, userId);
+            await challengeApi.inviteParticipant(challengeId, { userId, isAccountabilityPartner: true });
             // Refresh challenge data
             await get().fetchChallengeDetail(challengeId);
         } catch (error) {
@@ -292,43 +304,6 @@ export const useChallengeStore = create<ChallengeState>((set, get) => ({
     completeChallenge: async (challengeId) => {
         await get().updateChallenge(challengeId, {
             status: 'completed',
-            completedAt: new Date().toISOString(),
         });
-    },
-
-    addEntry: (challengeId, entryValue) => {
-        const newEntry: ChallengeEntry = {
-            id: `entry-${Date.now()}`,
-            challengeId,
-            userId: 'user-1',
-            entryValue,
-            entryDate: new Date().toISOString().split('T')[0],
-            timestamp: new Date().toISOString(),
-            reactions: [],
-        };
-
-        set(state => ({ entries: [...state.entries, newEntry] }));
-
-        // Also update participant progress
-        set(state => ({
-            participants: state.participants.map(p =>
-                p.userId === 'user-1' && p.challengeId === challengeId
-                    ? { ...p, currentProgress: p.currentProgress + entryValue, lastUpdated: new Date().toISOString() }
-                    : p
-            ),
-        }));
-    },
-
-    addReaction: (entryId, userId, type) => {
-        set(state => ({
-            entries: state.entries.map(e =>
-                e.id === entryId
-                    ? {
-                        ...e,
-                        reactions: [...e.reactions, { userId, type }],
-                    }
-                    : e
-            ),
-        }));
     },
 }));

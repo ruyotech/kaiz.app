@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User } from '../types/models';
-import { mockApi } from '../services/mockApi';
+import { authApi } from '../services/api';
 
 interface AuthState {
     user: User | null;
@@ -13,7 +13,7 @@ interface AuthState {
     login: (email: string, password: string) => Promise<void>;
     loginDemo: () => Promise<void>;
     register: (email: string, password: string, fullName: string) => Promise<void>;
-    logout: () => void;
+    logout: () => Promise<void>;
     fetchCurrentUser: () => Promise<void>;
     resetPassword: (email: string) => Promise<void>;
     verifyEmail: (code: string) => Promise<void>;
@@ -31,7 +31,7 @@ export const useAuthStore = create<AuthState>()(
             login: async (email, password) => {
                 set({ loading: true, error: null });
                 try {
-                    const user = await mockApi.login(email, password);
+                    const user = await authApi.login(email, password);
                     set({ user, loading: false, isDemoUser: false });
                 } catch (error) {
                     set({ error: 'Login failed', loading: false });
@@ -45,15 +45,15 @@ export const useAuthStore = create<AuthState>()(
                     // Create demo user with default credentials
                     // IMPORTANT: This preserves all user preferences from onboarding
                     // We do NOT overwrite the user's onboarding choices
-                    // The preferences (language, life wheel areas, notifications, etc.) 
+                    // The preferences (language, life wheel areas, notifications, etc.)
                     // are already saved in preferencesStore during onboarding setup
-                    const user = await mockApi.login('john.doe@example.com', 'password123');
-                    set({ 
-                        user, 
-                        loading: false, 
-                        isDemoUser: true 
+                    const user = await authApi.login('john.doe@example.com', 'password123');
+                    set({
+                        user,
+                        loading: false,
+                        isDemoUser: true
                     });
-                    
+
                     // No need to call loadDemoPreferences() because we want to keep
                     // what the user selected during onboarding
                 } catch (error) {
@@ -65,24 +65,26 @@ export const useAuthStore = create<AuthState>()(
             register: async (email, password, fullName) => {
                 set({ loading: true, error: null });
                 try {
-                    // Simulate registration API call
-                    await new Promise((resolve) => setTimeout(resolve, 1000));
-                    // In a real app, this would create a user account
-                    set({ loading: false });
+                    const user = await authApi.register(email, password, fullName);
+                    set({ user, loading: false, isDemoUser: false });
                 } catch (error) {
                     set({ error: 'Registration failed', loading: false });
                     throw error;
                 }
             },
 
-            logout: () => {
-                set({ user: null, isDemoUser: false });
+            logout: async () => {
+                try {
+                    await authApi.logout();
+                } finally {
+                    set({ user: null, isDemoUser: false });
+                }
             },
 
             fetchCurrentUser: async () => {
                 set({ loading: true });
                 try {
-                    const user = await mockApi.getCurrentUser();
+                    const user = await authApi.getCurrentUser();
                     set({ user, loading: false });
                 } catch (error) {
                     set({ error: 'Failed to fetch user', loading: false });
@@ -120,9 +122,9 @@ export const useAuthStore = create<AuthState>()(
         {
             name: 'auth-storage',
             storage: createJSONStorage(() => AsyncStorage),
-            partialize: (state) => ({ 
-                user: state.user, 
-                isDemoUser: state.isDemoUser 
+            partialize: (state) => ({
+                user: state.user,
+                isDemoUser: state.isDemoUser
             }),
         }
     )

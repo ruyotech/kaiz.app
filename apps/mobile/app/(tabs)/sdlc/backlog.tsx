@@ -10,7 +10,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Task, LifeWheelArea, EisenhowerQuadrant, Sprint } from '../../../types/models';
 import { useTaskStore } from '../../../store/taskStore';
-import { mockApi } from '../../../services/mockApi';
+import { useEpicStore } from '../../../store/epicStore';
+import { lifeWheelApi, sprintApi } from '../../../services/api';
 
 export default function BacklogScreen() {
     const router = useRouter();
@@ -31,16 +32,15 @@ export default function BacklogScreen() {
 
     const loadData = async () => {
         await fetchTasks({ backlog: true });
-        const [areas, quadrants, sprintsList, epicsData] = await Promise.all([
-            mockApi.getLifeWheelAreas(),
-            mockApi.getEisenhowerQuadrants(),
-            mockApi.getSprints(),
-            mockApi.getEpics()
+        const [areas, quadrants, sprintsList] = await Promise.all([
+            lifeWheelApi.getLifeWheelAreas(),
+            lifeWheelApi.getEisenhowerQuadrants(),
+            sprintApi.getSprints()
         ]);
         setLifeWheelAreas(areas);
         setEisenhowerQuadrants(quadrants);
-        setSprints(sprintsList.filter(s => s.status !== 'completed'));
-        setEpics(epicsData);
+        setSprints(sprintsList.filter((s: Sprint) => s.status !== 'completed'));
+        // Epics can be loaded from epicStore if needed
     };
 
     const filteredTasks = useMemo(() => {

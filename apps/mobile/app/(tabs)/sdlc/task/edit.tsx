@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Switch, Modal, Pressable } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { mockApi } from '../../../../services/mockApi';
 import { Task } from '../../../../types/models';
 import { useTaskStore } from '../../../../store/taskStore';
 import { useEpicStore } from '../../../../store/epicStore';
@@ -12,7 +11,7 @@ export default function TaskEditScreen() {
     const { id } = useLocalSearchParams();
     const taskId = Array.isArray(id) ? id[0] : id;
     
-    const { updateTask } = useTaskStore();
+    const { tasks, fetchTasks, updateTask } = useTaskStore();
     const { epics, fetchEpics, addTaskToEpic, removeTaskFromEpic } = useEpicStore();
     
     const [loading, setLoading] = useState(true);
@@ -38,27 +37,30 @@ export default function TaskEditScreen() {
     const loadTask = async () => {
         try {
             setLoading(true);
-            const tasks = await mockApi.getTasks();
-            const foundTask = tasks.find((t: Task) => t.id === taskId);
-
-            if (foundTask) {
-                setTask(foundTask);
-                setTitle(foundTask.title);
-                setDescription(foundTask.description);
-                setStatus(foundTask.status);
-                setStoryPoints(foundTask.storyPoints);
-                setEisenhowerQuadrantId(foundTask.eisenhowerQuadrantId);
-                setLifeWheelAreaId(foundTask.lifeWheelAreaId);
-                setSprintId(foundTask.sprintId);
-                setEpicId(foundTask.epicId);
-                setOriginalEpicId(foundTask.epicId);
-            }
+            await fetchTasks();
         } catch (error) {
             console.error('Error loading task:', error);
         } finally {
             setLoading(false);
         }
     };
+
+    // Update form when tasks are loaded
+    useEffect(() => {
+        const foundTask = tasks.find((t: Task) => t.id === taskId);
+        if (foundTask) {
+            setTask(foundTask);
+            setTitle(foundTask.title);
+            setDescription(foundTask.description);
+            setStatus(foundTask.status);
+            setStoryPoints(foundTask.storyPoints);
+            setEisenhowerQuadrantId(foundTask.eisenhowerQuadrantId);
+            setLifeWheelAreaId(foundTask.lifeWheelAreaId);
+            setSprintId(foundTask.sprintId);
+            setEpicId(foundTask.epicId);
+            setOriginalEpicId(foundTask.epicId);
+        }
+    }, [tasks, taskId]);
 
     const handleSave = async () => {
         if (!taskId) return;
