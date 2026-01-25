@@ -9,7 +9,7 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: dev
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/kaizapp
-      SPRING_DATASOURCE_USERNAME: kaiz
+      SPRING_DATASOURCE_USERNAME: kaizapp
       SPRING_DATASOURCE_PASSWORD: kaiz_dev_password
       JWT_SECRET: dev-secret-key-that-is-at-least-256-bits-long-for-hs256
     depends_on:
@@ -33,7 +33,7 @@ services:
       POSTGRES_USER: kaizapp
       POSTGRES_PASSWORD: kaiz_dev_password
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
