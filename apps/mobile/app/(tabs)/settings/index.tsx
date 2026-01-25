@@ -91,8 +91,8 @@ export default function SettingsScreen() {
                 {
                     text: 'Logout',
                     style: 'destructive',
-                    onPress: () => {
-                        logout();
+                    onPress: async () => {
+                        await logout();
                         // @ts-ignore - Dynamic route
                         router.replace('/(auth)/login');
                     },

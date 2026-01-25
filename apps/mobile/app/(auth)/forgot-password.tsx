@@ -5,9 +5,11 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Container } from '../../components/layout/Container';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
+import { useAuthStore } from '../../store/authStore';
 
 export default function ForgotPasswordScreen() {
     const router = useRouter();
+    const { resetPassword, error: authError } = useAuthStore();
     const [email, setEmail] = useState('');
     const [emailError, setEmailError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -35,11 +37,11 @@ export default function ForgotPasswordScreen() {
         setLoading(true);
 
         try {
-            // Simulate API call
-            await new Promise((resolve) => setTimeout(resolve, 1500));
+            await resetPassword(email);
             setEmailSent(true);
-        } catch (error) {
-            Alert.alert('Error', 'Failed to send reset link. Please try again.');
+        } catch (error: any) {
+            const message = error?.message || authError || 'Failed to send reset link. Please try again.';
+            Alert.alert('Error', message);
         } finally {
             setLoading(false);
         }
@@ -47,9 +49,15 @@ export default function ForgotPasswordScreen() {
 
     const handleResend = async () => {
         setLoading(true);
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        setLoading(false);
-        Alert.alert('Success', 'Reset link has been resent to your email');
+        try {
+            await resetPassword(email);
+            Alert.alert('Success', 'Reset link has been resent to your email');
+        } catch (error: any) {
+            const message = error?.message || 'Failed to resend. Please try again.';
+            Alert.alert('Error', message);
+        } finally {
+            setLoading(false);
+        }
     };
 
     if (emailSent) {

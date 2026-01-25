@@ -18,8 +18,8 @@ import { usePreferencesStore } from '../../store/preferencesStore';
 
 export default function RegisterScreen() {
     const router = useRouter();
-    const { loginDemo } = useAuthStore();
-    const { hasCompletedOnboarding } = usePreferencesStore();
+    const { register, loginDemo, error: authError } = useAuthStore();
+    const { hasCompletedOnboarding, timezone } = usePreferencesStore();
     const [loading, setLoading] = useState(false);
     const [demoLoading, setDemoLoading] = useState(false);
 
@@ -92,8 +92,8 @@ export default function RegisterScreen() {
         setLoading(true);
 
         try {
-            // Simulate API call
-            await new Promise((resolve) => setTimeout(resolve, 1500));
+            // Call the real register API
+            await register(email, password, fullName, timezone);
 
             Alert.alert(
                 'Success!',
@@ -101,12 +101,13 @@ export default function RegisterScreen() {
                 [
                     {
                         text: 'OK',
-                        onPress: () => router.replace('/(auth)/login'),
+                        onPress: () => router.replace('/(tabs)/sdlc/calendar'),
                     },
                 ]
             );
-        } catch (error) {
-            Alert.alert('Error', 'Registration failed. Please try again.');
+        } catch (error: any) {
+            const message = error?.message || authError || 'Registration failed. Please try again.';
+            Alert.alert('Error', message);
         } finally {
             setLoading(false);
         }

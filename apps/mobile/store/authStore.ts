@@ -2,39 +2,55 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User } from '../types/models';
+import { authApi, ApiError } from '../services/api';
 import { mockApi } from '../services/mockApi';
+
+// Feature flag: Set to true to use real backend, false for mock data
+const USE_REAL_API = true;
 
 interface AuthState {
     user: User | null;
     loading: boolean;
     error: string | null;
     isDemoUser: boolean;
+    isAuthenticated: boolean;
 
     login: (email: string, password: string) => Promise<void>;
     loginDemo: () => Promise<void>;
-    register: (email: string, password: string, fullName: string) => Promise<void>;
-    logout: () => void;
+    register: (email: string, password: string, fullName: string, timezone?: string) => Promise<void>;
+    logout: () => Promise<void>;
     fetchCurrentUser: () => Promise<void>;
     resetPassword: (email: string) => Promise<void>;
     verifyEmail: (code: string) => Promise<void>;
+    sendVerificationCode: () => Promise<string>;
     reset: () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
     persist(
-        (set) => ({
+        (set, get) => ({
             user: null,
             loading: false,
             error: null,
             isDemoUser: false,
+            isAuthenticated: false,
 
             login: async (email, password) => {
                 set({ loading: true, error: null });
                 try {
-                    const user = await mockApi.login(email, password);
-                    set({ user, loading: false, isDemoUser: false });
+                    if (USE_REAL_API) {
+                        console.log('🔐 Logging in with real API...');
+                        const { user } = await authApi.login(email, password);
+                        set({ user, loading: false, isDemoUser: false, isAuthenticated: true });
+                    } else {
+                        const user = await mockApi.login(email, password);
+                        set({ user, loading: false, isDemoUser: false, isAuthenticated: true });
+                    }
                 } catch (error) {
-                    set({ error: 'Login failed', loading: false });
+                    const message = error instanceof ApiError 
+                        ? error.message 
+                        : 'Login failed. Please try again.';
+                    set({ error: message, loading: false });
                     throw error;
                 }
             },
@@ -42,61 +58,93 @@ export const useAuthStore = create<AuthState>()(
             loginDemo: async () => {
                 set({ loading: true, error: null });
                 try {
-                    // Create demo user with default credentials
-                    // IMPORTANT: This preserves all user preferences from onboarding
-                    // We do NOT overwrite the user's onboarding choices
-                    // The preferences (language, life wheel areas, notifications, etc.) 
-                    // are already saved in preferencesStore during onboarding setup
+                    // Demo mode always uses mock data
+                    console.log('🎭 Logging in with demo mode...');
                     const user = await mockApi.login('john.doe@example.com', 'password123');
                     set({ 
                         user, 
                         loading: false, 
-                        isDemoUser: true 
+                        isDemoUser: true,
+                        isAuthenticated: true,
                     });
-                    
-                    // No need to call loadDemoPreferences() because we want to keep
-                    // what the user selected during onboarding
                 } catch (error) {
                     set({ error: 'Demo login failed', loading: false });
                     throw error;
                 }
             },
 
-            register: async (email, password, fullName) => {
+            register: async (email, password, fullName, timezone) => {
                 set({ loading: true, error: null });
                 try {
-                    // Simulate registration API call
-                    await new Promise((resolve) => setTimeout(resolve, 1000));
-                    // In a real app, this would create a user account
-                    set({ loading: false });
+                    if (USE_REAL_API) {
+                        console.log('📝 Registering with real API...');
+                        const { user } = await authApi.register({
+                            email,
+                            password,
+                            fullName,
+                            timezone: timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+                        });
+                        set({ user, loading: false, isDemoUser: false, isAuthenticated: true });
+                    } else {
+                        // Simulate registration
+                        await new Promise((resolve) => setTimeout(resolve, 1000));
+                        set({ loading: false });
+                    }
                 } catch (error) {
-                    set({ error: 'Registration failed', loading: false });
+                    const message = error instanceof ApiError 
+                        ? error.message 
+                        : 'Registration failed. Please try again.';
+                    set({ error: message, loading: false });
                     throw error;
                 }
             },
 
-            logout: () => {
-                set({ user: null, isDemoUser: false });
+            logout: async () => {
+                try {
+                    if (USE_REAL_API && !get().isDemoUser) {
+                        console.log('🚪 Logging out from real API...');
+                        await authApi.logout();
+                    }
+                } catch (error) {
+                    console.warn('Logout API call failed:', error);
+                }
+                set({ user: null, isDemoUser: false, isAuthenticated: false });
             },
 
             fetchCurrentUser: async () => {
-                set({ loading: true });
+                set({ loading: true, error: null });
                 try {
-                    const user = await mockApi.getCurrentUser();
-                    set({ user, loading: false });
+                    if (USE_REAL_API && !get().isDemoUser) {
+                        console.log('👤 Fetching current user from real API...');
+                        const user = await authApi.getCurrentUser();
+                        set({ user, loading: false, isAuthenticated: true });
+                    } else {
+                        const user = await mockApi.getCurrentUser();
+                        set({ user, loading: false });
+                    }
                 } catch (error) {
-                    set({ error: 'Failed to fetch user', loading: false });
+                    const message = error instanceof ApiError 
+                        ? error.message 
+                        : 'Failed to fetch user';
+                    set({ error: message, loading: false, isAuthenticated: false });
                 }
             },
 
             resetPassword: async (email) => {
                 set({ loading: true, error: null });
                 try {
-                    // Simulate password reset API call
-                    await new Promise((resolve) => setTimeout(resolve, 1000));
+                    if (USE_REAL_API) {
+                        console.log('🔑 Requesting password reset...');
+                        await authApi.forgotPassword(email);
+                    } else {
+                        await new Promise((resolve) => setTimeout(resolve, 1000));
+                    }
                     set({ loading: false });
                 } catch (error) {
-                    set({ error: 'Password reset failed', loading: false });
+                    const message = error instanceof ApiError 
+                        ? error.message 
+                        : 'Password reset failed';
+                    set({ error: message, loading: false });
                     throw error;
                 }
             },
@@ -104,17 +152,45 @@ export const useAuthStore = create<AuthState>()(
             verifyEmail: async (code) => {
                 set({ loading: true, error: null });
                 try {
-                    // Simulate email verification API call
-                    await new Promise((resolve) => setTimeout(resolve, 1000));
+                    if (USE_REAL_API) {
+                        console.log('✉️ Verifying email...');
+                        await authApi.verifyEmail(code);
+                    } else {
+                        await new Promise((resolve) => setTimeout(resolve, 1000));
+                    }
                     set({ loading: false });
                 } catch (error) {
-                    set({ error: 'Email verification failed', loading: false });
+                    const message = error instanceof ApiError 
+                        ? error.message 
+                        : 'Email verification failed';
+                    set({ error: message, loading: false });
+                    throw error;
+                }
+            },
+
+            sendVerificationCode: async () => {
+                set({ loading: true, error: null });
+                try {
+                    let message = 'Verification code sent';
+                    if (USE_REAL_API) {
+                        console.log('📧 Sending verification code...');
+                        message = await authApi.sendVerificationCode();
+                    } else {
+                        await new Promise((resolve) => setTimeout(resolve, 1000));
+                    }
+                    set({ loading: false });
+                    return message;
+                } catch (error) {
+                    const message = error instanceof ApiError 
+                        ? error.message 
+                        : 'Failed to send verification code';
+                    set({ error: message, loading: false });
                     throw error;
                 }
             },
 
             reset: () => {
-                set({ user: null, loading: false, error: null, isDemoUser: false });
+                set({ user: null, loading: false, error: null, isDemoUser: false, isAuthenticated: false });
             },
         }),
         {
@@ -122,7 +198,8 @@ export const useAuthStore = create<AuthState>()(
             storage: createJSONStorage(() => AsyncStorage),
             partialize: (state) => ({ 
                 user: state.user, 
-                isDemoUser: state.isDemoUser 
+                isDemoUser: state.isDemoUser,
+                isAuthenticated: state.isAuthenticated,
             }),
         }
     )

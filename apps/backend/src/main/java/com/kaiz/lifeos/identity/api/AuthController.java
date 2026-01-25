@@ -2,11 +2,15 @@ package com.kaiz.lifeos.identity.api;
 
 import com.kaiz.lifeos.identity.application.AuthService;
 import com.kaiz.lifeos.identity.application.dto.AuthDtos.AuthResponse;
+import com.kaiz.lifeos.identity.application.dto.AuthDtos.ForgotPasswordRequest;
 import com.kaiz.lifeos.identity.application.dto.AuthDtos.LoginRequest;
+import com.kaiz.lifeos.identity.application.dto.AuthDtos.MessageResponse;
 import com.kaiz.lifeos.identity.application.dto.AuthDtos.RefreshTokenRequest;
 import com.kaiz.lifeos.identity.application.dto.AuthDtos.RegisterRequest;
+import com.kaiz.lifeos.identity.application.dto.AuthDtos.ResetPasswordRequest;
 import com.kaiz.lifeos.identity.application.dto.AuthDtos.TokenResponse;
 import com.kaiz.lifeos.identity.application.dto.AuthDtos.UserResponse;
+import com.kaiz.lifeos.identity.application.dto.AuthDtos.VerifyEmailRequest;
 import com.kaiz.lifeos.shared.util.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -66,5 +70,39 @@ public class AuthController {
       @AuthenticationPrincipal String userId) {
     UserResponse response = authService.getCurrentUser(UUID.fromString(userId));
     return ResponseEntity.ok(ApiResponse.success(response));
+  }
+
+  @PostMapping("/forgot-password")
+  @Operation(summary = "Request password reset email")
+  public ResponseEntity<ApiResponse<MessageResponse>> forgotPassword(
+      @Valid @RequestBody ForgotPasswordRequest request) {
+    String message = authService.forgotPassword(request);
+    return ResponseEntity.ok(ApiResponse.success(new MessageResponse(message)));
+  }
+
+  @PostMapping("/reset-password")
+  @Operation(summary = "Reset password using token from email")
+  public ResponseEntity<ApiResponse<MessageResponse>> resetPassword(
+      @Valid @RequestBody ResetPasswordRequest request) {
+    authService.resetPassword(request);
+    return ResponseEntity.ok(
+        ApiResponse.success(new MessageResponse("Password has been reset successfully")));
+  }
+
+  @PostMapping("/verify-email/send")
+  @Operation(summary = "Send email verification code")
+  public ResponseEntity<ApiResponse<MessageResponse>> sendVerificationCode(
+      @AuthenticationPrincipal String userId) {
+    String message = authService.sendVerificationCode(UUID.fromString(userId));
+    return ResponseEntity.ok(ApiResponse.success(new MessageResponse(message)));
+  }
+
+  @PostMapping("/verify-email")
+  @Operation(summary = "Verify email with code")
+  public ResponseEntity<ApiResponse<MessageResponse>> verifyEmail(
+      @AuthenticationPrincipal String userId, @Valid @RequestBody VerifyEmailRequest request) {
+    authService.verifyEmail(UUID.fromString(userId), request);
+    return ResponseEntity.ok(
+        ApiResponse.success(new MessageResponse("Email verified successfully")));
   }
 }

@@ -16,6 +16,8 @@ import com.kaiz.lifeos.identity.application.dto.AuthDtos.TokenResponse;
 import com.kaiz.lifeos.identity.application.dto.AuthDtos.UserResponse;
 import com.kaiz.lifeos.identity.domain.RefreshToken;
 import com.kaiz.lifeos.identity.domain.User;
+import com.kaiz.lifeos.identity.infrastructure.EmailVerificationCodeRepository;
+import com.kaiz.lifeos.identity.infrastructure.PasswordResetTokenRepository;
 import com.kaiz.lifeos.identity.infrastructure.RefreshTokenRepository;
 import com.kaiz.lifeos.identity.infrastructure.UserRepository;
 import com.kaiz.lifeos.shared.config.JwtProperties;
@@ -42,6 +44,8 @@ class AuthServiceTest {
 
   @Mock private UserRepository userRepository;
   @Mock private RefreshTokenRepository refreshTokenRepository;
+  @Mock private PasswordResetTokenRepository passwordResetTokenRepository;
+  @Mock private EmailVerificationCodeRepository emailVerificationCodeRepository;
   @Mock private PasswordEncoder passwordEncoder;
   @Mock private JwtTokenProvider jwtTokenProvider;
   @Mock private JwtProperties jwtProperties;
@@ -67,6 +71,8 @@ class AuthServiceTest {
         new AuthService(
             userRepository,
             refreshTokenRepository,
+            passwordResetTokenRepository,
+            emailVerificationCodeRepository,
             passwordEncoder,
             jwtTokenProvider,
             jwtProperties,

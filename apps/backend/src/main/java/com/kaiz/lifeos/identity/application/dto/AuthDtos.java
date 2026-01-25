@@ -42,4 +42,21 @@ public sealed interface AuthDtos {
       implements AuthDtos {}
 
   record TokenResponse(String accessToken, String refreshToken) implements AuthDtos {}
+
+  record ForgotPasswordRequest(
+      @NotBlank(message = "Email is required") @Email(message = "Invalid email format")
+          String email)
+      implements AuthDtos {}
+
+  record ResetPasswordRequest(
+      @NotBlank(message = "Token is required") String token,
+      @NotBlank(message = "New password is required")
+          @Size(min = 8, max = 100, message = "Password must be between 8 and 100 characters")
+          String newPassword)
+      implements AuthDtos {}
+
+  record VerifyEmailRequest(@NotBlank(message = "Code is required") String code)
+      implements AuthDtos {}
+
+  record MessageResponse(String message) implements AuthDtos {}
 }

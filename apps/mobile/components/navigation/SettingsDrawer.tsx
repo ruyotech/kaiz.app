@@ -79,9 +79,9 @@ export function SettingsDrawer({ visible, onClose }: SettingsDrawerProps) {
                 {
                     text: 'Logout',
                     style: 'destructive',
-                    onPress: () => {
+                    onPress: async () => {
                         onClose();
-                        logout();
+                        await logout();
                         setTimeout(() => {
                             // @ts-ignore - Dynamic route
                             router.replace('/(auth)/login');

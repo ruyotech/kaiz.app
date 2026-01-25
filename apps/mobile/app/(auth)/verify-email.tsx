@@ -5,11 +5,13 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Container } from '../../components/layout/Container';
 import { Button } from '../../components/ui/Button';
 import { TextInput } from 'react-native';
+import { useAuthStore } from '../../store/authStore';
 
 const CODE_LENGTH = 6;
 
 export default function VerifyEmailScreen() {
     const router = useRouter();
+    const { verifyEmail, sendVerificationCode, error: authError } = useAuthStore();
     const [code, setCode] = useState(['', '', '', '', '', '']);
     const [loading, setLoading] = useState(false);
     const [resendCooldown, setResendCooldown] = useState(0);
@@ -74,8 +76,7 @@ export default function VerifyEmailScreen() {
         setLoading(true);
 
         try {
-            // Simulate API call
-            await new Promise((resolve) => setTimeout(resolve, 1500));
+            await verifyEmail(verificationCode);
 
             Alert.alert(
                 'Success!',
@@ -87,12 +88,9 @@ export default function VerifyEmailScreen() {
                     },
                 ]
             );
-        } catch (error) {
-            Alert.alert(
-                'Verification Failed',
-                'Invalid verification code. Please try again.',
-                [{ text: 'OK' }]
-            );
+        } catch (error: any) {
+            const message = error?.message || authError || 'Invalid verification code. Please try again.';
+            Alert.alert('Verification Failed', message, [{ text: 'OK' }]);
             setCode(['', '', '', '', '', '']);
             inputRefs.current[0]?.focus();
         } finally {
@@ -106,12 +104,12 @@ export default function VerifyEmailScreen() {
         setLoading(true);
         
         try {
-            // Simulate API call
-            await new Promise((resolve) => setTimeout(resolve, 1000));
+            await sendVerificationCode();
             setResendCooldown(60);
             Alert.alert('Success', 'A new verification code has been sent to your email');
-        } catch (error) {
-            Alert.alert('Error', 'Failed to resend code. Please try again.');
+        } catch (error: any) {
+            const message = error?.message || 'Failed to resend code. Please try again.';
+            Alert.alert('Error', message);
         } finally {
             setLoading(false);
         }

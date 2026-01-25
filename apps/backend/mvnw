@@ -26,6 +26,7 @@ fi
 # Run Maven
 exec java \
     ${MAVEN_OPTS:-} \
+    -Dmaven.multiModuleProjectDirectory="${MAVEN_BASEDIR}" \
     -classpath "${MAVEN_WRAPPER_JAR}" \
     org.apache.maven.wrapper.MavenWrapperMain \
     ${MAVEN_CONFIG:-} \

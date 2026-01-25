@@ -17,7 +17,7 @@ import { useAuthStore } from '../../store/authStore';
 
 export default function LoginScreen() {
     const router = useRouter();
-    const { login, loading } = useAuthStore();
+    const { login, loading, error: authError } = useAuthStore();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [emailError, setEmailError] = useState('');
@@ -63,12 +63,9 @@ export default function LoginScreen() {
             await login(email, password);
             // @ts-ignore - Dynamic route
             router.replace('/(tabs)/sdlc/calendar');
-        } catch (error) {
-            Alert.alert(
-                'Login Failed',
-                'Invalid email or password. Please try again.',
-                [{ text: 'OK' }]
-            );
+        } catch (error: any) {
+            const message = error?.message || authError || 'Invalid email or password. Please try again.';
+            Alert.alert('Login Failed', message, [{ text: 'OK' }]);
         }
     };
 
