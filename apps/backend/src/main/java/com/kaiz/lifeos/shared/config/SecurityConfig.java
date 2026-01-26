@@ -44,18 +44,14 @@ public class SecurityConfig {
         .authorizeHttpRequests(
             auth ->
                 auth
-                    // Public endpoints
-                    .requestMatchers("/api/v1/auth/**")
+                    // Public auth endpoints (signup, login, password reset)
+                    .requestMatchers("/api/v1/auth/register")
                     .permitAll()
-                    .requestMatchers("/api/v1/life-wheel-areas/**")
+                    .requestMatchers("/api/v1/auth/login")
                     .permitAll()
-                    .requestMatchers("/api/v1/eisenhower-quadrants/**")
+                    .requestMatchers("/api/v1/auth/forgot-password")
                     .permitAll()
-                    // Sprints are public (reference data)
-                    .requestMatchers("/api/v1/sprints/**")
-                    .permitAll()
-                    // Challenge templates are public
-                    .requestMatchers("/api/v1/challenges/templates/**")
+                    .requestMatchers("/api/v1/auth/reset-password")
                     .permitAll()
                     // Actuator endpoints
                     .requestMatchers("/actuator/health/**")

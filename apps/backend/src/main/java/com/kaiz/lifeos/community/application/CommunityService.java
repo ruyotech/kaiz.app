@@ -465,6 +465,14 @@ public class CommunityService {
         return templates.map(this::toTemplateResponse);
     }
 
+    @Transactional(readOnly = true)
+    public List<TemplateResponse> getFeaturedTemplates() {
+        return templateRepository.findByIsFeaturedTrueOrderByDownloadCountDesc()
+                .stream()
+                .map(this::toTemplateResponse)
+                .toList();
+    }
+
     public TemplateResponse createTemplate(UUID authorId, CreateTemplateRequest request) {
         CommunityMember author =
                 memberRepository
@@ -981,5 +989,40 @@ public class CommunityService {
         if (content == null) return 1;
         int wordCount = content.split("\\s+").length;
         return Math.max(1, wordCount / 200); // Average reading speed
+    }
+
+    // ==================== Community Home Operations ====================
+
+    @Transactional(readOnly = true)
+    public CommunityHomeResponse getCommunityHome(UUID userId) {
+        // Get or create current member
+        CommunityMemberResponse currentMember = getOrCreateMemberByUserId(userId);
+
+        // Get featured article (latest featured or most recent)
+        ArticleResponse featuredArticle = articleRepository.findFirstByIsFeaturedTrueOrderByCreatedAtDesc()
+                .map(this::toArticleResponse)
+                .orElse(null);
+
+        // Get recent activity (last 10 activities)
+        List<CommunityActivityResponse> recentActivity = activityRepository
+                .findTop10ByOrderByCreatedAtDesc()
+                .stream()
+                .map(this::toActivityResponse)
+                .toList();
+
+        // Get top contributors (by reputation points)
+        List<CommunityMemberResponse> topContributors = memberRepository
+                .findTop5ByOrderByReputationPointsDesc()
+                .stream()
+                .map(this::toMemberResponse)
+                .toList();
+
+        return new CommunityHomeResponse(
+                currentMember,
+                featuredArticle,
+                null, // activePoll - not implemented yet
+                null, // weeklyChallenge - not implemented yet
+                recentActivity,
+                topContributors);
     }
 }

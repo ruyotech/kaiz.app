@@ -1,6 +1,7 @@
 package com.kaiz.lifeos.community.infrastructure;
 
 import com.kaiz.lifeos.community.domain.CommunityMember;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -21,4 +22,6 @@ public interface CommunityMemberRepository extends JpaRepository<CommunityMember
 
     @Query("SELECT m FROM CommunityMember m ORDER BY m.reputationPoints DESC")
     Page<CommunityMember> findTopByReputationPoints(Pageable pageable);
+
+    List<CommunityMember> findTop5ByOrderByReputationPointsDesc();
 }

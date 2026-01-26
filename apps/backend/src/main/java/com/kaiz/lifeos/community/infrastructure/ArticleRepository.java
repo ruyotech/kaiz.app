@@ -2,6 +2,7 @@ package com.kaiz.lifeos.community.infrastructure;
 
 import com.kaiz.lifeos.community.domain.Article;
 import com.kaiz.lifeos.community.domain.ArticleCategory;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -35,4 +36,6 @@ public interface ArticleRepository extends JpaRepository<Article, UUID> {
     Page<Article> findByAuthorId(UUID authorId, Pageable pageable);
 
     Page<Article> findByIsFeaturedTrue(Pageable pageable);
+
+    Optional<Article> findFirstByIsFeaturedTrueOrderByCreatedAtDesc();
 }

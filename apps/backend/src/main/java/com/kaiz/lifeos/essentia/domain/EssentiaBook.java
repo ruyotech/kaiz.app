@@ -42,7 +42,7 @@ public class EssentiaBook extends BaseEntity {
   @Builder.Default
   private Difficulty difficulty = Difficulty.BEGINNER;
 
-  @ElementCollection
+  @ElementCollection(fetch = FetchType.EAGER)
   @CollectionTable(name = "essentia_book_tags", joinColumns = @JoinColumn(name = "book_id"))
   @Column(name = "tag")
   @Builder.Default
@@ -51,7 +51,7 @@ public class EssentiaBook extends BaseEntity {
   @Column(name = "description", columnDefinition = "TEXT")
   private String description;
 
-  @ElementCollection
+  @ElementCollection(fetch = FetchType.EAGER)
   @CollectionTable(name = "essentia_book_takeaways", joinColumns = @JoinColumn(name = "book_id"))
   @Column(name = "takeaway", columnDefinition = "TEXT")
   @OrderColumn(name = "sort_order")

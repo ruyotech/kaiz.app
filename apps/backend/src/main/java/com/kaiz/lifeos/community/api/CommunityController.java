@@ -3,8 +3,10 @@ package com.kaiz.lifeos.community.api;
 import com.kaiz.lifeos.community.application.CommunityService;
 import com.kaiz.lifeos.community.application.dto.*;
 import com.kaiz.lifeos.community.domain.*;
+import com.kaiz.lifeos.shared.security.CurrentUser;
 import com.kaiz.lifeos.shared.util.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -22,6 +24,17 @@ import org.springframework.web.bind.annotation.*;
 public class CommunityController {
 
     private final CommunityService communityService;
+
+    // ==================== Home Endpoint ====================
+
+    @GetMapping("/home")
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "Get community home data", description = "Returns featured content, activity, and top contributors for the current user")
+    public ResponseEntity<ApiResponse<CommunityHomeResponse>> getCommunityHome(
+            @CurrentUser UUID userId) {
+        CommunityHomeResponse response = communityService.getCommunityHome(userId);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
 
     // ==================== Member Endpoints ====================
 
@@ -226,6 +239,13 @@ public class CommunityController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         Page<TemplateResponse> response = communityService.getTemplates(type, tag, page, size);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping("/templates/featured")
+    @Operation(summary = "Get featured templates")
+    public ResponseEntity<ApiResponse<List<TemplateResponse>>> getFeaturedTemplates() {
+        List<TemplateResponse> response = communityService.getFeaturedTemplates();
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
