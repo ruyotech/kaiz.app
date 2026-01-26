@@ -1,6 +1,6 @@
 spring:
   application:
-    name: kaiz-lifeos
+    name: kaiz
 
   # Virtual threads (Java 21)
   threads:
@@ -71,7 +71,7 @@ springdoc:
 # JWT Configuration
 jwt:
   secret: ${JWT_SECRET:default-dev-secret-key-that-is-at-least-256-bits-long-for-hs256}
-  issuer: kaiz-lifeos
+  issuer: kaiz
   audience: kaiz-mobile-app
   access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:900000}
   refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:604800000}
@@ -91,7 +91,7 @@ rate-limit:
 logging:
   level:
     root: INFO
-    com.kaiz.lifeos: DEBUG
+    app.kaiz: DEBUG
     org.springframework.security: INFO
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql: TRACE

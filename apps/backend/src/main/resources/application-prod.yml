@@ -32,7 +32,7 @@ security:
 logging:
   level:
     root: WARN
-    com.kaiz.lifeos: INFO
+    app.kaiz: INFO
     org.springframework.security: WARN
     org.hibernate.SQL: WARN
 

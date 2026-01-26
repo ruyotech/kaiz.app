@@ -1,6 +1,0 @@
-package com.kaiz.lifeos.community.application.dto;
-
-import jakarta.validation.constraints.NotBlank;
-
-/** Request DTO for creating an answer. */
-public record CreateAnswerRequest(@NotBlank(message = "Body is required") String body) {}
