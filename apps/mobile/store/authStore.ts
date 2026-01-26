@@ -9,10 +9,8 @@ interface AuthState {
     loading: boolean;
     error: string | null;
     isAuthenticated: boolean;
-    isDemoUser: boolean;
 
     login: (email: string, password: string) => Promise<void>;
-    loginDemo: () => Promise<void>;
     register: (email: string, password: string, fullName: string, timezone?: string) => Promise<void>;
     logout: () => Promise<void>;
     fetchCurrentUser: () => Promise<void>;
@@ -29,46 +27,18 @@ export const useAuthStore = create<AuthState>()(
             loading: false,
             error: null,
             isAuthenticated: false,
-            isDemoUser: false,
 
             login: async (email, password) => {
                 set({ loading: true, error: null });
                 try {
                     console.log('🔐 Logging in...');
                     const { user } = await authApi.login(email, password);
-                    set({ user, loading: false, isAuthenticated: true, isDemoUser: false });
+                    set({ user, loading: false, isAuthenticated: true });
                 } catch (error) {
                     const message = error instanceof ApiError 
                         ? error.message 
                         : 'Login failed. Please try again.';
                     set({ error: message, loading: false });
-                    throw error;
-                }
-            },
-
-            loginDemo: async () => {
-                set({ loading: true, error: null });
-                try {
-                    console.log('🎭 Logging in as demo user...');
-                    // Create a demo user without API call
-                    const demoUser: User = {
-                        id: 'demo-user-001',
-                        email: 'demo@kaizlifeos.app',
-                        fullName: 'Demo User',
-                        accountType: 'individual',
-                        subscriptionTier: 'pro',
-                        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                        avatarUrl: null,
-                        createdAt: new Date().toISOString(),
-                    };
-                    set({ 
-                        user: demoUser, 
-                        loading: false, 
-                        isAuthenticated: true, 
-                        isDemoUser: true 
-                    });
-                } catch (error) {
-                    set({ error: 'Demo login failed', loading: false });
                     throw error;
                 }
             },
@@ -164,7 +134,7 @@ export const useAuthStore = create<AuthState>()(
             },
 
             reset: () => {
-                set({ user: null, loading: false, error: null, isAuthenticated: false, isDemoUser: false });
+                set({ user: null, loading: false, error: null, isAuthenticated: false });
             },
         }),
         {
@@ -173,7 +143,6 @@ export const useAuthStore = create<AuthState>()(
             partialize: (state) => ({ 
                 user: state.user, 
                 isAuthenticated: state.isAuthenticated,
-                isDemoUser: state.isDemoUser,
             }),
         }
     )
@@ -185,7 +154,6 @@ setOnAuthExpired(() => {
     useAuthStore.setState({ 
         user: null, 
         isAuthenticated: false, 
-        isDemoUser: false,
         error: 'Session expired. Please log in again.' 
     });
 });

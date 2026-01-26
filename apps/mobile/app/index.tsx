@@ -12,7 +12,7 @@ export default function Index() {
     const [showDevReset, setShowDevReset] = useState(false);
     const { isOnboarded, reset: resetApp } = useAppStore();
     const { user, reset: resetAuth } = useAuthStore();
-    const { fetchNotifications, addDemoNotifications } = useNotificationStore();
+    const { fetchNotifications } = useNotificationStore();
 
     useEffect(() => {
         // Log current state for debugging
@@ -24,9 +24,8 @@ export default function Index() {
         
         // Initialize notifications when user is logged in
         if (user) {
-            fetchNotifications().catch(() => {
-                // If API fails, add demo notifications for development
-                addDemoNotifications();
+            fetchNotifications().catch((error) => {
+                console.warn('Failed to fetch notifications:', error);
             });
         }
     }, [isOnboarded, user]);
@@ -127,7 +126,7 @@ export default function Index() {
                                     textAlign: 'center',
                                 }}
                             >
-                                🔄 Reset Demo
+                                🔄 Reset App
                             </Text>
                             <Text
                                 style={{

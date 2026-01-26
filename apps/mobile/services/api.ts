@@ -158,6 +158,9 @@ async function request<T>(
         const token = await getAccessToken();
         if (token) {
             (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+            console.log('🔐 Token attached to request');
+        } else {
+            console.warn('⚠️ No access token found for authenticated request to:', endpoint);
         }
     }
 
@@ -274,7 +277,12 @@ export const authApi = {
         });
 
         // Save tokens
+        console.log('🔐 Saving tokens after login...');
         await saveTokens(response.accessToken, response.refreshToken);
+        
+        // Verify tokens were saved
+        const savedToken = await getAccessToken();
+        console.log('🔐 Token saved successfully:', !!savedToken);
 
         return {
             user: mapUserResponseToUser(response.user),

@@ -48,6 +48,7 @@ export default function LoginScreen() {
         isChecking: isBiometricChecking,
         checkBiometricCapability,
         authenticateWithBiometric,
+        getStoredCredentials,
     } = useBiometricStore();
 
     const [email, setEmail] = useState('');
@@ -119,9 +120,8 @@ export default function LoginScreen() {
      * 
      * Flow:
      * 1. Authenticate with biometrics
-     * 2. If successful, use the stored email to log in
-     * 3. Since we don't store passwords, we use a special biometric login flow
-     *    (In production, this would use a secure token stored in keychain)
+     * 2. If successful, retrieve stored credentials from secure storage
+     * 3. Login with those credentials automatically
      */
     const handleBiometricLogin = useCallback(async () => {
         if (!enrolledEmail) {
@@ -138,37 +138,31 @@ export default function LoginScreen() {
             if (success) {
                 console.log('✅ Biometric authentication successful');
                 
-                // In a real app, you would use a secure token stored in keychain
-                // For demo purposes, we'll simulate a successful login
-                // by using a demo password or token-based auth
+                // Retrieve stored credentials
+                const credentials = await getStoredCredentials();
                 
-                try {
-                    // Try to login with the enrolled email
-                    // Note: In production, use a biometric token instead of password
-                    await login(enrolledEmail, 'biometric-auth-token');
-                    
-                    // @ts-ignore - Dynamic route
-                    router.replace('/(tabs)/sdlc/calendar');
-                } catch (loginError: any) {
-                    console.log('⚠️ Token login failed, showing demo mode option');
-                    
-                    // If the biometric token login fails (expected in demo),
-                    // offer to enter demo mode or use password
+                if (credentials) {
+                    console.log('🔐 Found stored credentials, logging in...');
+                    try {
+                        await login(credentials.email, credentials.password);
+                        // @ts-ignore - Dynamic route
+                        router.replace('/(tabs)/sdlc/calendar');
+                    } catch (loginError: any) {
+                        console.error('❌ Login with stored credentials failed:', loginError);
+                        Alert.alert(
+                            'Login Failed',
+                            'Stored credentials are invalid. Please login with your password.',
+                            [{ text: 'OK' }]
+                        );
+                    }
+                } else {
+                    console.log('⚠️ No stored credentials found');
+                    // Fallback: prefill email and ask for password
+                    setEmail(enrolledEmail);
                     Alert.alert(
-                        'Authentication Successful',
-                        `${biometricCapability?.displayName || 'Biometric'} verified! However, automatic login requires additional setup.\n\nWould you like to continue in demo mode?`,
-                        [
-                            { text: 'Cancel', style: 'cancel' },
-                            { 
-                                text: 'Enter Demo Mode', 
-                                onPress: async () => {
-                                    const { loginDemo } = useAuthStore.getState();
-                                    await loginDemo();
-                                    // @ts-ignore - Dynamic route
-                                    router.replace('/(tabs)/sdlc/calendar');
-                                }
-                            },
-                        ]
+                        'Credentials Not Found',
+                        'Please enter your password to complete login. Your credentials will be saved for future Face ID logins.',
+                        [{ text: 'OK' }]
                     );
                 }
             } else {
@@ -185,7 +179,7 @@ export default function LoginScreen() {
         } finally {
             setIsBiometricLoggingIn(false);
         }
-    }, [enrolledEmail, authenticateWithBiometric, login, router, biometricCapability?.displayName]);
+    }, [enrolledEmail, authenticateWithBiometric, getStoredCredentials, login, router]);
 
     return (
         <Container safeArea={false}>

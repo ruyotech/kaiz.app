@@ -26,6 +26,7 @@ import {
     Linking,
     Platform,
     ActivityIndicator,
+    TextInput,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -313,8 +314,6 @@ export default function SettingsScreen() {
         reset: resetAuth, 
         logout, 
         user, 
-        isDemoUser, 
-        loginDemo 
     } = useAuthStore();
     const {
         timezone,
@@ -351,7 +350,7 @@ export default function SettingsScreen() {
         capability: biometricCapability,
         isChecking: isBiometricChecking,
         checkBiometricCapability,
-        enableBiometric,
+        enableBiometricWithCredentials,
         disableBiometric,
     } = useBiometricStore();
     
@@ -361,6 +360,8 @@ export default function SettingsScreen() {
     const [showSprintViewModal, setShowSprintViewModal] = useState(false);
     const [showAIModelModal, setShowAIModelModal] = useState(false);
     const [showWeekStartModal, setShowWeekStartModal] = useState(false);
+    const [showPasswordModal, setShowPasswordModal] = useState(false);
+    const [biometricPassword, setBiometricPassword] = useState('');
 
     // Check biometric capability on mount
     useEffect(() => {
@@ -379,28 +380,6 @@ export default function SettingsScreen() {
     const currentLanguage = SUPPORTED_LANGUAGES.find(lang => lang.code === locale) || SUPPORTED_LANGUAGES[0];
     
     // Handlers
-    const handleResetDemo = useCallback(() => {
-        Alert.alert(
-            `🔄 ${t('settings.resetDemo.title')}`,
-            t('settings.resetDemo.message'),
-            [
-                { text: t('common.cancel'), style: 'cancel' },
-                {
-                    text: t('common.reset'),
-                    style: 'destructive',
-                    onPress: async () => {
-                        resetApp();
-                        resetAuth();
-                        resetPreferences();
-                        resetSettings();
-                        await new Promise(r => setTimeout(r, 100));
-                        router.replace('/');
-                    },
-                },
-            ]
-        );
-    }, [resetApp, resetAuth, resetPreferences, resetSettings, router, t]);
-    
     const handleLogout = useCallback(() => {
         Alert.alert(
             `👋 ${t('settings.signOut.title')}`,
@@ -438,8 +417,8 @@ export default function SettingsScreen() {
 
     /**
      * Handle Face ID / Touch ID toggle
-     * When enabling, we require biometric authentication to confirm
-     * When disabling, we just turn it off
+     * When enabling, we require the user's password to store securely
+     * When disabling, we just turn it off and clear credentials
      */
     const handleBiometricToggle = useCallback(async (enabled: boolean) => {
         if (enabled) {
@@ -449,42 +428,39 @@ export default function SettingsScreen() {
                 return;
             }
             
-            // This will check hardware, enrollment, and request authentication
-            const success = await enableBiometric(user.email);
-            
-            if (success) {
-                Alert.alert(
-                    '✅ Enabled',
-                    `${biometricCapability?.displayName || 'Biometric'} login is now enabled. You can use it to log in quickly next time.`,
-                    [{ text: 'OK' }]
-                );
-            }
+            // Show password prompt modal
+            setShowPasswordModal(true);
         } else {
             // User wants to disable biometric login
-            disableBiometric();
+            await disableBiometric();
         }
-    }, [user?.email, enableBiometric, disableBiometric, biometricCapability?.displayName]);
-    
-    const handleEnterDemoMode = useCallback(async () => {
-        if (isDemoUser) {
-            Alert.alert(t('settings.demoMode.alreadyActive'), t('settings.demoMode.alreadyActiveMessage'));
+    }, [user?.email, disableBiometric]);
+
+    /**
+     * Handle password submission for biometric setup
+     */
+    const handleBiometricPasswordSubmit = useCallback(async () => {
+        if (!user?.email || !biometricPassword) {
+            Alert.alert('Error', 'Please enter your password.');
             return;
         }
-        Alert.alert(
-            `🎭 ${t('settings.demoMode.enterTitle')}`,
-            t('settings.demoMode.enterMessage'),
-            [
-                { text: t('common.cancel'), style: 'cancel' },
-                {
-                    text: t('settings.demoMode.enterButton'),
-                    onPress: async () => {
-                        await loginDemo();
-                        Alert.alert(`🎭 ${t('settings.demoMode.activeAlert')}`, t('settings.demoMode.activeAlertMessage'));
-                    },
-                },
-            ]
-        );
-    }, [isDemoUser, loginDemo, t]);
+
+        setShowPasswordModal(false);
+        
+        // This will check hardware, enrollment, request authentication, and store credentials
+        const success = await enableBiometricWithCredentials(user.email, biometricPassword);
+        
+        // Clear the password from state immediately
+        setBiometricPassword('');
+        
+        if (success) {
+            Alert.alert(
+                '✅ Enabled',
+                `${biometricCapability?.displayName || 'Biometric'} login is now enabled. You can use it to log in quickly next time.`,
+                [{ text: 'OK' }]
+            );
+        }
+    }, [user?.email, biometricPassword, enableBiometricWithCredentials, biometricCapability?.displayName]);
     
     const handleThemeSelect = useCallback((mode: ThemeMode) => {
         setPreferencesTheme(mode);
@@ -564,49 +540,6 @@ export default function SettingsScreen() {
             >
                 
                 {/* ============================================ */}
-                {/* DEMO MODE INDICATOR / TOGGLE */}
-                {/* ============================================ */}
-                {isDemoUser ? (
-                    <View className="mb-6 bg-purple-50 border-2 border-purple-200 rounded-2xl p-4">
-                        <View className="flex-row items-center">
-                            <View className="w-12 h-12 bg-purple-500 rounded-xl items-center justify-center mr-3">
-                                <Text className="text-2xl">🎭</Text>
-                            </View>
-                            <View className="flex-1">
-                                <Text className="text-lg font-bold text-purple-900">{t('settings.demoMode.title')}</Text>
-                                <Text className="text-sm text-purple-700 mt-0.5">
-                                    {t('settings.demoMode.subtitle')}
-                                </Text>
-                            </View>
-                        </View>
-                        <TouchableOpacity
-                            onPress={handleResetDemo}
-                            className="mt-3 bg-purple-500 rounded-xl py-2.5 items-center"
-                        >
-                            <Text className="text-white font-semibold">{t('settings.demoMode.exitButton')}</Text>
-                        </TouchableOpacity>
-                    </View>
-                ) : (
-                    <TouchableOpacity
-                        onPress={handleEnterDemoMode}
-                        className="mb-6 bg-purple-50 border border-purple-100 rounded-2xl p-4"
-                    >
-                        <View className="flex-row items-center">
-                            <View className="w-10 h-10 bg-purple-100 rounded-xl items-center justify-center mr-3">
-                                <Text className="text-xl">🎭</Text>
-                            </View>
-                            <View className="flex-1">
-                                <Text className="text-base font-semibold text-purple-900">{t('settings.demoMode.tryTitle')}</Text>
-                                <Text className="text-xs text-purple-600 mt-0.5">
-                                    {t('settings.demoMode.trySubtitle')}
-                                </Text>
-                            </View>
-                            <MaterialCommunityIcons name="chevron-right" size={20} color="#9333EA" />
-                        </View>
-                    </TouchableOpacity>
-                )}
-                
-                                {/* ============================================ */}
                 {/* ACCOUNT & PROFILE */}
                 {/* ============================================ */}
                 <SettingSection title={t('settings.sections.accountProfile')} titleIcon="👤">
@@ -1003,6 +936,61 @@ export default function SettingsScreen() {
                 selectedValue={sprints.weekStartsOn}
                 onSelect={setWeekStartsOn}
             />
+
+            {/* Password Modal for Face ID Setup */}
+            <Modal
+                visible={showPasswordModal}
+                transparent
+                animationType="fade"
+                onRequestClose={() => {
+                    setShowPasswordModal(false);
+                    setBiometricPassword('');
+                }}
+            >
+                <View className="flex-1 bg-black/50 justify-center items-center px-6">
+                    <View className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-sm p-6">
+                        <Text className="text-xl font-bold text-gray-900 dark:text-white text-center mb-2">
+                            🔐 Enable {biometricCapability?.displayName || 'Biometric'} Login
+                        </Text>
+                        <Text className="text-gray-600 dark:text-gray-400 text-center mb-6">
+                            Enter your password to securely enable {biometricCapability?.displayName || 'biometric'} login.
+                        </Text>
+                        
+                        <TextInput
+                            className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl px-4 py-3 mb-4"
+                            placeholder="Enter your password"
+                            placeholderTextColor="#9CA3AF"
+                            secureTextEntry
+                            value={biometricPassword}
+                            onChangeText={setBiometricPassword}
+                            autoFocus
+                        />
+                        
+                        <View className="flex-row gap-3">
+                            <TouchableOpacity
+                                onPress={() => {
+                                    setShowPasswordModal(false);
+                                    setBiometricPassword('');
+                                }}
+                                className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-xl py-3"
+                            >
+                                <Text className="text-center text-gray-700 dark:text-gray-300 font-semibold">
+                                    Cancel
+                                </Text>
+                            </TouchableOpacity>
+                            
+                            <TouchableOpacity
+                                onPress={handleBiometricPasswordSubmit}
+                                className="flex-1 bg-blue-600 rounded-xl py-3"
+                            >
+                                <Text className="text-center text-white font-semibold">
+                                    Enable
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }

@@ -5,24 +5,29 @@
  * - Checks if device supports biometrics (Face ID, Touch ID, Fingerprint)
  * - Checks if biometrics are enrolled on the device
  * - Persists user preference for enabling/disabling biometric login
- * - Stores the last authenticated user email for biometric login
+ * - Securely stores credentials for biometric login using expo-secure-store
  * 
  * Flow:
  * 1. User enables Face ID in Settings -> we verify biometrics are available
  * 2. User authenticates with Face ID to confirm they want to enable it
- * 3. We save their email so we know who to log in on biometric success
+ * 3. We save their credentials securely in the keychain
  * 4. On login screen, if Face ID is enabled, show the Face ID button
- * 5. User taps Face ID button -> authenticate -> auto-login
+ * 5. User taps Face ID button -> authenticate -> retrieve credentials -> auto-login
  * 
  * @author Kaiz Team
- * @version 1.0.0
+ * @version 2.0.0
  */
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as LocalAuthentication from 'expo-local-authentication';
+import * as SecureStore from 'expo-secure-store';
 import { Platform, Alert, Linking } from 'react-native';
+
+// Secure storage keys
+const SECURE_EMAIL_KEY = 'kaiz_biometric_email';
+const SECURE_PASSWORD_KEY = 'kaiz_biometric_password';
 
 // ============================================================================
 // Types
@@ -73,7 +78,10 @@ interface BiometricState {
     /** Check device biometric capabilities */
     checkBiometricCapability: () => Promise<BiometricCapability>;
     
-    /** Enable biometric login (requires authentication to confirm) */
+    /** Enable biometric login with credentials (requires authentication to confirm) */
+    enableBiometricWithCredentials: (email: string, password: string) => Promise<boolean>;
+    
+    /** Enable biometric login (requires authentication to confirm) - legacy, use enableBiometricWithCredentials */
     enableBiometric: (email: string) => Promise<boolean>;
     
     /** Disable biometric login */
@@ -81,6 +89,9 @@ interface BiometricState {
     
     /** Authenticate using biometrics */
     authenticateWithBiometric: () => Promise<boolean>;
+    
+    /** Get stored credentials after successful biometric authentication */
+    getStoredCredentials: () => Promise<{ email: string; password: string } | null>;
     
     /** Clear all biometric data (for logout) */
     clearBiometricData: () => void;
@@ -149,6 +160,57 @@ function getBiometricIconName(type: BiometricType): string {
             return 'eye-outline';
         default:
             return 'shield-lock-outline';
+    }
+}
+
+// ============================================================================
+// Secure Storage Functions
+// ============================================================================
+
+/**
+ * Store credentials securely in the keychain
+ */
+async function storeCredentials(email: string, password: string): Promise<boolean> {
+    try {
+        await SecureStore.setItemAsync(SECURE_EMAIL_KEY, email);
+        await SecureStore.setItemAsync(SECURE_PASSWORD_KEY, password);
+        console.log('🔐 Credentials stored securely');
+        return true;
+    } catch (error) {
+        console.error('❌ Failed to store credentials:', error);
+        return false;
+    }
+}
+
+/**
+ * Retrieve credentials from secure storage
+ */
+async function retrieveCredentials(): Promise<{ email: string; password: string } | null> {
+    try {
+        const email = await SecureStore.getItemAsync(SECURE_EMAIL_KEY);
+        const password = await SecureStore.getItemAsync(SECURE_PASSWORD_KEY);
+        
+        if (email && password) {
+            console.log('🔐 Credentials retrieved from secure storage');
+            return { email, password };
+        }
+        return null;
+    } catch (error) {
+        console.error('❌ Failed to retrieve credentials:', error);
+        return null;
+    }
+}
+
+/**
+ * Clear stored credentials from secure storage
+ */
+async function clearCredentials(): Promise<void> {
+    try {
+        await SecureStore.deleteItemAsync(SECURE_EMAIL_KEY);
+        await SecureStore.deleteItemAsync(SECURE_PASSWORD_KEY);
+        console.log('🔐 Credentials cleared from secure storage');
+    } catch (error) {
+        console.error('❌ Failed to clear credentials:', error);
     }
 }
 
@@ -250,12 +312,15 @@ export const useBiometricStore = create<BiometricState>()(
              * 
              * @param email - The email of the user enabling biometric login
              * @returns true if successfully enabled, false otherwise
+             * @deprecated Use enableBiometricWithCredentials instead for secure credential storage
              */
             enableBiometric: async (email: string) => {
+                // Legacy method - just enables without storing password
+                // For full functionality, use enableBiometricWithCredentials
                 set({ isChecking: true, error: null });
                 
                 try {
-                    console.log('🔐 Enabling biometric login...');
+                    console.log('🔐 Enabling biometric login (legacy method)...');
                     
                     // First, check capability
                     const capability = await get().checkBiometricCapability();
@@ -331,10 +396,112 @@ export const useBiometricStore = create<BiometricState>()(
             },
 
             /**
+             * Enable biometric login with secure credential storage
+             * Stores credentials securely and enables biometric authentication
+             * 
+             * @param email - The email of the user
+             * @param password - The password to store securely
+             * @returns true if successfully enabled, false otherwise
+             */
+            enableBiometricWithCredentials: async (email: string, password: string) => {
+                set({ isChecking: true, error: null });
+                
+                try {
+                    console.log('🔐 Enabling biometric login with credentials...');
+                    
+                    // First, check capability
+                    const capability = await get().checkBiometricCapability();
+                    
+                    // Check if hardware is available
+                    if (!capability.isHardwareAvailable) {
+                        Alert.alert(
+                            'Not Available',
+                            `${capability.displayName} is not available on this device.`,
+                            [{ text: 'OK' }]
+                        );
+                        set({ isChecking: false });
+                        return false;
+                    }
+                    
+                    // Check if biometrics are enrolled
+                    if (!capability.isEnrolled) {
+                        showEnrollmentAlert(capability.type);
+                        set({ isChecking: false });
+                        return false;
+                    }
+                    
+                    // Authenticate to confirm user wants to enable
+                    console.log('🔐 Requesting authentication to enable biometric login...');
+                    
+                    const result = await LocalAuthentication.authenticateAsync({
+                        promptMessage: `Enable ${capability.displayName} login`,
+                        fallbackLabel: 'Use Passcode',
+                        disableDeviceFallback: false,
+                        cancelLabel: 'Cancel',
+                    });
+                    
+                    if (result.success) {
+                        // Store credentials securely
+                        const stored = await storeCredentials(email, password);
+                        
+                        if (!stored) {
+                            Alert.alert(
+                                'Error',
+                                'Failed to store credentials securely. Please try again.',
+                                [{ text: 'OK' }]
+                            );
+                            set({ isChecking: false });
+                            return false;
+                        }
+                        
+                        console.log('✅ Biometric login enabled with secure credentials');
+                        set({
+                            isBiometricEnabled: true,
+                            enrolledEmail: email,
+                            isChecking: false,
+                        });
+                        return true;
+                    } else {
+                        console.log('❌ Biometric authentication cancelled or failed:', result.error);
+                        
+                        // Handle specific errors
+                        if (result.error === 'user_cancel') {
+                            // User cancelled, no need to show alert
+                        } else if (result.error === 'lockout') {
+                            Alert.alert(
+                                'Locked Out',
+                                'Too many failed attempts. Please try again later or use your passcode.',
+                                [{ text: 'OK' }]
+                            );
+                        } else if (result.error === 'not_enrolled') {
+                            showEnrollmentAlert(capability.type);
+                        }
+                        
+                        set({ isChecking: false });
+                        return false;
+                    }
+                } catch (error) {
+                    console.error('❌ Error enabling biometric with credentials:', error);
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                    set({ isChecking: false, error: errorMessage });
+                    
+                    Alert.alert(
+                        'Error',
+                        'Failed to enable biometric login. Please try again.',
+                        [{ text: 'OK' }]
+                    );
+                    
+                    return false;
+                }
+            },
+
+            /**
              * Disable biometric login
              */
-            disableBiometric: () => {
+            disableBiometric: async () => {
                 console.log('🔐 Disabling biometric login');
+                // Clear stored credentials
+                await clearCredentials();
                 set({
                     isBiometricEnabled: false,
                     enrolledEmail: null,
@@ -410,10 +577,20 @@ export const useBiometricStore = create<BiometricState>()(
             },
 
             /**
+             * Get stored credentials for biometric login
+             */
+            getStoredCredentials: async () => {
+                console.log('🔐 Getting stored credentials...');
+                return await retrieveCredentials();
+            },
+
+            /**
              * Clear biometric data (call on logout)
              */
-            clearBiometricData: () => {
+            clearBiometricData: async () => {
                 console.log('🔐 Clearing biometric data');
+                // Clear secure credentials
+                await clearCredentials();
                 set({
                     isBiometricEnabled: false,
                     enrolledEmail: null,

@@ -18,10 +18,9 @@ import { usePreferencesStore } from '../../store/preferencesStore';
 
 export default function RegisterScreen() {
     const router = useRouter();
-    const { register, loginDemo, error: authError } = useAuthStore();
-    const { hasCompletedOnboarding, timezone } = usePreferencesStore();
+    const { register, error: authError } = useAuthStore();
+    const { timezone } = usePreferencesStore();
     const [loading, setLoading] = useState(false);
-    const [demoLoading, setDemoLoading] = useState(false);
 
     // Form state
     const [fullName, setFullName] = useState('');
@@ -113,22 +112,6 @@ export default function RegisterScreen() {
         }
     };
 
-    const handleTryDemo = async () => {
-        setDemoLoading(true);
-        try {
-            // Demo user will inherit all onboarding preferences
-            // (locale, life wheel areas, work style, etc. are already saved in preferences store)
-            await loginDemo();
-            // @ts-ignore - Dynamic route
-            router.replace('/(tabs)/sdlc/calendar');
-        } catch (error) {
-            console.error('Demo login failed:', error);
-            Alert.alert('Error', 'Demo mode failed. Please try again.');
-        } finally {
-            setDemoLoading(false);
-        }
-    };
-
     return (
         <Container safeArea={false}>
             <KeyboardAvoidingView
@@ -159,51 +142,8 @@ export default function RegisterScreen() {
                             </Text>
                         </Animated.View>
 
-                        {/* Demo Account Option - Only shown if onboarding completed */}
-                        {hasCompletedOnboarding && (
-                            <Animated.View
-                                entering={FadeInDown.delay(150).springify()}
-                                className="mb-6"
-                            >
-                                <View className="p-4 bg-purple-50 rounded-xl border-2 border-purple-200">
-                                    <View className="flex-row items-start mb-3">
-                                        <Text className="text-3xl mr-3">🎭</Text>
-                                        <View className="flex-1">
-                                            <Text className="text-lg font-bold text-purple-900 mb-1">
-                                                Try Demo Mode
-                                            </Text>
-                                            <Text className="text-sm text-purple-700 leading-5">
-                                                Experience Kaiz with your personalized settings and pre-filled data. No account needed.
-                                            </Text>
-                                        </View>
-                                    </View>
-                                    <Button
-                                        onPress={handleTryDemo}
-                                        variant="outline"
-                                        size="lg"
-                                        loading={demoLoading}
-                                        fullWidth
-                                    >
-                                        Launch Demo Account
-                                    </Button>
-                                </View>
-                            </Animated.View>
-                        )}
-
-                        {/* Divider - Only show if demo option was shown */}
-                        {hasCompletedOnboarding && (
-                            <Animated.View
-                                entering={FadeInDown.delay(200).springify()}
-                                className="flex-row items-center mb-6"
-                            >
-                                <View className="flex-1 h-px bg-gray-300" />
-                                <Text className="mx-4 text-gray-500 font-semibold text-sm">OR CREATE ACCOUNT</Text>
-                                <View className="flex-1 h-px bg-gray-300" />
-                            </Animated.View>
-                        )}
-
                         {/* Registration Form */}
-                        <Animated.View entering={FadeInDown.delay(250).springify()}>
+                        <Animated.View entering={FadeInDown.delay(150).springify()}>
                             <Input
                                 label="Full Name"
                                 value={fullName}

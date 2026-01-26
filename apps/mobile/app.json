@@ -69,7 +69,8 @@
         {
           "faceIDPermission": "Allow $(PRODUCT_NAME) to use Face ID for quick and secure login."
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true

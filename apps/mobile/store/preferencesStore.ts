@@ -61,7 +61,6 @@ interface PreferencesState extends UserPreferences {
     markOnboardingComplete: () => void;
     markTutorialSeen: () => void;
     reset: () => void;
-    loadDemoPreferences: () => void;
 }
 
 // Default preferences
@@ -78,23 +77,6 @@ const DEFAULT_PREFERENCES: UserPreferences = {
     allowAnalytics: true,
     allowPersonalization: true,
     hasCompletedOnboarding: false,
-    hasSeenTutorial: false,
-};
-
-// Demo user preferences - pre-configured for testing
-const DEMO_PREFERENCES: UserPreferences = {
-    locale: 'en-US',
-    timezone: 'America/New_York',
-    theme: 'auto',
-    weekStartsOn: 'monday',
-    selectedLifeWheelAreaIds: ['lw-1', 'lw-2', 'lw-3', 'lw-4'], // Health, Career, Finance, Personal Growth
-    enableDailyReminders: true,
-    enableAiInsights: true,
-    enableChallengeUpdates: true,
-    enableBillReminders: true,
-    allowAnalytics: true,
-    allowPersonalization: true,
-    hasCompletedOnboarding: true,
     hasSeenTutorial: false,
 };
 
@@ -132,8 +114,6 @@ export const usePreferencesStore = create<PreferencesState>()(
                 set({ hasSeenTutorial: true }),
             
             reset: () => set(DEFAULT_PREFERENCES),
-            
-            loadDemoPreferences: () => set(DEMO_PREFERENCES),
         }),
         {
             name: 'user-preferences',
