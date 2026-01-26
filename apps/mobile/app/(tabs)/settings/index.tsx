@@ -14,7 +14,7 @@
  * @version 2.1.0
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
     View,
     Text,
@@ -25,6 +25,7 @@ import {
     Modal,
     Linking,
     Platform,
+    ActivityIndicator,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -36,6 +37,7 @@ import { useAppStore } from '../../../store/appStore';
 import { useAuthStore } from '../../../store/authStore';
 import { usePreferencesStore, type ThemeMode, type SupportedLocale } from '../../../store/preferencesStore';
 import { useSettingsStore, type SprintViewMode, type AIModel } from '../../../store/settingsStore';
+import { useBiometricStore } from '../../../store/biometricStore';
 
 // Hooks
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -342,6 +344,16 @@ export default function SettingsScreen() {
         clearCache,
         reset: resetSettings,
     } = useSettingsStore();
+
+    // Biometric store for Face ID / Touch ID
+    const {
+        isBiometricEnabled,
+        capability: biometricCapability,
+        isChecking: isBiometricChecking,
+        checkBiometricCapability,
+        enableBiometric,
+        disableBiometric,
+    } = useBiometricStore();
     
     // Modal states
     const [showLanguageModal, setShowLanguageModal] = useState(false);
@@ -349,6 +361,11 @@ export default function SettingsScreen() {
     const [showSprintViewModal, setShowSprintViewModal] = useState(false);
     const [showAIModelModal, setShowAIModelModal] = useState(false);
     const [showWeekStartModal, setShowWeekStartModal] = useState(false);
+
+    // Check biometric capability on mount
+    useEffect(() => {
+        checkBiometricCapability();
+    }, []);
     
     // App version - dynamic from Expo
     const appVersion = Constants.expoConfig?.version || '1.0.0';
@@ -418,6 +435,35 @@ export default function SettingsScreen() {
             ]
         );
     }, [clearCache, t]);
+
+    /**
+     * Handle Face ID / Touch ID toggle
+     * When enabling, we require biometric authentication to confirm
+     * When disabling, we just turn it off
+     */
+    const handleBiometricToggle = useCallback(async (enabled: boolean) => {
+        if (enabled) {
+            // User wants to enable biometric login
+            if (!user?.email) {
+                Alert.alert('Error', 'Please log in first to enable biometric login.');
+                return;
+            }
+            
+            // This will check hardware, enrollment, and request authentication
+            const success = await enableBiometric(user.email);
+            
+            if (success) {
+                Alert.alert(
+                    '✅ Enabled',
+                    `${biometricCapability?.displayName || 'Biometric'} login is now enabled. You can use it to log in quickly next time.`,
+                    [{ text: 'OK' }]
+                );
+            }
+        } else {
+            // User wants to disable biometric login
+            disableBiometric();
+        }
+    }, [user?.email, enableBiometric, disableBiometric, biometricCapability?.displayName]);
     
     const handleEnterDemoMode = useCallback(async () => {
         if (isDemoUser) {
@@ -560,7 +606,7 @@ export default function SettingsScreen() {
                     </TouchableOpacity>
                 )}
                 
-                {/* ============================================ */}
+                                {/* ============================================ */}
                 {/* ACCOUNT & PROFILE */}
                 {/* ============================================ */}
                 <SettingSection title={t('settings.sections.accountProfile')} titleIcon="👤">
@@ -582,6 +628,85 @@ export default function SettingsScreen() {
                         isLast
                     />
                 </SettingSection>
+
+                {/* ============================================ */}
+                {/* SECURITY (Face ID / Touch ID) */}
+                {/* ============================================ */}
+                {biometricCapability?.isHardwareAvailable && (
+                    <SettingSection title="Security" titleIcon="🔐">
+                        {/* Face ID / Touch ID Toggle */}
+                        <View
+                            className="flex-row items-center px-4 py-3.5 border-b border-gray-100"
+                        >
+                            {/* Icon */}
+                            <View
+                                className="w-9 h-9 rounded-xl items-center justify-center mr-3"
+                                style={{ backgroundColor: '#DBEAFE' }}
+                            >
+                                <MaterialCommunityIcons 
+                                    name={biometricCapability.iconName as any} 
+                                    size={20} 
+                                    color="#3B82F6" 
+                                />
+                            </View>
+                            
+                            {/* Labels */}
+                            <View className="flex-1">
+                                <Text className="text-[15px] font-medium text-gray-900">
+                                    {biometricCapability.displayName} Login
+                                </Text>
+                                <Text className="text-xs text-gray-500 mt-0.5">
+                                    {biometricCapability.isEnrolled 
+                                        ? `Use ${biometricCapability.displayName} for quick login`
+                                        : `${biometricCapability.displayName} not set up on this device`
+                                    }
+                                </Text>
+                            </View>
+                            
+                            {/* Toggle or Loading Indicator */}
+                            {isBiometricChecking ? (
+                                <ActivityIndicator size="small" color="#3B82F6" />
+                            ) : (
+                                <Switch
+                                    value={isBiometricEnabled}
+                                    onValueChange={handleBiometricToggle}
+                                    trackColor={{ false: '#E5E5EA', true: '#34C759' }}
+                                    thumbColor="#FFFFFF"
+                                    ios_backgroundColor="#E5E5EA"
+                                    disabled={!biometricCapability.isEnrolled}
+                                />
+                            )}
+                        </View>
+                        
+                        {/* Info about biometric enrollment status */}
+                        {!biometricCapability.isEnrolled && (
+                            <TouchableOpacity
+                                onPress={() => {
+                                    if (Platform.OS === 'ios') {
+                                        Linking.openURL('App-Prefs:FACEID_PASSCODE');
+                                    } else {
+                                        Linking.openSettings();
+                                    }
+                                }}
+                                className="flex-row items-center px-4 py-3"
+                            >
+                                <MaterialCommunityIcons 
+                                    name="information-outline" 
+                                    size={16} 
+                                    color="#F59E0B" 
+                                />
+                                <Text className="text-xs text-amber-600 ml-2 flex-1">
+                                    Set up {biometricCapability.displayName} in device Settings to enable this feature
+                                </Text>
+                                <MaterialCommunityIcons 
+                                    name="chevron-right" 
+                                    size={16} 
+                                    color="#F59E0B" 
+                                />
+                            </TouchableOpacity>
+                        )}
+                    </SettingSection>
+                )}
                 
                 {/* ============================================ */}
                 {/* COMMAND CENTER (AI/CHAT) */}

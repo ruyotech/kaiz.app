@@ -23,7 +23,11 @@
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true,
           "NSAllowsLocalNetworking": true
-        }
+        },
+        "NSFaceIDUsageDescription": "Allow $(PRODUCT_NAME) to use Face ID for quick and secure login.",
+        "NSCameraUsageDescription": "Allow $(PRODUCT_NAME) to access your camera to take photos and attach them to messages.",
+        "NSMicrophoneUsageDescription": "Allow $(PRODUCT_NAME) to access your microphone to record voice messages.",
+        "NSPhotoLibraryUsageDescription": "Allow $(PRODUCT_NAME) to access your photo library to attach images to messages."
       }
     },
     "android": {
@@ -59,7 +63,13 @@
           "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone to record voice messages."
         }
       ],
-      "expo-audio"
+      "expo-audio",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow $(PRODUCT_NAME) to use Face ID for quick and secure login."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
