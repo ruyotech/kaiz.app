@@ -12,6 +12,7 @@ import { Task, LifeWheelArea, EisenhowerQuadrant, Sprint } from '../../../types/
 import { useTaskStore } from '../../../store/taskStore';
 import { useEpicStore } from '../../../store/epicStore';
 import { lifeWheelApi, sprintApi } from '../../../services/api';
+import { toLocaleDateStringLocalized } from '../../../utils/localizedDate';
 
 export default function BacklogScreen() {
     const router = useRouter();
@@ -391,7 +392,7 @@ export default function BacklogScreen() {
                                                 {sprint.status === 'active' && ' 🔥'}
                                             </Text>
                                             <Text className="text-sm text-gray-600">
-                                                {new Date(sprint.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {new Date(sprint.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                                {toLocaleDateStringLocalized(sprint.startDate, { month: 'short', day: 'numeric' })} - {toLocaleDateStringLocalized(sprint.endDate, { month: 'short', day: 'numeric' })}
                                             </Text>
                                         </View>
                                         <View className="items-end ml-3">

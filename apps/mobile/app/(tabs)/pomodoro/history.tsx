@@ -5,6 +5,7 @@ import { usePomodoroStore, PomodoroSession } from '../../../store/pomodoroStore'
 import { Container } from '../../../components/layout/Container';
 import { ScreenHeader } from '../../../components/layout/ScreenHeader';
 import { Card } from '../../../components/ui/Card';
+import { toLocaleDateStringLocalized, formatTimeLocalized } from '../../../utils/localizedDate';
 
 type FilterType = 'all' | 'today' | 'week' | 'month';
 
@@ -47,12 +48,8 @@ export default function PomodoroHistory() {
 
   const formatDateTime = (isoString: string) => {
     const date = new Date(isoString);
-    const timeStr = date.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    });
-    const dateStr = date.toLocaleDateString('en-US', {
+    const timeStr = formatTimeLocalized(date);
+    const dateStr = toLocaleDateStringLocalized(date, {
       month: 'short',
       day: 'numeric',
     });

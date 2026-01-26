@@ -5,9 +5,11 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Task } from '../../../../types/models';
 import { useTaskStore } from '../../../../store/taskStore';
 import { useEpicStore } from '../../../../store/epicStore';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 export default function TaskEditScreen() {
     const router = useRouter();
+    const { t } = useTranslation();
     const { id } = useLocalSearchParams();
     const taskId = Array.isArray(id) ? id[0] : id;
     
@@ -94,17 +96,17 @@ export default function TaskEditScreen() {
 
     const storyPointOptions: Task['storyPoints'][] = [1, 2, 3, 5, 8, 13, 21];
     const statusOptions: Array<{ value: Task['status']; label: string }> = [
-        { value: 'draft', label: '📝 Draft' },
-        { value: 'todo', label: '⚪ To Do' },
-        { value: 'in_progress', label: '🔵 In Progress' },
-        { value: 'done', label: '✅ Done' },
+        { value: 'draft', label: `📝 ${t('tasks.status.draft')}` },
+        { value: 'todo', label: `⚪ ${t('tasks.statusTodo')}` },
+        { value: 'in_progress', label: `🔵 ${t('tasks.statusInProgress')}` },
+        { value: 'done', label: `✅ ${t('tasks.statusDone')}` },
     ];
 
     const eisenhowerOptions = [
-        { id: 'eq-1', label: 'Urgent & Important', color: 'bg-red-100' },
-        { id: 'eq-2', label: 'Not Urgent & Important', color: 'bg-blue-100' },
-        { id: 'eq-3', label: 'Urgent & Not Important', color: 'bg-yellow-100' },
-        { id: 'eq-4', label: 'Not Urgent & Not Important', color: 'bg-gray-100' },
+        { id: 'eq-1', label: t('calendar.urgentImportant'), color: 'bg-red-100' },
+        { id: 'eq-2', label: t('calendar.notUrgentImportant'), color: 'bg-blue-100' },
+        { id: 'eq-3', label: t('calendar.urgentNotImportant'), color: 'bg-yellow-100' },
+        { id: 'eq-4', label: t('calendar.notUrgentNotImportant'), color: 'bg-gray-100' },
     ];
 
     const selectedEpic = epics.find(e => e.id === epicId);

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView } from 'react-native';
 import { ChallengeEntry } from '../../types/models';
+import { getDayShort } from '../../utils/localizedDate';
 
 interface ChallengeCalendarProps {
     entries: ChallengeEntry[];
@@ -74,7 +75,7 @@ export function ChallengeCalendar({ entries, startDate, daysToShow = 14 }: Chall
                     {days.map((date, index) => {
                         const status = getDayStatus(date);
                         const statusColor = getStatusColor(status);
-                        const dayLabel = date.toLocaleDateString('en-US', { weekday: 'short' });
+                        const dayLabel = getDayShort(date);
                         const dateLabel = date.getDate();
                         
                         return (

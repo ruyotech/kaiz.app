@@ -4,16 +4,19 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { addDays, subDays, format } from 'date-fns';
 import { getSprintName, getWeekNumber, getWeekStartDate } from '../../../utils/dateHelpers';
+import { getMonthShort } from '../../../utils/localizedDate';
 import { WeekHeader } from '../../../components/calendar/WeekHeader';
 import { MonthSelector } from '../../../components/calendar/MonthSelector';
 import { ViewOptionsMenu } from '../../../components/calendar/ViewOptionsMenu';
 import { taskApi, sprintApi, epicApi } from '../../../services/api';
 import { Task } from '../../../types/models';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 type ViewMode = 'eisenhower' | 'status' | 'size';
 
 export default function SprintCalendar() {
     const router = useRouter();
+    const { t } = useTranslation();
     const [currentDate, setCurrentDate] = useState(new Date());
     const [viewMode, setViewMode] = useState<ViewMode>('eisenhower');
     const [weekTasks, setWeekTasks] = useState<Task[]>([]);
@@ -162,10 +165,10 @@ export default function SprintCalendar() {
 
     const renderEisenhowerView = () => {
         const quadrants = [
-            { id: 'eq-1', title: 'Urgent & Important', color: 'bg-red-100', borderColor: 'border-red-400', iconColor: '#DC2626' },
-            { id: 'eq-2', title: 'Not Urgent & Important', color: 'bg-blue-100', borderColor: 'border-blue-400', iconColor: '#2563EB' },
-            { id: 'eq-3', title: 'Urgent & Not Important', color: 'bg-yellow-100', borderColor: 'border-yellow-400', iconColor: '#CA8A04' },
-            { id: 'eq-4', title: 'Not Urgent & Not Important', color: 'bg-gray-100', borderColor: 'border-gray-400', iconColor: '#6B7280' },
+            { id: 'eq-1', title: t('calendar.urgentImportant'), color: 'bg-red-100', borderColor: 'border-red-400', iconColor: '#DC2626' },
+            { id: 'eq-2', title: t('calendar.notUrgentImportant'), color: 'bg-blue-100', borderColor: 'border-blue-400', iconColor: '#2563EB' },
+            { id: 'eq-3', title: t('calendar.urgentNotImportant'), color: 'bg-yellow-100', borderColor: 'border-yellow-400', iconColor: '#CA8A04' },
+            { id: 'eq-4', title: t('calendar.notUrgentNotImportant'), color: 'bg-gray-100', borderColor: 'border-gray-400', iconColor: '#6B7280' },
         ];
 
         return (
@@ -210,7 +213,7 @@ export default function SprintCalendar() {
                                                     <View className="flex-row items-center gap-2">
                                                         <View className="bg-gray-100 px-2 py-1 rounded">
                                                             <Text className="text-xs font-bold text-gray-700">
-                                                                {task.storyPoints || 0} pts
+                                                                {task.storyPoints || 0} {t('tasks.pts')}
                                                             </Text>
                                                         </View>
                                                         <View className={`px-2 py-1 rounded ${
@@ -261,9 +264,9 @@ export default function SprintCalendar() {
 
     const renderStatusView = () => {
         const statuses = [
-            { value: 'todo', label: 'To Do', color: 'bg-gray-100', borderColor: 'border-gray-400', iconColor: '#6B7280', icon: 'checkbox-blank-circle-outline' },
-            { value: 'in_progress', label: 'In Progress', color: 'bg-blue-100', borderColor: 'border-blue-400', iconColor: '#2563EB', icon: 'progress-clock' },
-            { value: 'done', label: 'Done', color: 'bg-green-100', borderColor: 'border-green-400', iconColor: '#16A34A', icon: 'check-circle' },
+            { value: 'todo', label: t('tasks.statusTodo'), color: 'bg-gray-100', borderColor: 'border-gray-400', iconColor: '#6B7280', icon: 'checkbox-blank-circle-outline' },
+            { value: 'in_progress', label: t('tasks.statusInProgress'), color: 'bg-blue-100', borderColor: 'border-blue-400', iconColor: '#2563EB', icon: 'progress-clock' },
+            { value: 'done', label: t('tasks.statusDone'), color: 'bg-green-100', borderColor: 'border-green-400', iconColor: '#16A34A', icon: 'check-circle' },
         ];
 
         return (
@@ -308,7 +311,7 @@ export default function SprintCalendar() {
                                                 <View className="flex-row items-center justify-between">
                                                     <View className="bg-gray-100 px-2 py-1 rounded">
                                                         <Text className="text-xs font-bold text-gray-700">
-                                                            {task.storyPoints || 0} pts
+                                                            {task.storyPoints || 0} {t('tasks.pts')}
                                                         </Text>
                                                     </View>
                                                     {taskEpic && (
@@ -345,9 +348,9 @@ export default function SprintCalendar() {
 
     const renderSizeView = () => {
         const sizes = [
-            { value: 'small', label: 'Small (1-3)', color: 'bg-green-100', borderColor: 'border-green-400', iconColor: '#16A34A', range: [1, 3] },
-            { value: 'medium', label: 'Medium (5-8)', color: 'bg-yellow-100', borderColor: 'border-yellow-400', iconColor: '#CA8A04', range: [5, 8] },
-            { value: 'large', label: 'Large (13+)', color: 'bg-red-100', borderColor: 'border-red-400', iconColor: '#DC2626', range: [13, 100] },
+            { value: 'small', label: t('tasks.sizeSmall'), color: 'bg-green-100', borderColor: 'border-green-400', iconColor: '#16A34A', range: [1, 3] },
+            { value: 'medium', label: t('tasks.sizeMedium'), color: 'bg-yellow-100', borderColor: 'border-yellow-400', iconColor: '#CA8A04', range: [5, 8] },
+            { value: 'large', label: t('tasks.sizeLarge'), color: 'bg-red-100', borderColor: 'border-red-400', iconColor: '#DC2626', range: [13, 100] },
         ];
 
         return (
@@ -395,7 +398,7 @@ export default function SprintCalendar() {
                                                     <View className="flex-row items-center gap-2">
                                                         <View className="bg-gray-100 px-2 py-1 rounded">
                                                             <Text className="text-xs font-bold text-gray-700">
-                                                                {task.storyPoints || 0} pts
+                                                                {task.storyPoints || 0} {t('tasks.pts')}
                                                             </Text>
                                                         </View>
                                                         <View className={`px-2 py-1 rounded ${

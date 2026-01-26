@@ -6,6 +6,7 @@ import { Task } from '../../../../types/models';
 import { lifeWheelApi } from '../../../../services/api';
 import { useEpicStore } from '../../../../store/epicStore';
 import { useTaskStore } from '../../../../store/taskStore';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 type TabType = 'overview' | 'comments' | 'checklist' | 'history';
 
@@ -41,6 +42,7 @@ interface LifeWheelArea {
 
 export default function TaskWorkView() {
     const router = useRouter();
+    const { t } = useTranslation();
     const { id } = useLocalSearchParams();
     const { epics, fetchEpics } = useEpicStore();
     const { tasks, fetchTasks, getTaskHistory, addTaskHistory } = useTaskStore();
@@ -192,7 +194,7 @@ export default function TaskWorkView() {
     if (loading || !task) {
         return (
             <View className="flex-1 items-center justify-center bg-white">
-                <Text>Loading...</Text>
+                <Text>{t('common.loading')}</Text>
             </View>
         );
     }
@@ -253,10 +255,10 @@ export default function TaskWorkView() {
             {/* Tab Bar */}
             <View className="bg-white border-b border-gray-200 flex-row">
                 {[
-                    { id: 'overview', label: 'Overview', icon: 'information-outline' },
-                    { id: 'comments', label: 'Comments', icon: 'comment-outline', badge: comments.length },
-                    { id: 'checklist', label: 'Checklist', icon: 'checkbox-marked-outline', badge: `${completedChecklist}/${totalChecklist}` },
-                    { id: 'history', label: 'History', icon: 'history' },
+                    { id: 'overview', label: t('tasks.tabs.overview'), icon: 'information-outline' },
+                    { id: 'comments', label: t('tasks.tabs.comments'), icon: 'comment-outline', badge: comments.length },
+                    { id: 'checklist', label: t('tasks.tabs.checklist'), icon: 'checkbox-marked-outline', badge: `${completedChecklist}/${totalChecklist}` },
+                    { id: 'history', label: t('tasks.tabs.history'), icon: 'history' },
                 ].map((tab) => (
                     <TouchableOpacity
                         key={tab.id}
@@ -295,25 +297,25 @@ export default function TaskWorkView() {
                     <View className="p-4">
                         {/* Task Info Cards */}
                         <View className="bg-white rounded-xl p-4 mb-3 shadow-sm">
-                            <Text className="text-sm font-semibold text-gray-700 mb-3">Task Details</Text>
+                            <Text className="text-sm font-semibold text-gray-700 mb-3">{t('tasks.details.taskDetails')}</Text>
                             {task.description && (
                                 <View className="mb-4 pb-4 border-b border-gray-100">
-                                    <Text className="text-xs text-gray-500 mb-1.5">Description</Text>
+                                    <Text className="text-xs text-gray-500 mb-1.5">{t('tasks.details.description')}</Text>
                                     <Text className="text-gray-700 leading-5">{task.description}</Text>
                                 </View>
                             )}
                             <View className="flex-row flex-wrap gap-3">
                                 <View className="flex-1 min-w-[45%]">
-                                    <Text className="text-xs text-gray-500 mb-1">Story Points</Text>
+                                    <Text className="text-xs text-gray-500 mb-1">{t('tasks.details.storyPoints')}</Text>
                                     <View className="flex-row items-center">
                                         <View className="w-8 h-8 bg-blue-100 rounded-full items-center justify-center mr-2">
                                             <Text className="text-blue-600 font-bold text-sm">{task.storyPoints}</Text>
                                         </View>
-                                        <Text className="text-gray-600 text-xs">points</Text>
+                                        <Text className="text-gray-600 text-xs">{t('common.points')}</Text>
                                     </View>
                                 </View>
                                 <View className="flex-1 min-w-[45%]">
-                                    <Text className="text-xs text-gray-500 mb-1">Life Wheel</Text>
+                                    <Text className="text-xs text-gray-500 mb-1">{t('tasks.details.lifeWheel')}</Text>
                                     <Text className="text-gray-800 font-medium">{getLifeWheelName()}</Text>
                                 </View>
                             </View>
@@ -321,21 +323,21 @@ export default function TaskWorkView() {
 
                         {/* Eisenhower Matrix & Tags */}
                         <View className="bg-white rounded-xl p-4 mb-3 shadow-sm">
-                            <Text className="text-sm font-semibold text-gray-700 mb-3">Priority & Tags</Text>
+                            <Text className="text-sm font-semibold text-gray-700 mb-3">{t('tasks.details.priorityTags')}</Text>
 
                             {/* Eisenhower Quadrant */}
                             <View className="mb-3">
-                                <Text className="text-xs text-gray-500 mb-2">Eisenhower Matrix</Text>
+                                <Text className="text-xs text-gray-500 mb-2">{t('tasks.details.eisenhowerMatrix')}</Text>
                                 <View className={`px-4 py-2.5 rounded-lg border-2 ${task.eisenhowerQuadrantId === 'eq-1' ? 'bg-red-50 border-red-300' :
                                     task.eisenhowerQuadrantId === 'eq-2' ? 'bg-blue-50 border-blue-300' :
                                         task.eisenhowerQuadrantId === 'eq-3' ? 'bg-yellow-50 border-yellow-300' :
                                             'bg-gray-50 border-gray-300'
                                     }`}>
                                     <Text className="font-medium text-gray-800">
-                                        {task.eisenhowerQuadrantId === 'eq-1' && '🔴 Urgent & Important'}
-                                        {task.eisenhowerQuadrantId === 'eq-2' && '🔵 Not Urgent & Important'}
-                                        {task.eisenhowerQuadrantId === 'eq-3' && '🟡 Urgent & Not Important'}
-                                        {task.eisenhowerQuadrantId === 'eq-4' && '⚪ Not Urgent & Not Important'}
+                                        {task.eisenhowerQuadrantId === 'eq-1' && `🔴 ${t('calendar.urgentImportant')}`}
+                                        {task.eisenhowerQuadrantId === 'eq-2' && `🔵 ${t('calendar.notUrgentImportant')}`}
+                                        {task.eisenhowerQuadrantId === 'eq-3' && `🟡 ${t('calendar.urgentNotImportant')}`}
+                                        {task.eisenhowerQuadrantId === 'eq-4' && `⚪ ${t('calendar.notUrgentNotImportant')}`}
                                     </Text>
                                 </View>
                             </View>
@@ -374,14 +376,14 @@ export default function TaskWorkView() {
 
                         {/* Quick Actions */}
                         <View className="bg-white rounded-xl p-4 shadow-sm">
-                            <Text className="text-sm font-semibold text-gray-700 mb-3">Quick Actions</Text>
+                            <Text className="text-sm font-semibold text-gray-700 mb-3">{t('tasks.details.quickActions')}</Text>
                             <TouchableOpacity className="bg-gray-100 py-3.5 rounded-lg mb-2 flex-row items-center justify-center">
                                 <MaterialCommunityIcons name="playlist-plus" size={20} color="#4B5563" />
-                                <Text className="text-gray-700 font-semibold ml-2">Add Sub-task</Text>
+                                <Text className="text-gray-700 font-semibold ml-2">{t('tasks.details.addRelatedTask')}</Text>
                             </TouchableOpacity>
                             <TouchableOpacity className="bg-gray-100 py-3.5 rounded-lg flex-row items-center justify-center">
                                 <MaterialCommunityIcons name="link-variant-plus" size={20} color="#4B5563" />
-                                <Text className="text-gray-700 font-semibold ml-2">Add Related Task</Text>
+                                <Text className="text-gray-700 font-semibold ml-2">{t('tasks.details.addRelatedTask')}</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -417,19 +419,19 @@ export default function TaskWorkView() {
                             <View className="flex-row gap-2 mb-3">
                                 <TouchableOpacity className="flex-1 bg-gray-100 py-2.5 rounded-lg flex-row items-center justify-center">
                                     <MaterialCommunityIcons name="image" size={18} color="#6B7280" />
-                                    <Text className="text-gray-700 text-xs font-medium ml-1.5">Image</Text>
+                                    <Text className="text-gray-700 text-xs font-medium ml-1.5">{t('common.image')}</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity className="flex-1 bg-gray-100 py-2.5 rounded-lg flex-row items-center justify-center">
                                     <MaterialCommunityIcons name="camera" size={18} color="#6B7280" />
-                                    <Text className="text-gray-700 text-xs font-medium ml-1.5">Camera</Text>
+                                    <Text className="text-gray-700 text-xs font-medium ml-1.5">{t('common.camera')}</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity className="flex-1 bg-gray-100 py-2.5 rounded-lg flex-row items-center justify-center">
                                     <MaterialCommunityIcons name="file" size={18} color="#6B7280" />
-                                    <Text className="text-gray-700 text-xs font-medium ml-1.5">File</Text>
+                                    <Text className="text-gray-700 text-xs font-medium ml-1.5">{t('common.file')}</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity className="flex-1 bg-gray-100 py-2.5 rounded-lg flex-row items-center justify-center">
                                     <MaterialCommunityIcons name="microphone" size={18} color="#6B7280" />
-                                    <Text className="text-gray-700 text-xs font-medium ml-1.5">Voice</Text>
+                                    <Text className="text-gray-700 text-xs font-medium ml-1.5">{t('common.voice')}</Text>
                                 </TouchableOpacity>
                             </View>
 
@@ -438,7 +440,7 @@ export default function TaskWorkView() {
                                 disabled={!newComment.trim()}
                                 className={`py-3 rounded-lg ${newComment.trim() ? 'bg-blue-600' : 'bg-gray-300'}`}
                             >
-                                <Text className="text-white text-center font-semibold">Post Comment</Text>
+                                <Text className="text-white text-center font-semibold">{t('tasks.details.postComment')}</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -483,7 +485,7 @@ export default function TaskWorkView() {
                                             disabled={!newChecklistItem.trim()}
                                             className={`flex-1 py-3 rounded-lg ${newChecklistItem.trim() ? 'bg-blue-600' : 'bg-gray-300'}`}
                                         >
-                                            <Text className="text-white text-center font-semibold">Add</Text>
+                                            <Text className="text-white text-center font-semibold">{t('common.add')}</Text>
                                         </TouchableOpacity>
                                         <TouchableOpacity
                                             onPress={() => {
@@ -492,7 +494,7 @@ export default function TaskWorkView() {
                                             }}
                                             className="flex-1 py-3 rounded-lg bg-gray-100"
                                         >
-                                            <Text className="text-gray-700 text-center font-semibold">Cancel</Text>
+                                            <Text className="text-gray-700 text-center font-semibold">{t('common.cancel')}</Text>
                                         </TouchableOpacity>
                                     </View>
                                 </View>
@@ -502,7 +504,7 @@ export default function TaskWorkView() {
                                     className="bg-white rounded-lg p-4 flex-row items-center justify-center"
                                 >
                                     <MaterialCommunityIcons name="plus-circle-outline" size={20} color="#3B82F6" />
-                                    <Text className="text-blue-600 font-semibold ml-2">Add Checklist Item</Text>
+                                    <Text className="text-blue-600 font-semibold ml-2">{t('tasks.details.addChecklistItem')}</Text>
                                 </TouchableOpacity>
                             )}
                         </View>
@@ -546,7 +548,7 @@ export default function TaskWorkView() {
                     <Pressable>
                         <View className="bg-white rounded-t-3xl pt-4 pb-8 px-4">
                             <View className="flex-row justify-between items-center mb-4">
-                                <Text className="text-lg font-bold">Change Status</Text>
+                                <Text className="text-lg font-bold">{t('tasks.details.changeStatus')}</Text>
                                 <TouchableOpacity onPress={() => setShowStatusMenu(false)}>
                                     <MaterialCommunityIcons name="close" size={24} color="#000" />
                                 </TouchableOpacity>

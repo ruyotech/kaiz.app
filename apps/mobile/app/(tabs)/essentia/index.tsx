@@ -7,6 +7,7 @@ import { Card } from '../../../components/ui/Card';
 import { useEssentiaStore } from '../../../store/essentiaStore';
 import { EssentiaBook } from '../../../types/models';
 import { essentiaApi } from '../../../services/api';
+import { toLocaleDateStringLocalized } from '../../../utils/localizedDate';
 
 const { width } = Dimensions.get('window');
 
@@ -126,7 +127,7 @@ export default function EssentiaTodayScreen() {
                         {greetingTime()}
                     </Text>
                     <Text className="text-sm text-gray-500 mt-1">
-                        {new Date().toLocaleDateString('en-US', { 
+                        {toLocaleDateStringLocalized(new Date(), { 
                             weekday: 'long', 
                             month: 'long', 
                             day: 'numeric' 

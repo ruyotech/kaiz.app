@@ -5,6 +5,8 @@ import { useEffect, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCommunityStore } from '../../../store/communityStore';
 import { ArticleCategory } from '../../../types/models';
+import { toLocaleDateStringLocalized } from '../../../utils/localizedDate';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 const CATEGORIES: { key: ArticleCategory | 'all'; label: string; icon: string }[] = [
     { key: 'all', label: 'All', icon: 'view-grid' },
@@ -41,7 +43,7 @@ export default function KnowledgeHubScreen() {
         if (diffDays === 0) return 'Today';
         if (diffDays === 1) return 'Yesterday';
         if (diffDays < 7) return `${diffDays}d ago`;
-        return new Date(timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        return toLocaleDateStringLocalized(timestamp, { month: 'short', day: 'numeric' });
     };
 
     const getCategoryStyle = (category: string) => {

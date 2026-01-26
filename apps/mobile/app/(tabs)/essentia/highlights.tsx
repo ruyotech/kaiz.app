@@ -5,6 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Container } from '../../../components/layout/Container';
 import { Card } from '../../../components/ui/Card';
 import { useEssentiaStore } from '../../../store/essentiaStore';
+import { toLocaleDateStringLocalized } from '../../../utils/localizedDate';
 
 export default function EssentiaHighlightsScreen() {
     const router = useRouter();
@@ -32,7 +33,7 @@ export default function EssentiaHighlightsScreen() {
 
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        return toLocaleDateStringLocalized(date, { month: 'short', day: 'numeric', year: 'numeric' });
     };
 
     return (

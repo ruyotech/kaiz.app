@@ -8,6 +8,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SprintCeremony, SprintCeremonyType } from '../../types/sensai.types';
+import { toLocaleDateStringLocalized } from '../../utils/localizedDate';
 
 interface CeremonyCardProps {
     ceremony?: SprintCeremony;
@@ -99,7 +100,7 @@ export function CeremonyCard({ ceremony, type, onStart, isAvailable }: CeremonyC
                         <View className="flex-row items-center mt-2">
                             <MaterialCommunityIcons name="clock-outline" size={14} color="#6B7280" />
                             <Text className="text-xs text-gray-500 ml-1">
-                                Scheduled: {new Date(ceremony.scheduledFor).toLocaleDateString('en-US', {
+                                Scheduled: {toLocaleDateStringLocalized(ceremony.scheduledFor, {
                                     weekday: 'short',
                                     month: 'short',
                                     day: 'numeric',
@@ -112,7 +113,7 @@ export function CeremonyCard({ ceremony, type, onStart, isAvailable }: CeremonyC
                         <View className="flex-row items-center mt-2">
                             <MaterialCommunityIcons name="check" size={14} color="#10B981" />
                             <Text className="text-xs text-green-600 ml-1">
-                                Completed {new Date(ceremony.completedAt).toLocaleDateString('en-US', {
+                                Completed {toLocaleDateStringLocalized(ceremony.completedAt, {
                                     weekday: 'short',
                                     month: 'short',
                                     day: 'numeric',

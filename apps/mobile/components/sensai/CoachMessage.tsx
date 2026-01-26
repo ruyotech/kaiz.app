@@ -9,6 +9,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { CoachMessage as CoachMessageType, CoachTone } from '../../types/sensai.types';
+import { toLocaleDateStringLocalized } from '../../utils/localizedDate';
 
 interface CoachMessageProps {
     message: CoachMessageType;
@@ -135,7 +136,7 @@ function formatTimestamp(timestamp: string): string {
     if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
     if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
     
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return toLocaleDateStringLocalized(date, { month: 'short', day: 'numeric' });
 }
 
 export default CoachMessage;

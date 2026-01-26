@@ -2,6 +2,7 @@ import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { toLocaleDateStringLocalized } from '../../../utils/localizedDate';
 
 // Mock article content
 const MOCK_ARTICLE = {
@@ -76,7 +77,7 @@ export default function ArticleDetailScreen() {
 
     const getTimeAgo = (timestamp: string) => {
         const date = new Date(timestamp);
-        return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+        return toLocaleDateStringLocalized(date, { month: 'long', day: 'numeric', year: 'numeric' });
     };
 
     return (

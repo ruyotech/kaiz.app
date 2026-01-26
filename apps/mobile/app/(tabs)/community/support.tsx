@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCommunityStore } from '../../../store/communityStore';
 import { AccountabilityPartner, MotivationGroup, PartnerRequest } from '../../../types/models';
+import { toLocaleDateStringLocalized } from '../../../utils/localizedDate';
 
 export default function SupportCircleScreen() {
     const router = useRouter();
@@ -222,7 +223,7 @@ export default function SupportCircleScreen() {
                                                 </View>
                                             </View>
                                             <Text className="text-sm text-gray-500 mt-0.5">
-                                                Partners since {new Date(partner.connectedSince).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                                                Partners since {toLocaleDateStringLocalized(partner.connectedSince, { month: 'short', year: 'numeric' })}
                                             </Text>
                                         </View>
                                     </View>

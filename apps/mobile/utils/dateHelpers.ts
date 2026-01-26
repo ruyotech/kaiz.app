@@ -1,7 +1,12 @@
 import { format, parseISO, startOfWeek, endOfWeek, addDays, differenceInDays } from 'date-fns';
+import { formatLocalized, getMonthShort } from './localizedDate';
 
 export function formatDate(dateString: string, formatStr: string = 'MMM d, yyyy'): string {
     return format(parseISO(dateString), formatStr);
+}
+
+export function formatDateLocale(dateString: string, formatStr: string = 'PP'): string {
+    return formatLocalized(parseISO(dateString), formatStr);
 }
 
 export function formatTime(dateString: string): string {
@@ -164,7 +169,7 @@ export const generateMonthList = (centerDate: Date, monthsBeforeAfter: number = 
         const monthDate = new Date(centerDate.getFullYear(), centerDate.getMonth() + i, 1);
         months.push({
             date: monthDate,
-            label: format(monthDate, 'MMM'),
+            label: getMonthShort(monthDate), // Now uses localized month name
             year: monthDate.getFullYear(),
             month: monthDate.getMonth(),
         });

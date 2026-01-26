@@ -38,7 +38,36 @@
     "noResults": "No results found",
     "emptyState": "Nothing here yet",
     "required": "Required",
-    "optional": "Optional"
+    "optional": "Optional",
+    "pts": "pts",
+    "points": "points",
+    "complete": "complete",
+    "completed": "Completed",
+    "committed": "Committed",
+    "remaining": "Remaining",
+    "day": "Day",
+    "week": "Week",
+    "weeks": "weeks",
+    "progress": "Progress",
+    "improvement": "improvement",
+    "inProgress": "In Progress",
+    "openSettings": "Open Settings",
+    "appName": "Kaiz1",
+    "delta": "Delta",
+    "later": "Later",
+    "gotIt": "Got It",
+    "start": "Start",
+    "all": "All",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "thisWeek": "This Week",
+    "earlier": "Earlier",
+    "pinned": "Pinned",
+    "unread": "unread",
+    "image": "Image",
+    "camera": "Camera",
+    "file": "File",
+    "voice": "Voice"
   },
   "auth": {
     "login": {
@@ -175,6 +204,37 @@
       "velocity": "Velocity",
       "retro": "Retrospective",
       "wiki": "Wiki"
+    },
+    "moreMenu": {
+      "title": "More Options",
+      "signOut": "Sign Out",
+      "signOutConfirm": "Are you sure you want to sign out?",
+      "clearNotifications": "Clear All Notifications",
+      "clearNotificationsConfirm": "Remove all notifications?",
+      "clearAll": "Clear All"
+    },
+    "appSwitcher": {
+      "title": "Apps"
+    },
+    "createMenu": {
+      "title": "What would you like to do?",
+      "task": "Task",
+      "taskSubtitle": "Create a new to-do",
+      "note": "Note",
+      "noteSubtitle": "Quick capture",
+      "event": "Event",
+      "image": "Image",
+      "camera": "Camera",
+      "file": "File",
+      "voice": "Voice"
+    },
+    "permissions": {
+      "cameraTitle": "Camera Permission Required",
+      "cameraMessage": "We need camera access to take photos for your tasks and notes.",
+      "photoLibraryTitle": "Photo Library Permission Required",
+      "photoLibraryMessage": "We need photo library access to add images to your tasks and notes.",
+      "microphoneTitle": "Microphone Permission Required",
+      "microphoneMessage": "We need microphone access to record voice notes."
     }
   },
   "tasks": {
@@ -237,6 +297,53 @@
       "title": "No tasks yet",
       "subtitle": "Create your first task to get started",
       "action": "Create Task"
+    },
+    "statusTodo": "To Do",
+    "statusInProgress": "In Progress",
+    "statusDone": "Done",
+    "statusBlocked": "Blocked",
+    "statusDraft": "Draft",
+    "sizeSmall": "Small (1-3)",
+    "sizeMedium": "Medium (5-8)",
+    "sizeLarge": "Large (13+)",
+    "pts": "pts",
+    "details": {
+      "taskDetails": "Task Details",
+      "description": "Description",
+      "storyPoints": "Story Points",
+      "lifeWheel": "Life Wheel",
+      "priorityTags": "Priority & Tags",
+      "eisenhowerMatrix": "Eisenhower Matrix",
+      "quickActions": "Quick Actions",
+      "addRelatedTask": "Add Related Task",
+      "postComment": "Post Comment",
+      "addChecklistItem": "Add Checklist Item",
+      "changeStatus": "Change Status"
+    },
+    "edit": {
+      "editTask": "Edit Task",
+      "titleLabel": "Title",
+      "titlePlaceholder": "Enter task title...",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Add a description...",
+      "statusLabel": "Status",
+      "storyPointsLabel": "Story Points",
+      "priorityLabel": "Priority (Eisenhower Matrix)",
+      "epicLabel": "Epic",
+      "assignToSprint": "Assign to Sprint",
+      "selectEpic": "Select Epic",
+      "noEpic": "No Epic",
+      "standaloneTask": "Standalone task",
+      "noEpicAssigned": "No epic assigned",
+      "noSprintAssigned": "No sprint assigned",
+      "noEpicsAvailable": "No epics available",
+      "createEpicFirst": "Create an epic first to organize tasks"
+    },
+    "tabs": {
+      "overview": "Overview",
+      "comments": "Comments",
+      "checklist": "Checklist",
+      "history": "History"
     }
   },
   "sprints": {
@@ -294,7 +401,43 @@
     "month": "Month",
     "agenda": "Agenda",
     "noEvents": "No events for this day",
-    "addEvent": "Add Event"
+    "addEvent": "Add Event",
+    "urgentImportant": "Urgent & Important",
+    "notUrgentImportant": "Not Urgent & Important",
+    "urgentNotImportant": "Urgent & Not Important",
+    "notUrgentNotImportant": "Not Urgent & Not Important"
+  },
+  "wiki": {
+    "title": "Knowledge Hub",
+    "subtitle": "Master the concepts",
+    "heroTitle": "Learn, Apply, Improve.",
+    "heroDescription": "Discover the methodologies that power high-performance teams and balanced lives.",
+    "topics": {
+      "agile": {
+        "title": "Agile Methodology",
+        "description": "Iterative approach to software delivery."
+      },
+      "scrum": {
+        "title": "Scrum Framework",
+        "description": "Roles, events, and artifacts."
+      },
+      "pomodoro": {
+        "title": "Pomodoro Technique",
+        "description": "Time management method."
+      },
+      "eisenhower": {
+        "title": "Eisenhower Matrix",
+        "description": "Prioritize tasks by urgency & importance."
+      },
+      "lifeWheel": {
+        "title": "Life Wheel",
+        "description": "Balance different areas of your life."
+      },
+      "kaizen": {
+        "title": "Kaizen Philosophy",
+        "description": "Continuous improvement."
+      }
+    }
   },
   "challenges": {
     "title": "Challenges",
@@ -311,6 +454,35 @@
       "title": "No active challenges",
       "subtitle": "Join a challenge to boost your motivation",
       "action": "Browse Challenges"
+    },
+    "analytics": {
+      "title": "Performance Analytics",
+      "completionRate": "Completion Rate",
+      "consistency": "Consistency",
+      "average": "Average",
+      "totalImpact": "Total Impact",
+      "pointsContributed": "points contributed",
+      "insights": "Insights",
+      "greatStreak": "🎯 Great streak! Keep it up!",
+      "roomForImprovement": "💪 Room for improvement:"
+    },
+    "logEntry": {
+      "title": "Log Entry",
+      "yesNoQuestion": "Did you complete today's task?",
+      "yesButton": "✓ Yes",
+      "noButton": "✗ No",
+      "keepStreakAlive": "🔥 Keep your streak alive!",
+      "tapToLog": "Tap \"Log Entry\" to mark today as complete",
+      "howMany": "How many",
+      "goal": "(Goal: {{value}})",
+      "enterPlaceholder": "Enter {{unit}}...",
+      "noteLabel": "Note (optional)",
+      "notePlaceholder": "Add any notes...",
+      "submit": "Log Entry",
+      "errors": {
+        "invalidNumber": "Please enter a valid number",
+        "enterValue": "Please enter a value"
+      }
     }
   },
   "community": {
@@ -348,7 +520,77 @@
     "subtitle": "AI-Powered Insights",
     "insights": "Insights",
     "recommendations": "Recommendations",
-    "analysis": "Analysis"
+    "analysis": "Analysis",
+    "velocity": {
+      "title": "Velocity",
+      "sprintHistory": "Sprint History",
+      "improveVelocity": "Improve Your Velocity",
+      "whatIsVelocity": "What is Velocity?",
+      "whatIsVelocityDescription": "Velocity is the average story points you complete per sprint, calculated from your last 4 sprints. It helps predict what you can realistically accomplish.",
+      "weekPrefix": "W",
+      "tips": {
+        "planRealisticTitle": "Plan realistically",
+        "planRealisticDesc": "Commit to what you can actually complete",
+        "protectFocusTitle": "Protect focus time",
+        "protectFocusDesc": "Block uninterrupted work sessions",
+        "breakDownTitle": "Break down tasks",
+        "breakDownDesc": "Smaller tasks = faster completion",
+        "trackTitle": "Track consistently",
+        "trackDesc": "Log progress daily for accurate data"
+      }
+    },
+    "standup": {
+      "dailyStandup": "Daily Standup",
+      "complete": "Standup Complete",
+      "skipped": "Standup Skipped",
+      "skippedMessage": "You can still start one if needed",
+      "readyMessage": "Ready when you are",
+      "startStandup": "Start Standup",
+      "skipToday": "Skip Today",
+      "sprintProgress": "Sprint Progress",
+      "dayOfSprint": "Day {{current}} of {{total}}",
+      "yesterday": "Yesterday",
+      "todayPlan": "Today",
+      "blockers": "Blockers",
+      "noBlockers": "No blockers"
+    },
+    "sprintHealth": {
+      "title": "Sprint Health",
+      "onTrack": "On Track",
+      "ahead": "Ahead",
+      "atRisk": "At Risk",
+      "behind": "Behind",
+      "burndownConcerning": "Burndown is flattening - consider focusing on priorities",
+      "burndownCritical": "Sprint at risk - immediate action needed"
+    },
+    "ceremonies": {
+      "sprintPlanning": "Sprint Planning",
+      "sprintPlanningDesc": "Plan your week ahead",
+      "dailyStandup": "Daily Standup",
+      "dailyStandupDesc": "Quick sync on progress and blockers",
+      "midSprintCheck": "Mid-Sprint Check",
+      "midSprintCheckDesc": "Review progress and adjust if needed",
+      "sprintReview": "Sprint Review",
+      "sprintReviewDesc": "Celebrate wins and analyze completion",
+      "retrospective": "Retrospective",
+      "retrospectiveDesc": "What worked, what didn't, and key learnings",
+      "scheduled": "Scheduled:"
+    },
+    "interventions": {
+      "planned": "Planned",
+      "yourVelocity": "Your Velocity",
+      "overcommit": "Overcommit",
+      "personalBest": "New Personal Best",
+      "awesome": "Awesome! 🎉",
+      "gotIt": "Got It",
+      "override": "Override"
+    },
+    "lifeWheel": {
+      "title": "Life Balance",
+      "subtitle": "9-Dimension Overview",
+      "score": "Score:",
+      "needsAttention": "Needs Attention"
+    }
   },
   "essentia": {
     "title": "Essentia",
@@ -386,17 +628,59 @@
   "notifications": {
     "title": "Notifications",
     "markAllRead": "Mark All as Read",
+    "markAllReadShort": "Mark all read",
     "empty": {
       "title": "No notifications",
-      "subtitle": "You're all caught up!"
+      "subtitle": "You're all caught up!",
+      "noTaskUpdates": "No task updates",
+      "noTaskUpdatesSubtitle": "Complete tasks to see updates here",
+      "noChallengeUpdates": "No challenge updates",
+      "noChallengeUpdatesSubtitle": "Start a challenge to get motivated!",
+      "noSocialUpdates": "No social updates",
+      "noSocialUpdatesSubtitle": "Connect with others to see activity",
+      "noLearningUpdates": "No learning updates",
+      "noLearningUpdatesSubtitle": "Read books and articles to see insights",
+      "noEventReminders": "No event reminders",
+      "noEventRemindersSubtitle": "Add events to get notified",
+      "noSystemUpdates": "No system updates",
+      "noSystemUpdatesSubtitle": "App is running smoothly",
+      "noAiInsights": "No AI insights yet",
+      "noAiInsightsSubtitle": "Use the app to get personalized tips"
     },
     "settings": {
       "title": "Notification Settings",
       "push": "Push Notifications",
+      "pushSubtitle": "Receive alerts on your device",
       "email": "Email Notifications",
       "reminders": "Task Reminders",
       "achievements": "Achievement Alerts",
-      "community": "Community Updates"
+      "community": "Community Updates",
+      "sound": "Sound",
+      "soundSubtitle": "Play notification sounds",
+      "vibration": "Vibration",
+      "vibrationSubtitle": "Haptic feedback for alerts",
+      "sections": {
+        "push": "Push Notifications",
+        "pushDesc": "Control how you're alerted",
+        "quietHours": "Quiet Hours",
+        "quietHoursDesc": "Pause notifications during these hours",
+        "categories": "Categories",
+        "categoriesDesc": "Choose which types to receive",
+        "smart": "Smart Features",
+        "smartDesc": "AI-powered notification management"
+      },
+      "quietHours": {
+        "title": "Quiet Hours",
+        "notEnabled": "10 PM - 8 AM"
+      },
+      "smart": {
+        "grouping": "Smart Grouping",
+        "groupingSubtitle": "Group similar notifications together",
+        "dailyDigest": "Daily Digest",
+        "dailyDigestSubtitle": "Summary of activity once a day",
+        "weeklyRecap": "Weekly Recap",
+        "weeklyRecapSubtitle": "Weekly progress summary"
+      }
     }
   },
   "profile": {

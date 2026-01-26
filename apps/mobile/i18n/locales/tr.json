@@ -38,7 +38,36 @@
     "noResults": "Sonuç bulunamadı",
     "emptyState": "Henüz bir şey yok",
     "required": "Zorunlu",
-    "optional": "İsteğe Bağlı"
+    "optional": "İsteğe Bağlı",
+    "pts": "puan",
+    "points": "puan",
+    "complete": "tamamlandı",
+    "completed": "Tamamlandı",
+    "committed": "Taahhüt Edilen",
+    "remaining": "Kalan",
+    "day": "Gün",
+    "week": "Hafta",
+    "weeks": "hafta",
+    "progress": "İlerleme",
+    "improvement": "iyileşme",
+    "inProgress": "Devam Ediyor",
+    "openSettings": "Ayarları Aç",
+    "appName": "Kaiz1",
+    "delta": "Fark",
+    "later": "Sonra",
+    "gotIt": "Anladım",
+    "start": "Başla",
+    "all": "Tümü",
+    "today": "Bugün",
+    "yesterday": "Dün",
+    "thisWeek": "Bu Hafta",
+    "earlier": "Daha Önce",
+    "pinned": "Sabitlenmiş",
+    "unread": "okunmamış",
+    "image": "Resim",
+    "camera": "Kamera",
+    "file": "Dosya",
+    "voice": "Ses"
   },
   "auth": {
     "login": {
@@ -237,7 +266,14 @@
       "title": "Henüz görev yok",
       "subtitle": "Başlamak için ilk görevini oluştur",
       "action": "Görev Oluştur"
-    }
+    },
+    "statusTodo": "Yapılacak",
+    "statusInProgress": "Devam Ediyor",
+    "statusDone": "Tamamlandı",
+    "sizeSmall": "Küçük (1-3)",
+    "sizeMedium": "Orta (5-8)",
+    "sizeLarge": "Büyük (13+)",
+    "pts": "puan"
   },
   "sprints": {
     "title": "Sprint",
@@ -294,7 +330,11 @@
     "month": "Ay",
     "agenda": "Ajanda",
     "noEvents": "Bu gün için etkinlik yok",
-    "addEvent": "Etkinlik Ekle"
+    "addEvent": "Etkinlik Ekle",
+    "urgentImportant": "Acil ve Önemli",
+    "notUrgentImportant": "Acil Değil ama Önemli",
+    "urgentNotImportant": "Acil ama Önemli Değil",
+    "notUrgentNotImportant": "Acil Değil ve Önemli Değil"
   },
   "challenges": {
     "title": "Meydan Okumalar",
@@ -348,7 +388,77 @@
     "subtitle": "AI Destekli İçgörüler",
     "insights": "İçgörüler",
     "recommendations": "Öneriler",
-    "analysis": "Analiz"
+    "analysis": "Analiz",
+    "velocity": {
+      "title": "Hız",
+      "sprintHistory": "Sprint Geçmişi",
+      "improveVelocity": "Hızını Artır",
+      "whatIsVelocity": "Hız Nedir?",
+      "whatIsVelocityDescription": "Hız, son 4 sprintinizden hesaplanan, sprint başına tamamladığınız ortalama hikaye puanıdır. Gerçekçi olarak neyi başarabileceğinizi tahmin etmenize yardımcı olur.",
+      "weekPrefix": "H",
+      "tips": {
+        "planRealisticTitle": "Gerçekçi planla",
+        "planRealisticDesc": "Gerçekten tamamlayabileceklerinize taahhüt edin",
+        "protectFocusTitle": "Odak zamanını koru",
+        "protectFocusDesc": "Kesintisiz çalışma seansları ayırın",
+        "breakDownTitle": "Görevleri parçala",
+        "breakDownDesc": "Küçük görevler = daha hızlı tamamlama",
+        "trackTitle": "Tutarlı takip et",
+        "trackDesc": "Doğru veriler için günlük ilerleme kaydedin"
+      }
+    },
+    "standup": {
+      "dailyStandup": "Günlük Toplantı",
+      "complete": "Toplantı Tamamlandı",
+      "skipped": "Toplantı Atlandı",
+      "skippedMessage": "Gerekirse hala başlatabilirsin",
+      "readyMessage": "Hazır olduğunda",
+      "startStandup": "Toplantıyı Başlat",
+      "skipToday": "Bugün Atla",
+      "sprintProgress": "Sprint İlerlemesi",
+      "dayOfSprint": "{{total}} günün {{current}}. günü",
+      "yesterday": "Dün",
+      "todayPlan": "Bugün",
+      "blockers": "Engeller",
+      "noBlockers": "Engel yok"
+    },
+    "sprintHealth": {
+      "title": "Sprint Sağlığı",
+      "onTrack": "Yolunda",
+      "ahead": "İleride",
+      "atRisk": "Risk Altında",
+      "behind": "Geride",
+      "burndownConcerning": "Yanma grafiği düzleşiyor - önceliklere odaklanmayı düşünün",
+      "burndownCritical": "Sprint risk altında - acil eylem gerekli"
+    },
+    "ceremonies": {
+      "sprintPlanning": "Sprint Planlama",
+      "sprintPlanningDesc": "Haftanızı planlayın",
+      "dailyStandup": "Günlük Toplantı",
+      "dailyStandupDesc": "İlerleme ve engeller hakkında hızlı senkronizasyon",
+      "midSprintCheck": "Sprint Ortası Kontrolü",
+      "midSprintCheckDesc": "İlerlemeyi gözden geçirin ve gerekirse ayarlayın",
+      "sprintReview": "Sprint İnceleme",
+      "sprintReviewDesc": "Başarıları kutlayın ve tamamlanmayı analiz edin",
+      "retrospective": "Retrospektif",
+      "retrospectiveDesc": "Ne işe yaradı, ne yaramadı ve önemli çıkarımlar",
+      "scheduled": "Planlandı:"
+    },
+    "interventions": {
+      "planned": "Planlanan",
+      "yourVelocity": "Hızın",
+      "overcommit": "Fazla Taahhüt",
+      "personalBest": "Yeni Kişisel Rekor",
+      "awesome": "Harika! 🎉",
+      "gotIt": "Anladım",
+      "override": "Geçersiz Kıl"
+    },
+    "lifeWheel": {
+      "title": "Yaşam Dengesi",
+      "subtitle": "9 Boyutlu Genel Bakış",
+      "score": "Puan:",
+      "needsAttention": "İlgi Gerektirir"
+    }
   },
   "essentia": {
     "title": "Essentia",

@@ -11,9 +11,12 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSensAIStore } from '../../../store/sensaiStore';
 import { VelocityCard } from '../../../components/sensai';
+import { toLocaleDateStringLocalized } from '../../../utils/localizedDate';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 export default function VelocityScreen() {
     const router = useRouter();
+    const { t } = useTranslation();
     const {
         velocityMetrics,
         loading,
@@ -38,6 +41,14 @@ export default function VelocityScreen() {
         ? Math.max(...velocityMetrics.velocityHistory.map(v => Math.max(v.committedPoints, v.completedPoints)), 1)
         : 1;
 
+    // Velocity tips with translations
+    const velocityTips = [
+        { icon: 'target', title: t('sensai.velocity.tips.planRealisticTitle'), desc: t('sensai.velocity.tips.planRealisticDesc') },
+        { icon: 'clock-outline', title: t('sensai.velocity.tips.protectFocusTitle'), desc: t('sensai.velocity.tips.protectFocusDesc') },
+        { icon: 'format-list-checks', title: t('sensai.velocity.tips.breakDownTitle'), desc: t('sensai.velocity.tips.breakDownDesc') },
+        { icon: 'chart-line', title: t('sensai.velocity.tips.trackTitle'), desc: t('sensai.velocity.tips.trackDesc') },
+    ];
+
     return (
         <SafeAreaView className="flex-1 bg-gray-50" edges={['top']}>
             {/* Header */}
@@ -45,7 +56,7 @@ export default function VelocityScreen() {
                 <TouchableOpacity onPress={() => router.back()}>
                     <MaterialCommunityIcons name="arrow-left" size={24} color="#374151" />
                 </TouchableOpacity>
-                <Text className="text-lg font-bold text-gray-900 ml-4">Velocity</Text>
+                <Text className="text-lg font-bold text-gray-900 ml-4">{t('sensai.velocity.title')}</Text>
             </View>
 
             <ScrollView
@@ -68,11 +79,9 @@ export default function VelocityScreen() {
                         <View className="flex-row items-start">
                             <MaterialCommunityIcons name="information" size={20} color="#3B82F6" />
                             <View className="ml-3 flex-1">
-                                <Text className="text-sm font-semibold text-blue-900">What is Velocity?</Text>
+                                <Text className="text-sm font-semibold text-blue-900">{t('sensai.velocity.whatIsVelocity')}</Text>
                                 <Text className="text-xs text-blue-700 mt-1">
-                                    Velocity is the average story points you complete per sprint, 
-                                    calculated from your last 4 sprints. It helps predict what you 
-                                    can realistically accomplish.
+                                    {t('sensai.velocity.whatIsVelocityDescription')}
                                 </Text>
                             </View>
                         </View>
@@ -81,7 +90,7 @@ export default function VelocityScreen() {
 
                 {/* Detailed Sprint History */}
                 <View className="px-4 mt-6">
-                    <Text className="text-lg font-bold text-gray-900 mb-4">Sprint History</Text>
+                    <Text className="text-lg font-bold text-gray-900 mb-4">{t('sensai.velocity.sprintHistory')}</Text>
                     
                     {/* Chart */}
                     {velocityMetrics && velocityMetrics.velocityHistory.length > 0 && (
@@ -89,11 +98,11 @@ export default function VelocityScreen() {
                             <View className="flex-row items-center mb-4">
                                 <View className="flex-row items-center mr-6">
                                     <View className="w-3 h-3 bg-blue-500 rounded-full mr-2" />
-                                    <Text className="text-xs text-gray-600">Committed</Text>
+                                    <Text className="text-xs text-gray-600">{t('common.committed')}</Text>
                                 </View>
                                 <View className="flex-row items-center">
                                     <View className="w-3 h-3 bg-green-500 rounded-full mr-2" />
-                                    <Text className="text-xs text-gray-600">Completed</Text>
+                                    <Text className="text-xs text-gray-600">{t('common.completed')}</Text>
                                 </View>
                             </View>
                             
@@ -133,13 +142,13 @@ export default function VelocityScreen() {
                             <View className="flex-row items-center justify-between mb-3">
                                 <View>
                                     <Text className="text-base font-semibold text-gray-900">
-                                        Week {sprint.weekNumber}
+                                        {t('common.week')} {sprint.weekNumber}
                                     </Text>
                                     <Text className="text-xs text-gray-500">
-                                        {new Date(sprint.startDate).toLocaleDateString('en-US', { 
+                                        {toLocaleDateStringLocalized(sprint.startDate, { 
                                             month: 'short', 
                                             day: 'numeric' 
-                                        })} - {new Date(sprint.endDate).toLocaleDateString('en-US', { 
+                                        })} - {toLocaleDateStringLocalized(sprint.endDate, { 
                                             month: 'short', 
                                             day: 'numeric' 
                                         })}
@@ -160,15 +169,15 @@ export default function VelocityScreen() {
                             
                             <View className="flex-row">
                                 <View className="flex-1 items-center">
-                                    <Text className="text-xs text-gray-500">Committed</Text>
+                                    <Text className="text-xs text-gray-500">{t('common.committed')}</Text>
                                     <Text className="text-lg font-bold text-blue-600">{sprint.committedPoints}</Text>
                                 </View>
                                 <View className="flex-1 items-center border-l border-r border-gray-100">
-                                    <Text className="text-xs text-gray-500">Completed</Text>
+                                    <Text className="text-xs text-gray-500">{t('common.completed')}</Text>
                                     <Text className="text-lg font-bold text-green-600">{sprint.completedPoints}</Text>
                                 </View>
                                 <View className="flex-1 items-center">
-                                    <Text className="text-xs text-gray-500">Delta</Text>
+                                    <Text className="text-xs text-gray-500">{t('common.delta')}</Text>
                                     <Text className={`text-lg font-bold ${
                                         sprint.completedPoints >= sprint.committedPoints ? 'text-green-600' : 'text-red-600'
                                     }`}>
@@ -183,15 +192,10 @@ export default function VelocityScreen() {
 
                 {/* Velocity Tips */}
                 <View className="px-4 mt-4 mb-8">
-                    <Text className="text-lg font-bold text-gray-900 mb-4">Improve Your Velocity</Text>
+                    <Text className="text-lg font-bold text-gray-900 mb-4">{t('sensai.velocity.improveVelocity')}</Text>
                     
                     <View className="bg-white rounded-xl border border-gray-100">
-                        {[
-                            { icon: 'target', title: 'Plan realistically', desc: 'Commit to what you can actually complete' },
-                            { icon: 'clock-outline', title: 'Protect focus time', desc: 'Block uninterrupted work sessions' },
-                            { icon: 'format-list-checks', title: 'Break down tasks', desc: 'Smaller tasks = faster completion' },
-                            { icon: 'chart-line', title: 'Track consistently', desc: 'Log progress daily for accurate data' },
-                        ].map((tip, index) => (
+                        {velocityTips.map((tip, index) => (
                             <View 
                                 key={index}
                                 className={`flex-row items-center p-4 ${
