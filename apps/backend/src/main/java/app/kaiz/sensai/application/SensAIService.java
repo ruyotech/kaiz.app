@@ -2,6 +2,8 @@ package app.kaiz.sensai.application;
 
 import app.kaiz.identity.domain.User;
 import app.kaiz.identity.infrastructure.UserRepository;
+import app.kaiz.life_wheel.domain.LifeWheelArea;
+import app.kaiz.life_wheel.infrastructure.LifeWheelAreaRepository;
 import app.kaiz.sensai.application.dto.*;
 import app.kaiz.sensai.domain.*;
 import app.kaiz.sensai.infrastructure.*;
@@ -34,6 +36,8 @@ public class SensAIService {
     private final SprintCeremonyRepository ceremonyRepository;
     private final VelocityRecordRepository velocityRepository;
     private final SensAISettingsRepository settingsRepository;
+    private final LifeWheelMetricRepository lifeWheelMetricRepository;
+    private final LifeWheelAreaRepository lifeWheelAreaRepository;
     private final UserRepository userRepository;
     private final TaskRepository taskRepository;
     private final SensAIMapper mapper;
@@ -349,6 +353,92 @@ public class SensAIService {
             Math.round(overallRate * 10) / 10.0,
             totalDelivered,
             records.size()
+        );
+    }
+
+    // ============ LIFE WHEEL METRICS ============
+
+    public LifeWheelDto getLifeWheelMetrics(UUID userId) {
+        // Get all life wheel areas
+        List<LifeWheelArea> areas = lifeWheelAreaRepository.findAllOrderByDisplayOrder();
+        
+        // Get existing metrics for user
+        List<LifeWheelMetric> existingMetrics = lifeWheelMetricRepository.findByUserId(userId);
+        Map<String, LifeWheelMetric> metricsMap = new HashMap<>();
+        for (LifeWheelMetric metric : existingMetrics) {
+            metricsMap.put(metric.getLifeWheelAreaId(), metric);
+        }
+        
+        // Build dimension metrics for all areas
+        List<LifeWheelDto.DimensionMetric> dimensions = new ArrayList<>();
+        double totalScore = 0;
+        String lowestDimension = null;
+        String highestDimension = null;
+        double lowestScore = 11;
+        double highestScore = -1;
+        
+        for (LifeWheelArea area : areas) {
+            LifeWheelMetric metric = metricsMap.get(area.getId());
+            
+            double score = metric != null ? metric.getScore() : 5.0;
+            String trend = metric != null ? metric.getTrend() : "stable";
+            int tasksCompleted = metric != null ? metric.getTasksCompleted() : 0;
+            int pointsDelivered = metric != null ? metric.getPointsEarned() : 0;
+            
+            // Calculate trend delta
+            double trendDelta = "up".equals(trend) ? 0.5 : "down".equals(trend) ? -0.5 : 0;
+            
+            // Check if needs attention
+            boolean needsAttention = score < 4 || (metric != null && metric.isNeglected());
+            int sprintsNeglected = needsAttention ? 1 : 0;
+            
+            // Build suggested recovery tasks
+            List<String> recoveryTasks = needsAttention 
+                ? List.of("Schedule focused time for " + area.getName().toLowerCase())
+                : List.of();
+            
+            dimensions.add(new LifeWheelDto.DimensionMetric(
+                area.getId(),
+                area.getName(),
+                area.getIcon(),
+                area.getColor(),
+                score,
+                score - trendDelta, // previous score approximation
+                trendDelta,
+                tasksCompleted,
+                pointsDelivered,
+                sprintsNeglected,
+                needsAttention,
+                recoveryTasks
+            ));
+            
+            totalScore += score;
+            
+            if (score < lowestScore) {
+                lowestScore = score;
+                lowestDimension = area.getId();
+            }
+            if (score > highestScore) {
+                highestScore = score;
+                highestDimension = area.getId();
+            }
+        }
+        
+        // Calculate overall balance and variance
+        double overallBalance = areas.isEmpty() ? 5.0 : totalScore / areas.size();
+        double variance = 0;
+        for (LifeWheelDto.DimensionMetric dim : dimensions) {
+            variance += Math.pow(dim.currentScore() - overallBalance, 2);
+        }
+        variance = areas.isEmpty() ? 0 : Math.sqrt(variance / areas.size());
+        
+        return new LifeWheelDto(
+            Math.round(overallBalance * 10) / 10.0,
+            dimensions,
+            lowestDimension,
+            highestDimension,
+            Math.round(variance * 100) / 100.0,
+            "Current Sprint"
         );
     }
 

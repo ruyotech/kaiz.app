@@ -2569,7 +2569,7 @@ export const sensaiApi = {
      * Get life wheel metrics
      */
     async getLifeWheelMetrics(): Promise<LifeWheelMetrics> {
-        return request<LifeWheelMetrics>('/life-wheel-areas', { method: 'GET' }, true);
+        return request<LifeWheelMetrics>('/sensai/lifewheel/metrics', { method: 'GET' }, true);
     },
 
     /**

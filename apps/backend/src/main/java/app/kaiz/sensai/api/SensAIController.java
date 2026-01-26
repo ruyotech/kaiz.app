@@ -155,6 +155,15 @@ public class SensAIController {
             sensAIService.getVelocityHistory(userId, sprintCount)));
     }
 
+    // ============ LIFE WHEEL ============
+
+    @GetMapping("/lifewheel/metrics")
+    @Operation(summary = "Get life wheel metrics", description = "Get life wheel dimension scores and balance analysis")
+    public ResponseEntity<ApiResponse<LifeWheelDto>> getLifeWheelMetrics(
+            @CurrentUser UUID userId) {
+        return ResponseEntity.ok(ApiResponse.success(sensAIService.getLifeWheelMetrics(userId)));
+    }
+
     // ============ CEREMONIES ============
 
     @GetMapping("/ceremonies/sprint/{sprintId}")

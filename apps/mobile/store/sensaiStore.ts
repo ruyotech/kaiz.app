@@ -139,20 +139,20 @@ export const useSensAIStore = create<SensAIState>((set, get) => ({
     initialize: async (userId: string) => {
         set({ loading: true, error: null });
         try {
-            // Fetch all initial data in parallel
+            // Fetch all initial data in parallel (with individual error handling)
             const [velocity, standup, interventions, lifeWheel, settings] = await Promise.all([
-                sensaiApi.getVelocityMetrics(),
-                sensaiApi.getTodayStandup(),
-                sensaiApi.getActiveInterventions(),
-                sensaiApi.getLifeWheelMetrics(),
-                sensaiApi.getSettings(),
+                sensaiApi.getVelocityMetrics().catch(() => null),
+                sensaiApi.getTodayStandup().catch(() => ({ standup: null, sprintHealth: null })),
+                sensaiApi.getActiveInterventions().catch(() => []),
+                sensaiApi.getLifeWheelMetrics().catch(() => null),
+                sensaiApi.getSettings().catch(() => null),
             ]);
 
             set({
                 velocityMetrics: velocity,
-                todayStandup: standup.standup,
-                currentSprintHealth: standup.sprintHealth,
-                activeInterventions: interventions,
+                todayStandup: standup?.standup || null,
+                currentSprintHealth: standup?.sprintHealth || null,
+                activeInterventions: interventions || [],
                 lifeWheelMetrics: lifeWheel,
                 settings: settings,
                 isInitialized: true,
