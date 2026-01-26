@@ -134,14 +134,14 @@ case $COMMAND in
     "deploy")
         echo_step "Building and deploying to Cloud Run..."
         
-        # Build and push image
+        # Build and push image to Artifact Registry
         echo_step "Building Docker image..."
-        gcloud builds submit --tag gcr.io/$PROJECT_ID/$SERVICE_NAME
+        gcloud builds submit --tag $REGION-docker.pkg.dev/$PROJECT_ID/kaiz-repo/$SERVICE_NAME
         
         # Deploy to Cloud Run
         echo_step "Deploying to Cloud Run..."
         gcloud run deploy $SERVICE_NAME \
-            --image gcr.io/$PROJECT_ID/$SERVICE_NAME \
+            --image $REGION-docker.pkg.dev/$PROJECT_ID/kaiz-repo/$SERVICE_NAME \
             --platform managed \
             --region $REGION \
             --allow-unauthenticated \
@@ -176,9 +176,9 @@ case $COMMAND in
     "redeploy")
         echo_step "Redeploying latest code..."
         
-        gcloud builds submit --tag gcr.io/$PROJECT_ID/$SERVICE_NAME
+        gcloud builds submit --tag $REGION-docker.pkg.dev/$PROJECT_ID/kaiz-repo/$SERVICE_NAME
         gcloud run deploy $SERVICE_NAME \
-            --image gcr.io/$PROJECT_ID/$SERVICE_NAME \
+            --image $REGION-docker.pkg.dev/$PROJECT_ID/kaiz-repo/$SERVICE_NAME \
             --region $REGION
         
         SERVICE_URL=$(gcloud run services describe $SERVICE_NAME --region=$REGION --format='value(status.url)')
