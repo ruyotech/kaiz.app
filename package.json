@@ -10,6 +10,10 @@
     "nuke": "cd apps/mobile && rm -rf ios android node_modules/.cache && rm -rf ~/Library/Developer/Xcode/DerivedData/KaizApp-* && npm install && npx expo prebuild --clean && npx expo --ios --clear",
     "clean": "cd apps/mobile && rm -rf ios android node_modules/.cache && rm -rf ~/Library/Developer/Xcode/DerivedData/KaizApp-*",
     "prebuild": "cd apps/mobile && npx expo prebuild --clean",
-    "backend": "cd apps/backend && mvn spring-boot:run"
+    "backend": "cd apps/backend && mvn spring-boot:run",
+    "web": "cd apps/web && npm run dev",
+    "web:build": "cd apps/web && npm run build",
+    "web:start": "cd apps/web && npm run start",
+    "web:install": "cd apps/web && npm install"
   }
 }

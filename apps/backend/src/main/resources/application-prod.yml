@@ -20,6 +20,13 @@ spring:
     compose:
       enabled: false
 
+# Security settings for production
+security:
+  swagger:
+    enabled: ${SWAGGER_ENABLED:true}
+    # Add your IP addresses here (comma-separated). Your current IP: 68.203.134.70
+    allowed-ips: ${SWAGGER_ALLOWED_IPS:68.203.134.70}
+
 logging:
   level:
     root: WARN

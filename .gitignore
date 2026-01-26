@@ -139,4 +139,5 @@ DerivedData/
 # Build artifacts
 # =====================
 *.jsbundle
-*.bundle
+*.bundlegoogle-cloud-sdk/
+google-cloud-cli-darwin-arm.tar.gz

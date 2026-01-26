@@ -2,8 +2,10 @@ package com.kaiz.lifeos.shared.config;
 
 import com.kaiz.lifeos.shared.security.JwtAuthenticationEntryPoint;
 import com.kaiz.lifeos.shared.security.JwtAuthenticationFilter;
+import com.kaiz.lifeos.shared.security.SwaggerIpFilter;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -32,6 +34,7 @@ public class SecurityConfig {
 
   private final JwtAuthenticationFilter jwtAuthenticationFilter;
   private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+  private final SwaggerIpFilter swaggerIpFilter;
 
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -44,7 +47,7 @@ public class SecurityConfig {
         .authorizeHttpRequests(
             auth ->
                 auth
-                    // Public auth endpoints (signup, login, password reset)
+                    // Public auth endpoints (signup, login, password reset) - Anyone can access
                     .requestMatchers("/api/v1/auth/register")
                     .permitAll()
                     .requestMatchers("/api/v1/auth/login")
@@ -53,26 +56,36 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers("/api/v1/auth/reset-password")
                     .permitAll()
-                    // Actuator endpoints
+                    .requestMatchers("/api/v1/auth/refresh-token")
+                    .permitAll()
+                    // Public content endpoints (website content, about features, etc.)
+                    .requestMatchers("/api/v1/public/**")
+                    .permitAll()
+                    // Actuator health for Cloud Run health checks
                     .requestMatchers("/actuator/health/**")
                     .permitAll()
                     .requestMatchers("/actuator/info")
                     .permitAll()
+                    // Prometheus metrics - IP restricted via filter
                     .requestMatchers("/actuator/prometheus")
                     .permitAll()
-                    // OpenAPI documentation
+                    // OpenAPI documentation - IP restricted via SwaggerIpFilter
                     .requestMatchers("/swagger-ui/**")
+                    .permitAll()
+                    .requestMatchers("/swagger-ui.html")
                     .permitAll()
                     .requestMatchers("/api-docs/**")
                     .permitAll()
                     .requestMatchers("/v3/api-docs/**")
                     .permitAll()
-                    // OPTIONS requests
+                    // OPTIONS requests for CORS
                     .requestMatchers(HttpMethod.OPTIONS, "/**")
                     .permitAll()
-                    // All other requests require authentication
+                    // All other requests require JWT authentication (Expo Go authenticated users)
                     .anyRequest()
                     .authenticated())
+        // Swagger IP filter runs first to block unauthorized swagger access
+        .addFilterBefore(swaggerIpFilter, UsernamePasswordAuthenticationFilter.class)
         .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
         .headers(
             headers ->

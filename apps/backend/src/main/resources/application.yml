@@ -96,6 +96,12 @@ logging:
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql: TRACE
 
+# Security - Swagger IP restriction (disabled in dev, enabled in prod)
+security:
+  swagger:
+    enabled: true
+    allowed-ips: ""  # Empty means all IPs allowed in dev
+
 # ============================================================================
 # Spring AI - Anthropic (Claude) Configuration
 # ============================================================================
