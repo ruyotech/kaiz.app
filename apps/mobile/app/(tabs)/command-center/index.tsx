@@ -24,6 +24,46 @@ export default function CommandCenterScreen() {
 
             {/* Quick Create Cards */}
             <ScrollView className="flex-1 px-4 pt-4">
+                {/* AI Chat - Primary CTA */}
+                <TouchableOpacity
+                    onPress={() => router.push('/(tabs)/command-center/chat' as any)}
+                    className="bg-gradient-to-r bg-purple-600 rounded-2xl p-5 mb-6 shadow-lg"
+                    style={{ 
+                        shadowColor: '#8B5CF6',
+                        shadowOffset: { width: 0, height: 4 },
+                        shadowOpacity: 0.3,
+                        shadowRadius: 8,
+                        elevation: 8,
+                    }}
+                >
+                    <View className="flex-row items-center">
+                        <View className="w-14 h-14 bg-white/20 rounded-2xl items-center justify-center mr-4">
+                            <MaterialCommunityIcons name="robot" size={28} color="white" />
+                        </View>
+                        <View className="flex-1">
+                            <Text className="text-xl font-bold text-white mb-1">AI Assistant</Text>
+                            <Text className="text-purple-100 text-sm">
+                                Describe what you want to create in natural language
+                            </Text>
+                        </View>
+                        <MaterialCommunityIcons name="chevron-right" size={24} color="rgba(255,255,255,0.7)" />
+                    </View>
+                    <View className="flex-row mt-4 pt-3 border-t border-white/20">
+                        <View className="flex-row items-center mr-4">
+                            <MaterialCommunityIcons name="microphone" size={16} color="rgba(255,255,255,0.8)" />
+                            <Text className="text-white/80 text-xs ml-1">Voice</Text>
+                        </View>
+                        <View className="flex-row items-center mr-4">
+                            <MaterialCommunityIcons name="image" size={16} color="rgba(255,255,255,0.8)" />
+                            <Text className="text-white/80 text-xs ml-1">Image</Text>
+                        </View>
+                        <View className="flex-row items-center">
+                            <MaterialCommunityIcons name="file-document" size={16} color="rgba(255,255,255,0.8)" />
+                            <Text className="text-white/80 text-xs ml-1">File</Text>
+                        </View>
+                    </View>
+                </TouchableOpacity>
+
                 <Text className="text-sm font-semibold text-gray-700 mb-3">Quick Create</Text>
                 <View className="flex-row gap-3 mb-6">
                     {CREATE_OPTIONS.map((option) => (

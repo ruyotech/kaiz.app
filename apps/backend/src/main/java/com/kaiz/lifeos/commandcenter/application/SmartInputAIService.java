@@ -252,70 +252,93 @@ public class SmartInputAIService {
             case TASK -> new Draft.TaskDraft(
                     draftNode.path("title").asText(""),
                     draftNode.path("description").asText(""),
-                    parsePriority(draftNode.path("priority").asText("MEDIUM")),
-                    parseLifeWheelArea(draftNode.path("lifeWheelArea").asText("lw-1")),
-                    parseEisenhowerQuadrant(draftNode.path("eisenhowerQuadrant").asText("Q3")),
+                    draftNode.path("lifeWheelAreaId").asText("lw-4"),
+                    draftNode.path("eisenhowerQuadrantId").asText("q2"),
+                    draftNode.path("storyPoints").asInt(3),
+                    draftNode.path("suggestedEpicId").asText(null),
+                    draftNode.path("suggestedSprintId").asText(null),
                     parseDate(draftNode.path("dueDate").asText(null)),
-                    parseUUID(draftNode.path("epicId").asText(null)),
-                    parseLabels(draftNode.path("labels")),
-                    draftNode.path("estimatedMinutes").asInt(30));
+                    draftNode.path("isRecurring").asBoolean(false),
+                    parseRecurrencePattern(draftNode.path("recurrencePattern")));
 
             case EPIC -> new Draft.EpicDraft(
                     draftNode.path("title").asText(""),
                     draftNode.path("description").asText(""),
-                    parseLifeWheelArea(draftNode.path("lifeWheelArea").asText("lw-1")),
-                    parseEisenhowerQuadrant(draftNode.path("eisenhowerQuadrant").asText("Q2")),
+                    draftNode.path("lifeWheelAreaId").asText("lw-4"),
+                    List.of(),  // suggestedTasks - can be parsed separately if needed
+                    draftNode.path("color").asText("#3B82F6"),
+                    draftNode.path("icon").asText(null),
                     parseDate(draftNode.path("startDate").asText(null)),
-                    parseDate(draftNode.path("targetDate").asText(null)),
-                    parseLabels(draftNode.path("labels")),
-                    draftNode.path("targetPercentage").asInt(100));
+                    parseDate(draftNode.path("endDate").asText(null)));
 
             case CHALLENGE -> new Draft.ChallengeDraft(
-                    draftNode.path("title").asText(""),
+                    draftNode.path("name").asText(""),
                     draftNode.path("description").asText(""),
-                    draftNode.path("challengeType").asText("HABIT"),
-                    parseLifeWheelArea(draftNode.path("lifeWheelArea").asText("lw-3")),
-                    draftNode.path("durationDays").asInt(30),
-                    parseDate(draftNode.path("startDate").asText(null)),
-                    draftNode.path("dailyTarget").asInt(1),
-                    draftNode.path("dailyTargetUnit").asText("times"),
-                    parseLabels(draftNode.path("labels")),
-                    draftNode.path("reminderTime").asText("09:00"));
+                    draftNode.path("lifeWheelAreaId").asText("lw-4"),
+                    draftNode.path("metricType").asText("yesno"),
+                    draftNode.path("targetValue").decimalValue(),
+                    draftNode.path("unit").asText(null),
+                    draftNode.path("duration").asInt(30),
+                    draftNode.path("recurrence").asText("daily"),
+                    draftNode.path("whyStatement").asText(null),
+                    draftNode.path("rewardDescription").asText(null),
+                    draftNode.path("graceDays").asInt(2),
+                    parseTime(draftNode.path("reminderTime").asText(null)));
 
             case EVENT -> new Draft.EventDraft(
                     draftNode.path("title").asText(""),
                     draftNode.path("description").asText(""),
-                    parseLifeWheelArea(draftNode.path("lifeWheelArea").asText("lw-6")),
-                    parseDateTime(draftNode.path("startDateTime").asText(null)),
-                    parseDateTime(draftNode.path("endDateTime").asText(null)),
+                    draftNode.path("lifeWheelAreaId").asText("lw-4"),
+                    parseDate(draftNode.path("date").asText(null)),
+                    parseTime(draftNode.path("startTime").asText(null)),
+                    parseTime(draftNode.path("endTime").asText(null)),
                     draftNode.path("location").asText(null),
-                    parseAttendees(draftNode.path("attendees")),
                     draftNode.path("isAllDay").asBoolean(false),
-                    draftNode.path("reminderMinutesBefore").asInt(30),
-                    draftNode.path("recurrenceRule").asText(null));
+                    draftNode.path("recurrence").asText(null),
+                    parseAttendees(draftNode.path("attendees")));
 
             case BILL -> new Draft.BillDraft(
-                    draftNode.path("title").asText(""),
-                    draftNode.path("description").asText(""),
-                    draftNode.path("vendor").asText(""),
+                    draftNode.path("vendorName").asText(""),
                     draftNode.path("amount").decimalValue(),
                     draftNode.path("currency").asText("USD"),
                     parseDate(draftNode.path("dueDate").asText(null)),
+                    draftNode.path("category").asText(null),
+                    draftNode.path("lifeWheelAreaId").asText("lw-3"),
                     draftNode.path("isRecurring").asBoolean(false),
-                    draftNode.path("recurrenceFrequency").asText(null),
-                    draftNode.path("category").asText("other"),
-                    draftNode.path("autopay").asBoolean(false),
-                    draftNode.path("reminderDaysBefore").asInt(3));
+                    draftNode.path("recurrence").asText(null),
+                    draftNode.path("notes").asText(null));
 
             case NOTE -> new Draft.NoteDraft(
-                    draftNode.path("title").asText(""),
+                    draftNode.path("title").asText("Quick Note"),
                     draftNode.path("content").asText(""),
-                    parseLifeWheelArea(draftNode.path("lifeWheelArea").asText("lw-8")),
+                    draftNode.path("lifeWheelAreaId").asText("lw-4"),
                     parseLabels(draftNode.path("tags")),
-                    parseUUID(draftNode.path("linkedEntityId").asText(null)),
-                    draftNode.path("linkedEntityType").asText(null),
-                    draftNode.path("isPinned").asBoolean(false));
+                    parseLabels(draftNode.path("clarifyingQuestions")));
+
+            case CLARIFICATION_NEEDED -> new Draft.NoteDraft(
+                    "Clarification Needed",
+                    draftNode.path("content").asText(""),
+                    "lw-4",
+                    List.of(),
+                    List.of());
         };
+    }
+
+    private Draft.RecurrencePattern parseRecurrencePattern(JsonNode node) {
+        if (node == null || node.isMissingNode()) return null;
+        return new Draft.RecurrencePattern(
+                node.path("frequency").asText("daily"),
+                node.path("interval").asInt(1),
+                parseDate(node.path("endDate").asText(null)));
+    }
+
+    private LocalTime parseTime(String value) {
+        if (value == null || value.isBlank()) return null;
+        try {
+            return LocalTime.parse(value);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private AIInterpretation.ClarificationFlow parseClarificationFlow(JsonNode flowNode) {
@@ -417,19 +440,19 @@ public class SmartInputAIService {
         switch (draft) {
             case Draft.TaskDraft t -> {
                 if (t.title() == null || t.title().isBlank()) missing.add("title");
-                if (t.lifeWheelArea() == null) missing.add("lifeWheelArea");
+                if (t.lifeWheelAreaId() == null) missing.add("lifeWheelAreaId");
             }
             case Draft.ChallengeDraft c -> {
-                if (c.title() == null || c.title().isBlank()) missing.add("title");
-                if (c.lifeWheelArea() == null) missing.add("lifeWheelArea");
-                if (c.durationDays() <= 0) missing.add("durationDays");
+                if (c.name() == null || c.name().isBlank()) missing.add("name");
+                if (c.lifeWheelAreaId() == null) missing.add("lifeWheelAreaId");
+                if (c.duration() <= 0) missing.add("duration");
             }
             case Draft.EventDraft e -> {
                 if (e.title() == null || e.title().isBlank()) missing.add("title");
-                if (e.startDateTime() == null) missing.add("startDateTime");
+                if (e.date() == null) missing.add("date");
             }
             case Draft.BillDraft b -> {
-                if (b.title() == null || b.title().isBlank()) missing.add("title");
+                if (b.vendorName() == null || b.vendorName().isBlank()) missing.add("vendorName");
                 if (b.dueDate() == null) missing.add("dueDate");
             }
             default -> {
@@ -452,50 +475,51 @@ public class SmartInputAIService {
             case Draft.TaskDraft t -> new Draft.TaskDraft(
                     updates.getOrDefault("title", t.title()),
                     updates.getOrDefault("description", t.description()),
-                    updates.containsKey("priority") ? parsePriority(updates.get("priority")) : t.priority(),
-                    updates.containsKey("lifeWheelArea") ? parseLifeWheelArea(updates.get("lifeWheelArea")) : t.lifeWheelArea(),
-                    updates.containsKey("eisenhowerQuadrant") ? parseEisenhowerQuadrant(updates.get("eisenhowerQuadrant")) : t.eisenhowerQuadrant(),
+                    updates.getOrDefault("lifeWheelAreaId", t.lifeWheelAreaId()),
+                    updates.getOrDefault("eisenhowerQuadrantId", t.eisenhowerQuadrantId()),
+                    updates.containsKey("storyPoints") ? Integer.parseInt(updates.get("storyPoints")) : t.storyPoints(),
+                    updates.getOrDefault("suggestedEpicId", t.suggestedEpicId()),
+                    updates.getOrDefault("suggestedSprintId", t.suggestedSprintId()),
                     updates.containsKey("dueDate") ? parseDate(updates.get("dueDate")) : t.dueDate(),
-                    t.epicId(),
-                    t.labels(),
-                    t.estimatedMinutes());
+                    t.isRecurring(),
+                    t.recurrencePattern());
 
             case Draft.ChallengeDraft c -> new Draft.ChallengeDraft(
-                    updates.getOrDefault("title", c.title()),
+                    updates.getOrDefault("name", c.name()),
                     updates.getOrDefault("description", c.description()),
-                    updates.getOrDefault("challengeType", c.challengeType()),
-                    updates.containsKey("lifeWheelArea") ? parseLifeWheelArea(updates.get("lifeWheelArea")) : c.lifeWheelArea(),
-                    updates.containsKey("durationDays") ? Integer.parseInt(updates.get("durationDays")) : c.durationDays(),
-                    updates.containsKey("startDate") ? parseDate(updates.get("startDate")) : c.startDate(),
-                    c.dailyTarget(),
-                    c.dailyTargetUnit(),
-                    c.labels(),
-                    updates.getOrDefault("reminderTime", c.reminderTime()));
+                    updates.getOrDefault("lifeWheelAreaId", c.lifeWheelAreaId()),
+                    updates.getOrDefault("metricType", c.metricType()),
+                    c.targetValue(),
+                    c.unit(),
+                    updates.containsKey("duration") ? Integer.parseInt(updates.get("duration")) : c.duration(),
+                    updates.getOrDefault("recurrence", c.recurrence()),
+                    updates.getOrDefault("whyStatement", c.whyStatement()),
+                    updates.getOrDefault("rewardDescription", c.rewardDescription()),
+                    c.graceDays(),
+                    c.reminderTime());
 
             case Draft.EventDraft e -> new Draft.EventDraft(
                     updates.getOrDefault("title", e.title()),
                     updates.getOrDefault("description", e.description()),
-                    updates.containsKey("lifeWheelArea") ? parseLifeWheelArea(updates.get("lifeWheelArea")) : e.lifeWheelArea(),
-                    updates.containsKey("startDateTime") ? parseDateTime(updates.get("startDateTime")) : e.startDateTime(),
-                    updates.containsKey("endDateTime") ? parseDateTime(updates.get("endDateTime")) : e.endDateTime(),
+                    updates.getOrDefault("lifeWheelAreaId", e.lifeWheelAreaId()),
+                    updates.containsKey("date") ? parseDate(updates.get("date")) : e.date(),
+                    updates.containsKey("startTime") ? parseTime(updates.get("startTime")) : e.startTime(),
+                    updates.containsKey("endTime") ? parseTime(updates.get("endTime")) : e.endTime(),
                     updates.getOrDefault("location", e.location()),
-                    e.attendees(),
                     e.isAllDay(),
-                    e.reminderMinutesBefore(),
-                    e.recurrenceRule());
+                    updates.getOrDefault("recurrence", e.recurrence()),
+                    e.attendees());
 
             case Draft.BillDraft b -> new Draft.BillDraft(
-                    updates.getOrDefault("title", b.title()),
-                    updates.getOrDefault("description", b.description()),
-                    updates.getOrDefault("vendor", b.vendor()),
+                    updates.getOrDefault("vendorName", b.vendorName()),
                     b.amount(),
                     b.currency(),
                     updates.containsKey("dueDate") ? parseDate(updates.get("dueDate")) : b.dueDate(),
-                    b.isRecurring(),
-                    b.recurrenceFrequency(),
                     updates.getOrDefault("category", b.category()),
-                    b.autopay(),
-                    b.reminderDaysBefore());
+                    updates.getOrDefault("lifeWheelAreaId", b.lifeWheelAreaId()),
+                    b.isRecurring(),
+                    updates.getOrDefault("recurrence", b.recurrence()),
+                    updates.getOrDefault("notes", b.notes()));
 
             default -> draft;
         };
@@ -521,11 +545,9 @@ public class SmartInputAIService {
                 new Draft.NoteDraft(
                         "Quick Note",
                         originalInput.text(),
-                        LifeWheelAreaCode.LW_8,
+                        "lw-4",
                         List.of(),
-                        null,
-                        null,
-                        false),
+                        List.of()),
                 "I couldn't fully understand your request, but I've saved it as a note. You can edit or convert it.",
                 List.of("Edit to add more details", "Convert to a different type"),
                 originalInput,
@@ -550,52 +572,10 @@ public class SmartInputAIService {
     // Parsing helpers
     // =========================================================================
 
-    private Priority parsePriority(String value) {
-        try {
-            return Priority.valueOf(value.toUpperCase());
-        } catch (Exception e) {
-            return Priority.MEDIUM;
-        }
-    }
-
-    private LifeWheelAreaCode parseLifeWheelArea(String value) {
-        try {
-            return LifeWheelAreaCode.fromCode(value);
-        } catch (Exception e) {
-            return LifeWheelAreaCode.LW_1;
-        }
-    }
-
-    private EisenhowerQuadrantCode parseEisenhowerQuadrant(String value) {
-        try {
-            return EisenhowerQuadrantCode.fromCode(value);
-        } catch (Exception e) {
-            return EisenhowerQuadrantCode.Q3;
-        }
-    }
-
     private LocalDate parseDate(String value) {
         if (value == null || value.isBlank()) return null;
         try {
             return LocalDate.parse(value);
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    private LocalDateTime parseDateTime(String value) {
-        if (value == null || value.isBlank()) return null;
-        try {
-            return LocalDateTime.parse(value);
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    private UUID parseUUID(String value) {
-        if (value == null || value.isBlank()) return null;
-        try {
-            return UUID.fromString(value);
         } catch (Exception e) {
             return null;
         }

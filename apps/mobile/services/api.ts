@@ -1199,6 +1199,14 @@ export interface CommandInputResponse {
     timestamp: string;
 }
 
+// Import command center types
+import type {
+    CommandCenterAIResponse,
+    Draft,
+    DraftType,
+    DraftStatus,
+} from '../types/commandCenter.types';
+
 export const commandCenterApi = {
     /**
      * Send input (text and/or attachments) to Command Center backend
@@ -1265,6 +1273,183 @@ export const commandCenterApi = {
             return {
                 success: false,
                 error: error.message || 'Failed to send input to Command Center',
+            };
+        }
+    },
+
+    /**
+     * Process input with AI to generate a draft
+     * Uses the /api/v1/command-center/ai/process endpoint
+     */
+    async processWithAI(
+        text: string | null,
+        attachments: CommandInputAttachment[]
+    ): Promise<ApiResponse<CommandCenterAIResponse>> {
+        console.log('🤖 [Command Center AI] Processing input with AI...');
+        console.log('🤖 [Command Center AI] Text:', text);
+        console.log('🤖 [Command Center AI] Attachments:', attachments.length);
+
+        // Build FormData for multipart request
+        const formData = new FormData();
+
+        if (text && text.trim()) {
+            formData.append('text', text.trim());
+        }
+
+        // Add attachments
+        for (const attachment of attachments) {
+            const filename = attachment.name || getFilenameFromUri(attachment.uri);
+            const mimeType = attachment.mimeType || getMimeTypeFromFilename(filename);
+
+            console.log('🤖 [Command Center AI] Adding attachment:', {
+                uri: attachment.uri,
+                name: filename,
+                type: mimeType,
+            });
+
+            formData.append('attachments', {
+                uri: attachment.uri,
+                name: filename,
+                type: mimeType,
+            } as any);
+        }
+
+        try {
+            const token = await AsyncStorage.getItem(ACCESS_TOKEN_KEY);
+            
+            const response = await fetch(`${API_V1}/command-center/process`, {
+                method: 'POST',
+                headers: {
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                body: formData,
+            });
+
+            console.log('🤖 [Command Center AI] Response status:', response.status);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('🤖 [Command Center AI] Error response:', errorText);
+                throw new Error(`HTTP ${response.status}: ${errorText}`);
+            }
+
+            const data = await response.json();
+            console.log('🤖 [Command Center AI] Success:', data);
+            return data;
+        } catch (error: any) {
+            console.error('🤖 [Command Center AI] Error:', error);
+            return {
+                success: false,
+                error: error.message || 'Failed to process input with AI',
+            };
+        }
+    },
+
+    /**
+     * Approve a pending draft - creates the actual entity
+     */
+    async approveDraft(draftId: string): Promise<ApiResponse<{ createdEntityId: string }>> {
+        console.log('✅ [Command Center] Approving draft:', draftId);
+        try {
+            const token = await AsyncStorage.getItem(ACCESS_TOKEN_KEY);
+            
+            const response = await fetch(`${API_V1}/command-center/drafts/${draftId}/action`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                body: JSON.stringify({
+                    draftId,
+                    action: 'APPROVE',
+                    modifiedDraft: null,
+                }),
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`HTTP ${response.status}: ${errorText}`);
+            }
+
+            const data = await response.json();
+            console.log('✅ [Command Center] Draft approved:', data);
+            return data;
+        } catch (error: any) {
+            console.error('✅ [Command Center] Approve error:', error);
+            return {
+                success: false,
+                error: error.message || 'Failed to approve draft',
+            };
+        }
+    },
+
+    /**
+     * Reject a pending draft
+     */
+    async rejectDraft(draftId: string): Promise<ApiResponse<void>> {
+        console.log('❌ [Command Center] Rejecting draft:', draftId);
+        try {
+            const token = await AsyncStorage.getItem(ACCESS_TOKEN_KEY);
+            
+            const response = await fetch(`${API_V1}/command-center/drafts/${draftId}/action`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                body: JSON.stringify({
+                    draftId,
+                    action: 'REJECT',
+                    modifiedDraft: null,
+                }),
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`HTTP ${response.status}: ${errorText}`);
+            }
+
+            const data = await response.json();
+            console.log('❌ [Command Center] Draft rejected:', data);
+            return data;
+        } catch (error: any) {
+            console.error('❌ [Command Center] Reject error:', error);
+            return {
+                success: false,
+                error: error.message || 'Failed to reject draft',
+            };
+        }
+    },
+
+    /**
+     * Get pending drafts for the current user
+     */
+    async getPendingDrafts(): Promise<ApiResponse<CommandCenterAIResponse[]>> {
+        console.log('📋 [Command Center] Fetching pending drafts...');
+        try {
+            const token = await AsyncStorage.getItem(ACCESS_TOKEN_KEY);
+            
+            const response = await fetch(`${API_V1}/command-center/drafts/pending`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`HTTP ${response.status}: ${errorText}`);
+            }
+
+            const data = await response.json();
+            console.log('📋 [Command Center] Pending drafts:', data);
+            return data;
+        } catch (error: any) {
+            console.error('📋 [Command Center] Fetch error:', error);
+            return {
+                success: false,
+                error: error.message || 'Failed to fetch pending drafts',
             };
         }
     },
