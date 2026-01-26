@@ -1,7 +1,7 @@
 /**
  * useTranslation.ts - React hook for translations
  * 
- * Provides a simple hook that re-renders components when language changes.
+ * Provides a reactive hook that re-renders components when language changes.
  * Uses the preferencesStore locale to stay in sync with settings.
  * 
  * Usage:
@@ -14,33 +14,57 @@
  * @version 1.0.0
  */
 
-import { useCallback, useEffect } from 'react';
-import { i18n, t as translate, setLocale as setI18nLocale } from '../i18n';
-import { usePreferencesStore } from '../store/preferencesStore';
+import { useCallback, useEffect, useState } from 'react';
+import { i18n, t as translate, setLocale as setI18nLocale, subscribeToLocaleChanges, getLocale } from '../i18n';
+import { usePreferencesStore, type SupportedLocale } from '../store/preferencesStore';
 
 /**
  * Hook for accessing translations
  * Automatically syncs with the locale from preferencesStore
+ * Re-renders component when locale changes
  */
 export function useTranslation() {
-    const locale = usePreferencesStore((state) => state.locale);
+    const storeLocale = usePreferencesStore((state) => state.locale);
+    const setStoreLocale = usePreferencesStore((state) => state.setLocale);
+    // Local state to force re-render when locale changes
+    const [currentLocale, setCurrentLocale] = useState(getLocale());
     
     // Sync i18n locale with preferences store
     useEffect(() => {
-        setI18nLocale(locale);
-    }, [locale]);
+        if (storeLocale && storeLocale !== getLocale()) {
+            setI18nLocale(storeLocale);
+        }
+    }, [storeLocale]);
     
-    // Memoized translation function
+    // Subscribe to locale changes for reactive updates
+    useEffect(() => {
+        const unsubscribe = subscribeToLocaleChanges((newLocale) => {
+            setCurrentLocale(newLocale);
+        });
+        return unsubscribe;
+    }, []);
+    
+    // Translation function that uses current locale
     const t = useCallback(
         (key: string, options?: Record<string, unknown>): string => {
             return translate(key, options);
         },
-        [locale] // Re-create when locale changes to trigger re-render
+        [currentLocale] // Re-create when locale changes to get fresh translations
+    );
+    
+    // Function to change locale (updates both i18n and store)
+    const setLocale = useCallback(
+        (locale: SupportedLocale) => {
+            setI18nLocale(locale);
+            setStoreLocale(locale);
+        },
+        [setStoreLocale]
     );
     
     return {
         t,
-        locale,
+        locale: currentLocale,
+        setLocale,
         i18n,
     };
 }

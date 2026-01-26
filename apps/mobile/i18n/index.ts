@@ -5,6 +5,7 @@
  * - Device locale detection
  * - Fallback to English
  * - Easy language switching via settings
+ * - Reactive updates when language changes
  * 
  * Currently supports:
  * - English (en-US, en-GB, en)
@@ -29,6 +30,29 @@ import tr from './locales/tr.json';
 // Export types
 export type { TranslationKeys, TranslationFunction } from './types';
 
+// Locale change listeners for reactive updates
+type LocaleChangeListener = (locale: string) => void;
+const localeChangeListeners: Set<LocaleChangeListener> = new Set();
+
+/**
+ * Subscribe to locale changes
+ * @param listener - Callback function when locale changes
+ * @returns Unsubscribe function
+ */
+export function subscribeToLocaleChanges(listener: LocaleChangeListener): () => void {
+    localeChangeListeners.add(listener);
+    return () => {
+        localeChangeListeners.delete(listener);
+    };
+}
+
+/**
+ * Notify all listeners of locale change
+ */
+function notifyLocaleChange(locale: string): void {
+    localeChangeListeners.forEach(listener => listener(locale));
+}
+
 // Create i18n instance
 const i18n = new I18n({
     en,
@@ -46,11 +70,14 @@ i18n.locale = Localization.getLocales()[0]?.languageTag || 'en';
 i18n.enableFallback = true;
 
 /**
- * Change the app language
+ * Change the app language and notify listeners
  * @param locale - The locale code (e.g., 'en-US', 'tr-TR')
  */
 export function setLocale(locale: string): void {
-    i18n.locale = locale;
+    if (i18n.locale !== locale) {
+        i18n.locale = locale;
+        notifyLocaleChange(locale);
+    }
 }
 
 /**

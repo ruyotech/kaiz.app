@@ -303,7 +303,7 @@ function SelectionModal<T extends string>({
 export default function SettingsScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
-    const { t } = useTranslation();
+    const { t, setLocale, locale } = useTranslation();
     
     // Stores
     const { reset: resetApp } = useAppStore();
@@ -315,8 +315,6 @@ export default function SettingsScreen() {
         loginDemo 
     } = useAuthStore();
     const {
-        locale,
-        setLocale,
         timezone,
         theme: preferencesTheme,
         setTheme: setPreferencesTheme,
