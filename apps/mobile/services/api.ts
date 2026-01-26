@@ -2412,14 +2412,14 @@ export const sensaiApi = {
      * Get user's velocity metrics
      */
     async getVelocityMetrics(): Promise<VelocityMetrics> {
-        return request<VelocityMetrics>('/sensai/velocity', { method: 'GET' }, true);
+        return request<VelocityMetrics>('/sensai/velocity/metrics', { method: 'GET' }, true);
     },
 
     /**
      * Get sprint health for a specific sprint
      */
     async getSprintHealth(sprintId: string): Promise<SprintHealth> {
-        return request<SprintHealth>(`/sensai/sprints/${sprintId}/health`, { method: 'GET' }, true);
+        return request<SprintHealth>(`/sensai/velocity/sprint-health/${sprintId}`, { method: 'GET' }, true);
     },
 
     /**
@@ -2442,14 +2442,14 @@ export const sensaiApi = {
      * Get today's standup (or create if not exists)
      */
     async getTodayStandup(): Promise<GetStandupResponse> {
-        return request<GetStandupResponse>('/sensai/standups/today', { method: 'GET' }, true);
+        return request<GetStandupResponse>('/sensai/standup/today', { method: 'GET' }, true);
     },
 
     /**
      * Complete today's standup
      */
     async completeStandup(data: CompleteStandupRequest): Promise<DailyStandup> {
-        return request<DailyStandup>('/sensai/standups/today/complete', {
+        return request<DailyStandup>('/sensai/standup/complete', {
             method: 'POST',
             body: JSON.stringify(data),
         }, true);
@@ -2459,7 +2459,7 @@ export const sensaiApi = {
      * Skip today's standup
      */
     async skipStandup(reason?: string): Promise<void> {
-        await request<void>('/sensai/standups/today/skip', {
+        await request<void>('/sensai/standup/skip', {
             method: 'POST',
             body: JSON.stringify({ reason }),
         }, true);
@@ -2468,8 +2468,8 @@ export const sensaiApi = {
     /**
      * Get standup history
      */
-    async getStandupHistory(days: number = 7): Promise<DailyStandup[]> {
-        return request<DailyStandup[]>(`/sensai/standups/history?days=${days}`, { method: 'GET' }, true);
+    async getStandupHistory(startDate: string, endDate: string): Promise<DailyStandup[]> {
+        return request<DailyStandup[]>(`/sensai/standup/history?startDate=${startDate}&endDate=${endDate}`, { method: 'GET' }, true);
     },
 
     /**
@@ -2569,7 +2569,7 @@ export const sensaiApi = {
      * Get life wheel metrics
      */
     async getLifeWheelMetrics(): Promise<LifeWheelMetrics> {
-        return request<LifeWheelMetrics>('/sensai/lifewheel/metrics', { method: 'GET' }, true);
+        return request<LifeWheelMetrics>('/life-wheel-areas', { method: 'GET' }, true);
     },
 
     /**
@@ -2641,7 +2641,7 @@ export const sensaiApi = {
      */
     async updateSettings(settings: Partial<SensAISettings>): Promise<SensAISettings> {
         return request<SensAISettings>('/sensai/settings', {
-            method: 'PATCH',
+            method: 'PUT',
             body: JSON.stringify(settings),
         }, true);
     },
