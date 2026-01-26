@@ -2,6 +2,7 @@ package com.kaiz.lifeos.admin.domain;
 
 import jakarta.persistence.*;
 import java.time.Instant;
+import java.util.UUID;
 import lombok.*;
 
 @Entity
@@ -14,8 +15,8 @@ import lombok.*;
 public class Faq {
 
   @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
+  @GeneratedValue(strategy = GenerationType.UUID)
+  private UUID id;
 
   @Column(nullable = false, columnDefinition = "TEXT")
   private String question;

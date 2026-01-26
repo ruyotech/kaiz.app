@@ -272,7 +272,7 @@ public class AdminContentService {
   }
 
   @Transactional
-  public FaqResponse updateFaq(Long id, UpdateFaqRequest request) {
+  public FaqResponse updateFaq(UUID id, UpdateFaqRequest request) {
     Faq faq =
         faqRepository
             .findById(id)
@@ -288,7 +288,7 @@ public class AdminContentService {
   }
 
   @Transactional
-  public void deleteFaq(Long id) {
+  public void deleteFaq(UUID id) {
     if (!faqRepository.existsById(id)) {
       throw new ResourceNotFoundException("FAQ not found: " + id);
     }
@@ -331,7 +331,7 @@ public class AdminContentService {
   }
 
   @Transactional
-  public PricingTierResponse updatePricingTier(Long id, UpdatePricingTierRequest request) {
+  public PricingTierResponse updatePricingTier(UUID id, UpdatePricingTierRequest request) {
     PricingTier tier =
         pricingTierRepository
             .findById(id)
@@ -352,7 +352,7 @@ public class AdminContentService {
   }
 
   @Transactional
-  public void deletePricingTier(Long id) {
+  public void deletePricingTier(UUID id) {
     if (!pricingTierRepository.existsById(id)) {
       throw new ResourceNotFoundException("Pricing tier not found: " + id);
     }

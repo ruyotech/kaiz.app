@@ -136,7 +136,7 @@ public class AdminDtos {
   // ============ FAQ DTOs ============
 
   public record FaqResponse(
-      Long id,
+      UUID id,
       String question,
       String answer,
       String category,
@@ -162,7 +162,7 @@ public class AdminDtos {
   // ============ Pricing Tier DTOs ============
 
   public record PricingTierResponse(
-      Long id,
+      UUID id,
       String name,
       java.math.BigDecimal price,
       String billingPeriod,

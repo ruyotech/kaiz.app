@@ -144,13 +144,13 @@ public class AdminContentController {
   @PutMapping("/faqs/{id}")
   @Operation(summary = "Update FAQ")
   public ResponseEntity<ApiResponse<FaqResponse>> updateFaq(
-      @PathVariable Long id, @Valid @RequestBody UpdateFaqRequest request) {
+      @PathVariable UUID id, @Valid @RequestBody UpdateFaqRequest request) {
     return ResponseEntity.ok(ApiResponse.success(adminContentService.updateFaq(id, request)));
   }
 
   @DeleteMapping("/faqs/{id}")
   @Operation(summary = "Delete FAQ")
-  public ResponseEntity<ApiResponse<Void>> deleteFaq(@PathVariable Long id) {
+  public ResponseEntity<ApiResponse<Void>> deleteFaq(@PathVariable UUID id) {
     adminContentService.deleteFaq(id);
     return ResponseEntity.ok(ApiResponse.success(null));
   }
@@ -174,14 +174,14 @@ public class AdminContentController {
   @PutMapping("/pricing/{id}")
   @Operation(summary = "Update pricing tier")
   public ResponseEntity<ApiResponse<PricingTierResponse>> updatePricingTier(
-      @PathVariable Long id, @Valid @RequestBody UpdatePricingTierRequest request) {
+      @PathVariable UUID id, @Valid @RequestBody UpdatePricingTierRequest request) {
     return ResponseEntity.ok(
         ApiResponse.success(adminContentService.updatePricingTier(id, request)));
   }
 
   @DeleteMapping("/pricing/{id}")
   @Operation(summary = "Delete pricing tier")
-  public ResponseEntity<ApiResponse<Void>> deletePricingTier(@PathVariable Long id) {
+  public ResponseEntity<ApiResponse<Void>> deletePricingTier(@PathVariable UUID id) {
     adminContentService.deletePricingTier(id);
     return ResponseEntity.ok(ApiResponse.success(null));
   }

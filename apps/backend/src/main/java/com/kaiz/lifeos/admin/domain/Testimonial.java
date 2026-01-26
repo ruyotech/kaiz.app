@@ -37,7 +37,7 @@ public class Testimonial {
   @Column(nullable = false)
   private Integer rating; // 1-5
 
-  @Column(columnDefinition = "TEXT")
+  @Column(columnDefinition = "jsonb")
   private String metrics; // JSON object with label, before, after
 
   @Column(name = "is_featured", nullable = false)

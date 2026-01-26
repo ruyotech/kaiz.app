@@ -32,10 +32,10 @@ public class AboutFeature {
   @Column(columnDefinition = "TEXT", nullable = false)
   private String description;
 
-  @Column(name = "bullet_points", columnDefinition = "TEXT")
+  @Column(name = "bullet_points", columnDefinition = "jsonb")
   private String bulletPoints; // JSON array
 
-  @Column(columnDefinition = "TEXT")
+  @Column(columnDefinition = "jsonb")
   private String example; // JSON object with scenario and outcome
 
   @Column(nullable = false)

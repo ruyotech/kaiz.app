@@ -3,6 +3,7 @@ package com.kaiz.lifeos.admin.domain;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.UUID;
 import lombok.*;
 
 @Entity
@@ -15,8 +16,8 @@ import lombok.*;
 public class PricingTier {
 
   @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
+  @GeneratedValue(strategy = GenerationType.UUID)
+  private UUID id;
 
   @Column(nullable = false, length = 100)
   private String name;
