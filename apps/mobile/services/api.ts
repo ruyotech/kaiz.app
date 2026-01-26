@@ -20,12 +20,16 @@ const REFRESH_TOKEN_KEY = 'refreshToken';
 // 🔧 PRODUCTION URL - Google Cloud Run
 const PRODUCTION_API_URL = 'https://kaiz-api-213334506754.us-central1.run.app';
 
+// Use EAS env variable if available, otherwise fallback to production URL
 const getApiUrl = (): string => {
-    // For Expo Go testing, use the production URL directly
-    // Switch to local IP only when running backend locally
-    return __DEV__ 
-        ? PRODUCTION_API_URL           // Use Cloud Run for Expo Go testing
-        : PRODUCTION_API_URL;          // GCP Cloud Run URL
+    // Check for EAS build environment variable first
+    const easApiUrl = process.env.EXPO_PUBLIC_API_URL || process.env.API_URL;
+    if (easApiUrl) {
+        return easApiUrl;
+    }
+    
+    // For Expo Go and local development, use production URL
+    return PRODUCTION_API_URL;
 };
 
 const API_BASE_URL = getApiUrl();
