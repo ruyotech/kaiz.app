@@ -12,7 +12,7 @@ import { BlurView } from 'expo-blur';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { Audio } from 'expo-av';
-import { aiApi } from '../../services/api';
+import { aiApi, commandCenterApi } from '../../services/api';
 
 const CREATE_OPTIONS = [
     { id: 'task', icon: 'checkbox-marked-circle-outline', label: 'Task', color: '#3B82F6', route: '/(tabs)/sdlc/create-task' },
@@ -51,6 +51,14 @@ export function CustomTabBar() {
     const [pendingAction, setPendingAction] = useState<PendingAction>(null);
     const recordingRef = useRef<Audio.Recording | null>(null);
     const isExecutingAction = useRef(false);
+    
+    // Reset execution state when menu opens (in case previous action got stuck)
+    useEffect(() => {
+        if (showCreateMenu) {
+            console.log('📋 [Menu] Opening create menu, resetting execution state');
+            isExecutingAction.current = false;
+        }
+    }, [showCreateMenu]);
     
     // Voice wave animation
     const waveAnim1 = useRef(new Animated.Value(0.3)).current;
@@ -104,21 +112,25 @@ export function CustomTabBar() {
 
     // Simple handlers that set pending action and close modal
     const handleCamera = () => {
+        console.log('📷 [Smart Input] Camera button pressed');
         setPendingAction('camera');
         setShowCreateMenu(false);
     };
 
     const handleImagePicker = () => {
+        console.log('🖼️ [Smart Input] Image button pressed');
         setPendingAction('image');
         setShowCreateMenu(false);
     };
 
     const handleFilePicker = () => {
+        console.log('📄 [Smart Input] File button pressed');
         setPendingAction('file');
         setShowCreateMenu(false);
     };
 
     const handleVoiceInput = () => {
+        console.log('🎤 [Smart Input] Voice button pressed');
         setPendingAction('voice');
         setShowCreateMenu(false);
     };
@@ -190,10 +202,20 @@ export function CustomTabBar() {
             }
 
             console.log('🖼️ Launching image library...');
-            const result = await ImagePicker.launchImageLibraryAsync({
+            
+            // Add timeout protection for simulator issues
+            const timeoutPromise = new Promise<never>((_, reject) => {
+                setTimeout(() => {
+                    reject(new Error('TIMEOUT'));
+                }, 10000); // 10 second timeout
+            });
+            
+            const pickerPromise = ImagePicker.launchImageLibraryAsync({
                 allowsEditing: false,
                 quality: 0.8,
             });
+            
+            const result = await Promise.race([pickerPromise, timeoutPromise]);
             console.log('🖼️ Image library result:', JSON.stringify(result));
 
             if (!result.canceled && result.assets && result.assets[0]) {
@@ -206,9 +228,17 @@ export function CustomTabBar() {
             } else {
                 console.log('🖼️ User cancelled or no assets');
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('🖼️ Image picker error:', error);
-            Alert.alert('Error', 'Failed to access photo library. Please try again.');
+            if (error.message === 'TIMEOUT') {
+                Alert.alert(
+                    'Image Picker Issue',
+                    'The image picker is not responding. This can happen on the iOS Simulator. Try reloading the app or test on a real device.',
+                    [{ text: 'OK' }]
+                );
+            } else {
+                Alert.alert('Error', 'Failed to access photo library. Please try again.');
+            }
         }
     }, []);
 
@@ -216,13 +246,29 @@ export function CustomTabBar() {
         try {
             console.log('📄 Launching document picker...');
             
-            // Note: Document picker can be unstable on iOS simulator
-            // It works better on real devices
-            const result = await DocumentPicker.getDocumentAsync({
+            // Document picker is unreliable on iOS simulator
+            // Show warning and use shorter timeout
+            const isSimulator = __DEV__ && Platform.OS === 'ios';
+            
+            if (isSimulator) {
+                console.log('📄 Running on iOS simulator - document picker may not work');
+            }
+            
+            // Create a timeout promise - 5 seconds is enough
+            const timeoutPromise = new Promise<never>((_, reject) => {
+                setTimeout(() => {
+                    reject(new Error('TIMEOUT'));
+                }, 5000); // 5 second timeout
+            });
+            
+            const pickerPromise = DocumentPicker.getDocumentAsync({
                 type: ['*/*'],
                 copyToCacheDirectory: true,
                 multiple: false,
             });
+            
+            // Race between the picker and timeout
+            const result = await Promise.race([pickerPromise, timeoutPromise]);
             console.log('📄 Document picker result:', JSON.stringify(result));
 
             if (!result.canceled && result.assets && result.assets[0]) {
@@ -237,7 +283,15 @@ export function CustomTabBar() {
             }
         } catch (error: any) {
             console.error('📄 Document picker error:', error);
-            Alert.alert('Error', 'Failed to pick file. Please try again.');
+            if (error.message === 'TIMEOUT') {
+                Alert.alert(
+                    'File Picker Unavailable',
+                    'The file picker is not responding. This commonly happens on the iOS Simulator.\n\nPlease test on a real device, or use Image picker instead.',
+                    [{ text: 'OK' }]
+                );
+            } else {
+                Alert.alert('Error', 'Failed to pick file. Please try again.');
+            }
         }
     }, []);
 
@@ -245,9 +299,10 @@ export function CustomTabBar() {
         try {
             console.log('🎤 Requesting audio permission...');
             const permission = await Audio.requestPermissionsAsync();
-            console.log('🎤 Audio permission result:', permission);
+            console.log('🎤 Audio permission result:', JSON.stringify(permission));
             
             if (!permission.granted) {
+                console.log('🎤 Permission not granted, canAskAgain:', permission.canAskAgain);
                 if (!permission.canAskAgain) {
                     Alert.alert(
                         'Microphone Permission Required',
@@ -263,60 +318,87 @@ export function CustomTabBar() {
                 return;
             }
 
+            console.log('🎤 Setting audio mode...');
             await Audio.setAudioModeAsync({
                 allowsRecordingIOS: true,
                 playsInSilentModeIOS: true,
             });
 
-            console.log('🎤 Starting recording...');
+            console.log('🎤 Creating recording...');
             const { recording } = await Audio.Recording.createAsync(
                 Audio.RecordingOptionsPresets.HIGH_QUALITY
             );
+            console.log('🎤 Recording object created:', recording);
             recordingRef.current = recording;
             setIsRecording(true);
             setRecordingDuration(0);
-            console.log('🎤 Recording started');
-        } catch (error) {
+            console.log('🎤 Recording started successfully!');
+        } catch (error: any) {
             console.error('🎤 Voice recording error:', error);
-            Alert.alert('Error', 'Failed to start recording. Please try again.');
+            console.error('🎤 Error name:', error?.name);
+            console.error('🎤 Error message:', error?.message);
+            Alert.alert('Error', `Failed to start recording: ${error?.message || 'Unknown error'}`);
         }
     }, []);
 
     // Execute pending action after modal is closed
     // This useEffect must be after the launcher functions are defined
     useEffect(() => {
+        // Only log when there's something meaningful to track
+        if (pendingAction || showCreateMenu) {
+            console.log('🔄 [useEffect] Check:', {
+                pendingAction,
+                showCreateMenu,
+                isExecuting: isExecutingAction.current
+            });
+        }
+        
         if (pendingAction && !showCreateMenu && !isExecutingAction.current) {
+            console.log('🔄 [useEffect] Conditions met, will execute:', pendingAction);
             isExecutingAction.current = true;
             const currentAction = pendingAction;
-            setPendingAction(null); // Clear immediately to prevent re-triggering
             
+            // Execute immediately without setTimeout - the modal is already closed
             const executeAction = async () => {
-                console.log('🔄 Executing pending action:', currentAction);
+                console.log('🚀 [Execute] Starting action:', currentAction);
+                // Clear pending action AFTER we've captured it
+                setPendingAction(null);
+                
                 try {
                     switch (currentAction) {
                         case 'camera':
+                            console.log('🚀 [Execute] Calling launchCamera...');
                             await launchCamera();
+                            console.log('🚀 [Execute] launchCamera completed');
                             break;
                         case 'image':
+                            console.log('🚀 [Execute] Calling launchImagePicker...');
                             await launchImagePicker();
+                            console.log('🚀 [Execute] launchImagePicker completed');
                             break;
                         case 'file':
+                            console.log('🚀 [Execute] Calling launchFilePicker...');
                             await launchFilePicker();
+                            console.log('🚀 [Execute] launchFilePicker completed');
                             break;
                         case 'voice':
+                            console.log('🚀 [Execute] Calling startVoiceRecording...');
                             await startVoiceRecording();
+                            console.log('🚀 [Execute] startVoiceRecording completed');
                             break;
                     }
+                } catch (error) {
+                    console.error('🚀 [Execute] Error:', error);
                 } finally {
                     isExecutingAction.current = false;
+                    console.log('🚀 [Execute] Action complete, isExecuting reset');
                 }
             };
-            // Small delay to ensure modal animation is complete
-            const timer = setTimeout(executeAction, 200);
-            return () => {
-                clearTimeout(timer);
-                isExecutingAction.current = false;
-            };
+            
+            // Execute immediately - using requestAnimationFrame to ensure we're after the render
+            requestAnimationFrame(() => {
+                executeAction();
+            });
         }
     }, [pendingAction, showCreateMenu, launchCamera, launchImagePicker, launchFilePicker, startVoiceRecording]);
     
@@ -491,66 +573,65 @@ export function CustomTabBar() {
 
     const handleQuickCreate = async () => {
         // Check if there's an attachment or text to process
-        if (!attachment && !input.trim()) return;
+        if (!attachment && !input.trim()) {
+            console.log('📤 [Send] No content to send - attachment:', attachment, 'input:', input);
+            return;
+        }
+        
+        console.log('📤 [Send] Processing...', {
+            hasAttachment: !!attachment,
+            attachmentType: attachment?.type,
+            attachmentUri: attachment?.uri,
+            textInput: input.trim(),
+        });
         
         setIsProcessing(true);
         try {
-            let response: { success: boolean; detectedType: string; parsedData: { title: string; description?: string } } | undefined;
+            // Build attachments array for API
+            const attachments = attachment ? [{
+                type: attachment.type as 'image' | 'file' | 'voice',
+                uri: attachment.uri,
+                name: attachment.name,
+                mimeType: attachment.type === 'image' ? 'image/jpeg' 
+                    : attachment.type === 'voice' ? 'audio/m4a' 
+                    : 'application/octet-stream',
+            }] : [];
             
-            if (attachment) {
-                // Process attachment
-                if (attachment.type === 'image') {
-                    response = await aiApi.parseInput({
-                        type: 'image',
-                        content: attachment.uri,
-                        source: attachment.source,
-                    });
-                } else if (attachment.type === 'file') {
-                    response = await aiApi.parseInput({
-                        type: 'file',
-                        content: attachment.uri,
-                        fileName: attachment.name,
-                    });
-                } else if (attachment.type === 'voice') {
-                    response = await aiApi.parseInput({
-                        type: 'voice',
-                        content: 'Simulated voice transcription: Add a new task to review the project designs by Friday',
-                    });
-                }
-            } else {
-                // Process text input
-                response = await aiApi.parseInput({
-                    type: 'text',
-                    content: input,
-                });
-            }
+            // Send to backend
+            const response = await commandCenterApi.sendInput(
+                input.trim() || null,
+                attachments
+            );
             
-            if (response?.success) {
-                const attachmentInfo = attachment 
-                    ? `Attachment: ${attachment.type === 'image' ? 'Photo' : attachment.type === 'file' ? attachment.name : 'Voice'}\n\n`
-                    : '';
-                
-                const detectedType = response.detectedType;
-                const parsedData = response.parsedData;
-                
+            console.log('📤 [Send] Backend response:', response);
+            
+            if (response.success && response.data) {
+                // Show the response from backend
                 Alert.alert(
-                    'AI Parsed Input',
-                    `${attachmentInfo}Detected: ${detectedType}\n\nTitle: ${parsedData.title}\n\nDescription: ${parsedData.description || 'None'}`,
+                    response.data.message,
+                    response.data.details,
                     [
-                        { text: 'Cancel', style: 'cancel' },
                         { 
-                            text: 'Create', 
+                            text: 'OK', 
                             onPress: () => {
+                                console.log('📤 [Send] User acknowledged - clearing input');
                                 setInput('');
                                 setAttachment(null);
-                                navigateToCreate(detectedType, parsedData);
                             }
                         },
                     ]
                 );
+            } else {
+                // Show error from backend or generic error
+                Alert.alert(
+                    'Error',
+                    typeof response.error === 'string' ? response.error : 'Failed to send input to server',
+                    [{ text: 'OK' }]
+                );
             }
-        } catch (error) {
-            Alert.alert('Error', 'Failed to process input');
+        } catch (error: any) {
+            console.error('📤 [Send] Error:', error);
+            Alert.alert('Error', error.message || 'Failed to process input');
         } finally {
             setIsProcessing(false);
         }
@@ -590,9 +671,6 @@ export function CustomTabBar() {
 
     // Check if we're on the Command Center screen
     const isOnCommandCenter = pathname.includes('/command-center');
-
-    // Debug log to verify pathname
-    console.log('Current pathname:', pathname, 'isOnCommandCenter:', isOnCommandCenter);
 
     return (
         <KeyboardAvoidingView
