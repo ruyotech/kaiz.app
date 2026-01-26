@@ -11,7 +11,7 @@
 set -e
 
 # Configuration - CUSTOMIZE THESE
-PROJECT_ID="kaiz-lifeos-app"
+PROJECT_ID="majestic-tape-485503-f9"
 REGION="us-central1"
 SERVICE_NAME="kaiz-api"
 DB_INSTANCE_NAME="kaiz-db"
@@ -50,7 +50,7 @@ case $COMMAND in
         echo_step "Setting up GCP project..."
         
         # Create project (might fail if exists - that's ok)
-        gcloud projects create $PROJECT_ID --name="Kaiz LifeOS" 2>/dev/null || true
+        gcloud projects create $PROJECT_ID --name="Kaiz App" 2>/dev/null || true
         
         # Set default project
         gcloud config set project $PROJECT_ID
