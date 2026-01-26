@@ -17,15 +17,14 @@ const REFRESH_TOKEN_KEY = 'refreshToken';
 // For local development, use your machine's IP address
 // In production, this uses the Google Cloud Run URL
 
-// 🔧 PRODUCTION URL - Update this after deploying to GCP
-// Run: cd apps/backend && ./deploy-gcp.sh url
-const PRODUCTION_API_URL = 'https://kaiz-api-XXXXXXXX-uc.a.run.app'; // Replace after deployment
+// 🔧 PRODUCTION URL - Google Cloud Run
+const PRODUCTION_API_URL = 'https://kaiz-api-213334506754.us-central1.run.app';
 
 const getApiUrl = (): string => {
-    // You can change this to your local IP for testing
-    // e.g., 'http://192.168.1.100:8080'
+    // For Expo Go testing, use the production URL directly
+    // Switch to local IP only when running backend locally
     return __DEV__ 
-        ? 'http://192.168.0.112:8080'  // Your local network IP
+        ? PRODUCTION_API_URL           // Use Cloud Run for Expo Go testing
         : PRODUCTION_API_URL;          // GCP Cloud Run URL
 };
 
