@@ -31,8 +31,8 @@ export default function TaskQuickPick({ onSelectTask }: TaskQuickPickProps) {
       if (sprint) {
         setCurrentSprintName(`Sprint ${currentWeek}`);
         await fetchTasks();
-        const allTasks = await taskApi.getAll({ sprintId: sprint.id });
-        const filtered = allTasks.filter(
+        const allTasks = await taskApi.getTasksBySprint(sprint.id);
+        const filtered = (allTasks || []).filter(
           (t: any) => !t.isDraft && (t.status === 'todo' || t.status === 'in_progress')
         ) as Task[];
         setSprintTasks(filtered);

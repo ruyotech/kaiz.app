@@ -60,11 +60,11 @@ export interface UserResponse {
 export interface ApiResponse<T> {
     success: boolean;
     data?: T;
-    error?: {
+    error?: string | {
         code: string;
         message: string;
     };
-    timestamp: string;
+    timestamp?: string;
 }
 
 export interface RefreshTokenRequest {
@@ -125,6 +125,13 @@ async function clearTokens(): Promise<void> {
     await AsyncStorage.multiRemove([ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY]);
 }
 
+// Callback for handling auth expiration - can be set by the app
+let onAuthExpired: (() => void) | null = null;
+
+export function setOnAuthExpired(callback: () => void): void {
+    onAuthExpired = callback;
+}
+
 // HTTP request helper
 async function request<T>(
     endpoint: string,
@@ -156,12 +163,35 @@ async function request<T>(
 
         const data = await response.json() as ApiResponse<T>;
 
+        // Helper to extract error message from either string or object format
+        const getErrorMessage = (error: ApiResponse<T>['error']): string => {
+            if (typeof error === 'string') return error;
+            if (error && typeof error === 'object') return error.message;
+            return 'Request failed';
+        };
+
+        const getErrorCode = (error: ApiResponse<T>['error']): string | undefined => {
+            if (error && typeof error === 'object') return error.code;
+            return undefined;
+        };
+
         if (!response.ok) {
             console.error('🌐 API Error:', data);
+            
+            // Auto-logout on 401 Unauthorized
+            if (response.status === 401) {
+                console.log('🔐 Token expired, clearing auth...');
+                await clearTokens();
+                // Notify app to redirect to login
+                if (onAuthExpired) {
+                    onAuthExpired();
+                }
+            }
+            
             throw new ApiError(
-                data.error?.message || 'Request failed',
+                getErrorMessage(data.error),
                 response.status,
-                data.error?.code
+                getErrorCode(data.error)
             );
         }
 
@@ -169,9 +199,9 @@ async function request<T>(
         
         if (!data.success) {
             throw new ApiError(
-                data.error?.message || 'Request failed',
+                getErrorMessage(data.error),
                 response.status,
-                data.error?.code
+                getErrorCode(data.error)
             );
         }
 
@@ -373,14 +403,14 @@ export const lifeWheelApi = {
      * Get all Life Wheel areas
      */
     async getLifeWheelAreas(): Promise<any[]> {
-        return request<any[]>('/life-wheel-areas', { method: 'GET' });
+        return request<any[]>('/life-wheel-areas', { method: 'GET' }, true);
     },
 
     /**
      * Get all Eisenhower Quadrants
      */
     async getEisenhowerQuadrants(): Promise<any[]> {
-        return request<any[]>('/eisenhower-quadrants', { method: 'GET' });
+        return request<any[]>('/eisenhower-quadrants', { method: 'GET' }, true);
     },
 };
 
@@ -391,7 +421,7 @@ export const sprintApi = {
      */
     async getSprints(year?: number): Promise<any[]> {
         const query = year ? `?year=${year}` : '';
-        return request<any[]>(`/sprints${query}`, { method: 'GET' });
+        return request<any[]>(`/sprints${query}`, { method: 'GET' }, true);
     },
 
     /**
@@ -405,21 +435,21 @@ export const sprintApi = {
      * Get current active sprint
      */
     async getCurrentSprint(): Promise<any> {
-        return request<any>('/sprints/current', { method: 'GET' });
+        return request<any>('/sprints/current', { method: 'GET' }, true);
     },
 
     /**
      * Get upcoming sprints
      */
     async getUpcomingSprints(limit: number = 4): Promise<any[]> {
-        return request<any[]>(`/sprints/upcoming?limit=${limit}`, { method: 'GET' });
+        return request<any[]>(`/sprints/upcoming?limit=${limit}`, { method: 'GET' }, true);
     },
 
     /**
      * Get sprint by ID
      */
     async getSprintById(id: string): Promise<any> {
-        return request<any>(`/sprints/${id}`, { method: 'GET' });
+        return request<any>(`/sprints/${id}`, { method: 'GET' }, true);
     },
 
     /**
@@ -485,13 +515,15 @@ export const epicApi = {
 // Task API
 export const taskApi = {
     /**
-     * Get all tasks with optional filters
+     * Get all tasks with optional filters (returns paginated data)
      */
     async getAll(filters?: { sprintId?: string; status?: string; epicId?: string }): Promise<any[]> {
         const params = new URLSearchParams();
         if (filters?.status) params.append('status', filters.status);
         const query = params.toString() ? `?${params.toString()}` : '';
-        return request<any[]>(`/tasks${query}`, { method: 'GET' }, true);
+        const result = await request<any>(`/tasks${query}`, { method: 'GET' }, true);
+        // Handle paginated response - extract content array
+        return result?.content || result || [];
     },
 
     /**
@@ -605,14 +637,14 @@ export const challengeApi = {
      */
     async getTemplates(lifeWheelAreaId?: string): Promise<any[]> {
         const query = lifeWheelAreaId ? `?lifeWheelAreaId=${lifeWheelAreaId}` : '';
-        return request<any[]>(`/challenges/templates${query}`, { method: 'GET' });
+        return request<any[]>(`/challenges/templates${query}`, { method: 'GET' }, true);
     },
 
     /**
      * Get template by ID
      */
     async getTemplateById(id: string): Promise<any> {
-        return request<any>(`/challenges/templates/${id}`, { method: 'GET' });
+        return request<any>(`/challenges/templates/${id}`, { method: 'GET' }, true);
     },
 
     /**
@@ -781,63 +813,63 @@ export const mindsetApi = {
      * Get all mindset content
      */
     async getAllContent(): Promise<any[]> {
-        return request<any[]>('/mindset/content', { method: 'GET' });
+        return request<any[]>('/mindset/content', { method: 'GET' }, true);
     },
 
     /**
      * Get mindset content by ID
      */
     async getContentById(id: string): Promise<any> {
-        return request<any>(`/mindset/content/${id}`, { method: 'GET' });
+        return request<any>(`/mindset/content/${id}`, { method: 'GET' }, true);
     },
 
     /**
      * Get content by dimension tag (life wheel area)
      */
     async getContentByDimension(dimensionTag: string): Promise<any[]> {
-        return request<any[]>(`/mindset/content/dimension/${dimensionTag}`, { method: 'GET' });
+        return request<any[]>(`/mindset/content/dimension/${dimensionTag}`, { method: 'GET' }, true);
     },
 
     /**
      * Get content by emotional tone
      */
     async getContentByTone(tone: 'MOTIVATIONAL' | 'ACTIONABLE' | 'REFLECTIVE' | 'CALMING'): Promise<any[]> {
-        return request<any[]>(`/mindset/content/tone/${tone}`, { method: 'GET' });
+        return request<any[]>(`/mindset/content/tone/${tone}`, { method: 'GET' }, true);
     },
 
     /**
      * Get favorite content
      */
     async getFavorites(): Promise<any[]> {
-        return request<any[]>('/mindset/content/favorites', { method: 'GET' });
+        return request<any[]>('/mindset/content/favorites', { method: 'GET' }, true);
     },
 
     /**
      * Toggle favorite status
      */
     async toggleFavorite(id: string): Promise<any> {
-        return request<any>(`/mindset/content/${id}/toggle-favorite`, { method: 'POST' });
+        return request<any>(`/mindset/content/${id}/toggle-favorite`, { method: 'POST' }, true);
     },
 
     /**
      * Get all themes
      */
     async getAllThemes(): Promise<any[]> {
-        return request<any[]>('/mindset/themes', { method: 'GET' });
+        return request<any[]>('/mindset/themes', { method: 'GET' }, true);
     },
 
     /**
      * Get theme by ID
      */
     async getThemeById(id: string): Promise<any> {
-        return request<any>(`/mindset/themes/${id}`, { method: 'GET' });
+        return request<any>(`/mindset/themes/${id}`, { method: 'GET' }, true);
     },
 
     /**
      * Get theme by name
      */
     async getThemeByName(name: string): Promise<any> {
-        return request<any>(`/mindset/themes/name/${name}`, { method: 'GET' });
+        return request<any>(`/mindset/themes/name/${name}`, { method: 'GET' }, true);
     },
 };
 
@@ -847,56 +879,56 @@ export const essentiaApi = {
      * Get all books
      */
     async getAllBooks(): Promise<any[]> {
-        return request<any[]>('/essentia/books', { method: 'GET' });
+        return request<any[]>('/essentia/books', { method: 'GET' }, true);
     },
 
     /**
      * Get book by ID (includes cards)
      */
     async getBookById(id: string): Promise<any> {
-        return request<any>(`/essentia/books/${id}`, { method: 'GET' });
+        return request<any>(`/essentia/books/${id}`, { method: 'GET' }, true);
     },
 
     /**
      * Get books by category
      */
     async getBooksByCategory(category: string): Promise<any[]> {
-        return request<any[]>(`/essentia/books/category/${category}`, { method: 'GET' });
+        return request<any[]>(`/essentia/books/category/${category}`, { method: 'GET' }, true);
     },
 
     /**
      * Get books by difficulty
      */
     async getBooksByDifficulty(difficulty: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED'): Promise<any[]> {
-        return request<any[]>(`/essentia/books/difficulty/${difficulty}`, { method: 'GET' });
+        return request<any[]>(`/essentia/books/difficulty/${difficulty}`, { method: 'GET' }, true);
     },
 
     /**
      * Get books by life wheel area
      */
     async getBooksByLifeWheelArea(lifeWheelAreaId: string): Promise<any[]> {
-        return request<any[]>(`/essentia/books/life-wheel/${lifeWheelAreaId}`, { method: 'GET' });
+        return request<any[]>(`/essentia/books/life-wheel/${lifeWheelAreaId}`, { method: 'GET' }, true);
     },
 
     /**
      * Get top rated books
      */
     async getTopRatedBooks(): Promise<any[]> {
-        return request<any[]>('/essentia/books/top-rated', { method: 'GET' });
+        return request<any[]>('/essentia/books/top-rated', { method: 'GET' }, true);
     },
 
     /**
      * Get popular books
      */
     async getPopularBooks(): Promise<any[]> {
-        return request<any[]>('/essentia/books/popular', { method: 'GET' });
+        return request<any[]>('/essentia/books/popular', { method: 'GET' }, true);
     },
 
     /**
      * Get all categories
      */
     async getAllCategories(): Promise<string[]> {
-        return request<string[]>('/essentia/categories', { method: 'GET' });
+        return request<string[]>('/essentia/categories', { method: 'GET' }, true);
     },
 
     /**
@@ -1169,21 +1201,21 @@ export const communityApi = {
         if (params?.page !== undefined) queryParams.append('page', params.page.toString());
         if (params?.size) queryParams.append('size', params.size.toString());
         const query = queryParams.toString() ? `?${queryParams.toString()}` : '';
-        return request<PaginatedResponse<any>>(`/community/articles${query}`, { method: 'GET' });
+        return request<PaginatedResponse<any>>(`/community/articles${query}`, { method: 'GET' }, true);
     },
 
     /**
      * Get featured article
      */
     async getFeaturedArticle(): Promise<any> {
-        return request<any>('/community/articles/featured', { method: 'GET' });
+        return request<any>('/community/articles/featured', { method: 'GET' }, true);
     },
 
     /**
      * Get article by ID
      */
     async getArticleById(id: string): Promise<any> {
-        return request<any>(`/community/articles/${id}`, { method: 'GET' });
+        return request<any>(`/community/articles/${id}`, { method: 'GET' }, true);
     },
 
     /**
@@ -1206,7 +1238,7 @@ export const communityApi = {
      * Get release notes
      */
     async getReleaseNotes(page: number = 0, size: number = 10): Promise<PaginatedResponse<any>> {
-        return request<PaginatedResponse<any>>(`/community/release-notes?page=${page}&size=${size}`, { method: 'GET' });
+        return request<PaginatedResponse<any>>(`/community/release-notes?page=${page}&size=${size}`, { method: 'GET' }, true);
     },
 
     /**
@@ -1214,14 +1246,14 @@ export const communityApi = {
      */
     async getWikiEntries(category?: string): Promise<any[]> {
         const query = category ? `?category=${category}` : '';
-        return request<any[]>(`/community/wiki${query}`, { method: 'GET' });
+        return request<any[]>(`/community/wiki${query}`, { method: 'GET' }, true);
     },
 
     /**
      * Search wiki
      */
     async searchWiki(term: string): Promise<any[]> {
-        return request<any[]>(`/community/wiki/search?q=${encodeURIComponent(term)}`, { method: 'GET' });
+        return request<any[]>(`/community/wiki/search?q=${encodeURIComponent(term)}`, { method: 'GET' }, true);
     },
 
     // ========== Q&A Forum ==========
@@ -1236,21 +1268,21 @@ export const communityApi = {
         if (params?.page !== undefined) queryParams.append('page', params.page.toString());
         if (params?.size) queryParams.append('size', params.size.toString());
         const query = queryParams.toString() ? `?${queryParams.toString()}` : '';
-        return request<PaginatedResponse<any>>(`/community/questions${query}`, { method: 'GET' });
+        return request<PaginatedResponse<any>>(`/community/questions${query}`, { method: 'GET' }, true);
     },
 
     /**
      * Get question by ID with answers
      */
     async getQuestionById(id: string): Promise<any> {
-        return request<any>(`/community/questions/${id}`, { method: 'GET' });
+        return request<any>(`/community/questions/${id}`, { method: 'GET' }, true);
     },
 
     /**
      * Get answers for a question
      */
     async getAnswers(questionId: string): Promise<any[]> {
-        return request<any[]>(`/community/questions/${questionId}/answers`, { method: 'GET' });
+        return request<any[]>(`/community/questions/${questionId}/answers`, { method: 'GET' }, true);
     },
 
     /**
@@ -1323,14 +1355,14 @@ export const communityApi = {
         if (params?.page !== undefined) queryParams.append('page', params.page.toString());
         if (params?.size) queryParams.append('size', params.size.toString());
         const query = queryParams.toString() ? `?${queryParams.toString()}` : '';
-        return request<PaginatedResponse<any>>(`/community/stories${query}`, { method: 'GET' });
+        return request<PaginatedResponse<any>>(`/community/stories${query}`, { method: 'GET' }, true);
     },
 
     /**
      * Get story by ID
      */
     async getStoryById(id: string): Promise<any> {
-        return request<any>(`/community/stories/${id}`, { method: 'GET' });
+        return request<any>(`/community/stories/${id}`, { method: 'GET' }, true);
     },
 
     /**
@@ -1378,7 +1410,7 @@ export const communityApi = {
      * Get story comments
      */
     async getStoryComments(storyId: string): Promise<any[]> {
-        return request<any[]>(`/community/stories/${storyId}/comments`, { method: 'GET' });
+        return request<any[]>(`/community/stories/${storyId}/comments`, { method: 'GET' }, true);
     },
 
     /**
@@ -1403,21 +1435,21 @@ export const communityApi = {
         if (params?.page !== undefined) queryParams.append('page', params.page.toString());
         if (params?.size) queryParams.append('size', params.size.toString());
         const query = queryParams.toString() ? `?${queryParams.toString()}` : '';
-        return request<PaginatedResponse<any>>(`/community/templates${query}`, { method: 'GET' });
+        return request<PaginatedResponse<any>>(`/community/templates${query}`, { method: 'GET' }, true);
     },
 
     /**
      * Get featured templates
      */
     async getFeaturedTemplates(): Promise<any[]> {
-        return request<any[]>('/community/templates/featured', { method: 'GET' });
+        return request<any[]>('/community/templates/featured', { method: 'GET' }, true);
     },
 
     /**
      * Get template by ID
      */
     async getTemplateById(id: string): Promise<any> {
-        return request<any>(`/community/templates/${id}`, { method: 'GET' });
+        return request<any>(`/community/templates/${id}`, { method: 'GET' }, true);
     },
 
     /**
@@ -1475,7 +1507,7 @@ export const communityApi = {
      * Get template reviews
      */
     async getTemplateReviews(templateId: string): Promise<any[]> {
-        return request<any[]>(`/community/templates/${templateId}/reviews`, { method: 'GET' });
+        return request<any[]>(`/community/templates/${templateId}/reviews`, { method: 'GET' }, true);
     },
 
     // ========== Leaderboard ==========
@@ -1484,7 +1516,7 @@ export const communityApi = {
      * Get leaderboard
      */
     async getLeaderboard(period: 'weekly' | 'monthly' | 'all_time', category: 'reputation' | 'helpful' | 'streaks' | 'velocity'): Promise<any[]> {
-        return request<any[]>(`/community/leaderboard?period=${period}&category=${category}`, { method: 'GET' });
+        return request<any[]>(`/community/leaderboard?period=${period}&category=${category}`, { method: 'GET' }, true);
     },
 
     /**
@@ -1652,7 +1684,7 @@ export const communityApi = {
      * Get active poll
      */
     async getActivePoll(): Promise<any | null> {
-        return request<any>('/community/polls/active', { method: 'GET' });
+        return request<any>('/community/polls/active', { method: 'GET' }, true);
     },
 
     /**
@@ -1669,14 +1701,14 @@ export const communityApi = {
      * Get poll results
      */
     async getPollResults(pollId: string): Promise<any> {
-        return request<any>(`/community/polls/${pollId}/results`, { method: 'GET' });
+        return request<any>(`/community/polls/${pollId}/results`, { method: 'GET' }, true);
     },
 
     /**
      * Get current weekly challenge
      */
     async getWeeklyChallenge(): Promise<any | null> {
-        return request<any>('/community/weekly-challenge', { method: 'GET' });
+        return request<any>('/community/weekly-challenge', { method: 'GET' }, true);
     },
 
     /**
@@ -1702,7 +1734,7 @@ export const communityApi = {
      * Get all badges definitions
      */
     async getAllBadges(): Promise<any[]> {
-        return request<any[]>('/community/badges', { method: 'GET' });
+        return request<any[]>('/community/badges', { method: 'GET' }, true);
     },
 
     /**
@@ -1752,7 +1784,7 @@ export const communityApi = {
      * Get public kudos feed
      */
     async getKudosFeed(page: number = 0, size: number = 20): Promise<PaginatedResponse<any>> {
-        return request<PaginatedResponse<any>>(`/community/kudos?page=${page}&size=${size}`, { method: 'GET' });
+        return request<PaginatedResponse<any>>(`/community/kudos?page=${page}&size=${size}`, { method: 'GET' }, true);
     },
 
     /**
@@ -1773,14 +1805,14 @@ export const communityApi = {
         if (params?.page !== undefined) queryParams.append('page', params.page.toString());
         if (params?.size) queryParams.append('size', params.size.toString());
         const query = queryParams.toString() ? `?${queryParams.toString()}` : '';
-        return request<PaginatedResponse<any>>(`/community/feature-requests${query}`, { method: 'GET' });
+        return request<PaginatedResponse<any>>(`/community/feature-requests${query}`, { method: 'GET' }, true);
     },
 
     /**
      * Get feature request by ID
      */
     async getFeatureRequestById(id: string): Promise<any> {
-        return request<any>(`/community/feature-requests/${id}`, { method: 'GET' });
+        return request<any>(`/community/feature-requests/${id}`, { method: 'GET' }, true);
     },
 
     /**
@@ -1829,14 +1861,14 @@ export const communityApi = {
         const queryParams = new URLSearchParams();
         queryParams.append('q', query);
         if (types?.length) queryParams.append('types', types.join(','));
-        return request<any>(`/community/search?${queryParams.toString()}`, { method: 'GET' });
+        return request<any>(`/community/search?${queryParams.toString()}`, { method: 'GET' }, true);
     },
 
     /**
      * Get popular tags
      */
     async getPopularTags(): Promise<string[]> {
-        return request<string[]>('/community/tags/popular', { method: 'GET' });
+        return request<string[]>('/community/tags/popular', { method: 'GET' }, true);
     },
 };
 

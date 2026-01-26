@@ -11,5 +11,5 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 @Target({ElementType.PARAMETER, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-@AuthenticationPrincipal(expression = "T(java.util.UUID).fromString(subject)")
+@AuthenticationPrincipal(expression = "T(java.util.UUID).fromString(#this)")
 public @interface CurrentUser {}

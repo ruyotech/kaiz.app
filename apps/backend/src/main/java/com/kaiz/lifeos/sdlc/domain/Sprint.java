@@ -30,7 +30,7 @@ public class Sprint {
   @Column(name = "end_date", nullable = false)
   private LocalDate endDate;
 
-  @Enumerated(EnumType.STRING)
+  @Convert(converter = SprintStatusConverter.class)
   @Column(name = "status", nullable = false, length = 20)
   @Builder.Default
   private SprintStatus status = SprintStatus.PLANNED;

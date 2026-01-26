@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User } from '../types/models';
-import { authApi, ApiError } from '../services/api';
+import { authApi, ApiError, setOnAuthExpired } from '../services/api';
 
 interface AuthState {
     user: User | null;
@@ -178,3 +178,14 @@ export const useAuthStore = create<AuthState>()(
         }
     )
 );
+
+// Register callback to handle token expiration from API layer
+setOnAuthExpired(() => {
+    console.log('🔐 Auth expired, logging out...');
+    useAuthStore.setState({ 
+        user: null, 
+        isAuthenticated: false, 
+        isDemoUser: false,
+        error: 'Session expired. Please log in again.' 
+    });
+});

@@ -1,5 +1,6 @@
 package com.kaiz.lifeos.shared.config;
 
+import com.kaiz.lifeos.shared.security.JwtAuthenticationEntryPoint;
 import com.kaiz.lifeos.shared.security.JwtAuthenticationFilter;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class SecurityConfig {
 
   private final JwtAuthenticationFilter jwtAuthenticationFilter;
+  private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -37,6 +39,8 @@ public class SecurityConfig {
         .cors(cors -> cors.configurationSource(corsConfigurationSource()))
         .sessionManagement(
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .exceptionHandling(
+            exception -> exception.authenticationEntryPoint(jwtAuthenticationEntryPoint))
         .authorizeHttpRequests(
             auth ->
                 auth

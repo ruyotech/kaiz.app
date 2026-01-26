@@ -12,6 +12,7 @@ services:
       SPRING_DATASOURCE_USERNAME: kaizapp
       SPRING_DATASOURCE_PASSWORD: kaiz_dev_password
       JWT_SECRET: dev-secret-key-that-is-at-least-256-bits-long-for-hs256
+      JWT_ACCESS_TOKEN_EXPIRATION: 86400000  # 24 hours for development
     depends_on:
       db:
         condition: service_healthy
