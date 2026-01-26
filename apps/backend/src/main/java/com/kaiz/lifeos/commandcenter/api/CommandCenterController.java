@@ -1,12 +1,19 @@
 package com.kaiz.lifeos.commandcenter.api;
 
-import com.kaiz.lifeos.commandcenter.api.dto.CommandInputRequest;
-import com.kaiz.lifeos.commandcenter.api.dto.CommandInputResponse;
+import com.kaiz.lifeos.commandcenter.api.dto.*;
+import com.kaiz.lifeos.commandcenter.api.dto.CommandCenterAIResponse.AttachmentSummary;
+import com.kaiz.lifeos.commandcenter.application.CommandCenterAIService;
+import com.kaiz.lifeos.commandcenter.application.DraftApprovalService;
+import com.kaiz.lifeos.commandcenter.application.SmartInputAIService;
+import com.kaiz.lifeos.commandcenter.domain.DraftStatus;
+import com.kaiz.lifeos.commandcenter.domain.PendingDraft;
+import com.kaiz.lifeos.commandcenter.infrastructure.PendingDraftRepository;
 import com.kaiz.lifeos.shared.security.CurrentUser;
 import com.kaiz.lifeos.shared.util.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,21 +33,243 @@ import org.springframework.web.multipart.MultipartFile;
 @Slf4j
 public class CommandCenterController {
 
-    @PostMapping(value = "/input", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    private final CommandCenterAIService aiService;
+    private final SmartInputAIService smartInputService;
+    private final DraftApprovalService approvalService;
+    private final PendingDraftRepository draftRepository;
+
+    // =========================================================================
+    // Smart Input Endpoints (New - with clarification flow)
+    // =========================================================================
+
+    @PostMapping("/smart-input")
     @Operation(
-            summary = "Process smart input",
-            description = "Receive text and/or attachments (images, files, voice) and process them. "
-                    + "Currently returns details of what was received. Will be connected to AI later.")
-    public ResponseEntity<ApiResponse<CommandInputResponse>> processInput(
+            summary = "Process smart input with clarification flow",
+            description = "Send text/attachments to AI. Returns structured draft or clarification questions. "
+                    + "Max 3-5 questions before creating a draft. Supports images (calendar, receipts, cards).")
+    public ResponseEntity<ApiResponse<SmartInputResponse>> processSmartInput(
+            @CurrentUser UUID userId,
+            @Valid @RequestBody SmartInputRequest request) {
+
+        log.info("🧠 [Smart Input] Processing for user: {}", userId);
+        log.info("🧠 [Smart Input] Text: {}", request.text());
+        log.info("🧠 [Smart Input] Attachments: {}", 
+                request.attachments() != null ? request.attachments().size() : 0);
+
+        SmartInputResponse response = smartInputService.processInput(userId, request);
+
+        log.info("✅ [Smart Input] Response status: {}, intent: {}", 
+                response.status(), response.intentDetected());
+
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PostMapping("/smart-input/clarify")
+    @Operation(
+            summary = "Submit clarification answers",
+            description = "Submit answers to clarification questions. "
+                    + "May return more questions or a final draft ready for approval.")
+    public ResponseEntity<ApiResponse<SmartInputResponse>> submitClarificationAnswers(
+            @CurrentUser UUID userId,
+            @Valid @RequestBody ClarificationAnswersRequest request) {
+
+        log.info("🧠 [Smart Input] Submitting clarification for session: {}", request.sessionId());
+
+        SmartInputResponse response = smartInputService.submitClarificationAnswers(userId, request);
+
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PostMapping("/smart-input/{sessionId}/confirm-alternative")
+    @Operation(
+            summary = "Confirm or reject AI alternative suggestion",
+            description = "When AI suggests a different entity type (e.g., Challenge instead of Task), "
+                    + "use this to confirm or reject the suggestion.")
+    public ResponseEntity<ApiResponse<SmartInputResponse>> confirmAlternative(
+            @CurrentUser UUID userId,
+            @PathVariable UUID sessionId,
+            @RequestParam boolean accepted) {
+
+        log.info("🧠 [Smart Input] Confirming alternative for session: {}, accepted: {}", 
+                sessionId, accepted);
+
+        SmartInputResponse response = smartInputService.confirmAlternative(sessionId, accepted);
+
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    // =========================================================================
+    // Original AI Endpoints
+    // =========================================================================
+
+    @PostMapping(value = "/process", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(
+            summary = "Process smart input with AI",
+            description =
+                    "Send text and/or attachments (images, files, voice) to Claude AI. "
+                            + "Returns a structured draft (Task, Epic, Challenge, Event, Bill, or Note) "
+                            + "for user approval. The AI analyzes input and categorizes it by "
+                            + "Life Wheel area and Eisenhower quadrant.")
+    public ResponseEntity<ApiResponse<CommandCenterAIResponse>> processInput(
             @CurrentUser UUID userId,
             @RequestPart(value = "text", required = false) String text,
             @RequestPart(value = "attachments", required = false) List<MultipartFile> attachments) {
 
-        log.info("📥 [Command Center] Received input from user: {}", userId);
+        log.info("📥 [Command Center] Processing AI input for user: {}", userId);
         log.info("📥 [Command Center] Text: {}", text);
         log.info(
                 "📥 [Command Center] Attachments count: {}",
                 attachments != null ? attachments.size() : 0);
+
+        // Build attachment summaries
+        List<AttachmentSummary> attachmentSummaries = buildAttachmentSummaries(attachments);
+
+        // Process with AI
+        CommandCenterAIResponse response =
+                aiService.processInput(userId, text, attachmentSummaries, null);
+
+        log.info(
+                "✅ [Command Center] AI processed: intent={}, confidence={}",
+                response.intentDetected(),
+                response.confidenceScore());
+
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PostMapping("/process/json")
+    @Operation(
+            summary = "Process smart input with AI (JSON)",
+            description =
+                    "Alternative endpoint for JSON-based input with base64-encoded attachments. "
+                            + "Returns a structured draft for user approval.")
+    public ResponseEntity<ApiResponse<CommandCenterAIResponse>> processInputJson(
+            @CurrentUser UUID userId, @RequestBody CommandInputRequest request) {
+
+        log.info("📥 [Command Center] Processing AI JSON input for user: {}", userId);
+
+        // Convert to attachment summaries
+        List<AttachmentSummary> attachmentSummaries = new ArrayList<>();
+        if (request.attachments() != null) {
+            for (var att : request.attachments()) {
+                attachmentSummaries.add(
+                        new AttachmentSummary(
+                                att.name(),
+                                att.type(),
+                                att.mimeType(),
+                                att.data() != null ? att.data().length() : 0,
+                                null // TODO: Add OCR/transcription for images/voice
+                                ));
+            }
+        }
+
+        // Process with AI
+        CommandCenterAIResponse response =
+                aiService.processInput(userId, request.text(), attachmentSummaries, null);
+
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PostMapping("/drafts/{draftId}/action")
+    @Operation(
+            summary = "Approve, modify, or reject a draft",
+            description =
+                    "Take action on a pending draft: "
+                            + "APPROVE to create the entity as-is, "
+                            + "MODIFY to edit before creating, "
+                            + "REJECT to discard the draft.")
+    public ResponseEntity<ApiResponse<DraftActionResponse>> processDraftAction(
+            @CurrentUser UUID userId,
+            @PathVariable UUID draftId,
+            @Valid @RequestBody DraftActionRequest request) {
+
+        log.info(
+                "📝 [Command Center] Draft action: {} on draft {} for user {}",
+                request.action(),
+                draftId,
+                userId);
+
+        // Ensure the draftId in path matches body
+        if (!draftId.equals(request.draftId())) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("Draft ID in path must match body"));
+        }
+
+        DraftActionResponse response = approvalService.processAction(userId, request);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping("/drafts/pending")
+    @Operation(
+            summary = "Get pending drafts",
+            description = "Retrieve all pending drafts awaiting user approval")
+    public ResponseEntity<ApiResponse<List<CommandCenterAIResponse>>> getPendingDrafts(
+            @CurrentUser UUID userId) {
+
+        List<PendingDraft> drafts =
+                draftRepository.findActivePendingDrafts(
+                        userId, DraftStatus.PENDING_APPROVAL, Instant.now());
+
+        List<CommandCenterAIResponse> responses =
+                drafts.stream()
+                        .map(
+                                draft ->
+                                        CommandCenterAIResponse.of(
+                                                draft.getId(),
+                                                draft.getDraftType(),
+                                                draft.getConfidenceScore(),
+                                                draft.getDraftContent(),
+                                                draft.getAiReasoning(),
+                                                List.of(),
+                                                draft.getOriginalInputText(),
+                                                List.of(),
+                                                draft.getVoiceTranscription(),
+                                                draft.getExpiresAt()))
+                        .toList();
+
+        return ResponseEntity.ok(ApiResponse.success(responses));
+    }
+
+    @GetMapping("/drafts/{draftId}")
+    @Operation(summary = "Get a specific draft", description = "Retrieve a draft by its ID")
+    public ResponseEntity<ApiResponse<CommandCenterAIResponse>> getDraft(
+            @CurrentUser UUID userId, @PathVariable UUID draftId) {
+
+        PendingDraft draft =
+                draftRepository
+                        .findByIdAndUserId(draftId, userId)
+                        .orElseThrow(() -> new IllegalArgumentException("Draft not found: " + draftId));
+
+        CommandCenterAIResponse response =
+                CommandCenterAIResponse.of(
+                        draft.getId(),
+                        draft.getDraftType(),
+                        draft.getConfidenceScore(),
+                        draft.getDraftContent(),
+                        draft.getAiReasoning(),
+                        List.of(),
+                        draft.getOriginalInputText(),
+                        List.of(),
+                        draft.getVoiceTranscription(),
+                        draft.getExpiresAt());
+
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    // =========================================================================
+    // Legacy endpoints (kept for backward compatibility)
+    // =========================================================================
+
+    @PostMapping(value = "/input", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(
+            summary = "Process smart input (legacy)",
+            description = "Legacy endpoint - returns echo response. Use /process for AI.")
+    @Deprecated
+    public ResponseEntity<ApiResponse<CommandInputResponse>> processInputLegacy(
+            @CurrentUser UUID userId,
+            @RequestPart(value = "text", required = false) String text,
+            @RequestPart(value = "attachments", required = false) List<MultipartFile> attachments) {
+
+        log.info("📥 [Command Center] Legacy input from user: {}", userId);
 
         List<CommandInputResponse.AttachmentInfo> attachmentInfos = new ArrayList<>();
 
@@ -49,14 +278,6 @@ public class CommandCenterController {
                 String originalFilename = file.getOriginalFilename();
                 String contentType = file.getContentType();
                 long size = file.getSize();
-
-                log.info(
-                        "📎 [Command Center] Attachment: name={}, type={}, size={} bytes",
-                        originalFilename,
-                        contentType,
-                        size);
-
-                // Determine attachment type from content type
                 String attachmentType = determineAttachmentType(contentType);
 
                 attachmentInfos.add(
@@ -65,72 +286,43 @@ public class CommandCenterController {
             }
         }
 
-        // Build the response with details of what was received
         CommandInputResponse response =
                 new CommandInputResponse(
                         UUID.randomUUID().toString(),
-                        "I received your input!",
+                        "Input received. Use /api/v1/command-center/process for AI processing.",
                         buildReceivedDetails(text, attachmentInfos),
                         text,
                         attachmentInfos,
                         Instant.now());
 
-        log.info("✅ [Command Center] Response: {}", response.message());
-
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
-    @PostMapping("/input/json")
-    @Operation(
-            summary = "Process smart input (JSON)",
-            description =
-                    "Alternative endpoint for JSON-based input without file attachments. "
-                            + "Accepts base64-encoded attachment data.")
-    public ResponseEntity<ApiResponse<CommandInputResponse>> processInputJson(
-            @CurrentUser UUID userId, @RequestBody CommandInputRequest request) {
+    // =========================================================================
+    // Helper methods
+    // =========================================================================
 
-        log.info("📥 [Command Center] Received JSON input from user: {}", userId);
-        log.info("📥 [Command Center] Text: {}", request.text());
-        log.info(
-                "📥 [Command Center] Attachments count: {}",
-                request.attachments() != null ? request.attachments().size() : 0);
+    private List<AttachmentSummary> buildAttachmentSummaries(List<MultipartFile> attachments) {
+        List<AttachmentSummary> summaries = new ArrayList<>();
 
-        List<CommandInputResponse.AttachmentInfo> attachmentInfos = new ArrayList<>();
+        if (attachments != null) {
+            for (MultipartFile file : attachments) {
+                String type = determineAttachmentType(file.getContentType());
 
-        if (request.attachments() != null && !request.attachments().isEmpty()) {
-            for (CommandInputRequest.AttachmentData attachment : request.attachments()) {
-                log.info(
-                        "📎 [Command Center] Attachment: name={}, type={}, dataLength={}",
-                        attachment.name(),
-                        attachment.mimeType(),
-                        attachment.data() != null ? attachment.data().length() : 0);
+                // TODO: Add OCR for images, transcription for voice
+                String extractedText = null;
 
-                // Calculate approximate size from base64
-                long approximateSize =
-                        attachment.data() != null ? (long) (attachment.data().length() * 0.75) : 0;
-
-                attachmentInfos.add(
-                        new CommandInputResponse.AttachmentInfo(
-                                attachment.name(),
-                                attachment.mimeType(),
-                                approximateSize,
-                                attachment.type()));
+                summaries.add(
+                        new AttachmentSummary(
+                                file.getOriginalFilename(),
+                                type,
+                                file.getContentType(),
+                                file.getSize(),
+                                extractedText));
             }
         }
 
-        // Build the response with details of what was received
-        CommandInputResponse response =
-                new CommandInputResponse(
-                        UUID.randomUUID().toString(),
-                        "I received your input!",
-                        buildReceivedDetails(request.text(), attachmentInfos),
-                        request.text(),
-                        attachmentInfos,
-                        Instant.now());
-
-        log.info("✅ [Command Center] Response: {}", response.message());
-
-        return ResponseEntity.ok(ApiResponse.success(response));
+        return summaries;
     }
 
     private String determineAttachmentType(String contentType) {

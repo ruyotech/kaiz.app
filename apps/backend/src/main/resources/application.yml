@@ -95,3 +95,28 @@ logging:
     org.springframework.security: INFO
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql: TRACE
+
+# ============================================================================
+# Spring AI - Anthropic (Claude) Configuration
+# ============================================================================
+spring.ai:
+  anthropic:
+    api-key: ${ANTHROPIC_API_KEY:your-api-key-here}
+    chat:
+      options:
+        model: claude-sonnet-4-20250514
+        max-tokens: 4096
+        temperature: 0.3
+
+# ============================================================================
+# Command Center Configuration
+# ============================================================================
+kaiz:
+  command-center:
+    # Draft expiration in hours
+    draft-expiration-hours: 24
+    # Max pending drafts per user
+    max-pending-drafts: 50
+    # AI processing timeout in seconds
+    ai-timeout-seconds: 30
+
