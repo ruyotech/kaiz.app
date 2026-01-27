@@ -256,46 +256,22 @@ public class CommandCenterController {
     }
 
     // =========================================================================
-    // Legacy endpoints (kept for backward compatibility)
+    // Legacy endpoint - now redirects to AI processing
     // =========================================================================
 
     @PostMapping(value = "/input", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(
-            summary = "Process smart input (legacy)",
-            description = "Legacy endpoint - returns echo response. Use /process for AI.")
-    @Deprecated
-    public ResponseEntity<ApiResponse<CommandInputResponse>> processInputLegacy(
+            summary = "Process smart input (redirects to AI)",
+            description = "Legacy endpoint - now forwards to AI processing")
+    public ResponseEntity<ApiResponse<CommandCenterAIResponse>> processInputLegacy(
             @CurrentUser UUID userId,
             @RequestPart(value = "text", required = false) String text,
             @RequestPart(value = "attachments", required = false) List<MultipartFile> attachments) {
 
-        log.info("📥 [Command Center] Legacy input from user: {}", userId);
+        log.info("📥 [Command Center] Input from user: {} - forwarding to AI processing", userId);
 
-        List<CommandInputResponse.AttachmentInfo> attachmentInfos = new ArrayList<>();
-
-        if (attachments != null && !attachments.isEmpty()) {
-            for (MultipartFile file : attachments) {
-                String originalFilename = file.getOriginalFilename();
-                String contentType = file.getContentType();
-                long size = file.getSize();
-                String attachmentType = determineAttachmentType(contentType);
-
-                attachmentInfos.add(
-                        new CommandInputResponse.AttachmentInfo(
-                                originalFilename, contentType, size, attachmentType));
-            }
-        }
-
-        CommandInputResponse response =
-                new CommandInputResponse(
-                        UUID.randomUUID().toString(),
-                        "Input received. Use /api/v1/command-center/process for AI processing.",
-                        buildReceivedDetails(text, attachmentInfos),
-                        text,
-                        attachmentInfos,
-                        Instant.now());
-
-        return ResponseEntity.ok(ApiResponse.success(response));
+        // Forward to AI processing
+        return processInput(userId, text, attachments);
     }
 
     // =========================================================================
@@ -336,31 +312,5 @@ public class CommandCenterController {
             return "voice";
         }
         return "file";
-    }
-
-    private String buildReceivedDetails(
-            String text, List<CommandInputResponse.AttachmentInfo> attachments) {
-        StringBuilder details = new StringBuilder();
-
-        if (attachments != null && !attachments.isEmpty()) {
-            for (CommandInputResponse.AttachmentInfo att : attachments) {
-                details.append("Attachment Type: ").append(att.type()).append("\n");
-                details.append("Name: ").append(att.name()).append("\n");
-                details.append("MIME Type: ").append(att.mimeType()).append("\n");
-                details.append("Size: ").append(formatFileSize(att.size())).append("\n\n");
-            }
-        }
-
-        if (text != null && !text.isBlank()) {
-            details.append("Text Message: ").append(text);
-        }
-
-        return details.toString().trim();
-    }
-
-    private String formatFileSize(long bytes) {
-        if (bytes < 1024) return bytes + " B";
-        if (bytes < 1024 * 1024) return String.format("%.1f KB", bytes / 1024.0);
-        return String.format("%.1f MB", bytes / (1024.0 * 1024));
     }
 }
