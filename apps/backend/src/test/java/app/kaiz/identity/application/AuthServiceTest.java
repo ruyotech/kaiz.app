@@ -87,7 +87,7 @@ class AuthServiceTest {
     @DisplayName("should register new user successfully")
     void shouldRegisterNewUserSuccessfully() {
       RegisterRequest request =
-          new RegisterRequest(TEST_EMAIL, TEST_PASSWORD, TEST_FULL_NAME, TEST_TIMEZONE);
+          new RegisterRequest(TEST_EMAIL, TEST_PASSWORD, TEST_FULL_NAME, TEST_TIMEZONE, null);
       UUID userId = UUID.randomUUID();
 
       User savedUser =
@@ -138,7 +138,7 @@ class AuthServiceTest {
     @DisplayName("should use UTC timezone when not provided")
     void shouldUseUtcTimezoneWhenNotProvided() {
       RegisterRequest request =
-          new RegisterRequest(TEST_EMAIL, TEST_PASSWORD, TEST_FULL_NAME, null);
+          new RegisterRequest(TEST_EMAIL, TEST_PASSWORD, TEST_FULL_NAME, null, null);
       UUID userId = UUID.randomUUID();
 
       User savedUser =
@@ -179,7 +179,7 @@ class AuthServiceTest {
     @DisplayName("should throw BadRequestException when email already exists")
     void shouldThrowBadRequestExceptionWhenEmailExists() {
       RegisterRequest request =
-          new RegisterRequest(TEST_EMAIL, TEST_PASSWORD, TEST_FULL_NAME, TEST_TIMEZONE);
+          new RegisterRequest(TEST_EMAIL, TEST_PASSWORD, TEST_FULL_NAME, TEST_TIMEZONE, null);
 
       when(userRepository.existsByEmail(TEST_EMAIL)).thenReturn(true);
 
@@ -194,7 +194,7 @@ class AuthServiceTest {
     @DisplayName("should normalize email to lowercase and trim")
     void shouldNormalizeEmail() {
       RegisterRequest request =
-          new RegisterRequest("  TEST@EXAMPLE.COM  ", TEST_PASSWORD, TEST_FULL_NAME, TEST_TIMEZONE);
+          new RegisterRequest("  TEST@EXAMPLE.COM  ", TEST_PASSWORD, TEST_FULL_NAME, TEST_TIMEZONE, null);
       UUID userId = UUID.randomUUID();
 
       User savedUser =
@@ -235,7 +235,7 @@ class AuthServiceTest {
     @DisplayName("should store refresh token after registration")
     void shouldStoreRefreshToken() {
       RegisterRequest request =
-          new RegisterRequest(TEST_EMAIL, TEST_PASSWORD, TEST_FULL_NAME, TEST_TIMEZONE);
+          new RegisterRequest(TEST_EMAIL, TEST_PASSWORD, TEST_FULL_NAME, TEST_TIMEZONE, null);
       UUID userId = UUID.randomUUID();
 
       User savedUser =
@@ -283,7 +283,7 @@ class AuthServiceTest {
     @Test
     @DisplayName("should login successfully with valid credentials")
     void shouldLoginSuccessfully() {
-      LoginRequest request = new LoginRequest(TEST_EMAIL, TEST_PASSWORD);
+      LoginRequest request = new LoginRequest(TEST_EMAIL, TEST_PASSWORD, null);
       UUID userId = UUID.randomUUID();
 
       User user =
@@ -324,7 +324,7 @@ class AuthServiceTest {
     @Test
     @DisplayName("should throw UnauthorizedException when user not found")
     void shouldThrowUnauthorizedExceptionWhenUserNotFound() {
-      LoginRequest request = new LoginRequest(TEST_EMAIL, TEST_PASSWORD);
+      LoginRequest request = new LoginRequest(TEST_EMAIL, TEST_PASSWORD, null);
 
       when(userRepository.findByEmail(TEST_EMAIL.toLowerCase())).thenReturn(Optional.empty());
 
@@ -336,7 +336,7 @@ class AuthServiceTest {
     @Test
     @DisplayName("should throw UnauthorizedException when password is incorrect")
     void shouldThrowUnauthorizedExceptionWhenPasswordIncorrect() {
-      LoginRequest request = new LoginRequest(TEST_EMAIL, "wrongPassword");
+      LoginRequest request = new LoginRequest(TEST_EMAIL, "wrongPassword", null);
       UUID userId = UUID.randomUUID();
 
       User user =
@@ -360,7 +360,7 @@ class AuthServiceTest {
     @Test
     @DisplayName("should normalize email to lowercase")
     void shouldNormalizeEmailToLowercase() {
-      LoginRequest request = new LoginRequest("TEST@EXAMPLE.COM", TEST_PASSWORD);
+      LoginRequest request = new LoginRequest("TEST@EXAMPLE.COM", TEST_PASSWORD, null);
       UUID userId = UUID.randomUUID();
 
       User user =
