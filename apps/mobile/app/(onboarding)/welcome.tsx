@@ -85,7 +85,7 @@ export default function WelcomeScreen() {
 
     const handleGetStarted = () => {
         // @ts-ignore - Dynamic route
-        router.replace('/(onboarding)/setup');
+        router.replace('/(onboarding)/setup-v4');
     };
 
     const handleScroll = (event: any) => {

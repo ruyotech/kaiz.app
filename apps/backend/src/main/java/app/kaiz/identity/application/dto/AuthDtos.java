@@ -15,13 +15,15 @@ public sealed interface AuthDtos {
       @NotBlank(message = "Full name is required")
           @Size(min = 2, max = 255, message = "Full name must be between 2 and 255 characters")
           String fullName,
-      String timezone)
+      String timezone,
+      String deviceInfo) // Device info JSON for session tracking (optional)
       implements AuthDtos {}
 
   record LoginRequest(
       @NotBlank(message = "Email is required") @Email(message = "Invalid email format")
           String email,
-      @NotBlank(message = "Password is required") String password)
+      @NotBlank(message = "Password is required") String password,
+      String deviceInfo) // Device info JSON for session tracking (optional)
       implements AuthDtos {}
 
   record RefreshTokenRequest(@NotBlank(message = "Refresh token is required") String refreshToken)

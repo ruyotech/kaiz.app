@@ -74,7 +74,7 @@ public class AuthService {
     user = userRepository.save(user);
     log.info("User registered: {}", user.getEmail());
 
-    return createAuthResponse(user);
+    return createAuthResponse(user, request.deviceInfo());
   }
 
   @Transactional
@@ -91,7 +91,7 @@ public class AuthService {
     }
 
     log.info("User logged in: {}", user.getEmail());
-    return createAuthResponse(user);
+    return createAuthResponse(user, request.deviceInfo());
   }
 
   @Transactional
@@ -113,6 +113,9 @@ public class AuthService {
       throw new UnauthorizedException("INVALID_TOKEN", "Invalid refresh token");
     }
 
+    // Preserve device info from original token
+    String deviceInfo = storedToken.getDeviceInfo();
+
     // Revoke old token (rotation)
     storedToken.revoke();
     refreshTokenRepository.save(storedToken);
@@ -122,8 +125,8 @@ public class AuthService {
     String newAccessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getEmail());
     String newRefreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
 
-    // Store new refresh token
-    saveRefreshToken(user, newRefreshToken);
+    // Store new refresh token with preserved device info
+    saveRefreshToken(user, newRefreshToken, deviceInfo);
 
     log.debug("Tokens refreshed for user: {}", user.getEmail());
     return new TokenResponse(newAccessToken, newRefreshToken);
@@ -272,25 +275,30 @@ public class AuthService {
     log.info("Email verified for user: {}", user.getEmail());
   }
 
-  private AuthResponse createAuthResponse(User user) {
+  private AuthResponse createAuthResponse(User user, String deviceInfo) {
     String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getEmail());
     String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
 
-    saveRefreshToken(user, refreshToken);
+    saveRefreshToken(user, refreshToken, deviceInfo);
 
     UserResponse userResponse = userMapper.toUserResponse(user);
     return new AuthResponse(accessToken, refreshToken, userResponse);
   }
 
-  private void saveRefreshToken(User user, String token) {
+  private void saveRefreshToken(User user, String token, String deviceInfo) {
     RefreshToken refreshToken =
         RefreshToken.builder()
             .user(user)
             .tokenHash(hashToken(token))
+            .deviceInfo(deviceInfo) // Store device info for session management
             .expiresAt(Instant.now().plusMillis(jwtProperties.refreshTokenExpiration()))
             .build();
 
     refreshTokenRepository.save(refreshToken);
+    
+    if (deviceInfo != null) {
+      log.debug("Session created for user {} on device: {}", user.getEmail(), deviceInfo);
+    }
   }
 
   private String hashToken(String token) {

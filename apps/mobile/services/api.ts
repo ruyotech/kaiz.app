@@ -35,10 +35,14 @@ const getApiUrl = (): string => {
 const API_BASE_URL = getApiUrl();
 const API_V1 = `${API_BASE_URL}/api/v1`;
 
+// Import device info utility
+import { getDeviceInfoString } from '../utils/deviceInfo';
+
 // Types matching backend DTOs
 export interface LoginRequest {
     email: string;
     password: string;
+    deviceInfo?: string; // Device info JSON for session tracking
 }
 
 export interface RegisterRequest {
@@ -46,6 +50,7 @@ export interface RegisterRequest {
     password: string;
     fullName: string;
     timezone?: string;
+    deviceInfo?: string; // Device info JSON for session tracking
 }
 
 export interface AuthResponse {
@@ -250,11 +255,18 @@ function mapUserResponseToUser(response: UserResponse): User {
 export const authApi = {
     /**
      * Register a new user
+     * Includes device info for session tracking (App Store compliant)
      */
     async register(data: RegisterRequest): Promise<{ user: User; accessToken: string; refreshToken: string }> {
+        // Get device info for session tracking
+        const deviceInfo = await getDeviceInfoString();
+        
         const response = await request<AuthResponse>('/auth/register', {
             method: 'POST',
-            body: JSON.stringify(data),
+            body: JSON.stringify({
+                ...data,
+                deviceInfo,
+            }),
         });
 
         // Save tokens
@@ -269,11 +281,15 @@ export const authApi = {
 
     /**
      * Login with email and password
+     * Includes device info for session tracking (App Store compliant)
      */
     async login(email: string, password: string): Promise<{ user: User; accessToken: string; refreshToken: string }> {
+        // Get device info for session tracking
+        const deviceInfo = await getDeviceInfoString();
+        
         const response = await request<AuthResponse>('/auth/login', {
             method: 'POST',
-            body: JSON.stringify({ email, password } as LoginRequest),
+            body: JSON.stringify({ email, password, deviceInfo } as LoginRequest),
         });
 
         // Save tokens
@@ -395,21 +411,118 @@ export const authApi = {
     clearTokens,
 };
 
-// Onboarding API (for saving preferences to backend)
+// Onboarding API Types
+export interface OnboardingRequest {
+    firstName: string;
+    lastName?: string;
+    planType: 'INDIVIDUAL' | 'FAMILY' | 'CORPORATE';
+    corporateCode?: string;
+    familyRole?: string;
+    selectedTaskTemplateIds: string[];
+    selectedEpicTemplateIds?: string[];
+    importantDates?: {
+        personName: string;
+        relationship: string;
+        dateType: string;
+        date: string;
+        year?: number;
+        reminderDaysBefore?: number;
+    }[];
+    preferredWorkStyle?: string;
+    weeklyCommitmentHours?: number;
+    howDidYouHear?: string;
+    mainGoal?: string;
+}
+
+export interface OnboardingResponse {
+    tasksCreated: number;
+    epicsCreated: number;
+    eventsCreated: number;
+    message: string;
+    summary: {
+        tasks: Array<{ id: string; title: string; storyPoints: number; sprintId: string; isRecurring: boolean }>;
+        epics: Array<{ id: string; title: string; icon: string; taskCount: number }>;
+        events: Array<{ id: string; personName: string; dateType: string; date: string }>;
+        estimatedWeeklyPoints: number;
+    };
+}
+
+export interface TaskTemplateCategory {
+    id: string;
+    name: string;
+    icon: string;
+    color: string;
+    description: string;
+    templates: Array<{
+        id: string;
+        title: string;
+        description: string;
+        storyPoints: number;
+        lifeWheelAreaId: string;
+        eisenhowerQuadrant: string;
+        isRecurring: boolean;
+        recurrencePattern?: { frequency: string; interval: number };
+        suggestedSprint: string;
+    }>;
+}
+
+export interface EpicTemplate {
+    id: string;
+    title: string;
+    description: string;
+    icon: string;
+    color: string;
+    lifeWheelAreaId: string;
+    taskTemplateIds: string[];
+    estimatedWeeks: number;
+}
+
+// Onboarding API
 export const onboardingApi = {
     /**
-     * Save user preferences after onboarding
-     * Note: This endpoint may need to be created on the backend
+     * Complete onboarding setup - creates tasks, epics, and events
+     */
+    async completeOnboarding(data: OnboardingRequest): Promise<OnboardingResponse> {
+        return request<OnboardingResponse>('/onboarding/setup', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }, true);
+    },
+
+    /**
+     * Get task templates for onboarding selection
+     */
+    async getTaskTemplates(): Promise<{ categories: TaskTemplateCategory[] }> {
+        return request<{ categories: TaskTemplateCategory[] }>('/onboarding/templates/tasks', {
+            method: 'GET',
+        }, true);
+    },
+
+    /**
+     * Get epic templates for onboarding selection
+     */
+    async getEpicTemplates(): Promise<{ epics: EpicTemplate[] }> {
+        return request<{ epics: EpicTemplate[] }>('/onboarding/templates/epics', {
+            method: 'GET',
+        }, true);
+    },
+
+    /**
+     * Validate corporate code
+     */
+    async validateCorporateCode(code: string): Promise<{ valid: boolean; companyName: string | null; message: string }> {
+        return request<{ valid: boolean; companyName: string | null; message: string }>('/onboarding/validate-corporate-code', {
+            method: 'POST',
+            body: JSON.stringify({ code }),
+        });
+    },
+
+    /**
+     * Save user preferences after onboarding (legacy)
      */
     async savePreferences(preferences: Partial<UserPreferences>): Promise<void> {
-        // TODO: Implement when backend endpoint is ready
-        // For now, this is a placeholder
-        console.log('📤 Would save preferences to backend:', preferences);
-        
-        // await request<void>('/users/preferences', {
-        //     method: 'PUT',
-        //     body: JSON.stringify(preferences),
-        // }, true);
+        console.log('📤 Saving preferences to backend:', preferences);
+        // This is now handled by completeOnboarding
     },
 };
 
