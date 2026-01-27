@@ -578,7 +578,7 @@ export function CustomTabBar() {
             return;
         }
         
-        console.log('📤 [Send] Processing...', {
+        console.log('📤 [Send] Processing with AI...', {
             hasAttachment: !!attachment,
             attachmentType: attachment?.type,
             attachmentUri: attachment?.uri,
@@ -597,35 +597,75 @@ export function CustomTabBar() {
                     : 'application/octet-stream',
             }] : [];
             
-            // Send to backend
-            const response = await commandCenterApi.sendInput(
+            // Send to backend AI processing endpoint
+            const response = await commandCenterApi.processWithAI(
                 input.trim() || null,
                 attachments
             );
             
-            console.log('📤 [Send] Backend response:', response);
+            console.log('📤 [Send] AI response:', response);
             
             if (response.success && response.data) {
-                // Show the response from backend
-                Alert.alert(
-                    response.data.message,
-                    response.data.details,
-                    [
-                        { 
-                            text: 'OK', 
-                            onPress: () => {
-                                console.log('📤 [Send] User acknowledged - clearing input');
-                                setInput('');
-                                setAttachment(null);
-                            }
-                        },
-                    ]
-                );
+                const aiResponse = response.data;
+                
+                // Check if AI needs clarification
+                if (aiResponse.intentDetected === 'clarification_needed' || 
+                    (aiResponse.clarifyingQuestions && aiResponse.clarifyingQuestions.length > 0)) {
+                    // AI has questions - show them
+                    const questions = aiResponse.clarifyingQuestions?.join('\n\n') || 'Could you provide more details?';
+                    Alert.alert(
+                        '🤔 Need More Info',
+                        `${aiResponse.reasoning}\n\n${questions}`,
+                        [
+                            { 
+                                text: 'OK', 
+                                onPress: () => {
+                                    // Keep input so user can add more info
+                                    console.log('📤 [Send] User needs to clarify');
+                                }
+                            },
+                        ]
+                    );
+                } else {
+                    // AI created a draft - show for approval
+                    const draftType = aiResponse.intentDetected.charAt(0).toUpperCase() + aiResponse.intentDetected.slice(1);
+                    const draftTitle = (aiResponse.draft as any).title || (aiResponse.draft as any).name || 'New Item';
+                    
+                    Alert.alert(
+                        `✨ ${draftType} Created`,
+                        `${aiResponse.reasoning}\n\n"${draftTitle}"\n\nConfidence: ${Math.round(aiResponse.confidenceScore * 100)}%`,
+                        [
+                            {
+                                text: 'Reject',
+                                style: 'destructive',
+                                onPress: async () => {
+                                    await commandCenterApi.rejectDraft(aiResponse.id);
+                                    console.log('📤 [Send] Draft rejected');
+                                }
+                            },
+                            { 
+                                text: 'Approve', 
+                                style: 'default',
+                                onPress: async () => {
+                                    const approveResult = await commandCenterApi.approveDraft(aiResponse.id);
+                                    if (approveResult.success) {
+                                        Alert.alert('Success', `${draftType} created successfully!`);
+                                    } else {
+                                        Alert.alert('Error', 'Failed to create ' + draftType.toLowerCase());
+                                    }
+                                    console.log('📤 [Send] Draft approved');
+                                    setInput('');
+                                    setAttachment(null);
+                                }
+                            },
+                        ]
+                    );
+                }
             } else {
                 // Show error from backend or generic error
                 Alert.alert(
                     'Error',
-                    typeof response.error === 'string' ? response.error : 'Failed to send input to server',
+                    typeof response.error === 'string' ? response.error : 'Failed to process with AI',
                     [{ text: 'OK' }]
                 );
             }
