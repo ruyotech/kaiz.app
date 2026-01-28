@@ -237,6 +237,83 @@ async function request<T>(
     }
 }
 
+/**
+ * Request function for endpoints that return raw data (not wrapped in ApiResponse)
+ * Used for template endpoints and other non-wrapped responses
+ */
+async function requestRaw<T>(
+    endpoint: string,
+    options: RequestInit = {},
+    requiresAuth: boolean = false
+): Promise<T> {
+    const url = `${API_V1}${endpoint}`;
+    
+    const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+        ...options.headers,
+    };
+
+    // Add auth header if required
+    if (requiresAuth) {
+        const token = await getAccessToken();
+        if (token) {
+            (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+            console.log('🔐 Token attached to request');
+        } else {
+            console.warn('⚠️ No access token found for authenticated request to:', endpoint);
+        }
+    }
+
+    console.log(`🌐 API Request (raw): ${options.method || 'GET'} ${url}`);
+
+    try {
+        const response = await fetch(url, {
+            ...options,
+            headers,
+        });
+
+        // For DELETE with no content
+        if (response.status === 204) {
+            return undefined as T;
+        }
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            console.error('🌐 API Error:', data);
+            
+            // Auto-logout on 401 Unauthorized
+            if (response.status === 401) {
+                console.log('🔐 Token expired, clearing auth...');
+                await clearTokens();
+                if (onAuthExpired) {
+                    onAuthExpired();
+                }
+            }
+            
+            // Handle error response (may or may not be wrapped)
+            const errorMsg = data?.error?.message || data?.error || data?.message || 'Request failed';
+            throw new ApiError(errorMsg, response.status);
+        }
+
+        console.log('🌐 API Response (raw): Success');
+        
+        // Return raw data directly (not wrapped)
+        return data as T;
+    } catch (error) {
+        if (error instanceof ApiError) {
+            throw error;
+        }
+        
+        console.error('🌐 Network Error:', error);
+        throw new ApiError(
+            'Unable to connect to server. Please check your network connection.',
+            0,
+            'NETWORK_ERROR'
+        );
+    }
+}
+
 // Convert backend UserResponse to mobile User model
 function mapUserResponseToUser(response: UserResponse): User {
     return {
@@ -1098,56 +1175,56 @@ export const taskTemplateApi = {
      * Get all available templates (global + user's own)
      */
     async getAllTemplates(): Promise<TaskTemplate[]> {
-        return request<TaskTemplate[]>('/templates', { method: 'GET' }, true);
+        return requestRaw<TaskTemplate[]>('/templates', { method: 'GET' }, true);
     },
 
     /**
      * Get global (system) templates
      */
     async getGlobalTemplates(): Promise<TaskTemplate[]> {
-        return request<TaskTemplate[]>('/templates/global', { method: 'GET' }, true);
+        return requestRaw<TaskTemplate[]>('/templates/global', { method: 'GET' }, true);
     },
 
     /**
      * Get global templates by life wheel area
      */
     async getGlobalTemplatesByArea(areaId: string): Promise<TaskTemplate[]> {
-        return request<TaskTemplate[]>(`/templates/global/area/${areaId}`, { method: 'GET' }, true);
+        return requestRaw<TaskTemplate[]>(`/templates/global/area/${areaId}`, { method: 'GET' }, true);
     },
 
     /**
      * Get user's own templates
      */
     async getUserTemplates(): Promise<TaskTemplate[]> {
-        return request<TaskTemplate[]>('/templates/user', { method: 'GET' }, true);
+        return requestRaw<TaskTemplate[]>('/templates/user', { method: 'GET' }, true);
     },
 
     /**
      * Get user's favorite templates
      */
     async getFavoriteTemplates(): Promise<TaskTemplate[]> {
-        return request<TaskTemplate[]>('/templates/favorites', { method: 'GET' }, true);
+        return requestRaw<TaskTemplate[]>('/templates/favorites', { method: 'GET' }, true);
     },
 
     /**
      * Search templates by query
      */
     async searchTemplates(query: string): Promise<TaskTemplate[]> {
-        return request<TaskTemplate[]>(`/templates/search?q=${encodeURIComponent(query)}`, { method: 'GET' }, true);
+        return requestRaw<TaskTemplate[]>(`/templates/search?q=${encodeURIComponent(query)}`, { method: 'GET' }, true);
     },
 
     /**
      * Get template by ID
      */
     async getTemplateById(id: string): Promise<TaskTemplate> {
-        return request<TaskTemplate>(`/templates/${id}`, { method: 'GET' }, true);
+        return requestRaw<TaskTemplate>(`/templates/${id}`, { method: 'GET' }, true);
     },
 
     /**
      * Create a new user template
      */
     async createTemplate(data: CreateTemplateRequest): Promise<TaskTemplate> {
-        return request<TaskTemplate>('/templates', {
+        return requestRaw<TaskTemplate>('/templates', {
             method: 'POST',
             body: JSON.stringify(data),
         }, true);
@@ -1157,7 +1234,7 @@ export const taskTemplateApi = {
      * Update a user template
      */
     async updateTemplate(id: string, data: Partial<CreateTemplateRequest>): Promise<TaskTemplate> {
-        return request<TaskTemplate>(`/templates/${id}`, {
+        return requestRaw<TaskTemplate>(`/templates/${id}`, {
             method: 'PUT',
             body: JSON.stringify(data),
         }, true);
@@ -1167,21 +1244,21 @@ export const taskTemplateApi = {
      * Delete a user template
      */
     async deleteTemplate(id: string): Promise<void> {
-        await request<void>(`/templates/${id}`, { method: 'DELETE' }, true);
+        await requestRaw<void>(`/templates/${id}`, { method: 'DELETE' }, true);
     },
 
     /**
      * Toggle favorite status
      */
     async toggleFavorite(id: string): Promise<FavoriteResponse> {
-        return request<FavoriteResponse>(`/templates/${id}/favorite`, { method: 'POST' }, true);
+        return requestRaw<FavoriteResponse>(`/templates/${id}/favorite`, { method: 'POST' }, true);
     },
 
     /**
      * Rate a template (1-5 stars)
      */
     async rateTemplate(id: string, rating: number): Promise<RatingResponse> {
-        return request<RatingResponse>(`/templates/${id}/rate`, {
+        return requestRaw<RatingResponse>(`/templates/${id}/rate`, {
             method: 'POST',
             body: JSON.stringify({ rating }),
         }, true);
@@ -1191,14 +1268,14 @@ export const taskTemplateApi = {
      * Clone a global template to user's templates
      */
     async cloneTemplate(id: string): Promise<TaskTemplate> {
-        return request<TaskTemplate>(`/templates/${id}/clone`, { method: 'POST' }, true);
+        return requestRaw<TaskTemplate>(`/templates/${id}/clone`, { method: 'POST' }, true);
     },
 
     /**
      * Increment usage count (called when creating task from template)
      */
     async useTemplate(id: string): Promise<void> {
-        await request<void>(`/templates/${id}/use`, { method: 'POST' }, true);
+        await requestRaw<void>(`/templates/${id}/use`, { method: 'POST' }, true);
     },
 };
 
