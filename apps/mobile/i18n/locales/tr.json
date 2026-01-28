@@ -281,7 +281,11 @@
       "challengeAlerts": "Meydan Okuma Uyarıları"
     },
     "appSwitcher": {
-      "title": "Uygulamalar"
+      "title": "Uygulamalar",
+      "subtitle": "Evreniniz",
+      "settings": "Ayarlar",
+      "help": "Yardım",
+      "newNotifications": "yeni"
     },
     "createMenu": {
       "title": "Ne yapmak istersiniz?",

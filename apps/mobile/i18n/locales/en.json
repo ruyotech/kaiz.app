@@ -281,7 +281,11 @@
       "challengeAlerts": "Challenge Alerts"
     },
     "appSwitcher": {
-      "title": "Apps"
+      "title": "Apps",
+      "subtitle": "Your Universe",
+      "settings": "Settings",
+      "help": "Help",
+      "newNotifications": "new"
     },
     "createMenu": {
       "title": "What would you like to do?",

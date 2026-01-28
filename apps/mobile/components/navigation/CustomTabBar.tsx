@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, TextInput, Modal, Pressable, KeyboardAvoi
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigationStore, AppContext } from '../../store/navigationStore';
 import { usePomodoroStore } from '../../store/pomodoroStore';
+import { useNotificationStore } from '../../store/notificationStore';
 import { NAV_CONFIGS } from '../../utils/navigationConfig';
 import { useRouter, usePathname } from 'expo-router';
 import { AppSwitcher } from './AppSwitcher';
@@ -40,6 +41,7 @@ type PendingAction = 'camera' | 'image' | 'file' | 'voice' | null;
 export function CustomTabBar() {
     const { currentApp, toggleAppSwitcher, toggleMoreMenu } = useNavigationStore();
     const { isActive: isPomodoroActive, timeRemaining, isPaused } = usePomodoroStore();
+    const { unreadCount } = useNotificationStore();
     const router = useRouter();
     const pathname = usePathname();
     const insets = useSafeAreaInsets();
@@ -856,17 +858,27 @@ export function CustomTabBar() {
                 ) : (
                     // Clean Tab Bar - All icons bigger with colored backgrounds
                     <View className="flex-row items-center justify-between px-6 pb-1" style={{ paddingTop: 8 }}>
-                        {/* 1. Apps Icon - Orange/Amber background */}
+                        {/* 1. Apps Icon - Orange/Amber background with notification badge */}
                         <TouchableOpacity
                             className="items-center"
                             onPress={toggleAppSwitcher}
                         >
-                            <View className="w-12 h-12 rounded-2xl items-center justify-center" style={{ backgroundColor: '#FEF3C7' }}>
-                                <MaterialCommunityIcons
-                                    name="view-grid"
-                                    size={28}
-                                    color="#F59E0B"
-                                />
+                            <View className="relative">
+                                <View className="w-12 h-12 rounded-2xl items-center justify-center" style={{ backgroundColor: '#FEF3C7' }}>
+                                    <MaterialCommunityIcons
+                                        name="view-grid"
+                                        size={28}
+                                        color="#F59E0B"
+                                    />
+                                </View>
+                                {/* Notification badge on Apps icon */}
+                                {unreadCount > 0 && (
+                                    <View className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 rounded-full items-center justify-center px-1 border-2 border-white">
+                                        <Text className="text-white text-[9px] font-bold">
+                                            {unreadCount > 99 ? '99+' : unreadCount}
+                                        </Text>
+                                    </View>
+                                )}
                             </View>
                             <Text className="text-[10px] font-medium mt-0.5" style={{ color: '#F59E0B' }}>{t('navigation.appSwitcher.title')}</Text>
                         </TouchableOpacity>

@@ -281,7 +281,11 @@
       "challengeAlerts": "Уведомления о челленджах"
     },
     "appSwitcher": {
-      "title": "Приложения"
+      "title": "Приложения",
+      "subtitle": "Ваша Вселенная",
+      "settings": "Настройки",
+      "help": "Помощь",
+      "newNotifications": "новых"
     },
     "createMenu": {
       "title": "Что вы хотите сделать?",
