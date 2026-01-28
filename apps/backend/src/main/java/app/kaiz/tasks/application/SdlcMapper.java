@@ -2,6 +2,7 @@ package app.kaiz.tasks.application;
 
 import app.kaiz.tasks.application.dto.*;
 import app.kaiz.tasks.domain.*;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import org.mapstruct.*;
@@ -85,10 +86,49 @@ public interface SdlcMapper {
 
   List<TaskHistoryDto> toTaskHistoryDtoList(List<TaskHistory> history);
 
-  // TaskTemplate mappings
+  // TaskTemplate mappings (extended)
   @Mapping(target = "defaultLifeWheelAreaId", source = "defaultLifeWheelArea.id")
   @Mapping(target = "defaultEisenhowerQuadrantId", source = "defaultEisenhowerQuadrant.id")
+  @Mapping(target = "userId", source = "user.id")
+  @Mapping(target = "type", source = "type")
+  @Mapping(target = "creatorType", source = "creatorType")
+  @Mapping(target = "defaultAttendees", expression = "java(mapStringArrayToList(template.getDefaultAttendees()))")
+  @Mapping(target = "recurrencePattern", expression = "java(mapRecurrencePattern(template))")
+  @Mapping(target = "isFavorite", ignore = true) // Set by service based on user
+  @Mapping(target = "userRating", ignore = true) // Set by service based on user
   TaskTemplateDto toTaskTemplateDto(TaskTemplate template);
 
   List<TaskTemplateDto> toTaskTemplateDtoList(List<TaskTemplate> templates);
+
+  // Helper methods for template mapping
+  default List<String> mapStringArrayToList(String[] array) {
+    if (array == null) {
+      return List.of();
+    }
+    return Arrays.asList(array);
+  }
+
+  default TaskTemplateDto.RecurrencePatternDto mapRecurrencePattern(TaskTemplate template) {
+    if (!template.isRecurring() || template.getRecurrenceFrequency() == null) {
+      return null;
+    }
+    return new TaskTemplateDto.RecurrencePatternDto(
+        template.getRecurrenceFrequency().name(),
+        template.getRecurrenceInterval() != null ? template.getRecurrenceInterval() : 1,
+        template.getRecurrenceEndDate()
+    );
+  }
+
+  // Enums to String
+  default String mapTemplateType(TemplateType type) {
+    return type != null ? type.name() : null;
+  }
+
+  default String mapCreatorType(CreatorType type) {
+    return type != null ? type.name() : null;
+  }
+
+  default String mapSuggestedSprint(SuggestedSprint sprint) {
+    return sprint != null ? sprint.name() : null;
+  }
 }

@@ -17,6 +17,8 @@ export default function SDLCLayout() {
             <Stack.Screen name="velocity/index" />
             <Stack.Screen name="wiki/index" />
             <Stack.Screen name="task/edit" />
+            <Stack.Screen name="templates" />
+            <Stack.Screen name="create-template" />
         </Stack>
     );
 }

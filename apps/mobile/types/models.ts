@@ -115,11 +115,85 @@ export interface TaskTemplate {
     id: string;
     name: string;
     description: string;
+    type: 'task' | 'event';
+    creatorType: 'system' | 'user';
+    userId: string | null; // null for system templates
+    
+    // Task defaults
     defaultStoryPoints: number;
     defaultLifeWheelAreaId: string;
     defaultEisenhowerQuadrantId: string;
-    userId: string;
+    
+    // Event defaults
+    defaultDuration: number | null; // minutes
+    defaultLocation: string | null;
+    isAllDay: boolean;
+    defaultAttendees: string[];
+    
+    // Recurrence
+    isRecurring: boolean;
+    recurrencePattern: RecurrencePattern | null;
+    suggestedSprint: 'current' | 'next' | 'backlog';
+    
+    // Community metrics
+    rating: number; // 0-5
+    ratingCount: number;
+    usageCount: number;
+    
+    // Display
+    icon: string;
+    color: string;
+    tags: string[];
+    
+    // User-specific (populated per request)
+    isFavorite: boolean;
+    userRating: number | null; // null if user hasn't rated
+    
     createdAt: string;
+    updatedAt: string;
+}
+
+export interface RecurrencePattern {
+    frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly';
+    interval: number;
+    endDate: string | null;
+}
+
+export interface TemplateFilterOptions {
+    type?: 'task' | 'event';
+    lifeWheelAreaId?: string;
+    search?: string;
+    favoritesOnly?: boolean;
+    sortBy?: 'rating' | 'usage' | 'name' | 'createdAt';
+}
+
+export interface CreateTemplateRequest {
+    name: string;
+    description?: string;
+    type?: 'task' | 'event';
+    defaultStoryPoints?: number;
+    defaultLifeWheelAreaId?: string;
+    defaultEisenhowerQuadrantId?: string;
+    defaultDuration?: number;
+    defaultLocation?: string;
+    isAllDay?: boolean;
+    defaultAttendees?: string[];
+    isRecurring?: boolean;
+    recurrencePattern?: RecurrencePattern;
+    suggestedSprint?: 'current' | 'next' | 'backlog';
+    icon?: string;
+    color?: string;
+    tags?: string[];
+}
+
+export interface UseTemplateRequest {
+    title?: string; // Override template title
+    description?: string; // Override template description
+    sprintId?: string | null; // null for backlog
+    epicId?: string; // optional epic association
+    startDate?: string; // for recurring or scheduled tasks
+    isRecurring?: boolean;
+    recurrencePattern?: RecurrencePattern;
 }
 
 // Bills

@@ -428,6 +428,103 @@
     "noEpicsYet": "No epics yet. Create an epic to group related tasks.",
     "addToBacklog": "Add a new task to your backlog"
   },
+  "templates": {
+    "title": "Templates",
+    "global": "Global",
+    "myTemplates": "My Templates",
+    "favorites": "Favorites",
+    "createTemplate": "Create Template",
+    "editTemplate": "Edit Template",
+    "useTemplate": "Use Template",
+    "cloneTemplate": "Clone to My Templates",
+    "templateDetails": "Template Details",
+    "fromTemplate": "From template",
+    "rateTemplate": "Rate this template",
+    "yourRating": "Your rating",
+    "type": {
+      "title": "Type",
+      "task": "Task",
+      "event": "Event"
+    },
+    "fields": {
+      "name": "Name",
+      "namePlaceholder": "e.g., Morning Exercise Routine",
+      "description": "Description",
+      "descriptionPlaceholder": "Describe the template...",
+      "icon": "Icon",
+      "selectIcon": "Select icon",
+      "lifeWheelArea": "Life Wheel Area",
+      "duration": "Default Duration",
+      "priority": "Default Priority",
+      "recurrence": "Default Recurrence",
+      "location": "Default Location",
+      "locationPlaceholder": "e.g., Home gym, Office...",
+      "allDayEvent": "All day event by default",
+      "tags": "Tags (comma-separated)",
+      "tagsPlaceholder": "e.g., morning, workout, health"
+    },
+    "recurrence": {
+      "none": "No recurrence",
+      "daily": "Daily",
+      "weekdays": "Every weekday",
+      "weekly": "Weekly",
+      "biweekly": "Bi-weekly",
+      "monthly": "Monthly",
+      "yearly": "Yearly"
+    },
+    "sprint": {
+      "addToSprint": "Add to Sprint",
+      "currentSprint": "Current Sprint",
+      "nextSprint": "Next Sprint",
+      "backlog": "Backlog"
+    },
+    "stats": {
+      "rating": "Rating",
+      "ratings": "ratings",
+      "uses": "uses"
+    },
+    "empty": {
+      "global": "No global templates available",
+      "user": "You haven't created any templates yet",
+      "favorites": "No favorite templates yet. Star templates to add them here!"
+    },
+    "filter": {
+      "all": "All",
+      "tasks": "Tasks",
+      "events": "Events",
+      "favoritesOnly": "Favorites Only",
+      "clearFilters": "Clear Filters"
+    },
+    "search": {
+      "placeholder": "Search templates..."
+    },
+    "create": {
+      "title": "Create Template",
+      "creating": "Creating...",
+      "success": "Template created successfully",
+      "error": "Failed to create template. Please try again."
+    },
+    "use": {
+      "title": "Create from Template",
+      "createTask": "Create Task",
+      "createEvent": "Create Event",
+      "creating": "Creating...",
+      "success": "created successfully",
+      "error": "Failed to create. Please try again.",
+      "aiRefinement": "AI Refinement",
+      "aiRefinementDesc": "Enhance with SensAI suggestions"
+    },
+    "actions": {
+      "favorite": "Favorite",
+      "unfavorite": "Unfavorite",
+      "rate": "Rate",
+      "clone": "Clone",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "found": "{{count}} template found",
+    "foundPlural": "{{count}} templates found"
+  },
   "sprints": {
     "title": "Sprint",
     "currentSprint": "Current Sprint",

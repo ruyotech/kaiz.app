@@ -1078,47 +1078,127 @@ export const notificationApi = {
     },
 };
 
-// Task Template API
+// Task Template API (Extended)
+import { TaskTemplate, CreateTemplateRequest, TemplateFilterOptions, RecurrencePattern } from '../types/models';
+
+export interface RatingResponse {
+    templateId: string;
+    averageRating: number;
+    ratingCount: number;
+    userRating: number;
+}
+
+export interface FavoriteResponse {
+    templateId: string;
+    isFavorite: boolean;
+}
+
 export const taskTemplateApi = {
     /**
-     * Get all templates
+     * Get all available templates (global + user's own)
      */
-    async getTemplates(): Promise<any[]> {
-        return request<any[]>('/templates', { method: 'GET' }, true);
+    async getAllTemplates(): Promise<TaskTemplate[]> {
+        return request<TaskTemplate[]>('/templates', { method: 'GET' }, true);
+    },
+
+    /**
+     * Get global (system) templates
+     */
+    async getGlobalTemplates(): Promise<TaskTemplate[]> {
+        return request<TaskTemplate[]>('/templates/global', { method: 'GET' }, true);
+    },
+
+    /**
+     * Get global templates by life wheel area
+     */
+    async getGlobalTemplatesByArea(areaId: string): Promise<TaskTemplate[]> {
+        return request<TaskTemplate[]>(`/templates/global/area/${areaId}`, { method: 'GET' }, true);
+    },
+
+    /**
+     * Get user's own templates
+     */
+    async getUserTemplates(): Promise<TaskTemplate[]> {
+        return request<TaskTemplate[]>('/templates/user', { method: 'GET' }, true);
+    },
+
+    /**
+     * Get user's favorite templates
+     */
+    async getFavoriteTemplates(): Promise<TaskTemplate[]> {
+        return request<TaskTemplate[]>('/templates/favorites', { method: 'GET' }, true);
+    },
+
+    /**
+     * Search templates by query
+     */
+    async searchTemplates(query: string): Promise<TaskTemplate[]> {
+        return request<TaskTemplate[]>(`/templates/search?q=${encodeURIComponent(query)}`, { method: 'GET' }, true);
     },
 
     /**
      * Get template by ID
      */
-    async getTemplateById(id: string): Promise<any> {
-        return request<any>(`/templates/${id}`, { method: 'GET' }, true);
+    async getTemplateById(id: string): Promise<TaskTemplate> {
+        return request<TaskTemplate>(`/templates/${id}`, { method: 'GET' }, true);
     },
 
     /**
-     * Create a template
+     * Create a new user template
      */
-    async createTemplate(data: any): Promise<any> {
-        return request<any>('/templates', {
+    async createTemplate(data: CreateTemplateRequest): Promise<TaskTemplate> {
+        return request<TaskTemplate>('/templates', {
             method: 'POST',
             body: JSON.stringify(data),
         }, true);
     },
 
     /**
-     * Update a template
+     * Update a user template
      */
-    async updateTemplate(id: string, data: any): Promise<any> {
-        return request<any>(`/templates/${id}`, {
+    async updateTemplate(id: string, data: Partial<CreateTemplateRequest>): Promise<TaskTemplate> {
+        return request<TaskTemplate>(`/templates/${id}`, {
             method: 'PUT',
             body: JSON.stringify(data),
         }, true);
     },
 
     /**
-     * Delete a template
+     * Delete a user template
      */
     async deleteTemplate(id: string): Promise<void> {
         await request<void>(`/templates/${id}`, { method: 'DELETE' }, true);
+    },
+
+    /**
+     * Toggle favorite status
+     */
+    async toggleFavorite(id: string): Promise<FavoriteResponse> {
+        return request<FavoriteResponse>(`/templates/${id}/favorite`, { method: 'POST' }, true);
+    },
+
+    /**
+     * Rate a template (1-5 stars)
+     */
+    async rateTemplate(id: string, rating: number): Promise<RatingResponse> {
+        return request<RatingResponse>(`/templates/${id}/rate`, {
+            method: 'POST',
+            body: JSON.stringify({ rating }),
+        }, true);
+    },
+
+    /**
+     * Clone a global template to user's templates
+     */
+    async cloneTemplate(id: string): Promise<TaskTemplate> {
+        return request<TaskTemplate>(`/templates/${id}/clone`, { method: 'POST' }, true);
+    },
+
+    /**
+     * Increment usage count (called when creating task from template)
+     */
+    async useTemplate(id: string): Promise<void> {
+        await request<void>(`/templates/${id}/use`, { method: 'POST' }, true);
     },
 };
 
