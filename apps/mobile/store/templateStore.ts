@@ -95,9 +95,12 @@ export const useTemplateStore = create<TemplateState>()(
             fetchGlobalTemplates: async () => {
                 set({ loading: true, error: null });
                 try {
+                    console.log('📋 Fetching global templates...');
                     const templates = await taskTemplateApi.getGlobalTemplates();
-                    set({ globalTemplates: templates, loading: false });
+                    console.log('📋 Global templates received:', templates?.length, templates);
+                    set({ globalTemplates: templates || [], loading: false });
                 } catch (error) {
+                    console.error('📋 Failed to fetch global templates:', error);
                     set({ error: 'Failed to fetch global templates', loading: false });
                 }
             },
