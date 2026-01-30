@@ -59,4 +59,21 @@ public interface TaskRepository extends JpaRepository<Task, UUID> {
           + " AND t.status = 'DONE'")
   Integer sumCompletedPointsByUserIdAndSprintId(
       @Param("userId") UUID userId, @Param("sprintId") String sprintId);
+
+  /**
+   * Find recurring tasks that should appear in a given date range (for sprint view). A recurring
+   * task appears if: - Its recurrence start date is before or on the sprint end date - Its
+   * recurrence end date is null (infinite) OR is after or on the sprint start date
+   */
+  @Query(
+      "SELECT t FROM Task t JOIN t.recurrence r WHERE t.user.id = :userId "
+          + "AND t.isRecurring = true "
+          + "AND r.isActive = true "
+          + "AND r.startDate <= :sprintEndDate "
+          + "AND (r.endDate IS NULL OR r.endDate >= :sprintStartDate) "
+          + "ORDER BY t.createdAt DESC")
+  List<Task> findRecurringTasksForDateRange(
+      @Param("userId") UUID userId,
+      @Param("sprintStartDate") java.time.LocalDate sprintStartDate,
+      @Param("sprintEndDate") java.time.LocalDate sprintEndDate);
 }

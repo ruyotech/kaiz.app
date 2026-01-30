@@ -50,9 +50,13 @@ public class TaskRecurrence extends BaseEntity {
   @Column(name = "yearly_date")
   private LocalDate yearlyDate;
 
-  /** Time of day for the recurring task */
+  /** Time of day for the recurring task (start time) */
   @Column(name = "scheduled_time")
   private LocalTime scheduledTime;
+
+  /** End time for the recurring task (for time ranges like 8:30 to 9:30) */
+  @Column(name = "scheduled_end_time")
+  private LocalTime scheduledEndTime;
 
   /** Last date when a task instance was generated from this recurrence */
   @Column(name = "last_generated_date")

@@ -136,6 +136,9 @@ export function CreateFromTemplateSheet({
     const [hasTime, setHasTime] = useState(false);
     const [selectedHour, setSelectedHour] = useState<number>(9); // Default 9 AM
     const [selectedMinute, setSelectedMinute] = useState<number>(0);
+    const [hasEndTime, setHasEndTime] = useState(false);
+    const [selectedEndHour, setSelectedEndHour] = useState<number>(10); // Default 10 AM (1 hour after start)
+    const [selectedEndMinute, setSelectedEndMinute] = useState<number>(0);
     const [showYearlyDatePicker, setShowYearlyDatePicker] = useState(false);
 
     // Days of week for selection
@@ -188,6 +191,9 @@ export function CreateFromTemplateSheet({
             setHasTime(false);
             setSelectedHour(9);
             setSelectedMinute(0);
+            setHasEndTime(false);
+            setSelectedEndHour(10);
+            setSelectedEndMinute(0);
             
             // Set recurrence from template
             if (template.recurrencePattern) {
@@ -333,6 +339,11 @@ export function CreateFromTemplateSheet({
                     ? `${selectedHour.toString().padStart(2, '0')}:${selectedMinute.toString().padStart(2, '0')}:00`
                     : null;
                 
+                // Build scheduled end time string if specified
+                const scheduledEndTime = hasTime && hasEndTime
+                    ? `${selectedEndHour.toString().padStart(2, '0')}:${selectedEndMinute.toString().padStart(2, '0')}:00`
+                    : null;
+                
                 recurrence = {
                     frequency: frequency,
                     intervalValue: intervalValue,
@@ -344,6 +355,7 @@ export function CreateFromTemplateSheet({
                     yearlyDate: selectedRecurrenceId === 'yearly' 
                         ? formatLocalDate(yearlyDate) : null,
                     scheduledTime: scheduledTime,
+                    scheduledEndTime: scheduledEndTime,
                 };
             }
 
@@ -666,7 +678,9 @@ export function CreateFromTemplateSheet({
                                             </View>
                                             <Text className={`flex-1 font-medium ${hasTime ? 'text-amber-800' : 'text-gray-600'}`}>
                                                 {hasTime 
-                                                    ? `At ${selectedHour.toString().padStart(2, '0')}:${selectedMinute.toString().padStart(2, '0')}`
+                                                    ? hasEndTime
+                                                        ? `${selectedHour.toString().padStart(2, '0')}:${selectedMinute.toString().padStart(2, '0')} - ${selectedEndHour.toString().padStart(2, '0')}:${selectedEndMinute.toString().padStart(2, '0')}`
+                                                        : `At ${selectedHour.toString().padStart(2, '0')}:${selectedMinute.toString().padStart(2, '0')}`
                                                     : 'Add specific time (optional)'
                                                 }
                                             </Text>
@@ -730,6 +744,94 @@ export function CreateFromTemplateSheet({
                                                         ))}
                                                     </View>
                                                 </View>
+
+                                                {/* End Time Toggle */}
+                                                <TouchableOpacity
+                                                    onPress={() => {
+                                                        setHasEndTime(!hasEndTime);
+                                                        // Auto-set end time to 1 hour after start
+                                                        if (!hasEndTime) {
+                                                            setSelectedEndHour((selectedHour + 1) % 24);
+                                                            setSelectedEndMinute(selectedMinute);
+                                                        }
+                                                    }}
+                                                    className={`mt-3 flex-row items-center p-3 rounded-xl border ${
+                                                        hasEndTime ? 'bg-purple-50 border-purple-300' : 'bg-gray-50 border-gray-200'
+                                                    }`}
+                                                >
+                                                    <View className={`w-7 h-7 rounded-full items-center justify-center mr-2 ${
+                                                        hasEndTime ? 'bg-purple-100' : 'bg-gray-200'
+                                                    }`}>
+                                                        <Ionicons name="time" size={16} color={hasEndTime ? '#9333ea' : '#6b7280'} />
+                                                    </View>
+                                                    <Text className={`flex-1 font-medium ${hasEndTime ? 'text-purple-800' : 'text-gray-600'}`}>
+                                                        {hasEndTime 
+                                                            ? `Until ${selectedEndHour.toString().padStart(2, '0')}:${selectedEndMinute.toString().padStart(2, '0')}`
+                                                            : 'Add end time (e.g., 8:30 to 9:30)'
+                                                        }
+                                                    </Text>
+                                                    <Ionicons 
+                                                        name={hasEndTime ? "checkbox" : "square-outline"} 
+                                                        size={22} 
+                                                        color={hasEndTime ? "#9333ea" : "#9ca3af"} 
+                                                    />
+                                                </TouchableOpacity>
+
+                                                {/* End Time Picker */}
+                                                {hasEndTime && (
+                                                    <View className="mt-2 p-4 bg-purple-50 rounded-xl border border-purple-200">
+                                                        <View className="flex-row items-center justify-center gap-2">
+                                                            {/* End Hour Selector */}
+                                                            <View className="flex-1">
+                                                                <Text className="text-xs text-purple-700 font-medium mb-2 text-center">End Hour</Text>
+                                                                <ScrollView horizontal showsHorizontalScrollIndicator={false} className="max-h-12">
+                                                                    <View className="flex-row gap-1">
+                                                                        {HOURS.map((hour) => (
+                                                                            <TouchableOpacity
+                                                                                key={hour}
+                                                                                onPress={() => setSelectedEndHour(hour)}
+                                                                                className={`w-10 h-10 rounded-lg items-center justify-center ${
+                                                                                    selectedEndHour === hour
+                                                                                        ? 'bg-purple-500'
+                                                                                        : 'bg-white border border-purple-200'
+                                                                                }`}
+                                                                            >
+                                                                                <Text className={`font-medium ${
+                                                                                    selectedEndHour === hour ? 'text-white' : 'text-gray-700'
+                                                                                }`}>
+                                                                                    {hour.toString().padStart(2, '0')}
+                                                                                </Text>
+                                                                            </TouchableOpacity>
+                                                                        ))}
+                                                                    </View>
+                                                                </ScrollView>
+                                                            </View>
+                                                        </View>
+                                                        {/* End Minute Selector */}
+                                                        <View className="mt-3">
+                                                            <Text className="text-xs text-purple-700 font-medium mb-2 text-center">End Minute</Text>
+                                                            <View className="flex-row justify-center gap-3">
+                                                                {MINUTES.map((minute) => (
+                                                                    <TouchableOpacity
+                                                                        key={minute}
+                                                                        onPress={() => setSelectedEndMinute(minute)}
+                                                                        className={`w-14 h-10 rounded-lg items-center justify-center ${
+                                                                            selectedEndMinute === minute
+                                                                                ? 'bg-purple-500'
+                                                                                : 'bg-white border border-purple-200'
+                                                                        }`}
+                                                                    >
+                                                                        <Text className={`font-medium ${
+                                                                            selectedEndMinute === minute ? 'text-white' : 'text-gray-700'
+                                                                        }`}>
+                                                                            :{minute.toString().padStart(2, '0')}
+                                                                        </Text>
+                                                                    </TouchableOpacity>
+                                                                ))}
+                                                            </View>
+                                                        </View>
+                                                    </View>
+                                                )}
                                             </View>
                                         )}
                                     </View>

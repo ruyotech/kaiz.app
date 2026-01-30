@@ -200,15 +200,51 @@ export default function SprintCalendar() {
                                 <View className="mt-2 ml-2">
                                     {quadrantTasks.map((task) => {
                                         const taskEpic = epics.find(e => e.id === task.epicId);
+                                        const getRecurrenceLabel = () => {
+                                            if (!task.isRecurring || !task.recurrence) return null;
+                                            const freq = task.recurrence.frequency;
+                                            switch (freq) {
+                                                case 'DAILY': return '📅 Daily';
+                                                case 'WEEKLY': return '🔄 Weekly';
+                                                case 'BIWEEKLY': return '📆 Bi-weekly';
+                                                case 'MONTHLY': return '🗓️ Monthly';
+                                                case 'YEARLY': return '🎂 Yearly';
+                                                default: return '🔁 Recurring';
+                                            }
+                                        };
+                                        const recurrenceLabel = getRecurrenceLabel();
+                                        const hasTimeRange = task.recurrence?.scheduledTime && task.recurrence?.scheduledEndTime;
+                                        const timeRangeLabel = hasTimeRange 
+                                            ? `${task.recurrence.scheduledTime?.substring(0, 5)} - ${task.recurrence.scheduledEndTime?.substring(0, 5)}`
+                                            : task.recurrence?.scheduledTime 
+                                                ? `At ${task.recurrence.scheduledTime.substring(0, 5)}`
+                                                : null;
                                         return (
                                             <TouchableOpacity
                                                 key={task.id}
                                                 className="bg-white rounded-xl p-4 mb-2 border border-gray-200"
                                                 onPress={() => router.push(`/(tabs)/sdlc/task/${task.id}`)}
                                             >
-                                                <Text className="font-semibold text-gray-900 mb-2" numberOfLines={1}>
-                                                    {task.title}
-                                                </Text>
+                                                <View className="flex-row items-center justify-between mb-1">
+                                                    <Text className="font-semibold text-gray-900 flex-1 mr-2" numberOfLines={1}>
+                                                        {task.title}
+                                                    </Text>
+                                                    {recurrenceLabel && (
+                                                        <View className="bg-purple-100 px-2 py-0.5 rounded-full">
+                                                            <Text className="text-xs font-bold text-purple-700">
+                                                                {recurrenceLabel}
+                                                            </Text>
+                                                        </View>
+                                                    )}
+                                                </View>
+                                                {timeRangeLabel && (
+                                                    <View className="flex-row items-center mb-2">
+                                                        <MaterialCommunityIcons name="clock-outline" size={12} color="#9333ea" />
+                                                        <Text className="text-xs text-purple-600 ml-1 font-medium">
+                                                            {timeRangeLabel}
+                                                        </Text>
+                                                    </View>
+                                                )}
                                                 <View className="flex-row items-center justify-between">
                                                     <View className="flex-row items-center gap-2">
                                                         <View className="bg-gray-100 px-2 py-1 rounded">
@@ -299,15 +335,51 @@ export default function SprintCalendar() {
                                 <View className="mt-2 ml-2">
                                     {statusTasks.map((task) => {
                                         const taskEpic = epics.find(e => e.id === task.epicId);
+                                        const getRecurrenceLabel = () => {
+                                            if (!task.isRecurring || !task.recurrence) return null;
+                                            const freq = task.recurrence.frequency;
+                                            switch (freq) {
+                                                case 'DAILY': return '📅 Daily';
+                                                case 'WEEKLY': return '🔄 Weekly';
+                                                case 'BIWEEKLY': return '📆 Bi-weekly';
+                                                case 'MONTHLY': return '🗓️ Monthly';
+                                                case 'YEARLY': return '🎂 Yearly';
+                                                default: return '🔁 Recurring';
+                                            }
+                                        };
+                                        const recurrenceLabel = getRecurrenceLabel();
+                                        const hasTimeRange = task.recurrence?.scheduledTime && task.recurrence?.scheduledEndTime;
+                                        const timeRangeLabel = hasTimeRange 
+                                            ? `${task.recurrence.scheduledTime?.substring(0, 5)} - ${task.recurrence.scheduledEndTime?.substring(0, 5)}`
+                                            : task.recurrence?.scheduledTime 
+                                                ? `At ${task.recurrence.scheduledTime.substring(0, 5)}`
+                                                : null;
                                         return (
                                             <TouchableOpacity
                                                 key={task.id}
                                                 className="bg-white rounded-xl p-4 mb-2 border border-gray-200"
                                                 onPress={() => router.push(`/(tabs)/sdlc/task/${task.id}`)}
                                             >
-                                                <Text className="font-semibold text-gray-900 mb-2" numberOfLines={1}>
-                                                    {task.title}
-                                                </Text>
+                                                <View className="flex-row items-center justify-between mb-1">
+                                                    <Text className="font-semibold text-gray-900 flex-1 mr-2" numberOfLines={1}>
+                                                        {task.title}
+                                                    </Text>
+                                                    {recurrenceLabel && (
+                                                        <View className="bg-purple-100 px-2 py-0.5 rounded-full">
+                                                            <Text className="text-xs font-bold text-purple-700">
+                                                                {recurrenceLabel}
+                                                            </Text>
+                                                        </View>
+                                                    )}
+                                                </View>
+                                                {timeRangeLabel && (
+                                                    <View className="flex-row items-center mb-2">
+                                                        <MaterialCommunityIcons name="clock-outline" size={12} color="#9333ea" />
+                                                        <Text className="text-xs text-purple-600 ml-1 font-medium">
+                                                            {timeRangeLabel}
+                                                        </Text>
+                                                    </View>
+                                                )}
                                                 <View className="flex-row items-center justify-between">
                                                     <View className="bg-gray-100 px-2 py-1 rounded">
                                                         <Text className="text-xs font-bold text-gray-700">
@@ -385,15 +457,51 @@ export default function SprintCalendar() {
                                 <View className="mt-2 ml-2">
                                     {sizeTasks.map((task) => {
                                         const taskEpic = epics.find(e => e.id === task.epicId);
+                                        const getRecurrenceLabel = () => {
+                                            if (!task.isRecurring || !task.recurrence) return null;
+                                            const freq = task.recurrence.frequency;
+                                            switch (freq) {
+                                                case 'DAILY': return '📅 Daily';
+                                                case 'WEEKLY': return '🔄 Weekly';
+                                                case 'BIWEEKLY': return '📆 Bi-weekly';
+                                                case 'MONTHLY': return '🗓️ Monthly';
+                                                case 'YEARLY': return '🎂 Yearly';
+                                                default: return '🔁 Recurring';
+                                            }
+                                        };
+                                        const recurrenceLabel = getRecurrenceLabel();
+                                        const hasTimeRange = task.recurrence?.scheduledTime && task.recurrence?.scheduledEndTime;
+                                        const timeRangeLabel = hasTimeRange 
+                                            ? `${task.recurrence.scheduledTime?.substring(0, 5)} - ${task.recurrence.scheduledEndTime?.substring(0, 5)}`
+                                            : task.recurrence?.scheduledTime 
+                                                ? `At ${task.recurrence.scheduledTime.substring(0, 5)}`
+                                                : null;
                                         return (
                                             <TouchableOpacity
                                                 key={task.id}
                                                 className="bg-white rounded-xl p-4 mb-2 border border-gray-200"
                                                 onPress={() => router.push(`/(tabs)/sdlc/task/${task.id}`)}
                                             >
-                                                <Text className="font-semibold text-gray-900 mb-2" numberOfLines={1}>
-                                                    {task.title}
-                                                </Text>
+                                                <View className="flex-row items-center justify-between mb-1">
+                                                    <Text className="font-semibold text-gray-900 flex-1 mr-2" numberOfLines={1}>
+                                                        {task.title}
+                                                    </Text>
+                                                    {recurrenceLabel && (
+                                                        <View className="bg-purple-100 px-2 py-0.5 rounded-full">
+                                                            <Text className="text-xs font-bold text-purple-700">
+                                                                {recurrenceLabel}
+                                                            </Text>
+                                                        </View>
+                                                    )}
+                                                </View>
+                                                {timeRangeLabel && (
+                                                    <View className="flex-row items-center mb-2">
+                                                        <MaterialCommunityIcons name="clock-outline" size={12} color="#9333ea" />
+                                                        <Text className="text-xs text-purple-600 ml-1 font-medium">
+                                                            {timeRangeLabel}
+                                                        </Text>
+                                                    </View>
+                                                )}
                                                 <View className="flex-row items-center justify-between">
                                                     <View className="flex-row items-center gap-2">
                                                         <View className="bg-gray-100 px-2 py-1 rounded">

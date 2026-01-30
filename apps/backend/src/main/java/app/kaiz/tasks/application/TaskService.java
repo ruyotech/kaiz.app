@@ -51,8 +51,37 @@ public class TaskService {
   }
 
   public List<TaskDto> getTasksBySprintId(UUID userId, String sprintId) {
-    return sdlcMapper.toTaskDtoListWithoutDetails(
-        taskRepository.findByUserIdAndSprintIdOrderByCreatedAtDesc(userId, sprintId));
+    // Get tasks directly assigned to this sprint
+    List<Task> sprintTasks =
+        taskRepository.findByUserIdAndSprintIdOrderByCreatedAtDesc(userId, sprintId);
+
+    // Get the sprint to find its date range
+    var sprintOpt = sprintRepository.findById(sprintId);
+    if (sprintOpt.isEmpty()) {
+      return sdlcMapper.toTaskDtoListWithoutDetails(sprintTasks);
+    }
+
+    var sprint = sprintOpt.get();
+
+    // Get recurring tasks that overlap with this sprint's date range
+    List<Task> recurringTasks =
+        taskRepository.findRecurringTasksForDateRange(
+            userId, sprint.getStartDate(), sprint.getEndDate());
+
+    // Combine both lists, avoiding duplicates (in case a recurring task is also assigned to sprint)
+    Set<UUID> sprintTaskIds = new HashSet<>();
+    for (Task t : sprintTasks) {
+      sprintTaskIds.add(t.getId());
+    }
+
+    List<Task> combinedTasks = new ArrayList<>(sprintTasks);
+    for (Task recurringTask : recurringTasks) {
+      if (!sprintTaskIds.contains(recurringTask.getId())) {
+        combinedTasks.add(recurringTask);
+      }
+    }
+
+    return sdlcMapper.toTaskDtoListWithoutDetails(combinedTasks);
   }
 
   public List<TaskDto> getTasksByEpicId(UUID userId, UUID epicId) {
@@ -160,6 +189,7 @@ public class TaskService {
               .dayOfMonth(request.recurrence().dayOfMonth())
               .yearlyDate(request.recurrence().yearlyDate())
               .scheduledTime(request.recurrence().scheduledTime())
+              .scheduledEndTime(request.recurrence().scheduledEndTime())
               .isActive(true)
               .build();
       taskRecurrenceRepository.save(recurrence);

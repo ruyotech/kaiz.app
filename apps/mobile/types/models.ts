@@ -85,6 +85,20 @@ export interface Task {
     quadrant?: string;
     // Recurring task support
     isRecurring?: boolean;
+    recurrence?: {
+        id: string;
+        frequency: 'DAILY' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY' | 'YEARLY';
+        intervalValue: number;
+        startDate: string;
+        endDate?: string | null;
+        dayOfWeek?: number | null;
+        dayOfMonth?: number | null;
+        yearlyDate?: string | null;
+        scheduledTime?: string | null;
+        scheduledEndTime?: string | null;
+        isActive: boolean;
+    } | null;
+    // Legacy support
     recurrencePattern?: {
         frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly';
         interval: number; // e.g., every 2 weeks

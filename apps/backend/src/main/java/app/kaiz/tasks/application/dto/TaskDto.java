@@ -51,6 +51,7 @@ public record TaskDto(
       Integer dayOfMonth,
       LocalDate yearlyDate,
       LocalTime scheduledTime,
+      LocalTime scheduledEndTime,
       boolean isActive) {}
 
   // Nested DTO for tags
@@ -74,7 +75,8 @@ public record TaskDto(
       Integer dayOfWeek,
       Integer dayOfMonth,
       LocalDate yearlyDate,
-      LocalTime scheduledTime) {}
+      LocalTime scheduledTime,
+      LocalTime scheduledEndTime) {}
 
   // Request DTO for attachments when creating a task
   public record AttachmentRequest(
