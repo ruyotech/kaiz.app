@@ -143,11 +143,12 @@ export interface TaskTemplate {
     // Display
     icon: string;
     color: string;
-    tags: string[];
+    tags: string[]; // Template's own tags
     
     // User-specific (populated per request)
     isFavorite: boolean;
     userRating: number | null; // null if user hasn't rated
+    userTags: string[]; // User's personal tags for this template
     
     createdAt: string;
     updatedAt: string;

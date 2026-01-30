@@ -96,6 +96,7 @@ public interface SdlcMapper {
   @Mapping(target = "recurrencePattern", expression = "java(mapRecurrencePattern(template))")
   @Mapping(target = "isFavorite", ignore = true) // Set by service based on user
   @Mapping(target = "userRating", ignore = true) // Set by service based on user
+  @Mapping(target = "userTags", ignore = true) // Set by service based on user
   TaskTemplateDto toTaskTemplateDto(TaskTemplate template);
 
   List<TaskTemplateDto> toTaskTemplateDtoList(List<TaskTemplate> templates);

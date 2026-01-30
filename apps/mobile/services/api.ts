@@ -1283,7 +1283,32 @@ export const taskTemplateApi = {
     async useTemplate(id: string): Promise<void> {
         await requestRaw<void>(`/templates/${id}/use`, { method: 'POST' }, true);
     },
+
+    /**
+     * Add a tag to a template
+     */
+    async addTag(id: string, tag: string): Promise<TagsResponse> {
+        return requestRaw<TagsResponse>(`/templates/${id}/tags`, {
+            method: 'POST',
+            body: JSON.stringify({ tag }),
+        }, true);
+    },
+
+    /**
+     * Remove a tag from a template
+     */
+    async removeTag(id: string, tag: string): Promise<TagsResponse> {
+        return requestRaw<TagsResponse>(`/templates/${id}/tags/${encodeURIComponent(tag)}`, {
+            method: 'DELETE',
+        }, true);
+    },
 };
+
+// Response type for tags operations
+export interface TagsResponse {
+    templateId: string;
+    tags: string[];
+}
 
 // Mindset API
 export const mindsetApi = {

@@ -42,11 +42,12 @@ public record TaskTemplateDto(
     // Display
     String icon,
     String color,
-    List<String> tags,
+    List<String> tags, // Template's own tags
     
     // User-specific (populated per request)
     boolean isFavorite,
     Integer userRating, // null if user hasn't rated
+    List<String> userTags, // User's personal tags for this template
     
     Instant createdAt,
     Instant updatedAt) {

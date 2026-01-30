@@ -10,6 +10,7 @@ import app.kaiz.tasks.domain.*;
 import app.kaiz.tasks.infrastructure.TaskTemplateRepository;
 import app.kaiz.tasks.infrastructure.TemplateFavoriteRepository;
 import app.kaiz.tasks.infrastructure.TemplateRatingRepository;
+import app.kaiz.tasks.infrastructure.UserTemplateTagRepository;
 import app.kaiz.shared.exception.ResourceNotFoundException;
 import java.math.BigDecimal;
 import java.util.*;
@@ -26,6 +27,7 @@ public class TaskTemplateService {
   private final TaskTemplateRepository taskTemplateRepository;
   private final TemplateFavoriteRepository templateFavoriteRepository;
   private final TemplateRatingRepository templateRatingRepository;
+  private final UserTemplateTagRepository userTemplateTagRepository;
   private final UserRepository userRepository;
   private final LifeWheelAreaRepository lifeWheelAreaRepository;
   private final EisenhowerQuadrantRepository eisenhowerQuadrantRepository;
@@ -295,6 +297,49 @@ public class TaskTemplateService {
     taskTemplateRepository.incrementUsageCount(templateId);
   }
 
+  // ============ User Template Tags ============
+
+  @Transactional
+  public List<String> addTag(UUID userId, UUID templateId, String tag) {
+    // Verify template exists
+    TaskTemplate template = taskTemplateRepository.findById(templateId)
+        .orElseThrow(() -> new ResourceNotFoundException("TaskTemplate", templateId.toString()));
+    
+    User user = userRepository.findById(userId)
+        .orElseThrow(() -> new ResourceNotFoundException("User", userId.toString()));
+    
+    String normalizedTag = tag.trim().toLowerCase();
+    
+    // Check if tag already exists for this user and template
+    if (!userTemplateTagRepository.existsByUserIdAndTemplateIdAndTag(userId, templateId, normalizedTag)) {
+      UserTemplateTag userTag = UserTemplateTag.builder()
+          .user(user)
+          .template(template)
+          .tag(normalizedTag)
+          .build();
+      userTemplateTagRepository.save(userTag);
+    }
+    
+    // Return all user tags for this template
+    return userTemplateTagRepository.findTagsByUserIdAndTemplateId(userId, templateId);
+  }
+
+  @Transactional
+  public List<String> removeTag(UUID userId, UUID templateId, String tag) {
+    // Verify template exists
+    taskTemplateRepository.findById(templateId)
+        .orElseThrow(() -> new ResourceNotFoundException("TaskTemplate", templateId.toString()));
+    
+    String normalizedTag = tag.trim().toLowerCase();
+    
+    // Delete the tag if it exists
+    userTemplateTagRepository.findByUserIdAndTemplateIdAndTag(userId, templateId, normalizedTag)
+        .ifPresent(userTemplateTagRepository::delete);
+    
+    // Return remaining user tags for this template
+    return userTemplateTagRepository.findTagsByUserIdAndTemplateId(userId, templateId);
+  }
+
   // ============ Admin Operations ============
 
   public List<TaskTemplateDto> getAllSystemTemplates() {
@@ -407,14 +452,20 @@ public class TaskTemplateService {
   private List<TaskTemplateDto> enrichTemplatesWithUserData(List<TaskTemplate> templates, UUID userId) {
     Set<UUID> favoriteIds = new HashSet<>(templateFavoriteRepository.findTemplateIdsByUserId(userId));
     Map<UUID, Integer> userRatings = new HashMap<>();
+    Map<UUID, List<String>> userTagsMap = new HashMap<>();
     
     for (TaskTemplate t : templates) {
       templateRatingRepository.findByUserIdAndTemplateId(userId, t.getId())
           .ifPresent(r -> userRatings.put(t.getId(), r.getRating()));
+      userTagsMap.put(t.getId(), userTemplateTagRepository.findTagsByUserIdAndTemplateId(userId, t.getId()));
     }
 
     return templates.stream()
-        .map(t -> enrichDto(sdlcMapper.toTaskTemplateDto(t), favoriteIds.contains(t.getId()), userRatings.get(t.getId())))
+        .map(t -> enrichDto(
+            sdlcMapper.toTaskTemplateDto(t), 
+            favoriteIds.contains(t.getId()), 
+            userRatings.get(t.getId()),
+            userTagsMap.getOrDefault(t.getId(), new ArrayList<>())))
         .collect(Collectors.toList());
   }
 
@@ -423,11 +474,12 @@ public class TaskTemplateService {
     Integer userRating = templateRatingRepository.findByUserIdAndTemplateId(userId, template.getId())
         .map(TemplateRating::getRating)
         .orElse(null);
+    List<String> userTags = userTemplateTagRepository.findTagsByUserIdAndTemplateId(userId, template.getId());
     
-    return enrichDto(sdlcMapper.toTaskTemplateDto(template), isFavorite, userRating);
+    return enrichDto(sdlcMapper.toTaskTemplateDto(template), isFavorite, userRating, userTags);
   }
 
-  private TaskTemplateDto enrichDto(TaskTemplateDto dto, boolean isFavorite, Integer userRating) {
+  private TaskTemplateDto enrichDto(TaskTemplateDto dto, boolean isFavorite, Integer userRating, List<String> userTags) {
     return new TaskTemplateDto(
         dto.id(), dto.name(), dto.description(), dto.type(), dto.creatorType(), dto.userId(),
         dto.defaultStoryPoints(), dto.defaultLifeWheelAreaId(), dto.defaultEisenhowerQuadrantId(),
@@ -435,7 +487,7 @@ public class TaskTemplateService {
         dto.isRecurring(), dto.recurrencePattern(), dto.suggestedSprint(),
         dto.rating(), dto.ratingCount(), dto.usageCount(),
         dto.icon(), dto.color(), dto.tags(),
-        isFavorite, userRating,
+        isFavorite, userRating, userTags,
         dto.createdAt(), dto.updatedAt()
     );
   }

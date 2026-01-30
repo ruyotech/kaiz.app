@@ -36,6 +36,8 @@ interface TemplateState {
     rateTemplate: (id: string, rating: number) => Promise<RatingResponse>;
     cloneTemplate: (id: string) => Promise<TaskTemplate>;
     useTemplate: (id: string) => Promise<void>;
+    addTemplateTag: (id: string, tag: string) => Promise<string[]>;
+    removeTemplateTag: (id: string, tag: string) => Promise<string[]>;
     
     // Selection
     selectTemplate: (template: TaskTemplate | null) => void;
@@ -313,6 +315,58 @@ export const useTemplateStore = create<TemplateState>()(
                 } catch (error) {
                     // Silent fail - usage tracking is not critical
                     console.warn('Failed to track template usage:', error);
+                }
+            },
+
+            addTemplateTag: async (id: string, tag: string) => {
+                try {
+                    const response = await taskTemplateApi.addTag(id, tag);
+                    const updatedUserTags = response.tags;
+
+                    set(state => {
+                        const updateUserTags = (templates: TaskTemplate[]) =>
+                            templates.map(t => t.id === id ? { ...t, userTags: updatedUserTags } : t);
+
+                        return {
+                            globalTemplates: updateUserTags(state.globalTemplates),
+                            userTemplates: updateUserTags(state.userTemplates),
+                            favoriteTemplates: updateUserTags(state.favoriteTemplates),
+                            selectedTemplate: state.selectedTemplate?.id === id
+                                ? { ...state.selectedTemplate, userTags: updatedUserTags }
+                                : state.selectedTemplate,
+                        };
+                    });
+
+                    return updatedUserTags;
+                } catch (error) {
+                    set({ error: 'Failed to add tag' });
+                    throw error;
+                }
+            },
+
+            removeTemplateTag: async (id: string, tag: string) => {
+                try {
+                    const response = await taskTemplateApi.removeTag(id, tag);
+                    const updatedUserTags = response.tags;
+
+                    set(state => {
+                        const updateUserTags = (templates: TaskTemplate[]) =>
+                            templates.map(t => t.id === id ? { ...t, userTags: updatedUserTags } : t);
+
+                        return {
+                            globalTemplates: updateUserTags(state.globalTemplates),
+                            userTemplates: updateUserTags(state.userTemplates),
+                            favoriteTemplates: updateUserTags(state.favoriteTemplates),
+                            selectedTemplate: state.selectedTemplate?.id === id
+                                ? { ...state.selectedTemplate, userTags: updatedUserTags }
+                                : state.selectedTemplate,
+                        };
+                    });
+
+                    return updatedUserTags;
+                } catch (error) {
+                    set({ error: 'Failed to remove tag' });
+                    throw error;
                 }
             },
 

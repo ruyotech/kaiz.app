@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -6,6 +6,8 @@ import {
     ScrollView,
     TouchableOpacity,
     Pressable,
+    TextInput,
+    ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { TaskTemplate } from '../../types/models';
@@ -52,9 +54,22 @@ export function TemplateDetailModal({
     onUseTemplate,
     onCloneTemplate,
 }: TemplateDetailModalProps) {
-    const { toggleFavorite, rateTemplate } = useTemplateStore();
+    const { toggleFavorite, rateTemplate, addTemplateTag, removeTemplateTag } = useTemplateStore();
     const [userRating, setUserRating] = useState<number>(template?.userRating || 0);
     const [isRating, setIsRating] = useState(false);
+    const [userTags, setUserTags] = useState<string[]>(template?.userTags || []);
+    const [newTag, setNewTag] = useState('');
+    const [showTagInput, setShowTagInput] = useState(false);
+    const [isAddingTag, setIsAddingTag] = useState(false);
+    const [removingTagId, setRemovingTagId] = useState<string | null>(null);
+
+    // Update local state when template changes
+    useEffect(() => {
+        if (template) {
+            setUserTags(template.userTags || []);
+            setUserRating(template.userRating || 0);
+        }
+    }, [template]);
 
     if (!template) return null;
 
@@ -80,6 +95,39 @@ export function TemplateDetailModal({
             await toggleFavorite(template.id);
         } catch (error) {
             console.error('Failed to toggle favorite:', error);
+        }
+    };
+
+    const handleAddTag = async () => {
+        const trimmedTag = newTag.trim().toLowerCase();
+        if (!trimmedTag || userTags.includes(trimmedTag)) {
+            setNewTag('');
+            setShowTagInput(false);
+            return;
+        }
+
+        setIsAddingTag(true);
+        try {
+            const updatedTags = await addTemplateTag(template.id, trimmedTag);
+            setUserTags(updatedTags);
+            setNewTag('');
+            setShowTagInput(false);
+        } catch (error) {
+            console.error('Failed to add tag:', error);
+        } finally {
+            setIsAddingTag(false);
+        }
+    };
+
+    const handleRemoveTag = async (tag: string) => {
+        setRemovingTagId(tag);
+        try {
+            const updatedTags = await removeTemplateTag(template.id, tag);
+            setUserTags(updatedTags);
+        } catch (error) {
+            console.error('Failed to remove tag:', error);
+        } finally {
+            setRemovingTagId(null);
         }
     };
 
@@ -295,10 +343,10 @@ export function TemplateDetailModal({
                             </View>
                         </View>
 
-                        {/* Tags */}
+                        {/* Template Tags (read-only, from the template) */}
                         {template.tags && template.tags.length > 0 && (
                             <View className="mb-6">
-                                <Text className="text-sm font-medium text-gray-500 mb-3">Tags</Text>
+                                <Text className="text-sm font-medium text-gray-500 mb-3">Template Tags</Text>
                                 <View className="flex-row flex-wrap gap-2">
                                     {template.tags.map((tag, index) => (
                                         <View
@@ -311,6 +359,82 @@ export function TemplateDetailModal({
                                 </View>
                             </View>
                         )}
+
+                        {/* My Tags (user-specific, editable) */}
+                        <View className="mb-6">
+                            <View className="flex-row items-center justify-between mb-3">
+                                <Text className="text-sm font-medium text-gray-500">My Tags</Text>
+                                <TouchableOpacity 
+                                    onPress={() => setShowTagInput(!showTagInput)}
+                                    className="flex-row items-center"
+                                >
+                                    <Ionicons 
+                                        name={showTagInput ? "close-circle" : "add-circle"} 
+                                        size={20} 
+                                        color="#3b82f6" 
+                                    />
+                                    <Text className="text-blue-500 text-sm ml-1">
+                                        {showTagInput ? 'Cancel' : 'Add Tag'}
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                            
+                            {/* Tag Input */}
+                            {showTagInput && (
+                                <View className="flex-row items-center mb-3 bg-blue-50 rounded-xl p-2">
+                                    <TextInput
+                                        value={newTag}
+                                        onChangeText={setNewTag}
+                                        placeholder="Enter tag name..."
+                                        placeholderTextColor="#9ca3af"
+                                        className="flex-1 px-3 py-2 text-gray-800"
+                                        autoFocus
+                                        autoCapitalize="none"
+                                        onSubmitEditing={handleAddTag}
+                                    />
+                                    <TouchableOpacity
+                                        onPress={handleAddTag}
+                                        disabled={!newTag.trim() || isAddingTag}
+                                        className={`px-4 py-2 rounded-lg ${newTag.trim() ? 'bg-blue-500' : 'bg-gray-300'}`}
+                                    >
+                                        {isAddingTag ? (
+                                            <ActivityIndicator size="small" color="white" />
+                                        ) : (
+                                            <Text className="text-white font-medium">Add</Text>
+                                        )}
+                                    </TouchableOpacity>
+                                </View>
+                            )}
+
+                            {/* User Tags List */}
+                            <View className="flex-row flex-wrap gap-2">
+                                {userTags.length > 0 ? (
+                                    userTags.map((tag, index) => (
+                                        <View
+                                            key={index}
+                                            className="px-3 py-1.5 bg-blue-100 rounded-full flex-row items-center"
+                                        >
+                                            <Text className="text-blue-700">#{tag}</Text>
+                                            <TouchableOpacity
+                                                onPress={() => handleRemoveTag(tag)}
+                                                disabled={removingTagId === tag}
+                                                className="ml-2"
+                                            >
+                                                {removingTagId === tag ? (
+                                                    <ActivityIndicator size="small" color="#3b82f6" />
+                                                ) : (
+                                                    <Ionicons name="close-circle" size={16} color="#60a5fa" />
+                                                )}
+                                            </TouchableOpacity>
+                                        </View>
+                                    ))
+                                ) : (
+                                    <Text className="text-gray-400 text-sm italic">
+                                        Add your personal tags to organize this template.
+                                    </Text>
+                                )}
+                            </View>
+                        </View>
 
                         {/* Clone option for global templates */}
                         {template.creatorType === 'system' && onCloneTemplate && (

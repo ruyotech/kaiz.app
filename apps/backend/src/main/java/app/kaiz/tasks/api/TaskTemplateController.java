@@ -8,6 +8,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import java.net.URI;
 import java.util.List;
 import java.util.UUID;
@@ -139,7 +141,33 @@ public class TaskTemplateController {
     return ResponseEntity.ok().build();
   }
 
+  // ============ Tags ============
+
+  @PostMapping("/{id}/tags")
+  @Operation(summary = "Add tag to template", description = "Add a tag to a template (user or global)")
+  public ResponseEntity<TagsResponse> addTag(
+      @CurrentUser UUID userId,
+      @PathVariable UUID id,
+      @Valid @RequestBody AddTagRequest request) {
+    List<String> updatedTags = taskTemplateService.addTag(userId, id, request.tag());
+    return ResponseEntity.ok(new TagsResponse(id, updatedTags));
+  }
+
+  @DeleteMapping("/{id}/tags/{tag}")
+  @Operation(summary = "Remove tag from template", description = "Remove a tag from a template (user or global)")
+  public ResponseEntity<TagsResponse> removeTag(
+      @CurrentUser UUID userId,
+      @PathVariable UUID id,
+      @PathVariable String tag) {
+    List<String> updatedTags = taskTemplateService.removeTag(userId, id, tag);
+    return ResponseEntity.ok(new TagsResponse(id, updatedTags));
+  }
+
   // ============ Response DTOs ============
 
   public record FavoriteResponse(UUID templateId, boolean isFavorite) {}
+  
+  public record TagsResponse(UUID templateId, List<String> tags) {}
+  
+  public record AddTagRequest(@NotBlank @Size(max = 100) String tag) {}
 }
