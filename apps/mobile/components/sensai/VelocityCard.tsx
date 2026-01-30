@@ -36,12 +36,17 @@ export function VelocityCard({ metrics, showChart = true }: VelocityCardProps) {
         },
     };
     
-    const trend = TREND_CONFIG[metrics.velocityTrend];
+    const trend = TREND_CONFIG[metrics.velocityTrend] || TREND_CONFIG.stable;
     const screenWidth = Dimensions.get('window').width;
     const chartWidth = screenWidth - 64; // Account for padding
 
+    // Safely get velocity history with fallback to empty array
+    const velocityHistory = metrics.velocityHistory || [];
+
     // Calculate chart data
-    const maxVelocity = Math.max(...metrics.velocityHistory.map(v => v.completedPoints), metrics.currentVelocity);
+    const maxVelocity = velocityHistory.length > 0 
+        ? Math.max(...velocityHistory.map(v => v.completedPoints), metrics.currentVelocity)
+        : metrics.currentVelocity || 1;
     const chartHeight = 80;
 
     return (
@@ -88,13 +93,13 @@ export function VelocityCard({ metrics, showChart = true }: VelocityCardProps) {
             </View>
 
             {/* Mini Chart */}
-            {showChart && metrics.velocityHistory.length > 0 && (
+            {showChart && velocityHistory.length > 0 && (
                 <View className="mt-2">
-                    <Text className="text-xs text-gray-500 mb-2">{t('sensai.velocity.lastSprints', { count: metrics.velocityHistory.length })}</Text>
+                    <Text className="text-xs text-gray-500 mb-2">{t('sensai.velocity.lastSprints', { count: velocityHistory.length })}</Text>
                     <View className="flex-row items-end justify-between" style={{ height: chartHeight }}>
-                        {metrics.velocityHistory.slice(-8).map((sprint, index) => {
+                        {velocityHistory.slice(-8).map((sprint, index) => {
                             const height = (sprint.completedPoints / maxVelocity) * chartHeight;
-                            const isLatest = index === metrics.velocityHistory.slice(-8).length - 1;
+                            const isLatest = index === velocityHistory.slice(-8).length - 1;
                             
                             return (
                                 <View key={sprint.sprintId} className="items-center flex-1 mx-0.5">

@@ -186,9 +186,10 @@ export function CreateFromTemplateSheet({
 
     if (!template) return null;
 
+    const defaultWheelConfig = { color: '#6b7280', name: 'General', emoji: '📋' };
     const wheelConfig = template.defaultLifeWheelAreaId
-        ? LIFE_WHEEL_CONFIG[template.defaultLifeWheelAreaId]
-        : { color: '#6b7280', name: 'General', emoji: '📋' };
+        ? LIFE_WHEEL_CONFIG[template.defaultLifeWheelAreaId] || defaultWheelConfig
+        : defaultWheelConfig;
 
     return (
         <Modal
