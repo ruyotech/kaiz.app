@@ -209,21 +209,32 @@ export function TemplateCard({
                     </View>
                 </View>
 
-                {/* Tags */}
-                {template.tags && template.tags.length > 0 && (
+                {/* Tags - Show both user tags and global tags */}
+                {((template.userTags && template.userTags.length > 0) || (template.tags && template.tags.length > 0)) && (
                     <View className="flex-row flex-wrap mt-3 gap-1">
-                        {template.tags.slice(0, 3).map((tag, index) => (
+                        {/* User's personal tags (shown first with blue styling) */}
+                        {template.userTags?.slice(0, 2).map((tag, index) => (
                             <View
-                                key={index}
+                                key={`user-${index}`}
+                                className="px-2 py-0.5 rounded-md bg-blue-100"
+                            >
+                                <Text className="text-xs text-blue-600">#{tag}</Text>
+                            </View>
+                        ))}
+                        {/* Global template tags */}
+                        {template.tags?.slice(0, template.userTags?.length ? 1 : 3).map((tag, index) => (
+                            <View
+                                key={`global-${index}`}
                                 className="px-2 py-0.5 rounded-md bg-gray-100"
                             >
                                 <Text className="text-xs text-gray-600">#{tag}</Text>
                             </View>
                         ))}
-                        {template.tags.length > 3 && (
+                        {/* Show count of remaining tags */}
+                        {((template.userTags?.length || 0) + (template.tags?.length || 0)) > 3 && (
                             <View className="px-2 py-0.5 rounded-md bg-gray-100">
                                 <Text className="text-xs text-gray-500">
-                                    +{template.tags.length - 3}
+                                    +{((template.userTags?.length || 0) + (template.tags?.length || 0)) - 3}
                                 </Text>
                             </View>
                         )}

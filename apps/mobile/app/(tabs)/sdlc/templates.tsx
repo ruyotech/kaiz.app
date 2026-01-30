@@ -97,7 +97,8 @@ export default function TemplatesScreen() {
             result = result.filter(t =>
                 t.name.toLowerCase().includes(query) ||
                 t.description?.toLowerCase().includes(query) ||
-                t.tags?.some(tag => tag.toLowerCase().includes(query))
+                t.tags?.some(tag => tag.toLowerCase().includes(query)) ||
+                t.userTags?.some(tag => tag.toLowerCase().includes(query))
             );
         }
 
@@ -249,15 +250,32 @@ export default function TemplatesScreen() {
                             )}
                         </View>
 
-                        {/* Tags - creative tag design */}
-                        {item.tags && item.tags.length > 0 && (
+                        {/* Tags - show both user tags and global tags */}
+                        {((item.userTags && item.userTags.length > 0) || (item.tags && item.tags.length > 0)) && (
                             <View className="flex-row flex-wrap mt-2.5 gap-2">
-                                {item.tags.slice(0, 3).map((tag, index) => (
+                                {/* User's personal tags (shown first with blue styling) */}
+                                {item.userTags?.slice(0, 2).map((tag, index) => (
                                     <View
-                                        key={index}
+                                        key={`user-${index}`}
                                         className="flex-row items-center"
                                     >
-                                        {/* Tag shape with notch */}
+                                        <View 
+                                            className="w-0 h-0 border-t-[10px] border-b-[10px] border-r-[6px] border-t-transparent border-b-transparent"
+                                            style={{ borderRightColor: '#dbeafe' }}
+                                        />
+                                        <View className="flex-row items-center bg-blue-100 px-2 py-1 rounded-r-md">
+                                            <Text className="text-[11px] text-blue-600 font-medium">
+                                                {tag}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                ))}
+                                {/* Global template tags */}
+                                {item.tags?.slice(0, item.userTags?.length ? 1 : 3).map((tag, index) => (
+                                    <View
+                                        key={`global-${index}`}
+                                        className="flex-row items-center"
+                                    >
                                         <View 
                                             className="w-0 h-0 border-t-[10px] border-b-[10px] border-r-[6px] border-t-transparent border-b-transparent"
                                             style={{ borderRightColor: '#f3f4f6' }}
@@ -269,9 +287,10 @@ export default function TemplatesScreen() {
                                         </View>
                                     </View>
                                 ))}
-                                {item.tags.length > 3 && (
+                                {/* Show count of remaining tags */}
+                                {((item.userTags?.length || 0) + (item.tags?.length || 0)) > 3 && (
                                     <Text className="text-[11px] text-gray-400 self-center">
-                                        +{item.tags.length - 3}
+                                        +{((item.userTags?.length || 0) + (item.tags?.length || 0)) - 3}
                                     </Text>
                                 )}
                             </View>

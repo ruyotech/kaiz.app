@@ -65,10 +65,8 @@ export const MORE_MENUS: Record<AppContext, MoreMenuItem[]> = {
         { nameKey: 'navigation.sdlc.backlog', icon: 'inbox', route: '/(tabs)/sdlc/backlog' },
         { nameKey: 'navigation.sdlc.reports', icon: 'chart-line', route: '/(tabs)/sdlc/reports' },
         { nameKey: 'navigation.sdlc.velocity', icon: 'speedometer', route: '/(tabs)/sdlc/velocity' },
-        { nameKey: 'navigation.sdlc.retro', icon: 'comment-multiple', route: '/(tabs)/sdlc/retro' },
         { nameKey: 'navigation.sdlc.epics', icon: 'bookmark-multiple', route: '/(tabs)/sdlc/epics' },
         { nameKey: 'navigation.sdlc.knowledgeHub', icon: 'school', route: '/(tabs)/sdlc/wiki' },
-        { nameKey: 'navigation.sdlc.templates', icon: 'file-document-multiple', route: '/(tabs)/sdlc/templates' },
     ],
     sensai: [
         { nameKey: 'navigation.moreMenu.dailyStandup', icon: 'coffee', route: '/(tabs)/sensai/standup' },

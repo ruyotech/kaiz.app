@@ -88,7 +88,8 @@ export function TemplateList({
             result = result.filter(t =>
                 t.name.toLowerCase().includes(query) ||
                 t.description?.toLowerCase().includes(query) ||
-                t.tags?.some(tag => tag.toLowerCase().includes(query))
+                t.tags?.some(tag => tag.toLowerCase().includes(query)) ||
+                t.userTags?.some(tag => tag.toLowerCase().includes(query))
             );
         }
 
