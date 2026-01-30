@@ -1,26 +1,45 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
     View,
     Text,
-    SafeAreaView,
     TouchableOpacity,
     StatusBar,
+    FlatList,
+    TextInput,
+    RefreshControl,
+    ActivityIndicator,
+    ScrollView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { TaskTemplate } from '../../../types/models';
 import { useTemplateStore } from '../../../store/templateStore';
 import {
-    TemplateList,
     TemplateDetailModal,
     CreateFromTemplateSheet,
 } from '../../../components/templates';
+import { LIFE_WHEEL_CONFIG } from '../../../components/templates/TemplateCard';
 import { useTranslation } from '../../../hooks';
 
-type TabType = 'global' | 'my' | 'favorites';
+type SourceTab = 'global' | 'my' | 'favorites' | 'rated';
+
+const LIFE_WHEEL_AREAS = [
+    { id: 'all', name: 'All', emoji: '🎯', color: '#6b7280' },
+    { id: 'life-health', name: 'Health', emoji: '💪', color: '#10b981' },
+    { id: 'life-career', name: 'Career', emoji: '💼', color: '#3b82f6' },
+    { id: 'life-finance', name: 'Finance', emoji: '💰', color: '#f59e0b' },
+    { id: 'life-family', name: 'Family', emoji: '👨‍👩‍👧‍👦', color: '#ec4899' },
+    { id: 'life-romance', name: 'Romance', emoji: '❤️', color: '#ef4444' },
+    { id: 'life-friends', name: 'Friends', emoji: '👥', color: '#8b5cf6' },
+    { id: 'life-growth', name: 'Growth', emoji: '📚', color: '#06b6d4' },
+    { id: 'life-fun', name: 'Fun', emoji: '🎉', color: '#f97316' },
+    { id: 'life-environment', name: 'Environment', emoji: '🌍', color: '#84cc16' },
+];
 
 export default function TemplatesScreen() {
     const router = useRouter();
+    const insets = useSafeAreaInsets();
     const { t } = useTranslation();
     const {
         globalTemplates,
@@ -32,11 +51,17 @@ export default function TemplatesScreen() {
         fetchGlobalTemplates,
         fetchUserTemplates,
         fetchFavoriteTemplates,
+        toggleFavorite,
         cloneTemplate,
         clearError,
     } = useTemplateStore();
 
-    const [activeTab, setActiveTab] = useState<TabType>('global');
+    // Combined filter state
+    const [sourceTab, setSourceTab] = useState<SourceTab>('global');
+    const [selectedArea, setSelectedArea] = useState<string>('all');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [refreshing, setRefreshing] = useState(false);
+
     const [selectedTemplate, setSelectedTemplate] = useState<TaskTemplate | null>(null);
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [showCreateSheet, setShowCreateSheet] = useState(false);
@@ -46,8 +71,48 @@ export default function TemplatesScreen() {
         fetchAllTemplates();
     }, []);
 
+    // Get base templates based on source
+    const baseTemplates = useMemo(() => {
+        switch (sourceTab) {
+            case 'global': return globalTemplates;
+            case 'my': return userTemplates;
+            case 'favorites': return favoriteTemplates;
+            case 'rated': 
+                // Combine all templates and filter by user rating
+                const allTemplates = [...globalTemplates, ...userTemplates];
+                const uniqueTemplates = allTemplates.filter((t, idx, arr) => 
+                    arr.findIndex(x => x.id === t.id) === idx
+                );
+                return uniqueTemplates.filter(t => t.userRating && t.userRating > 0);
+            default: return globalTemplates;
+        }
+    }, [sourceTab, globalTemplates, userTemplates, favoriteTemplates]);
+
+    // Apply all filters
+    const filteredTemplates = useMemo(() => {
+        let result = [...baseTemplates];
+
+        // Search filter
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase();
+            result = result.filter(t =>
+                t.name.toLowerCase().includes(query) ||
+                t.description?.toLowerCase().includes(query) ||
+                t.tags?.some(tag => tag.toLowerCase().includes(query))
+            );
+        }
+
+        // Life wheel area filter
+        if (selectedArea !== 'all') {
+            result = result.filter(t => t.defaultLifeWheelAreaId === selectedArea);
+        }
+
+        return result;
+    }, [baseTemplates, searchQuery, selectedArea]);
+
     const handleRefresh = useCallback(async () => {
-        switch (activeTab) {
+        setRefreshing(true);
+        switch (sourceTab) {
             case 'global':
                 await fetchGlobalTemplates();
                 break;
@@ -58,7 +123,16 @@ export default function TemplatesScreen() {
                 await fetchFavoriteTemplates();
                 break;
         }
-    }, [activeTab, fetchGlobalTemplates, fetchUserTemplates, fetchFavoriteTemplates]);
+        setRefreshing(false);
+    }, [sourceTab, fetchGlobalTemplates, fetchUserTemplates, fetchFavoriteTemplates]);
+
+    const handleFavoritePress = useCallback(async (templateId: string) => {
+        try {
+            await toggleFavorite(templateId);
+        } catch (error) {
+            console.error('Failed to toggle favorite:', error);
+        }
+    }, [toggleFavorite]);
 
     const handleTemplatePress = (template: TaskTemplate) => {
         setSelectedTemplate(template);
@@ -75,7 +149,7 @@ export default function TemplatesScreen() {
         try {
             await cloneTemplate(template.id);
             setShowDetailModal(false);
-            setActiveTab('my');
+            setSourceTab('my');
         } catch (error) {
             console.error('Failed to clone template:', error);
         }
@@ -84,128 +158,295 @@ export default function TemplatesScreen() {
     const handleTaskCreated = (taskId: string) => {
         setShowCreateSheet(false);
         setTemplateForCreation(null);
-        // Navigate to the task detail or sprint calendar
         router.push(`/(tabs)/sdlc/task/${taskId}`);
     };
 
-    const getActiveTemplates = () => {
-        switch (activeTab) {
-            case 'global':
-                return globalTemplates;
-            case 'my':
-                return userTemplates;
-            case 'favorites':
-                return favoriteTemplates;
-            default:
-                return globalTemplates;
+    const getEmptyMessage = () => {
+        if (searchQuery) return 'No templates match your search';
+        switch (sourceTab) {
+            case 'global': return 'No global templates available';
+            case 'my': return 'You haven\'t created any templates yet';
+            case 'favorites': return 'Tap ❤️ on templates to add them here!';
+            case 'rated': return 'Rate templates with ⭐ to see them here!';
+            default: return 'No templates found';
         }
     };
 
-    const getEmptyMessage = () => {
-        switch (activeTab) {
-            case 'global':
-                return 'No global templates available';
-            case 'my':
-                return 'You haven\'t created any templates yet';
-            case 'favorites':
-                return 'No favorite templates yet. Star templates to add them here!';
-            default:
-                return 'No templates found';
-        }
+    const getWheelConfig = (areaId: string) => {
+        return LIFE_WHEEL_CONFIG[areaId] || { color: '#6b7280', name: 'General', emoji: '📋' };
     };
+
+    // Render minimal template item
+    const renderTemplateItem = ({ item }: { item: TaskTemplate }) => {
+        const wheelConfig = getWheelConfig(item.defaultLifeWheelAreaId || '');
+
+        return (
+            <TouchableOpacity
+                onPress={() => handleTemplatePress(item)}
+                activeOpacity={0.7}
+                className="py-4 border-b border-gray-50"
+            >
+                {/* Main Row */}
+                <View className="flex-row items-start">
+                    {/* Icon with gradient-like effect */}
+                    <View className="relative mr-3">
+                        <View
+                            className="w-14 h-14 rounded-2xl items-center justify-center"
+                            style={{ backgroundColor: wheelConfig.color + '18' }}
+                        >
+                            <Text className="text-2xl">{item.icon || wheelConfig.emoji}</Text>
+                        </View>
+                        {/* Small wheel indicator dot */}
+                        <View 
+                            className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full items-center justify-center border-2 border-white"
+                            style={{ backgroundColor: wheelConfig.color }}
+                        >
+                            <Text className="text-[8px]">{wheelConfig.emoji}</Text>
+                        </View>
+                    </View>
+
+                    {/* Content */}
+                    <View className="flex-1">
+                        {/* Title Row */}
+                        <Text className="font-bold text-gray-900 text-base" numberOfLines={1}>
+                            {item.name}
+                        </Text>
+
+                        {/* Wheel of Life - inline style */}
+                        <View className="flex-row items-center mt-1">
+                            <View 
+                                className="w-2 h-2 rounded-full mr-1.5"
+                                style={{ backgroundColor: wheelConfig.color }}
+                            />
+                            <Text className="text-xs font-medium" style={{ color: wheelConfig.color }}>
+                                {wheelConfig.name}
+                            </Text>
+                            <Text className="text-gray-300 mx-2">•</Text>
+                            <Ionicons name="star" size={11} color="#fbbf24" />
+                            <Text className="text-xs text-gray-600 ml-0.5 font-medium">
+                                {item.rating.toFixed(1)}
+                            </Text>
+                            <Text className="text-gray-300 mx-2">•</Text>
+                            <Text className="text-xs text-gray-400">
+                                {item.usageCount.toLocaleString()} uses
+                            </Text>
+                            {item.recurrencePattern && (
+                                <>
+                                    <Text className="text-gray-300 mx-2">•</Text>
+                                    <View className="flex-row items-center bg-purple-50 px-1.5 py-0.5 rounded">
+                                        <Ionicons name="repeat" size={10} color="#9333ea" />
+                                        <Text className="text-[10px] text-purple-600 ml-0.5 font-medium">
+                                            {item.recurrencePattern.frequency}
+                                        </Text>
+                                    </View>
+                                </>
+                            )}
+                        </View>
+
+                        {/* Tags - creative tag design */}
+                        {item.tags && item.tags.length > 0 && (
+                            <View className="flex-row flex-wrap mt-2.5 gap-2">
+                                {item.tags.slice(0, 3).map((tag, index) => (
+                                    <View
+                                        key={index}
+                                        className="flex-row items-center"
+                                    >
+                                        {/* Tag shape with notch */}
+                                        <View 
+                                            className="w-0 h-0 border-t-[10px] border-b-[10px] border-r-[6px] border-t-transparent border-b-transparent"
+                                            style={{ borderRightColor: '#f3f4f6' }}
+                                        />
+                                        <View className="flex-row items-center bg-gray-100 px-2 py-1 rounded-r-md">
+                                            <Text className="text-[11px] text-gray-600 font-medium">
+                                                {tag}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                ))}
+                                {item.tags.length > 3 && (
+                                    <Text className="text-[11px] text-gray-400 self-center">
+                                        +{item.tags.length - 3}
+                                    </Text>
+                                )}
+                            </View>
+                        )}
+                    </View>
+                </View>
+            </TouchableOpacity>
+        );
+    };
+
+    const renderEmpty = () => (
+        <View className="items-center justify-center py-16">
+            <View className="w-20 h-20 rounded-full bg-gray-100 items-center justify-center mb-4">
+                <Ionicons name="document-text-outline" size={40} color="#d1d5db" />
+            </View>
+            <Text className="text-gray-500 text-base text-center">{getEmptyMessage()}</Text>
+            {(searchQuery || selectedArea !== 'all') && (
+                <TouchableOpacity
+                    onPress={() => {
+                        setSearchQuery('');
+                        setSelectedArea('all');
+                    }}
+                    className="mt-4 px-4 py-2 bg-blue-50 rounded-full"
+                >
+                    <Text className="text-blue-600 font-medium">Clear Filters</Text>
+                </TouchableOpacity>
+            )}
+        </View>
+    );
 
     return (
-        <SafeAreaView className="flex-1 bg-gray-50">
-            <StatusBar barStyle="dark-content" />
+        <View className="flex-1 bg-white">
+            <StatusBar barStyle="light-content" />
 
-            {/* Header */}
-            <View className="bg-white border-b border-gray-100 px-4 py-4">
-                <View className="flex-row items-center justify-between">
+            {/* Header - extends into unsafe area */}
+            <View 
+                className="bg-blue-600"
+                style={{ paddingTop: insets.top }}
+            >
+                {/* Title row - in safe area */}
+                <View className="px-4 py-3 flex-row items-center justify-between">
                     <TouchableOpacity
                         onPress={() => router.back()}
-                        className="p-2 -ml-2"
+                        className="p-1 -ml-1"
                     >
-                        <Ionicons name="arrow-back" size={24} color="#374151" />
+                        <Ionicons name="arrow-back" size={24} color="white" />
                     </TouchableOpacity>
-                    <Text className="text-xl font-bold text-gray-900">Templates</Text>
+                    <Text className="text-lg font-bold text-white">Templates</Text>
                     <TouchableOpacity
                         onPress={() => router.push('/(tabs)/sdlc/create-template' as any)}
-                        className="p-2 -mr-2"
+                        className="p-1 -mr-1"
                     >
-                        <Ionicons name="add-circle-outline" size={28} color="#3b82f6" />
+                        <Ionicons name="add" size={26} color="white" />
                     </TouchableOpacity>
                 </View>
 
-                {/* Tab Switcher */}
-                <View className="flex-row mt-4 bg-gray-100 rounded-xl p-1">
-                    <TouchableOpacity
-                        onPress={() => setActiveTab('global')}
-                        className={`flex-1 py-2.5 rounded-lg items-center ${
-                            activeTab === 'global' ? 'bg-white shadow-sm' : ''
-                        }`}
-                    >
-                        <Text
-                            className={`font-semibold ${
-                                activeTab === 'global' ? 'text-blue-600' : 'text-gray-500'
-                            }`}
-                        >
-                            🌐 Global
-                        </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        onPress={() => setActiveTab('my')}
-                        className={`flex-1 py-2.5 rounded-lg items-center ${
-                            activeTab === 'my' ? 'bg-white shadow-sm' : ''
-                        }`}
-                    >
-                        <Text
-                            className={`font-semibold ${
-                                activeTab === 'my' ? 'text-blue-600' : 'text-gray-500'
-                            }`}
-                        >
-                            👤 My Templates
-                        </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        onPress={() => setActiveTab('favorites')}
-                        className={`flex-1 py-2.5 rounded-lg items-center ${
-                            activeTab === 'favorites' ? 'bg-white shadow-sm' : ''
-                        }`}
-                    >
-                        <Text
-                            className={`font-semibold ${
-                                activeTab === 'favorites' ? 'text-blue-600' : 'text-gray-500'
-                            }`}
-                        >
-                            ❤️ Favorites
-                        </Text>
-                    </TouchableOpacity>
+                {/* Combined Filter Row: Source + Type */}
+                <View className="px-4 pb-3">
+                    <View className="flex-row bg-white/20 rounded-xl p-1">
+                        {/* Source Tabs */}
+                        {[
+                            { key: 'global', label: '🌐', fullLabel: 'Global' },
+                            { key: 'my', label: '👤', fullLabel: 'Mine' },
+                            { key: 'favorites', label: '❤️', fullLabel: 'Favs' },
+                            { key: 'rated', label: '⭐', fullLabel: 'Rated' },
+                        ].map((tab, idx) => (
+                            <React.Fragment key={tab.key}>
+                                <TouchableOpacity
+                                    onPress={() => setSourceTab(tab.key as SourceTab)}
+                                    className={`flex-1 py-2 rounded-lg items-center ${
+                                        sourceTab === tab.key ? 'bg-white' : ''
+                                    }`}
+                                >
+                                    <Text className={`text-xs font-semibold ${
+                                        sourceTab === tab.key ? 'text-blue-600' : 'text-white'
+                                    }`}>
+                                        {tab.label} {tab.fullLabel}
+                                    </Text>
+                                </TouchableOpacity>
+                                {idx < 3 && (
+                                    <View className="w-px h-6 bg-white/30 my-auto" />
+                                )}
+                            </React.Fragment>
+                        ))}
+                    </View>
                 </View>
+            </View>
+
+            {/* Filter Bar */}
+            <View className="bg-gray-50 border-b border-gray-100">
+                {/* Search + Type Filter Row */}
+                <View className="px-4 py-2 flex-row items-center gap-2">
+                    {/* Search */}
+                    <View className="flex-1 flex-row items-center bg-white rounded-lg px-3 py-2 border border-gray-200">
+                        <Ionicons name="search" size={16} color="#9ca3af" />
+                        <TextInput
+                            className="flex-1 ml-2 text-sm text-gray-900"
+                            placeholder="Search templates..."
+                            placeholderTextColor="#9ca3af"
+                            value={searchQuery}
+                            onChangeText={setSearchQuery}
+                        />
+                        {searchQuery.length > 0 && (
+                            <TouchableOpacity onPress={() => setSearchQuery('')}>
+                                <Ionicons name="close-circle" size={16} color="#9ca3af" />
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                </View>
+
+                {/* Life Wheel Area Pills */}
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    className="px-4 pb-2"
+                    contentContainerStyle={{ gap: 6 }}
+                >
+                    {LIFE_WHEEL_AREAS.map((area) => {
+                        const isSelected = selectedArea === area.id;
+                        return (
+                            <TouchableOpacity
+                                key={area.id}
+                                onPress={() => setSelectedArea(area.id)}
+                                className={`px-3 py-1.5 rounded-full flex-row items-center ${
+                                    isSelected ? '' : 'bg-white border border-gray-200'
+                                }`}
+                                style={isSelected ? { backgroundColor: area.color } : {}}
+                            >
+                                <Text className="text-xs">{area.emoji}</Text>
+                                <Text className={`text-xs font-medium ml-1 ${
+                                    isSelected ? 'text-white' : 'text-gray-600'
+                                }`}>
+                                    {area.name}
+                                </Text>
+                            </TouchableOpacity>
+                        );
+                    })}
+                </ScrollView>
             </View>
 
             {/* Error Banner */}
             {error && (
-                <View className="bg-red-50 px-4 py-3 flex-row items-center justify-between">
-                    <Text className="text-red-700 flex-1">{error}</Text>
+                <View className="bg-red-50 px-4 py-2 flex-row items-center justify-between">
+                    <Text className="text-red-700 text-sm flex-1">{error}</Text>
                     <TouchableOpacity onPress={clearError}>
-                        <Ionicons name="close" size={20} color="#b91c1c" />
+                        <Ionicons name="close" size={18} color="#b91c1c" />
                     </TouchableOpacity>
                 </View>
             )}
 
-            {/* Template List */}
-            <View className="flex-1 px-4 pt-4">
-                <TemplateList
-                    templates={getActiveTemplates()}
-                    onTemplatePress={handleTemplatePress}
-                    onTemplateUse={handleTemplateUse}
-                    onRefresh={handleRefresh}
-                    loading={loading}
-                    showFilters={true}
-                    showSearch={true}
-                    emptyMessage={getEmptyMessage()}
-                />
+            {/* Results Count */}
+            <View className="px-4 py-2 flex-row justify-between items-center bg-white border-b border-gray-50">
+                <Text className="text-xs text-gray-400">
+                    {filteredTemplates.length} template{filteredTemplates.length !== 1 ? 's' : ''}
+                </Text>
             </View>
+
+            {/* Template List */}
+            {loading && filteredTemplates.length === 0 ? (
+                <View className="flex-1 items-center justify-center">
+                    <ActivityIndicator size="large" color="#3b82f6" />
+                    <Text className="text-gray-500 mt-3 text-sm">Loading templates...</Text>
+                </View>
+            ) : (
+                <FlatList
+                    data={filteredTemplates}
+                    renderItem={renderTemplateItem}
+                    keyExtractor={(item) => item.id}
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}
+                    ListEmptyComponent={renderEmpty}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={handleRefresh}
+                            colors={['#3b82f6']}
+                            tintColor="#3b82f6"
+                        />
+                    }
+                />
+            )}
 
             {/* Detail Modal */}
             <TemplateDetailModal
@@ -229,6 +470,6 @@ export default function TemplatesScreen() {
                 }}
                 onSuccess={handleTaskCreated}
             />
-        </SafeAreaView>
+        </View>
     );
 }

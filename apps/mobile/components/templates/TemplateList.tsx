@@ -168,27 +168,6 @@ export function TemplateList({
                     );
                 })}
             </ScrollView>
-
-            {/* Favorites Toggle */}
-            <TouchableOpacity
-                onPress={() => setShowFavoritesOnly(!showFavoritesOnly)}
-                className={`flex-row items-center self-start px-3 py-2 rounded-full ${
-                    showFavoritesOnly ? 'bg-red-100' : 'bg-gray-100'
-                }`}
-            >
-                <Ionicons
-                    name={showFavoritesOnly ? 'heart' : 'heart-outline'}
-                    size={18}
-                    color={showFavoritesOnly ? '#ef4444' : '#6b7280'}
-                />
-                <Text
-                    className={`ml-1 font-medium ${
-                        showFavoritesOnly ? 'text-red-600' : 'text-gray-600'
-                    }`}
-                >
-                    Favorites Only
-                </Text>
-            </TouchableOpacity>
         </View>
     );
 

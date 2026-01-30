@@ -123,37 +123,46 @@ export function TemplateDetailModal({
                 </View>
 
                 <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-                    {/* Hero Section */}
+                    {/* Hero Section with Wheel of Life */}
                     <View
-                        className="p-6 items-center"
-                        style={{ backgroundColor: wheelConfig.color + '10' }}
+                        className="p-6"
+                        style={{ backgroundColor: wheelConfig.color + '08' }}
                     >
-                        <View
-                            className="w-20 h-20 rounded-2xl items-center justify-center mb-4"
+                        {/* Wheel of Life Banner */}
+                        <View 
+                            className="flex-row items-center justify-center mb-4 py-2 px-4 rounded-full self-center"
                             style={{ backgroundColor: wheelConfig.color + '20' }}
                         >
-                            <Text className="text-4xl">{template.icon || wheelConfig.emoji}</Text>
+                            <Text className="text-xl mr-2">{wheelConfig.emoji}</Text>
+                            <Text className="font-bold text-base" style={{ color: wheelConfig.color }}>
+                                {wheelConfig.name}
+                            </Text>
+                            <Text className="text-sm ml-2" style={{ color: wheelConfig.color + 'aa' }}>
+                                Wheel of Life
+                            </Text>
                         </View>
-                        <Text className="text-2xl font-bold text-gray-900 text-center mb-2">
-                            {template.name}
-                        </Text>
-                        
-                        {/* Badges */}
-                        <View className="flex-row items-center gap-2 mt-2">
-                            <Badge variant={template.type === 'event' ? 'info' : 'default'}>
-                                {template.type === 'event' ? '📅 Event' : '✅ Task'}
-                            </Badge>
+
+                        {/* Icon & Title */}
+                        <View className="items-center">
                             <View
-                                className="px-3 py-1 rounded-full"
-                                style={{ backgroundColor: wheelConfig.color + '30' }}
+                                className="w-20 h-20 rounded-2xl items-center justify-center mb-4"
+                                style={{ backgroundColor: wheelConfig.color + '20' }}
                             >
-                                <Text style={{ color: wheelConfig.color }} className="font-medium">
-                                    {wheelConfig.emoji} {wheelConfig.name}
-                                </Text>
+                                <Text className="text-4xl">{template.icon || wheelConfig.emoji}</Text>
                             </View>
-                            {template.creatorType === 'system' && (
-                                <Badge variant="warning">⭐ Global</Badge>
-                            )}
+                            <Text className="text-2xl font-bold text-gray-900 text-center mb-2">
+                                {template.name}
+                            </Text>
+                            
+                            {/* Type & Creator Badges */}
+                            <View className="flex-row items-center gap-2 mt-2">
+                                <Badge variant={template.type === 'event' ? 'info' : 'default'}>
+                                    {template.type === 'event' ? '📅 Event' : '✅ Task'}
+                                </Badge>
+                                {template.creatorType === 'system' && (
+                                    <Badge variant="warning">⭐ Global</Badge>
+                                )}
+                            </View>
                         </View>
                     </View>
 
@@ -183,16 +192,30 @@ export function TemplateDetailModal({
                         </View>
 
                         {/* Rate this template */}
-                        <View className="mb-6 p-4 bg-blue-50 rounded-xl">
-                            <Text className="text-sm font-medium text-blue-800 mb-3 text-center">
-                                Rate this template
-                            </Text>
-                            <View className="flex-row justify-center gap-2">
-                                {renderStars(userRating || template.userRating || 0, 32, true, handleRate)}
+                        <View className="mb-6 p-4 rounded-xl border-2 border-blue-200" style={{ backgroundColor: '#eff6ff' }}>
+                            <View className="flex-row items-center justify-center mb-3">
+                                <Ionicons name="star" size={18} color="#3b82f6" />
+                                <Text className="text-base font-semibold text-blue-700 ml-2">
+                                    Rate this template
+                                </Text>
                             </View>
-                            {userRating > 0 && (
-                                <Text className="text-xs text-blue-600 text-center mt-2">
-                                    Your rating: {userRating}/5
+                            <View className="flex-row justify-center gap-3">
+                                {renderStars(userRating || template.userRating || 0, 36, true, handleRate)}
+                            </View>
+                            {isRating ? (
+                                <Text className="text-xs text-blue-500 text-center mt-3">
+                                    Saving your rating...
+                                </Text>
+                            ) : userRating > 0 ? (
+                                <View className="flex-row items-center justify-center mt-3">
+                                    <Ionicons name="checkmark-circle" size={14} color="#10b981" />
+                                    <Text className="text-xs text-green-600 ml-1">
+                                        You rated this {userRating}/5 ⭐
+                                    </Text>
+                                </View>
+                            ) : (
+                                <Text className="text-xs text-blue-400 text-center mt-3">
+                                    Tap a star to rate
                                 </Text>
                             )}
                         </View>
