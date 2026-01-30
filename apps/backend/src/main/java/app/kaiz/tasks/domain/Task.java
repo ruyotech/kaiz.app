@@ -8,7 +8,9 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
@@ -69,6 +71,54 @@ public class Task extends BaseEntity {
 
   @Column(name = "completed_at")
   private Instant completedAt;
+
+  // Target date for non-recurring tasks (due date)
+  @Column(name = "target_date")
+  private Instant targetDate;
+
+  // Recurring task flag and relationship
+  @Column(name = "is_recurring", nullable = false)
+  @Builder.Default
+  private boolean isRecurring = false;
+
+  @OneToOne(
+      mappedBy = "task",
+      cascade = CascadeType.ALL,
+      orphanRemoval = true,
+      fetch = FetchType.LAZY)
+  private TaskRecurrence recurrence;
+
+  // Event fields (for tasks created from event templates)
+  @Column(name = "is_event", nullable = false)
+  @Builder.Default
+  private boolean isEvent = false;
+
+  @Column(name = "location", length = 500)
+  private String location;
+
+  @Column(name = "is_all_day", nullable = false)
+  @Builder.Default
+  private boolean isAllDay = false;
+
+  @Column(name = "event_start_time")
+  private Instant eventStartTime;
+
+  @Column(name = "event_end_time")
+  private Instant eventEndTime;
+
+  // Tags (many-to-many with UserTag)
+  @ManyToMany(fetch = FetchType.LAZY)
+  @JoinTable(
+      name = "task_tags",
+      joinColumns = @JoinColumn(name = "task_id"),
+      inverseJoinColumns = @JoinColumn(name = "tag_id"))
+  @Builder.Default
+  private Set<UserTag> tags = new HashSet<>();
+
+  // Attachments
+  @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
+  @Builder.Default
+  private List<TaskAttachment> attachments = new ArrayList<>();
 
   @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
   @Builder.Default

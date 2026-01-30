@@ -5,9 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
-/**
- * Secret (anonymous) compliment sent to another member.
- */
+/** Secret (anonymous) compliment sent to another member. */
 @Entity
 @Table(name = "community_compliments")
 @Getter
@@ -17,22 +15,22 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 public class SecretCompliment extends BaseEntity {
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "to_member_id", nullable = false)
-    private CommunityMember toMember;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "to_member_id", nullable = false)
+  private CommunityMember toMember;
 
-    @Column(name = "message", nullable = false, length = 500)
-    private String message;
+  @Column(name = "message", nullable = false, length = 500)
+  private String message;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "category", nullable = false)
-    private ComplimentCategory category;
+  @Enumerated(EnumType.STRING)
+  @Column(name = "category", nullable = false)
+  private ComplimentCategory category;
 
-    @Column(name = "is_read")
-    @Builder.Default
-    private Boolean isRead = false;
+  @Column(name = "is_read")
+  @Builder.Default
+  private Boolean isRead = false;
 
-    public void markAsRead() {
-        this.isRead = true;
-    }
+  public void markAsRead() {
+    this.isRead = true;
+  }
 }

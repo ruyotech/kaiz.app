@@ -1,15 +1,9 @@
 package app.kaiz.notification.application;
 
-import app.kaiz.identity.domain.User;
 import app.kaiz.identity.infrastructure.UserRepository;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -19,13 +13,9 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Scheduled jobs for generating time-based notifications.
  *
- * <p>This service runs periodic checks to generate notifications for:
- * - Upcoming task deadlines
- * - Birthday reminders
- * - Event reminders
- * - Challenge daily check-ins
- * - Streak warnings
- * - Weekly reports
+ * <p>This service runs periodic checks to generate notifications for: - Upcoming task deadlines -
+ * Birthday reminders - Event reminders - Challenge daily check-ins - Streak warnings - Weekly
+ * reports
  */
 @Service
 @RequiredArgsConstructor

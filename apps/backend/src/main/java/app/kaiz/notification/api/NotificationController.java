@@ -40,8 +40,7 @@ public class NotificationController {
       summary = "Get all notifications",
       description = "Retrieve paginated notifications for the current user (excludes archived)")
   public ResponseEntity<Page<NotificationDto>> getNotifications(
-      @CurrentUser UUID userId,
-      @PageableDefault(size = 20) Pageable pageable) {
+      @CurrentUser UUID userId, @PageableDefault(size = 20) Pageable pageable) {
     return ResponseEntity.ok(notificationService.getNotificationsByUserId(userId, pageable));
   }
 
@@ -53,13 +52,15 @@ public class NotificationController {
       @CurrentUser UUID userId,
       @PathVariable @Parameter(description = "Notification category") NotificationCategory category,
       @PageableDefault(size = 20) Pageable pageable) {
-    return ResponseEntity.ok(notificationService.getNotificationsByCategory(userId, category, pageable));
+    return ResponseEntity.ok(
+        notificationService.getNotificationsByCategory(userId, category, pageable));
   }
 
   @GetMapping("/grouped")
   @Operation(
       summary = "Get grouped notifications",
-      description = "Retrieve notifications grouped by time period (today, yesterday, this week, older)")
+      description =
+          "Retrieve notifications grouped by time period (today, yesterday, this week, older)")
   public ResponseEntity<GroupedNotificationsDto> getGroupedNotifications(@CurrentUser UUID userId) {
     return ResponseEntity.ok(notificationService.getGroupedNotifications(userId));
   }
@@ -69,8 +70,7 @@ public class NotificationController {
       summary = "Get archived notifications",
       description = "Retrieve paginated archived notifications")
   public ResponseEntity<Page<NotificationDto>> getArchivedNotifications(
-      @CurrentUser UUID userId,
-      @PageableDefault(size = 20) Pageable pageable) {
+      @CurrentUser UUID userId, @PageableDefault(size = 20) Pageable pageable) {
     return ResponseEntity.ok(notificationService.getArchivedNotifications(userId, pageable));
   }
 
@@ -79,8 +79,7 @@ public class NotificationController {
       summary = "Get pinned notifications",
       description = "Retrieve paginated pinned notifications")
   public ResponseEntity<Page<NotificationDto>> getPinnedNotifications(
-      @CurrentUser UUID userId,
-      @PageableDefault(size = 20) Pageable pageable) {
+      @CurrentUser UUID userId, @PageableDefault(size = 20) Pageable pageable) {
     return ResponseEntity.ok(notificationService.getPinnedNotifications(userId, pageable));
   }
 
@@ -118,16 +117,14 @@ public class NotificationController {
   @PutMapping("/{id}/read")
   @Operation(summary = "Mark as read", description = "Mark a specific notification as read")
   public ResponseEntity<NotificationDto> markAsRead(
-      @CurrentUser UUID userId,
-      @PathVariable @Parameter(description = "Notification ID") UUID id) {
+      @CurrentUser UUID userId, @PathVariable @Parameter(description = "Notification ID") UUID id) {
     return ResponseEntity.ok(notificationService.markAsRead(userId, id));
   }
 
   @PutMapping("/{id}/unread")
   @Operation(summary = "Mark as unread", description = "Mark a specific notification as unread")
   public ResponseEntity<NotificationDto> markAsUnread(
-      @CurrentUser UUID userId,
-      @PathVariable @Parameter(description = "Notification ID") UUID id) {
+      @CurrentUser UUID userId, @PathVariable @Parameter(description = "Notification ID") UUID id) {
     return ResponseEntity.ok(notificationService.markAsUnread(userId, id));
   }
 
@@ -139,10 +136,13 @@ public class NotificationController {
   }
 
   @PutMapping("/category/{category}/read-all")
-  @Operation(summary = "Mark category as read", description = "Mark all notifications in a category as read")
+  @Operation(
+      summary = "Mark category as read",
+      description = "Mark all notifications in a category as read")
   public ResponseEntity<Void> markCategoryAsRead(
       @CurrentUser UUID userId,
-      @PathVariable @Parameter(description = "Notification category") NotificationCategory category) {
+      @PathVariable @Parameter(description = "Notification category")
+          NotificationCategory category) {
     notificationService.markCategoryAsRead(userId, category);
     return ResponseEntity.noContent().build();
   }
@@ -152,24 +152,21 @@ public class NotificationController {
   @PutMapping("/{id}/pin")
   @Operation(summary = "Toggle pinned", description = "Toggle the pinned status of a notification")
   public ResponseEntity<NotificationDto> togglePinned(
-      @CurrentUser UUID userId,
-      @PathVariable @Parameter(description = "Notification ID") UUID id) {
+      @CurrentUser UUID userId, @PathVariable @Parameter(description = "Notification ID") UUID id) {
     return ResponseEntity.ok(notificationService.togglePinned(userId, id));
   }
 
   @PutMapping("/{id}/archive")
   @Operation(summary = "Archive notification", description = "Archive a specific notification")
   public ResponseEntity<NotificationDto> archiveNotification(
-      @CurrentUser UUID userId,
-      @PathVariable @Parameter(description = "Notification ID") UUID id) {
+      @CurrentUser UUID userId, @PathVariable @Parameter(description = "Notification ID") UUID id) {
     return ResponseEntity.ok(notificationService.archiveNotification(userId, id));
   }
 
   @PutMapping("/{id}/unarchive")
   @Operation(summary = "Unarchive notification", description = "Unarchive a specific notification")
   public ResponseEntity<NotificationDto> unarchiveNotification(
-      @CurrentUser UUID userId,
-      @PathVariable @Parameter(description = "Notification ID") UUID id) {
+      @CurrentUser UUID userId, @PathVariable @Parameter(description = "Notification ID") UUID id) {
     return ResponseEntity.ok(notificationService.unarchiveNotification(userId, id));
   }
 
@@ -185,8 +182,7 @@ public class NotificationController {
   @DeleteMapping("/{id}")
   @Operation(summary = "Delete notification", description = "Permanently delete a notification")
   public ResponseEntity<Void> deleteNotification(
-      @CurrentUser UUID userId,
-      @PathVariable @Parameter(description = "Notification ID") UUID id) {
+      @CurrentUser UUID userId, @PathVariable @Parameter(description = "Notification ID") UUID id) {
     notificationService.deleteNotification(userId, id);
     return ResponseEntity.noContent().build();
   }
@@ -194,7 +190,9 @@ public class NotificationController {
   // ============ Create Endpoint ============
 
   @PostMapping
-  @Operation(summary = "Create notification", description = "Create a new notification (internal/admin use)")
+  @Operation(
+      summary = "Create notification",
+      description = "Create a new notification (internal/admin use)")
   public ResponseEntity<NotificationDto> createNotification(
       @Valid @RequestBody CreateNotificationRequest request) {
     NotificationDto created = notificationService.createNotification(request);
@@ -219,9 +217,7 @@ public class NotificationController {
       summary = "Update notification preferences",
       description = "Update notification preferences for the current user")
   public ResponseEntity<NotificationPreferencesDto> updatePreferences(
-      @CurrentUser UUID userId,
-      @Valid @RequestBody UpdatePreferencesRequest request) {
+      @CurrentUser UUID userId, @Valid @RequestBody UpdatePreferencesRequest request) {
     return ResponseEntity.ok(notificationService.updatePreferences(userId, request));
   }
 }
-

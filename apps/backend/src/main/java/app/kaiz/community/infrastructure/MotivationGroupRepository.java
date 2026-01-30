@@ -11,9 +11,9 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface MotivationGroupRepository extends JpaRepository<MotivationGroup, UUID> {
 
-    Page<MotivationGroup> findByIsPrivate(Boolean isPrivate, Pageable pageable);
+  Page<MotivationGroup> findByIsPrivate(Boolean isPrivate, Pageable pageable);
 
-    Page<MotivationGroup> findByLifeWheelAreaId(String lifeWheelAreaId, Pageable pageable);
+  Page<MotivationGroup> findByLifeWheelAreaId(String lifeWheelAreaId, Pageable pageable);
 
-    Page<MotivationGroup> findByCreatorId(UUID creatorId, Pageable pageable);
+  Page<MotivationGroup> findByCreatorId(UUID creatorId, Pageable pageable);
 }

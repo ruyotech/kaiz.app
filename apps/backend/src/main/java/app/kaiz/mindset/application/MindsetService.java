@@ -44,15 +44,11 @@ public class MindsetService {
   }
 
   public List<MindsetContentDto> getContentByEmotionalTone(EmotionalTone tone) {
-    return contentRepository.findByEmotionalTone(tone).stream()
-        .map(mapper::toContentDto)
-        .toList();
+    return contentRepository.findByEmotionalTone(tone).stream().map(mapper::toContentDto).toList();
   }
 
   public List<MindsetContentDto> getFavorites() {
-    return contentRepository.findByIsFavoriteTrue().stream()
-        .map(mapper::toContentDto)
-        .toList();
+    return contentRepository.findByIsFavoriteTrue().stream().map(mapper::toContentDto).toList();
   }
 
   @Transactional
@@ -66,9 +62,7 @@ public class MindsetService {
   }
 
   public List<MindsetThemeDto> getAllThemes() {
-    return themeRepository.findAll().stream()
-        .map(mapper::toThemeDto)
-        .toList();
+    return themeRepository.findAll().stream().map(mapper::toThemeDto).toList();
   }
 
   public MindsetThemeDto getThemeById(String id) {

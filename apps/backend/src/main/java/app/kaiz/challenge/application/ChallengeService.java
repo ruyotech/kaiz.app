@@ -141,8 +141,7 @@ public class ChallengeService {
           lifeWheelAreaRepository
               .findById(request.lifeWheelAreaId())
               .orElseThrow(
-                  () ->
-                      new ResourceNotFoundException("LifeWheelArea", request.lifeWheelAreaId()));
+                  () -> new ResourceNotFoundException("LifeWheelArea", request.lifeWheelAreaId()));
       challenge.setLifeWheelArea(lifeWheelArea);
     }
     if (request.metricType() != null) {
@@ -314,7 +313,8 @@ public class ChallengeService {
             .orElseThrow(() -> new ResourceNotFoundException("User", request.userId().toString()));
 
     // Check if already a participant
-    if (challengeParticipantRepository.existsByChallengeIdAndUserId(challengeId, request.userId())) {
+    if (challengeParticipantRepository.existsByChallengeIdAndUserId(
+        challengeId, request.userId())) {
       throw new IllegalStateException("User is already a participant in this challenge");
     }
 
@@ -325,6 +325,7 @@ public class ChallengeService {
             .isAccountabilityPartner(request.isAccountabilityPartner())
             .build();
 
-    return challengeMapper.toChallengeParticipantDto(challengeParticipantRepository.save(participant));
+    return challengeMapper.toChallengeParticipantDto(
+        challengeParticipantRepository.save(participant));
   }
 }

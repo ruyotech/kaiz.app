@@ -3,24 +3,25 @@ package app.kaiz.notification.domain;
 import app.kaiz.identity.domain.User;
 import app.kaiz.shared.persistence.BaseEntity;
 import jakarta.persistence.*;
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-import java.time.Instant;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
 @Entity
-@Table(name = "notifications", indexes = {
-    @Index(name = "idx_notification_user_created", columnList = "user_id, created_at DESC"),
-    @Index(name = "idx_notification_user_category", columnList = "user_id, category"),
-    @Index(name = "idx_notification_user_unread", columnList = "user_id, is_read"),
-    @Index(name = "idx_notification_user_pinned", columnList = "user_id, is_pinned"),
-    @Index(name = "idx_notification_expires", columnList = "expires_at")
-})
+@Table(
+    name = "notifications",
+    indexes = {
+      @Index(name = "idx_notification_user_created", columnList = "user_id, created_at DESC"),
+      @Index(name = "idx_notification_user_category", columnList = "user_id, category"),
+      @Index(name = "idx_notification_user_unread", columnList = "user_id, is_read"),
+      @Index(name = "idx_notification_user_pinned", columnList = "user_id, is_pinned"),
+      @Index(name = "idx_notification_expires", columnList = "expires_at")
+    })
 @Getter
 @Setter
 @NoArgsConstructor
@@ -93,9 +94,7 @@ public class Notification extends BaseEntity {
   @Column(name = "actions", columnDefinition = "jsonb")
   private List<NotificationAction> actions;
 
-  /**
-   * Mark notification as read with timestamp.
-   */
+  /** Mark notification as read with timestamp. */
   public void markAsRead() {
     if (!this.isRead) {
       this.isRead = true;
@@ -103,52 +102,38 @@ public class Notification extends BaseEntity {
     }
   }
 
-  /**
-   * Mark notification as unread.
-   */
+  /** Mark notification as unread. */
   public void markAsUnread() {
     this.isRead = false;
     this.readAt = null;
   }
 
-  /**
-   * Toggle pinned status.
-   */
+  /** Toggle pinned status. */
   public void togglePinned() {
     this.isPinned = !this.isPinned;
   }
 
-  /**
-   * Archive the notification.
-   */
+  /** Archive the notification. */
   public void archive() {
     this.isArchived = true;
   }
 
-  /**
-   * Unarchive the notification.
-   */
+  /** Unarchive the notification. */
   public void unarchive() {
     this.isArchived = false;
   }
 
-  /**
-   * Check if notification is expired.
-   */
+  /** Check if notification is expired. */
   public boolean isExpired() {
     return expiresAt != null && Instant.now().isAfter(expiresAt);
   }
 
-  /**
-   * Get the icon to display (custom or default from type).
-   */
+  /** Get the icon to display (custom or default from type). */
   public String getDisplayIcon() {
     return icon != null ? icon : type.getDefaultIcon();
   }
 
-  /**
-   * Pre-persist hook to set defaults.
-   */
+  /** Pre-persist hook to set defaults. */
   @PrePersist
   public void prePersist() {
     if (category == null && type != null) {
@@ -159,9 +144,7 @@ public class Notification extends BaseEntity {
     }
   }
 
-  /**
-   * Inner class for notification actions (serialized to JSON).
-   */
+  /** Inner class for notification actions (serialized to JSON). */
   @Data
   @NoArgsConstructor
   @AllArgsConstructor

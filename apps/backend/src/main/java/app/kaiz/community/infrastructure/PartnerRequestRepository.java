@@ -11,9 +11,9 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface PartnerRequestRepository extends JpaRepository<PartnerRequest, UUID> {
 
-    List<PartnerRequest> findByToMemberIdAndStatus(UUID toMemberId, PartnerRequestStatus status);
+  List<PartnerRequest> findByToMemberIdAndStatus(UUID toMemberId, PartnerRequestStatus status);
 
-    List<PartnerRequest> findByFromMemberId(UUID fromMemberId);
+  List<PartnerRequest> findByFromMemberId(UUID fromMemberId);
 
-    List<PartnerRequest> findByToMemberId(UUID toMemberId);
+  List<PartnerRequest> findByToMemberId(UUID toMemberId);
 }

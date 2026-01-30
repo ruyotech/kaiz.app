@@ -194,7 +194,8 @@ class AuthServiceTest {
     @DisplayName("should normalize email to lowercase and trim")
     void shouldNormalizeEmail() {
       RegisterRequest request =
-          new RegisterRequest("  TEST@EXAMPLE.COM  ", TEST_PASSWORD, TEST_FULL_NAME, TEST_TIMEZONE, null);
+          new RegisterRequest(
+              "  TEST@EXAMPLE.COM  ", TEST_PASSWORD, TEST_FULL_NAME, TEST_TIMEZONE, null);
       UUID userId = UUID.randomUUID();
 
       User savedUser =

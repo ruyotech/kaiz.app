@@ -1,10 +1,10 @@
 package app.kaiz.tasks.application;
 
+import app.kaiz.shared.exception.ResourceNotFoundException;
 import app.kaiz.tasks.application.dto.SprintDto;
 import app.kaiz.tasks.domain.Sprint;
 import app.kaiz.tasks.domain.SprintStatus;
 import app.kaiz.tasks.infrastructure.SprintRepository;
-import app.kaiz.shared.exception.ResourceNotFoundException;
 import java.time.LocalDate;
 import java.time.temporal.WeekFields;
 import java.util.List;
@@ -56,8 +56,7 @@ public class SprintService {
         .map(sdlcMapper::toSprintDto)
         .orElseThrow(
             () ->
-                new ResourceNotFoundException(
-                    "Sprint", "week " + weekNumber + " of year " + year));
+                new ResourceNotFoundException("Sprint", "week " + weekNumber + " of year " + year));
   }
 
   public List<SprintDto> getUpcomingSprints(int limit) {
@@ -66,8 +65,7 @@ public class SprintService {
     int weekNumber = today.get(WeekFields.of(Locale.getDefault()).weekOfWeekBasedYear());
 
     List<Sprint> sprints = sprintRepository.findUpcomingSprints(year, weekNumber);
-    return sdlcMapper.toSprintDtoList(
-        sprints.size() > limit ? sprints.subList(0, limit) : sprints);
+    return sdlcMapper.toSprintDtoList(sprints.size() > limit ? sprints.subList(0, limit) : sprints);
   }
 
   @Transactional

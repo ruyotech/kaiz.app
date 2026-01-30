@@ -5,4 +5,4 @@ import java.util.UUID;
 
 /** Response DTO for story comment. */
 public record StoryCommentResponse(
-        UUID id, CommunityMemberResponse author, String text, Instant createdAt) {}
+    UUID id, CommunityMemberResponse author, String text, Instant createdAt) {}

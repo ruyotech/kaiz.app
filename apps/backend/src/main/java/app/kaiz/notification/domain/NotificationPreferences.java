@@ -3,14 +3,13 @@ package app.kaiz.notification.domain;
 import app.kaiz.identity.domain.User;
 import app.kaiz.shared.persistence.BaseEntity;
 import jakarta.persistence.*;
+import java.time.LocalTime;
+import java.util.HashMap;
+import java.util.Map;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-
-import java.time.LocalTime;
-import java.util.HashMap;
-import java.util.Map;
 
 @Entity
 @Table(name = "notification_preferences")
@@ -62,71 +61,55 @@ public class NotificationPreferences extends BaseEntity {
   @Builder.Default
   private Map<String, CategoryPreference> categorySettings = new HashMap<>();
 
-  /**
-   * Get or create preference for a category.
-   */
+  /** Get or create preference for a category. */
   public CategoryPreference getCategoryPreference(NotificationCategory category) {
     return categorySettings.computeIfAbsent(
-        category.getId(),
-        k -> CategoryPreference.defaultEnabled()
-    );
+        category.getId(), k -> CategoryPreference.defaultEnabled());
   }
 
-  /**
-   * Update preference for a category.
-   */
+  /** Update preference for a category. */
   public void setCategoryPreference(NotificationCategory category, CategoryPreference preference) {
     categorySettings.put(category.getId(), preference);
   }
 
-  /**
-   * Check if notifications are allowed for a category.
-   */
+  /** Check if notifications are allowed for a category. */
   public boolean isCategoryEnabled(NotificationCategory category) {
     CategoryPreference pref = categorySettings.get(category.getId());
     return pref == null || pref.isEnabled();
   }
 
-  /**
-   * Check if push notifications are allowed for a category.
-   */
+  /** Check if push notifications are allowed for a category. */
   public boolean isPushEnabledForCategory(NotificationCategory category) {
     if (!pushEnabled) return false;
     CategoryPreference pref = categorySettings.get(category.getId());
     return pref == null || pref.isPush();
   }
 
-  /**
-   * Check if email notifications are allowed for a category.
-   */
+  /** Check if email notifications are allowed for a category. */
   public boolean isEmailEnabledForCategory(NotificationCategory category) {
     if (!emailEnabled) return false;
     CategoryPreference pref = categorySettings.get(category.getId());
     return pref == null || pref.isEmail();
   }
 
-  /**
-   * Check if currently in quiet hours.
-   */
+  /** Check if currently in quiet hours. */
   public boolean isInQuietHours() {
     if (!quietHoursEnabled || quietHoursStart == null || quietHoursEnd == null) {
       return false;
     }
-    
+
     LocalTime now = LocalTime.now();
-    
+
     // Handle overnight quiet hours (e.g., 22:00 to 08:00)
     if (quietHoursStart.isAfter(quietHoursEnd)) {
       return now.isAfter(quietHoursStart) || now.isBefore(quietHoursEnd);
     }
-    
+
     // Normal quiet hours (e.g., 14:00 to 16:00)
     return now.isAfter(quietHoursStart) && now.isBefore(quietHoursEnd);
   }
 
-  /**
-   * Create default preferences for a new user.
-   */
+  /** Create default preferences for a new user. */
   public static NotificationPreferences createDefault(User user) {
     Map<String, CategoryPreference> defaultSettings = new HashMap<>();
     for (NotificationCategory category : NotificationCategory.values()) {
@@ -147,30 +130,19 @@ public class NotificationPreferences extends BaseEntity {
         .build();
   }
 
-  /**
-   * Inner class for category-specific preferences.
-   */
+  /** Inner class for category-specific preferences. */
   @Data
   @NoArgsConstructor
   @AllArgsConstructor
   @Builder
   public static class CategoryPreference {
-    @Builder.Default
-    private boolean enabled = true;
-    @Builder.Default
-    private boolean push = true;
-    @Builder.Default
-    private boolean email = true;
-    @Builder.Default
-    private boolean inApp = true;
+    @Builder.Default private boolean enabled = true;
+    @Builder.Default private boolean push = true;
+    @Builder.Default private boolean email = true;
+    @Builder.Default private boolean inApp = true;
 
     public static CategoryPreference defaultEnabled() {
-      return CategoryPreference.builder()
-          .enabled(true)
-          .push(true)
-          .email(true)
-          .inApp(true)
-          .build();
+      return CategoryPreference.builder().enabled(true).push(true).email(true).inApp(true).build();
     }
 
     public static CategoryPreference disabled() {

@@ -42,14 +42,16 @@ public class MindsetController {
       description = "Retrieve mindset content filtered by life wheel dimension tag")
   public ResponseEntity<ApiResponse<List<MindsetContentDto>>> getContentByDimension(
       @PathVariable String dimensionTag) {
-    return ResponseEntity.ok(ApiResponse.success(mindsetService.getContentByDimensionTag(dimensionTag)));
+    return ResponseEntity.ok(
+        ApiResponse.success(mindsetService.getContentByDimensionTag(dimensionTag)));
   }
 
   @GetMapping("/content/tone/{tone}")
   @Operation(
       summary = "Get content by emotional tone",
       description = "Retrieve mindset content filtered by emotional tone")
-  public ResponseEntity<ApiResponse<List<MindsetContentDto>>> getContentByTone(@PathVariable EmotionalTone tone) {
+  public ResponseEntity<ApiResponse<List<MindsetContentDto>>> getContentByTone(
+      @PathVariable EmotionalTone tone) {
     return ResponseEntity.ok(ApiResponse.success(mindsetService.getContentByEmotionalTone(tone)));
   }
 

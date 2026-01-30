@@ -40,7 +40,8 @@ public class EssentiaController {
 
   @GetMapping("/books/category/{category}")
   @Operation(summary = "Get books by category", description = "Retrieve books filtered by category")
-  public ResponseEntity<ApiResponse<List<EssentiaBookDto>>> getBooksByCategory(@PathVariable String category) {
+  public ResponseEntity<ApiResponse<List<EssentiaBookDto>>> getBooksByCategory(
+      @PathVariable String category) {
     return ResponseEntity.ok(ApiResponse.success(essentiaService.getBooksByCategory(category)));
   }
 
@@ -59,7 +60,8 @@ public class EssentiaController {
       description = "Retrieve books for a specific life wheel dimension")
   public ResponseEntity<ApiResponse<List<EssentiaBookDto>>> getBooksByLifeWheelArea(
       @PathVariable String lifeWheelAreaId) {
-    return ResponseEntity.ok(ApiResponse.success(essentiaService.getBooksByLifeWheelArea(lifeWheelAreaId)));
+    return ResponseEntity.ok(
+        ApiResponse.success(essentiaService.getBooksByLifeWheelArea(lifeWheelAreaId)));
   }
 
   @GetMapping("/books/top-rated")
@@ -90,7 +92,8 @@ public class EssentiaController {
   @Operation(
       summary = "Get user progress",
       description = "Retrieve all reading progress for the current user")
-  public ResponseEntity<ApiResponse<List<EssentiaUserProgressDto>>> getUserProgress(@CurrentUser UUID userId) {
+  public ResponseEntity<ApiResponse<List<EssentiaUserProgressDto>>> getUserProgress(
+      @CurrentUser UUID userId) {
     return ResponseEntity.ok(ApiResponse.success(essentiaService.getUserProgress(userId)));
   }
 
@@ -101,7 +104,8 @@ public class EssentiaController {
       description = "Retrieve reading progress for a specific book")
   public ResponseEntity<ApiResponse<EssentiaUserProgressDto>> getProgressForBook(
       @CurrentUser UUID userId, @PathVariable String bookId) {
-    return ResponseEntity.ok(ApiResponse.success(essentiaService.getUserProgressForBook(userId, bookId)));
+    return ResponseEntity.ok(
+        ApiResponse.success(essentiaService.getUserProgressForBook(userId, bookId)));
   }
 
   @GetMapping("/progress/completed")
@@ -109,7 +113,8 @@ public class EssentiaController {
   @Operation(
       summary = "Get completed books",
       description = "Retrieve all books completed by the current user")
-  public ResponseEntity<ApiResponse<List<EssentiaUserProgressDto>>> getCompletedBooks(@CurrentUser UUID userId) {
+  public ResponseEntity<ApiResponse<List<EssentiaUserProgressDto>>> getCompletedBooks(
+      @CurrentUser UUID userId) {
     return ResponseEntity.ok(ApiResponse.success(essentiaService.getCompletedBooks(userId)));
   }
 
@@ -118,7 +123,8 @@ public class EssentiaController {
   @Operation(
       summary = "Get favorite books",
       description = "Retrieve all favorited books for the current user")
-  public ResponseEntity<ApiResponse<List<EssentiaUserProgressDto>>> getFavoriteBooks(@CurrentUser UUID userId) {
+  public ResponseEntity<ApiResponse<List<EssentiaUserProgressDto>>> getFavoriteBooks(
+      @CurrentUser UUID userId) {
     return ResponseEntity.ok(ApiResponse.success(essentiaService.getFavoriteBooks(userId)));
   }
 
@@ -127,7 +133,8 @@ public class EssentiaController {
   @Operation(
       summary = "Get in-progress books",
       description = "Retrieve all books currently being read by the user")
-  public ResponseEntity<ApiResponse<List<EssentiaUserProgressDto>>> getInProgressBooks(@CurrentUser UUID userId) {
+  public ResponseEntity<ApiResponse<List<EssentiaUserProgressDto>>> getInProgressBooks(
+      @CurrentUser UUID userId) {
     return ResponseEntity.ok(ApiResponse.success(essentiaService.getInProgressBooks(userId)));
   }
 
@@ -147,10 +154,9 @@ public class EssentiaController {
       summary = "Update reading progress",
       description = "Update the current card index for a book")
   public ResponseEntity<ApiResponse<EssentiaUserProgressDto>> updateProgress(
-      @CurrentUser UUID userId,
-      @PathVariable String bookId,
-      @RequestParam int cardIndex) {
-    return ResponseEntity.ok(ApiResponse.success(essentiaService.updateProgress(userId, bookId, cardIndex)));
+      @CurrentUser UUID userId, @PathVariable String bookId, @RequestParam int cardIndex) {
+    return ResponseEntity.ok(
+        ApiResponse.success(essentiaService.updateProgress(userId, bookId, cardIndex)));
   }
 
   @PostMapping("/books/{bookId}/toggle-favorite")

@@ -295,7 +295,7 @@ public class AuthService {
             .build();
 
     refreshTokenRepository.save(refreshToken);
-    
+
     if (deviceInfo != null) {
       log.debug("Session created for user {} on device: {}", user.getEmail(), deviceInfo);
     }

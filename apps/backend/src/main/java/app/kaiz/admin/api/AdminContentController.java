@@ -52,7 +52,8 @@ public class AdminContentController {
   @Operation(summary = "Update site content by key")
   public ResponseEntity<ApiResponse<SiteContentResponse>> updateSiteContent(
       @PathVariable String key, @Valid @RequestBody UpdateSiteContentRequest request) {
-    return ResponseEntity.ok(ApiResponse.success(adminContentService.updateSiteContent(key, request)));
+    return ResponseEntity.ok(
+        ApiResponse.success(adminContentService.updateSiteContent(key, request)));
   }
 
   // ============ About Features Endpoints ============

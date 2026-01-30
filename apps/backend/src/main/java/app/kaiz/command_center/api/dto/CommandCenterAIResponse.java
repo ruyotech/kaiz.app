@@ -23,62 +23,50 @@ import java.util.UUID;
  * @param expiresAt When this draft will expire if not acted upon
  */
 public record CommandCenterAIResponse(
-        UUID id,
-        DraftStatus status,
-        DraftType intentDetected,
-        double confidenceScore,
-        Draft draft,
-        String reasoning,
-        List<String> suggestions,
-        List<String> clarifyingQuestions,
-        OriginalInput originalInput,
-        Instant timestamp,
-        Instant expiresAt) {
+    UUID id,
+    DraftStatus status,
+    DraftType intentDetected,
+    double confidenceScore,
+    Draft draft,
+    String reasoning,
+    List<String> suggestions,
+    List<String> clarifyingQuestions,
+    OriginalInput originalInput,
+    Instant timestamp,
+    Instant expiresAt) {
 
-    /**
-     * Original input data preserved for reference.
-     */
-    public record OriginalInput(
-            String text,
-            List<AttachmentSummary> attachments,
-            String voiceTranscription) {}
+  /** Original input data preserved for reference. */
+  public record OriginalInput(
+      String text, List<AttachmentSummary> attachments, String voiceTranscription) {}
 
-    /**
-     * Summary of an attachment that was processed.
-     */
-    public record AttachmentSummary(
-            String name,
-            String type,
-            String mimeType,
-            long size,
-            String extractedText) {}
+  /** Summary of an attachment that was processed. */
+  public record AttachmentSummary(
+      String name, String type, String mimeType, long size, String extractedText) {}
 
-    /**
-     * Builder for convenience.
-     */
-    public static CommandCenterAIResponse of(
-            UUID id,
-            DraftType intentDetected,
-            double confidenceScore,
-            Draft draft,
-            String reasoning,
-            List<String> suggestions,
-            String originalText,
-            List<AttachmentSummary> attachments,
-            String voiceTranscription,
-            Instant expiresAt) {
+  /** Builder for convenience. */
+  public static CommandCenterAIResponse of(
+      UUID id,
+      DraftType intentDetected,
+      double confidenceScore,
+      Draft draft,
+      String reasoning,
+      List<String> suggestions,
+      String originalText,
+      List<AttachmentSummary> attachments,
+      String voiceTranscription,
+      Instant expiresAt) {
 
-        return new CommandCenterAIResponse(
-                id,
-                DraftStatus.PENDING_APPROVAL,
-                intentDetected,
-                confidenceScore,
-                draft,
-                reasoning,
-                suggestions,
-                draft instanceof Draft.NoteDraft note ? note.clarifyingQuestions() : List.of(),
-                new OriginalInput(originalText, attachments, voiceTranscription),
-                Instant.now(),
-                expiresAt);
-    }
+    return new CommandCenterAIResponse(
+        id,
+        DraftStatus.PENDING_APPROVAL,
+        intentDetected,
+        confidenceScore,
+        draft,
+        reasoning,
+        suggestions,
+        draft instanceof Draft.NoteDraft note ? note.clarifyingQuestions() : List.of(),
+        new OriginalInput(originalText, attachments, voiceTranscription),
+        Instant.now(),
+        expiresAt);
+  }
 }

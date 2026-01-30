@@ -57,7 +57,8 @@ class AuthControllerIntegrationTest extends IntegrationTestBase {
     @DisplayName("should normalize email to lowercase")
     void shouldNormalizeEmailToLowercase() {
       RegisterRequest request =
-          new RegisterRequest("UPPERCASE@EXAMPLE.COM", "SecurePassword123!", "Test User", null, null);
+          new RegisterRequest(
+              "UPPERCASE@EXAMPLE.COM", "SecurePassword123!", "Test User", null, null);
 
       given()
           .contentType(ContentType.JSON)
@@ -73,7 +74,8 @@ class AuthControllerIntegrationTest extends IntegrationTestBase {
     @DisplayName("should use UTC timezone when not provided")
     void shouldUseUtcTimezoneWhenNotProvided() {
       RegisterRequest request =
-          new RegisterRequest("notimezone@example.com", "SecurePassword123!", "No Timezone", null, null);
+          new RegisterRequest(
+              "notimezone@example.com", "SecurePassword123!", "No Timezone", null, null);
 
       given()
           .contentType(ContentType.JSON)
@@ -89,7 +91,8 @@ class AuthControllerIntegrationTest extends IntegrationTestBase {
     @DisplayName("should return 400 when email already exists")
     void shouldReturn400WhenEmailExists() {
       RegisterRequest request =
-          new RegisterRequest("duplicate@example.com", "SecurePassword123!", "First User", null, null);
+          new RegisterRequest(
+              "duplicate@example.com", "SecurePassword123!", "First User", null, null);
 
       // First registration
       given().contentType(ContentType.JSON).body(request).when().post(AUTH_PATH + "/register");
@@ -186,7 +189,8 @@ class AuthControllerIntegrationTest extends IntegrationTestBase {
     @Test
     @DisplayName("should return 401 when user does not exist")
     void shouldReturn401WhenUserNotFound() {
-      LoginRequest request = new LoginRequest("nonexistent@example.com", "SecurePassword123!", null);
+      LoginRequest request =
+          new LoginRequest("nonexistent@example.com", "SecurePassword123!", null);
 
       given()
           .contentType(ContentType.JSON)
@@ -227,7 +231,8 @@ class AuthControllerIntegrationTest extends IntegrationTestBase {
     void shouldNormalizeEmailToLowercase() {
       // First register a user
       RegisterRequest registerRequest =
-          new RegisterRequest("casetest@example.com", "SecurePassword123!", "Case Test User", null, null);
+          new RegisterRequest(
+              "casetest@example.com", "SecurePassword123!", "Case Test User", null, null);
       given()
           .contentType(ContentType.JSON)
           .body(registerRequest)
@@ -235,7 +240,8 @@ class AuthControllerIntegrationTest extends IntegrationTestBase {
           .post(AUTH_PATH + "/register");
 
       // Then login with uppercase email
-      LoginRequest loginRequest = new LoginRequest("CASETEST@EXAMPLE.COM", "SecurePassword123!", null);
+      LoginRequest loginRequest =
+          new LoginRequest("CASETEST@EXAMPLE.COM", "SecurePassword123!", null);
 
       given()
           .contentType(ContentType.JSON)
@@ -257,7 +263,8 @@ class AuthControllerIntegrationTest extends IntegrationTestBase {
     void shouldRefreshTokenSuccessfully() {
       // First register to get tokens
       RegisterRequest registerRequest =
-          new RegisterRequest("refresh@example.com", "SecurePassword123!", "Refresh User", null, null);
+          new RegisterRequest(
+              "refresh@example.com", "SecurePassword123!", "Refresh User", null, null);
 
       String refreshToken =
           given()
@@ -304,7 +311,8 @@ class AuthControllerIntegrationTest extends IntegrationTestBase {
     void shouldInvalidateOldRefreshTokenAfterRotation() {
       // First register to get tokens
       RegisterRequest registerRequest =
-          new RegisterRequest("rotation@example.com", "SecurePassword123!", "Rotation User", null, null);
+          new RegisterRequest(
+              "rotation@example.com", "SecurePassword123!", "Rotation User", null, null);
 
       String oldRefreshToken =
           given()
@@ -347,7 +355,8 @@ class AuthControllerIntegrationTest extends IntegrationTestBase {
     void shouldReturnCurrentUserWhenAuthenticated() {
       // First register to get tokens
       RegisterRequest registerRequest =
-          new RegisterRequest("me@example.com", "SecurePassword123!", "Me User", "Europe/London", null);
+          new RegisterRequest(
+              "me@example.com", "SecurePassword123!", "Me User", "Europe/London", null);
 
       String accessToken =
           given()
@@ -400,7 +409,8 @@ class AuthControllerIntegrationTest extends IntegrationTestBase {
     void shouldLogoutSuccessfully() {
       // First register to get tokens
       RegisterRequest registerRequest =
-          new RegisterRequest("logout@example.com", "SecurePassword123!", "Logout User", null, null);
+          new RegisterRequest(
+              "logout@example.com", "SecurePassword123!", "Logout User", null, null);
 
       String accessToken =
           given()

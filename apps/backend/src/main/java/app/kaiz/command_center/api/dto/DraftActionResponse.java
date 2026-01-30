@@ -15,44 +15,44 @@ import app.kaiz.command_center.domain.DraftType;
  * @param createdEntityType If approved/modified, the type of entity created
  */
 public record DraftActionResponse(
-        boolean success,
-        String message,
-        String draftId,
-        DraftType draftType,
-        DraftStatus newStatus,
-        String createdEntityId,
-        String createdEntityType) {
+    boolean success,
+    String message,
+    String draftId,
+    DraftType draftType,
+    DraftStatus newStatus,
+    String createdEntityId,
+    String createdEntityType) {
 
-    public static DraftActionResponse approved(
-            String draftId, DraftType draftType, String entityId, String entityType) {
-        return new DraftActionResponse(
-                true,
-                "Draft approved and %s created successfully".formatted(entityType.toLowerCase()),
-                draftId,
-                draftType,
-                DraftStatus.APPROVED,
-                entityId,
-                entityType);
-    }
+  public static DraftActionResponse approved(
+      String draftId, DraftType draftType, String entityId, String entityType) {
+    return new DraftActionResponse(
+        true,
+        "Draft approved and %s created successfully".formatted(entityType.toLowerCase()),
+        draftId,
+        draftType,
+        DraftStatus.APPROVED,
+        entityId,
+        entityType);
+  }
 
-    public static DraftActionResponse modified(
-            String draftId, DraftType draftType, String entityId, String entityType) {
-        return new DraftActionResponse(
-                true,
-                "Draft modified and %s created successfully".formatted(entityType.toLowerCase()),
-                draftId,
-                draftType,
-                DraftStatus.MODIFIED,
-                entityId,
-                entityType);
-    }
+  public static DraftActionResponse modified(
+      String draftId, DraftType draftType, String entityId, String entityType) {
+    return new DraftActionResponse(
+        true,
+        "Draft modified and %s created successfully".formatted(entityType.toLowerCase()),
+        draftId,
+        draftType,
+        DraftStatus.MODIFIED,
+        entityId,
+        entityType);
+  }
 
-    public static DraftActionResponse rejected(String draftId, DraftType draftType) {
-        return new DraftActionResponse(
-                true, "Draft rejected", draftId, draftType, DraftStatus.REJECTED, null, null);
-    }
+  public static DraftActionResponse rejected(String draftId, DraftType draftType) {
+    return new DraftActionResponse(
+        true, "Draft rejected", draftId, draftType, DraftStatus.REJECTED, null, null);
+  }
 
-    public static DraftActionResponse error(String draftId, String message) {
-        return new DraftActionResponse(false, message, draftId, null, null, null, null);
-    }
+  public static DraftActionResponse error(String draftId, String message) {
+    return new DraftActionResponse(false, message, draftId, null, null, null, null);
+  }
 }

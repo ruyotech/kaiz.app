@@ -6,14 +6,14 @@ import java.util.UUID;
 
 /** Response DTO for motivation group. */
 public record MotivationGroupResponse(
-        UUID id,
-        String name,
-        String description,
-        String coverImageUrl,
-        String lifeWheelAreaId,
-        Integer memberCount,
-        Integer maxMembers,
-        Boolean isPrivate,
-        CommunityMemberResponse createdBy,
-        List<String> tags,
-        Instant createdAt) {}
+    UUID id,
+    String name,
+    String description,
+    String coverImageUrl,
+    String lifeWheelAreaId,
+    Integer memberCount,
+    Integer maxMembers,
+    Boolean isPrivate,
+    CommunityMemberResponse createdBy,
+    List<String> tags,
+    Instant createdAt) {}

@@ -2,8 +2,6 @@ package app.kaiz.notification.application;
 
 import app.kaiz.notification.application.dto.CreateNotificationRequest;
 import app.kaiz.notification.application.dto.NotificationDto;
-import app.kaiz.notification.domain.Notification.NotificationAction;
-import app.kaiz.notification.domain.NotificationCategory;
 import app.kaiz.notification.domain.NotificationPriority;
 import app.kaiz.notification.domain.NotificationType;
 import java.time.Instant;
@@ -17,8 +15,8 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 /**
- * Service for triggering notifications based on app events.
- * This service is called from other services when events occur.
+ * Service for triggering notifications based on app events. This service is called from other
+ * services when events occur.
  */
 @Service
 @RequiredArgsConstructor
@@ -38,8 +36,7 @@ public class NotificationTriggerService {
         String.format("New task \"%s\" has been created", taskTitle),
         NotificationPriority.LOW,
         String.format("/tasks/%s", taskId),
-        Map.of("taskId", taskId.toString())
-    );
+        Map.of("taskId", taskId.toString()));
   }
 
   @Async
@@ -53,30 +50,33 @@ public class NotificationTriggerService {
         String.format("/tasks/%s", taskId),
         Map.of("taskId", taskId.toString(), "xpEarned", xpEarned),
         List.of(
-            new CreateNotificationRequest.ActionRequest("view", "View Details", "view_task", "primary"),
-            new CreateNotificationRequest.ActionRequest("dismiss", "Dismiss", "dismiss", "secondary")
-        )
-    );
+            new CreateNotificationRequest.ActionRequest(
+                "view", "View Details", "view_task", "primary"),
+            new CreateNotificationRequest.ActionRequest(
+                "dismiss", "Dismiss", "dismiss", "secondary")));
   }
 
   @Async
   public void notifyTaskDueSoon(UUID userId, UUID taskId, String taskTitle, int hoursUntilDue) {
-    NotificationPriority priority = hoursUntilDue <= 1 ? NotificationPriority.URGENT :
-        hoursUntilDue <= 6 ? NotificationPriority.HIGH : NotificationPriority.MEDIUM;
+    NotificationPriority priority =
+        hoursUntilDue <= 1
+            ? NotificationPriority.URGENT
+            : hoursUntilDue <= 6 ? NotificationPriority.HIGH : NotificationPriority.MEDIUM;
 
     createNotification(
         userId,
         NotificationType.TASK_DUE_SOON,
         "Task Due Soon ⏰",
-        String.format("\"%s\" is due in %d hour%s", taskTitle, hoursUntilDue, hoursUntilDue == 1 ? "" : "s"),
+        String.format(
+            "\"%s\" is due in %d hour%s", taskTitle, hoursUntilDue, hoursUntilDue == 1 ? "" : "s"),
         priority,
         String.format("/tasks/%s", taskId),
         Map.of("taskId", taskId.toString(), "hoursUntilDue", hoursUntilDue),
         List.of(
-            new CreateNotificationRequest.ActionRequest("complete", "Mark Complete", "complete_task", "primary"),
-            new CreateNotificationRequest.ActionRequest("snooze", "Snooze", "snooze_task", "secondary")
-        )
-    );
+            new CreateNotificationRequest.ActionRequest(
+                "complete", "Mark Complete", "complete_task", "primary"),
+            new CreateNotificationRequest.ActionRequest(
+                "snooze", "Snooze", "snooze_task", "secondary")));
   }
 
   @Async
@@ -90,10 +90,10 @@ public class NotificationTriggerService {
         String.format("/tasks/%s", taskId),
         Map.of("taskId", taskId.toString()),
         List.of(
-            new CreateNotificationRequest.ActionRequest("complete", "Mark Complete", "complete_task", "primary"),
-            new CreateNotificationRequest.ActionRequest("reschedule", "Reschedule", "reschedule_task", "secondary")
-        )
-    );
+            new CreateNotificationRequest.ActionRequest(
+                "complete", "Mark Complete", "complete_task", "primary"),
+            new CreateNotificationRequest.ActionRequest(
+                "reschedule", "Reschedule", "reschedule_task", "secondary")));
   }
 
   @Async
@@ -106,12 +106,14 @@ public class NotificationTriggerService {
         NotificationPriority.HIGH,
         String.format("/tasks/%s", taskId),
         Map.of("taskId", taskId.toString()),
-        null, assignedBy, null
-    );
+        null,
+        assignedBy,
+        null);
   }
 
   @Async
-  public void notifyTaskShared(UUID userId, UUID taskId, String taskTitle, String sharedBy, String sharedByAvatar) {
+  public void notifyTaskShared(
+      UUID userId, UUID taskId, String taskTitle, String sharedBy, String sharedByAvatar) {
     createNotificationWithSender(
         userId,
         NotificationType.TASK_SHARED,
@@ -120,8 +122,9 @@ public class NotificationTriggerService {
         NotificationPriority.MEDIUM,
         String.format("/tasks/%s", taskId),
         Map.of("taskId", taskId.toString()),
-        null, sharedBy, sharedByAvatar
-    );
+        null,
+        sharedBy,
+        sharedByAvatar);
   }
 
   // ============ Challenge Notifications ============
@@ -135,12 +138,12 @@ public class NotificationTriggerService {
         String.format("Your challenge \"%s\" has begun. Good luck!", challengeTitle),
         NotificationPriority.MEDIUM,
         String.format("/challenges/%s", challengeId),
-        Map.of("challengeId", challengeId.toString())
-    );
+        Map.of("challengeId", challengeId.toString()));
   }
 
   @Async
-  public void notifyChallengeMilestone(UUID userId, UUID challengeId, String challengeTitle, int milestone, int total) {
+  public void notifyChallengeMilestone(
+      UUID userId, UUID challengeId, String challengeTitle, int milestone, int total) {
     createNotification(
         userId,
         NotificationType.CHALLENGE_MILESTONE,
@@ -148,38 +151,40 @@ public class NotificationTriggerService {
         String.format("You've reached day %d of %d in \"%s\"!", milestone, total, challengeTitle),
         NotificationPriority.MEDIUM,
         String.format("/challenges/%s", challengeId),
-        Map.of("challengeId", challengeId.toString(), "milestone", milestone, "total", total)
-    );
+        Map.of("challengeId", challengeId.toString(), "milestone", milestone, "total", total));
   }
 
   @Async
-  public void notifyChallengeCompleted(UUID userId, UUID challengeId, String challengeTitle, int xpEarned) {
+  public void notifyChallengeCompleted(
+      UUID userId, UUID challengeId, String challengeTitle, int xpEarned) {
     createNotification(
         userId,
         NotificationType.CHALLENGE_COMPLETED,
         "Challenge Completed! 🏆",
-        String.format("Congratulations! You completed \"%s\" and earned %d XP!", challengeTitle, xpEarned),
+        String.format(
+            "Congratulations! You completed \"%s\" and earned %d XP!", challengeTitle, xpEarned),
         NotificationPriority.HIGH,
         String.format("/challenges/%s", challengeId),
         Map.of("challengeId", challengeId.toString(), "xpEarned", xpEarned),
         List.of(
-            new CreateNotificationRequest.ActionRequest("share", "Share Achievement", "share_challenge", "primary"),
-            new CreateNotificationRequest.ActionRequest("view", "View Details", "view_challenge", "secondary")
-        )
-    );
+            new CreateNotificationRequest.ActionRequest(
+                "share", "Share Achievement", "share_challenge", "primary"),
+            new CreateNotificationRequest.ActionRequest(
+                "view", "View Details", "view_challenge", "secondary")));
   }
 
   @Async
-  public void notifyChallengeStreak(UUID userId, UUID challengeId, String challengeTitle, int streakDays) {
+  public void notifyChallengeStreak(
+      UUID userId, UUID challengeId, String challengeTitle, int streakDays) {
     createNotification(
         userId,
         NotificationType.CHALLENGE_STREAK,
         String.format("%d Day Streak! 🔥", streakDays),
-        String.format("You're on a %d-day streak in \"%s\"! Keep it up!", streakDays, challengeTitle),
+        String.format(
+            "You're on a %d-day streak in \"%s\"! Keep it up!", streakDays, challengeTitle),
         NotificationPriority.MEDIUM,
         String.format("/challenges/%s", challengeId),
-        Map.of("challengeId", challengeId.toString(), "streakDays", streakDays)
-    );
+        Map.of("challengeId", challengeId.toString(), "streakDays", streakDays));
   }
 
   @Async
@@ -193,13 +198,17 @@ public class NotificationTriggerService {
         String.format("/challenges/%s", challengeId),
         Map.of("challengeId", challengeId.toString()),
         List.of(
-            new CreateNotificationRequest.ActionRequest("checkin", "Check In", "challenge_checkin", "primary")
-        )
-    );
+            new CreateNotificationRequest.ActionRequest(
+                "checkin", "Check In", "challenge_checkin", "primary")));
   }
 
   @Async
-  public void notifyChallengeInvite(UUID userId, UUID challengeId, String challengeTitle, String invitedBy, String invitedByAvatar) {
+  public void notifyChallengeInvite(
+      UUID userId,
+      UUID challengeId,
+      String challengeTitle,
+      String invitedBy,
+      String invitedByAvatar) {
     createNotificationWithSender(
         userId,
         NotificationType.CHALLENGE_INVITE,
@@ -208,14 +217,16 @@ public class NotificationTriggerService {
         NotificationPriority.MEDIUM,
         String.format("/challenges/%s", challengeId),
         Map.of("challengeId", challengeId.toString()),
-        null, invitedBy, invitedByAvatar
-    );
+        null,
+        invitedBy,
+        invitedByAvatar);
   }
 
   // ============ Community Notifications ============
 
   @Async
-  public void notifyNewFollower(UUID userId, UUID followerId, String followerName, String followerAvatar) {
+  public void notifyNewFollower(
+      UUID userId, UUID followerId, String followerName, String followerAvatar) {
     createNotificationWithSender(
         userId,
         NotificationType.COMMUNITY_NEW_FOLLOWER,
@@ -224,12 +235,14 @@ public class NotificationTriggerService {
         NotificationPriority.LOW,
         String.format("/profile/%s", followerId),
         Map.of("followerId", followerId.toString()),
-        followerId, followerName, followerAvatar
-    );
+        followerId,
+        followerName,
+        followerAvatar);
   }
 
   @Async
-  public void notifyPostLike(UUID userId, UUID postId, UUID likerId, String likerName, String likerAvatar) {
+  public void notifyPostLike(
+      UUID userId, UUID postId, UUID likerId, String likerName, String likerAvatar) {
     createNotificationWithSender(
         userId,
         NotificationType.COMMUNITY_LIKE,
@@ -238,12 +251,19 @@ public class NotificationTriggerService {
         NotificationPriority.LOW,
         String.format("/community/posts/%s", postId),
         Map.of("postId", postId.toString()),
-        likerId, likerName, likerAvatar
-    );
+        likerId,
+        likerName,
+        likerAvatar);
   }
 
   @Async
-  public void notifyPostComment(UUID userId, UUID postId, UUID commenterId, String commenterName, String commenterAvatar, String commentPreview) {
+  public void notifyPostComment(
+      UUID userId,
+      UUID postId,
+      UUID commenterId,
+      String commenterName,
+      String commenterAvatar,
+      String commentPreview) {
     createNotificationWithSender(
         userId,
         NotificationType.COMMUNITY_COMMENT,
@@ -252,12 +272,14 @@ public class NotificationTriggerService {
         NotificationPriority.MEDIUM,
         String.format("/community/posts/%s", postId),
         Map.of("postId", postId.toString()),
-        commenterId, commenterName, commenterAvatar
-    );
+        commenterId,
+        commenterName,
+        commenterAvatar);
   }
 
   @Async
-  public void notifyMention(UUID userId, UUID postId, UUID mentionerId, String mentionerName, String mentionerAvatar) {
+  public void notifyMention(
+      UUID userId, UUID postId, UUID mentionerId, String mentionerName, String mentionerAvatar) {
     createNotificationWithSender(
         userId,
         NotificationType.COMMUNITY_MENTION,
@@ -266,12 +288,14 @@ public class NotificationTriggerService {
         NotificationPriority.MEDIUM,
         String.format("/community/posts/%s", postId),
         Map.of("postId", postId.toString()),
-        mentionerId, mentionerName, mentionerAvatar
-    );
+        mentionerId,
+        mentionerName,
+        mentionerAvatar);
   }
 
   @Async
-  public void notifyFriendAchievement(UUID userId, UUID friendId, String friendName, String friendAvatar, String achievement) {
+  public void notifyFriendAchievement(
+      UUID userId, UUID friendId, String friendName, String friendAvatar, String achievement) {
     createNotificationWithSender(
         userId,
         NotificationType.FRIEND_ACHIEVEMENT,
@@ -280,14 +304,16 @@ public class NotificationTriggerService {
         NotificationPriority.LOW,
         String.format("/profile/%s", friendId),
         Map.of("friendId", friendId.toString(), "achievement", achievement),
-        friendId, friendName, friendAvatar
-    );
+        friendId,
+        friendName,
+        friendAvatar);
   }
 
   // ============ Event Notifications ============
 
   @Async
-  public void notifyBirthdayReminder(UUID userId, String friendName, String friendAvatar, UUID friendId) {
+  public void notifyBirthdayReminder(
+      UUID userId, String friendName, String friendAvatar, UUID friendId) {
     createNotificationWithSender(
         userId,
         NotificationType.BIRTHDAY_REMINDER,
@@ -296,18 +322,22 @@ public class NotificationTriggerService {
         NotificationPriority.MEDIUM,
         String.format("/profile/%s", friendId),
         Map.of("friendId", friendId.toString()),
-        friendId, friendName, friendAvatar
-    );
+        friendId,
+        friendName,
+        friendAvatar);
   }
 
   @Async
   public void notifyEventReminder(UUID userId, UUID eventId, String eventTitle, int minutesUntil) {
-    NotificationPriority priority = minutesUntil <= 15 ? NotificationPriority.URGENT :
-        minutesUntil <= 60 ? NotificationPriority.HIGH : NotificationPriority.MEDIUM;
+    NotificationPriority priority =
+        minutesUntil <= 15
+            ? NotificationPriority.URGENT
+            : minutesUntil <= 60 ? NotificationPriority.HIGH : NotificationPriority.MEDIUM;
 
-    String timeStr = minutesUntil >= 60
-        ? String.format("%d hour%s", minutesUntil / 60, minutesUntil / 60 == 1 ? "" : "s")
-        : String.format("%d minute%s", minutesUntil, minutesUntil == 1 ? "" : "s");
+    String timeStr =
+        minutesUntil >= 60
+            ? String.format("%d hour%s", minutesUntil / 60, minutesUntil / 60 == 1 ? "" : "s")
+            : String.format("%d minute%s", minutesUntil, minutesUntil == 1 ? "" : "s");
 
     createNotification(
         userId,
@@ -316,12 +346,12 @@ public class NotificationTriggerService {
         String.format("\"%s\" starts in %s", eventTitle, timeStr),
         priority,
         String.format("/calendar/events/%s", eventId),
-        Map.of("eventId", eventId.toString(), "minutesUntil", minutesUntil)
-    );
+        Map.of("eventId", eventId.toString(), "minutesUntil", minutesUntil));
   }
 
   @Async
-  public void notifyEventInvite(UUID userId, UUID eventId, String eventTitle, String invitedBy, String invitedByAvatar) {
+  public void notifyEventInvite(
+      UUID userId, UUID eventId, String eventTitle, String invitedBy, String invitedByAvatar) {
     createNotificationWithSender(
         userId,
         NotificationType.EVENT_INVITE,
@@ -330,8 +360,9 @@ public class NotificationTriggerService {
         NotificationPriority.MEDIUM,
         String.format("/calendar/events/%s", eventId),
         Map.of("eventId", eventId.toString()),
-        null, invitedBy, invitedByAvatar
-    );
+        null,
+        invitedBy,
+        invitedByAvatar);
   }
 
   // ============ Essentia (Learning) Notifications ============
@@ -345,8 +376,7 @@ public class NotificationTriggerService {
         String.format("New %s lesson: \"%s\"", topic, lessonTitle),
         NotificationPriority.LOW,
         String.format("/essentia/lessons/%s", lessonId),
-        Map.of("lessonId", lessonId.toString(), "topic", topic)
-    );
+        Map.of("lessonId", lessonId.toString(), "topic", topic));
   }
 
   @Async
@@ -358,8 +388,7 @@ public class NotificationTriggerService {
         String.format("You completed \"%s\" and earned %d XP", lessonTitle, xpEarned),
         NotificationPriority.MEDIUM,
         String.format("/essentia/lessons/%s", lessonId),
-        Map.of("lessonId", lessonId.toString(), "xpEarned", xpEarned)
-    );
+        Map.of("lessonId", lessonId.toString(), "xpEarned", xpEarned));
   }
 
   @Async
@@ -368,19 +397,20 @@ public class NotificationTriggerService {
         userId,
         NotificationType.ESSENTIA_STREAK,
         String.format("%d Day Learning Streak! 🔥", streakDays),
-        String.format("You've been learning for %d days straight! Keep up the great work!", streakDays),
+        String.format(
+            "You've been learning for %d days straight! Keep up the great work!", streakDays),
         NotificationPriority.MEDIUM,
         "/essentia",
-        Map.of("streakDays", streakDays)
-    );
+        Map.of("streakDays", streakDays));
   }
 
   @Async
   public void notifyQuizResult(UUID userId, UUID quizId, int score, int total, boolean passed) {
     String emoji = passed ? "✅" : "📝";
-    String message = passed
-        ? String.format("Congratulations! You passed with %d/%d", score, total)
-        : String.format("You scored %d/%d. Keep practicing!", score, total);
+    String message =
+        passed
+            ? String.format("Congratulations! You passed with %d/%d", score, total)
+            : String.format("You scored %d/%d. Keep practicing!", score, total);
 
     createNotification(
         userId,
@@ -389,14 +419,14 @@ public class NotificationTriggerService {
         message,
         passed ? NotificationPriority.MEDIUM : NotificationPriority.LOW,
         String.format("/essentia/quizzes/%s", quizId),
-        Map.of("quizId", quizId.toString(), "score", score, "total", total, "passed", passed)
-    );
+        Map.of("quizId", quizId.toString(), "score", score, "total", total, "passed", passed));
   }
 
   // ============ AI Notifications ============
 
   @Async
-  public void notifyAiInsight(UUID userId, String insightTitle, String insightContent, String category) {
+  public void notifyAiInsight(
+      UUID userId, String insightTitle, String insightContent, String category) {
     createNotification(
         userId,
         NotificationType.AI_INSIGHT,
@@ -404,8 +434,7 @@ public class NotificationTriggerService {
         insightContent,
         NotificationPriority.LOW,
         "/ai/insights",
-        Map.of("category", category)
-    );
+        Map.of("category", category));
   }
 
   @Async
@@ -417,23 +446,30 @@ public class NotificationTriggerService {
         suggestion,
         NotificationPriority.LOW,
         "/ai/suggestions",
-        Map.of("context", context)
-    );
+        Map.of("context", context));
   }
 
   @Async
-  public void notifyWeeklyReport(UUID userId, int tasksCompleted, int challengeProgress, int xpEarned) {
+  public void notifyWeeklyReport(
+      UUID userId, int tasksCompleted, int challengeProgress, int xpEarned) {
     createNotification(
         userId,
         NotificationType.AI_WEEKLY_REPORT,
         "Weekly Report Ready 📊",
-        String.format("This week: %d tasks completed, %d%% challenge progress, %d XP earned",
+        String.format(
+            "This week: %d tasks completed, %d%% challenge progress, %d XP earned",
             tasksCompleted, challengeProgress, xpEarned),
         NotificationPriority.MEDIUM,
         "/ai/weekly-report",
-        Map.of("tasksCompleted", tasksCompleted, "challengeProgress", challengeProgress, "xpEarned", xpEarned),
+        Map.of(
+            "tasksCompleted",
+            tasksCompleted,
+            "challengeProgress",
+            challengeProgress,
+            "xpEarned",
+            xpEarned),
         Instant.now().plus(7, ChronoUnit.DAYS) // Expires in 7 days
-    );
+        );
   }
 
   // ============ System Notifications ============
@@ -447,15 +483,15 @@ public class NotificationTriggerService {
         changelog,
         NotificationPriority.LOW,
         "/settings/changelog",
-        Map.of("version", version)
-    );
+        Map.of("version", version));
   }
 
   @Async
   public void notifyLevelUp(UUID userId, int newLevel, List<String> unlockedFeatures) {
-    String featuresText = unlockedFeatures.isEmpty()
-        ? ""
-        : String.format(" You unlocked: %s", String.join(", ", unlockedFeatures));
+    String featuresText =
+        unlockedFeatures.isEmpty()
+            ? ""
+            : String.format(" You unlocked: %s", String.join(", ", unlockedFeatures));
 
     createNotification(
         userId,
@@ -466,26 +502,31 @@ public class NotificationTriggerService {
         "/profile",
         Map.of("newLevel", newLevel, "unlockedFeatures", unlockedFeatures),
         List.of(
-            new CreateNotificationRequest.ActionRequest("share", "Share Achievement", "share_level", "primary")
-        )
-    );
+            new CreateNotificationRequest.ActionRequest(
+                "share", "Share Achievement", "share_level", "primary")));
   }
 
   @Async
-  public void notifyAchievementUnlocked(UUID userId, String achievementId, String achievementTitle, String achievementDescription, int xpEarned) {
+  public void notifyAchievementUnlocked(
+      UUID userId,
+      String achievementId,
+      String achievementTitle,
+      String achievementDescription,
+      int xpEarned) {
     createNotification(
         userId,
         NotificationType.ACHIEVEMENT_UNLOCKED,
         String.format("Achievement Unlocked! 🏅"),
-        String.format("You earned \"%s\": %s (+%d XP)", achievementTitle, achievementDescription, xpEarned),
+        String.format(
+            "You earned \"%s\": %s (+%d XP)", achievementTitle, achievementDescription, xpEarned),
         NotificationPriority.HIGH,
         "/profile/achievements",
         Map.of("achievementId", achievementId, "xpEarned", xpEarned),
         List.of(
-            new CreateNotificationRequest.ActionRequest("share", "Share", "share_achievement", "primary"),
-            new CreateNotificationRequest.ActionRequest("view", "View All", "view_achievements", "secondary")
-        )
-    );
+            new CreateNotificationRequest.ActionRequest(
+                "share", "Share", "share_achievement", "primary"),
+            new CreateNotificationRequest.ActionRequest(
+                "view", "View All", "view_achievements", "secondary")));
   }
 
   @Async
@@ -497,8 +538,7 @@ public class NotificationTriggerService {
         String.format("%s: %s", alertType, details),
         NotificationPriority.URGENT,
         "/settings/security",
-        Map.of("alertType", alertType)
-    );
+        Map.of("alertType", alertType));
   }
 
   // ============ Helper Methods ============
@@ -511,7 +551,8 @@ public class NotificationTriggerService {
       NotificationPriority priority,
       String deepLink,
       Map<String, Object> metadata) {
-    return createNotification(userId, type, title, content, priority, deepLink, metadata, null, null);
+    return createNotification(
+        userId, type, title, content, priority, deepLink, metadata, null, null);
   }
 
   private NotificationDto createNotification(
@@ -523,7 +564,8 @@ public class NotificationTriggerService {
       String deepLink,
       Map<String, Object> metadata,
       List<CreateNotificationRequest.ActionRequest> actions) {
-    return createNotification(userId, type, title, content, priority, deepLink, metadata, actions, null);
+    return createNotification(
+        userId, type, title, content, priority, deepLink, metadata, actions, null);
   }
 
   private NotificationDto createNotification(
@@ -535,7 +577,8 @@ public class NotificationTriggerService {
       String deepLink,
       Map<String, Object> metadata,
       Instant expiresAt) {
-    return createNotification(userId, type, title, content, priority, deepLink, metadata, null, expiresAt);
+    return createNotification(
+        userId, type, title, content, priority, deepLink, metadata, null, expiresAt);
   }
 
   private NotificationDto createNotification(

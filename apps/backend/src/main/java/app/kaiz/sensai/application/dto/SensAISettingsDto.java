@@ -7,9 +7,7 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * DTO for SensAI settings.
- */
+/** DTO for SensAI settings. */
 public record SensAISettingsDto(
     UUID id,
     CoachTone coachTone,
@@ -26,20 +24,18 @@ public record SensAISettingsDto(
     Instant createdAt,
     Instant updatedAt) {
 
-    /**
-     * Request to update SensAI settings.
-     */
-    public record UpdateSettingsRequest(
-        CoachTone coachTone,
-        Boolean interventionsEnabled,
-        @Pattern(regexp = "^([01]\\d|2[0-3]):[0-5]\\d$", message = "Time must be in HH:mm format")
-        String dailyStandupTime,
-        @Min(7) @Max(28) Integer sprintLengthDays,
-        @Min(1) @Max(24) Integer maxDailyCapacity,
-        @DecimalMin("0.05") @DecimalMax("0.50") BigDecimal overcommitThreshold,
-        @Min(1) @Max(9) Integer dimensionAlertThreshold,
-        Map<String, Integer> dimensionPriorities,
-        Boolean standupRemindersEnabled,
-        Boolean ceremonyRemindersEnabled,
-        Boolean weeklyDigestEnabled) {}
+  /** Request to update SensAI settings. */
+  public record UpdateSettingsRequest(
+      CoachTone coachTone,
+      Boolean interventionsEnabled,
+      @Pattern(regexp = "^([01]\\d|2[0-3]):[0-5]\\d$", message = "Time must be in HH:mm format")
+          String dailyStandupTime,
+      @Min(7) @Max(28) Integer sprintLengthDays,
+      @Min(1) @Max(24) Integer maxDailyCapacity,
+      @DecimalMin("0.05") @DecimalMax("0.50") BigDecimal overcommitThreshold,
+      @Min(1) @Max(9) Integer dimensionAlertThreshold,
+      Map<String, Integer> dimensionPriorities,
+      Boolean standupRemindersEnabled,
+      Boolean ceremonyRemindersEnabled,
+      Boolean weeklyDigestEnabled) {}
 }

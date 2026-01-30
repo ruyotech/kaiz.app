@@ -13,11 +13,9 @@ import org.springframework.stereotype.Component;
  * <p>This decouples notification creation from the business logic. Services just publish events,
  * and this listener handles the notification creation asynchronously.
  *
- * <p>Benefits:
- * - Services don't need to know about notifications
- * - Notifications are created asynchronously (non-blocking)
- * - Easy to add/modify notification behavior without changing services
- * - Testable in isolation
+ * <p>Benefits: - Services don't need to know about notifications - Notifications are created
+ * asynchronously (non-blocking) - Easy to add/modify notification behavior without changing
+ * services - Testable in isolation
  */
 @Component
 @RequiredArgsConstructor
@@ -34,7 +32,8 @@ public class NotificationEventListener {
   @EventListener
   public void handleTaskCreated(TaskCreated event) {
     log.debug("Handling TaskCreated event for user {}", event.getUserId());
-    notificationTrigger.notifyTaskCreated(event.getUserId(), event.getTaskId(), event.getTaskTitle());
+    notificationTrigger.notifyTaskCreated(
+        event.getUserId(), event.getTaskId(), event.getTaskTitle());
   }
 
   @Async
@@ -114,7 +113,10 @@ public class NotificationEventListener {
   public void handleChallengeStreak(ChallengeStreak event) {
     log.debug("Handling ChallengeStreak event for user {}", event.getUserId());
     notificationTrigger.notifyChallengeStreak(
-        event.getUserId(), event.getChallengeId(), event.getChallengeTitle(), event.getStreakDays());
+        event.getUserId(),
+        event.getChallengeId(),
+        event.getChallengeTitle(),
+        event.getStreakDays());
   }
 
   // ============================================================
@@ -126,7 +128,10 @@ public class NotificationEventListener {
   public void handleNewFollower(NewFollower event) {
     log.debug("Handling NewFollower event for user {}", event.getUserId());
     notificationTrigger.notifyNewFollower(
-        event.getUserId(), event.getFollowerId(), event.getFollowerName(), event.getFollowerAvatar());
+        event.getUserId(),
+        event.getFollowerId(),
+        event.getFollowerName(),
+        event.getFollowerAvatar());
   }
 
   @Async

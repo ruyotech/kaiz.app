@@ -13,13 +13,13 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface CommunityTemplateRepository extends JpaRepository<CommunityTemplate, UUID> {
 
-    Page<CommunityTemplate> findByTemplateType(TemplateType type, Pageable pageable);
+  Page<CommunityTemplate> findByTemplateType(TemplateType type, Pageable pageable);
 
-    Page<CommunityTemplate> findByAuthorId(UUID authorId, Pageable pageable);
+  Page<CommunityTemplate> findByAuthorId(UUID authorId, Pageable pageable);
 
-    Page<CommunityTemplate> findByIsFeaturedTrue(Pageable pageable);
+  Page<CommunityTemplate> findByIsFeaturedTrue(Pageable pageable);
 
-    List<CommunityTemplate> findByIsFeaturedTrueOrderByDownloadCountDesc();
+  List<CommunityTemplate> findByIsFeaturedTrueOrderByDownloadCountDesc();
 
-    Page<CommunityTemplate> findByLifeWheelAreaId(String lifeWheelAreaId, Pageable pageable);
+  Page<CommunityTemplate> findByLifeWheelAreaId(String lifeWheelAreaId, Pageable pageable);
 }

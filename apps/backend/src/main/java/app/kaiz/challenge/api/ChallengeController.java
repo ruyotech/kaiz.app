@@ -40,7 +40,8 @@ public class ChallengeController {
 
   @GetMapping("/templates/{id}")
   @Operation(summary = "Get template by ID", description = "Retrieve a specific challenge template")
-  public ResponseEntity<ApiResponse<ChallengeTemplateDto>> getTemplateById(@PathVariable String id) {
+  public ResponseEntity<ApiResponse<ChallengeTemplateDto>> getTemplateById(
+      @PathVariable String id) {
     return ResponseEntity.ok(ApiResponse.success(challengeService.getTemplateById(id)));
   }
 
@@ -64,7 +65,8 @@ public class ChallengeController {
   @Operation(
       summary = "Get active challenges",
       description = "Retrieve all active challenges for the current user")
-  public ResponseEntity<ApiResponse<List<ChallengeDto>>> getActiveChallenges(@CurrentUser UUID userId) {
+  public ResponseEntity<ApiResponse<List<ChallengeDto>>> getActiveChallenges(
+      @CurrentUser UUID userId) {
     return ResponseEntity.ok(ApiResponse.success(challengeService.getActiveChallenges(userId)));
   }
 
@@ -95,13 +97,15 @@ public class ChallengeController {
       @CurrentUser UUID userId,
       @PathVariable UUID id,
       @Valid @RequestBody ChallengeDto.UpdateChallengeRequest request) {
-    return ResponseEntity.ok(ApiResponse.success(challengeService.updateChallenge(userId, id, request)));
+    return ResponseEntity.ok(
+        ApiResponse.success(challengeService.updateChallenge(userId, id, request)));
   }
 
   @DeleteMapping("/{id}")
   @SecurityRequirement(name = "bearerAuth")
   @Operation(summary = "Delete challenge", description = "Delete a challenge")
-  public ResponseEntity<ApiResponse<Void>> deleteChallenge(@CurrentUser UUID userId, @PathVariable UUID id) {
+  public ResponseEntity<ApiResponse<Void>> deleteChallenge(
+      @CurrentUser UUID userId, @PathVariable UUID id) {
     challengeService.deleteChallenge(userId, id);
     return ResponseEntity.ok(ApiResponse.success(null));
   }
@@ -114,7 +118,8 @@ public class ChallengeController {
       description = "Retrieve all entries for a challenge")
   public ResponseEntity<ApiResponse<List<ChallengeEntryDto>>> getEntries(
       @CurrentUser UUID userId, @PathVariable UUID id) {
-    return ResponseEntity.ok(ApiResponse.success(challengeService.getEntriesByChallengeId(userId, id)));
+    return ResponseEntity.ok(
+        ApiResponse.success(challengeService.getEntriesByChallengeId(userId, id)));
   }
 
   @PostMapping("/{id}/entries")

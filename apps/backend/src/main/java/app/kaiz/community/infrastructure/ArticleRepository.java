@@ -15,27 +15,26 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface ArticleRepository extends JpaRepository<Article, UUID> {
 
-    Page<Article> findByIsPublished(Boolean isPublished, Pageable pageable);
+  Page<Article> findByIsPublished(Boolean isPublished, Pageable pageable);
 
-    Page<Article> findByCategoryAndIsPublished(
-            ArticleCategory category, Boolean isPublished, Pageable pageable);
+  Page<Article> findByCategoryAndIsPublished(
+      ArticleCategory category, Boolean isPublished, Pageable pageable);
 
-    @Query(
-            "SELECT a FROM Article a WHERE a.isPublished = :published AND :tag MEMBER OF a.tags")
-    Page<Article> findByIsPublishedAndTagsContaining(
-            @Param("published") Boolean published, @Param("tag") String tag, Pageable pageable);
+  @Query("SELECT a FROM Article a WHERE a.isPublished = :published AND :tag MEMBER OF a.tags")
+  Page<Article> findByIsPublishedAndTagsContaining(
+      @Param("published") Boolean published, @Param("tag") String tag, Pageable pageable);
 
-    @Query(
-            "SELECT a FROM Article a WHERE a.isPublished = :published AND a.category = :category AND :tag MEMBER OF a.tags")
-    Page<Article> findByIsPublishedAndCategoryAndTagsContaining(
-            @Param("published") Boolean published,
-            @Param("category") ArticleCategory category,
-            @Param("tag") String tag,
-            Pageable pageable);
+  @Query(
+      "SELECT a FROM Article a WHERE a.isPublished = :published AND a.category = :category AND :tag MEMBER OF a.tags")
+  Page<Article> findByIsPublishedAndCategoryAndTagsContaining(
+      @Param("published") Boolean published,
+      @Param("category") ArticleCategory category,
+      @Param("tag") String tag,
+      Pageable pageable);
 
-    Page<Article> findByAuthorId(UUID authorId, Pageable pageable);
+  Page<Article> findByAuthorId(UUID authorId, Pageable pageable);
 
-    Page<Article> findByIsFeaturedTrue(Pageable pageable);
+  Page<Article> findByIsFeaturedTrue(Pageable pageable);
 
-    Optional<Article> findFirstByIsFeaturedTrueOrderByCreatedAtDesc();
+  Optional<Article> findFirstByIsFeaturedTrueOrderByCreatedAtDesc();
 }

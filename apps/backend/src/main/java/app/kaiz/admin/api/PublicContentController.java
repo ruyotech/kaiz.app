@@ -13,7 +13,9 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/public/content")
 @RequiredArgsConstructor
-@Tag(name = "Public Content", description = "Public endpoints for website content (no auth required)")
+@Tag(
+    name = "Public Content",
+    description = "Public endpoints for website content (no auth required)")
 public class PublicContentController {
 
   private final AdminContentService adminContentService;

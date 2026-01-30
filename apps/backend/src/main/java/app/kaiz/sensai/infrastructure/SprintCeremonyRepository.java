@@ -11,30 +11,28 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-/**
- * Repository for SprintCeremony entities.
- */
+/** Repository for SprintCeremony entities. */
 @Repository
 public interface SprintCeremonyRepository extends JpaRepository<SprintCeremony, UUID> {
 
-    List<SprintCeremony> findByUserIdAndSprintIdOrderByScheduledAt(UUID userId, String sprintId);
+  List<SprintCeremony> findByUserIdAndSprintIdOrderByScheduledAt(UUID userId, String sprintId);
 
-    Optional<SprintCeremony> findByUserIdAndSprintIdAndCeremonyType(
-        UUID userId, String sprintId, CeremonyType ceremonyType);
+  Optional<SprintCeremony> findByUserIdAndSprintIdAndCeremonyType(
+      UUID userId, String sprintId, CeremonyType ceremonyType);
 
-    List<SprintCeremony> findByUserIdAndStatusOrderByScheduledAt(
-        UUID userId, CeremonyStatus status);
+  List<SprintCeremony> findByUserIdAndStatusOrderByScheduledAt(UUID userId, CeremonyStatus status);
 
-    @Query("SELECT sc FROM SprintCeremony sc WHERE sc.user.id = :userId " +
-           "AND sc.ceremonyType = :type ORDER BY sc.completedAt DESC")
-    List<SprintCeremony> findCompletedCeremoniesByType(
-        @Param("userId") UUID userId,
-        @Param("type") CeremonyType type);
+  @Query(
+      "SELECT sc FROM SprintCeremony sc WHERE sc.user.id = :userId "
+          + "AND sc.ceremonyType = :type ORDER BY sc.completedAt DESC")
+  List<SprintCeremony> findCompletedCeremoniesByType(
+      @Param("userId") UUID userId, @Param("type") CeremonyType type);
 
-    @Query("SELECT sc FROM SprintCeremony sc WHERE sc.user.id = :userId " +
-           "AND sc.status = 'SCHEDULED' AND sc.scheduledAt < CURRENT_TIMESTAMP")
-    List<SprintCeremony> findOverdueCeremonies(@Param("userId") UUID userId);
+  @Query(
+      "SELECT sc FROM SprintCeremony sc WHERE sc.user.id = :userId "
+          + "AND sc.status = 'SCHEDULED' AND sc.scheduledAt < CURRENT_TIMESTAMP")
+  List<SprintCeremony> findOverdueCeremonies(@Param("userId") UUID userId);
 
-    boolean existsByUserIdAndSprintIdAndCeremonyTypeAndStatus(
-        UUID userId, String sprintId, CeremonyType type, CeremonyStatus status);
+  boolean existsByUserIdAndSprintIdAndCeremonyTypeAndStatus(
+      UUID userId, String sprintId, CeremonyType type, CeremonyStatus status);
 }

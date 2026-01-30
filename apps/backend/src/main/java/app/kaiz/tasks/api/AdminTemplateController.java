@@ -16,8 +16,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * Admin endpoints for managing global (system) templates.
- * Only accessible by users with ADMIN role.
+ * Admin endpoints for managing global (system) templates. Only accessible by users with ADMIN role.
  */
 @RestController
 @RequestMapping("/api/v1/admin/templates")
@@ -30,24 +29,28 @@ public class AdminTemplateController {
   private final TaskTemplateService taskTemplateService;
 
   @GetMapping
-  @Operation(summary = "Get all system templates", description = "Get all global (system-created) templates")
+  @Operation(
+      summary = "Get all system templates",
+      description = "Get all global (system-created) templates")
   public ResponseEntity<List<TaskTemplateDto>> getAllSystemTemplates() {
     return ResponseEntity.ok(taskTemplateService.getAllSystemTemplates());
   }
 
   @PostMapping
-  @Operation(summary = "Create system template", description = "Create a new global template visible to all users")
+  @Operation(
+      summary = "Create system template",
+      description = "Create a new global template visible to all users")
   public ResponseEntity<TaskTemplateDto> createSystemTemplate(
       @Valid @RequestBody CreateTaskTemplateRequest request) {
     TaskTemplateDto template = taskTemplateService.createSystemTemplate(request);
-    return ResponseEntity.created(URI.create("/api/v1/admin/templates/" + template.id())).body(template);
+    return ResponseEntity.created(URI.create("/api/v1/admin/templates/" + template.id()))
+        .body(template);
   }
 
   @PutMapping("/{id}")
   @Operation(summary = "Update system template", description = "Update an existing global template")
   public ResponseEntity<TaskTemplateDto> updateSystemTemplate(
-      @PathVariable UUID id,
-      @Valid @RequestBody UpdateTaskTemplateRequest request) {
+      @PathVariable UUID id, @Valid @RequestBody UpdateTaskTemplateRequest request) {
     return ResponseEntity.ok(taskTemplateService.updateSystemTemplate(id, request));
   }
 

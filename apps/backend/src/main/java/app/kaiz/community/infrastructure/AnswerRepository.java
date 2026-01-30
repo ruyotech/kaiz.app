@@ -10,9 +10,9 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface AnswerRepository extends JpaRepository<Answer, UUID> {
 
-    List<Answer> findByQuestionId(UUID questionId);
+  List<Answer> findByQuestionId(UUID questionId);
 
-    List<Answer> findByAuthorId(UUID authorId);
+  List<Answer> findByAuthorId(UUID authorId);
 
-    List<Answer> findByQuestionIdOrderByUpvoteCountDesc(UUID questionId);
+  List<Answer> findByQuestionIdOrderByUpvoteCountDesc(UUID questionId);
 }

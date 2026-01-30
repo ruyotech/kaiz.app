@@ -31,16 +31,13 @@ public interface NotificationMapper {
 
   @Named("toSenderDto")
   default SenderDto toSenderDto(Notification notification) {
-    if (notification.getSenderId() == null &&
-        notification.getSenderName() == null &&
-        notification.getSenderAvatar() == null) {
+    if (notification.getSenderId() == null
+        && notification.getSenderName() == null
+        && notification.getSenderAvatar() == null) {
       return null;
     }
     return new SenderDto(
-        notification.getSenderId(),
-        notification.getSenderName(),
-        notification.getSenderAvatar()
-    );
+        notification.getSenderId(), notification.getSenderName(), notification.getSenderAvatar());
   }
 
   @Named("toActionDtoList")
@@ -58,12 +55,9 @@ public interface NotificationMapper {
     if (prefs.getCategorySettings() != null) {
       for (Map.Entry<String, CategoryPreference> entry : prefs.getCategorySettings().entrySet()) {
         CategoryPreference cp = entry.getValue();
-        categorySettings.put(entry.getKey(), new CategoryPreferenceDto(
-            cp.isEnabled(),
-            cp.isPush(),
-            cp.isEmail(),
-            cp.isInApp()
-        ));
+        categorySettings.put(
+            entry.getKey(),
+            new CategoryPreferenceDto(cp.isEnabled(), cp.isPush(), cp.isEmail(), cp.isInApp()));
       }
     }
 
@@ -76,8 +70,6 @@ public interface NotificationMapper {
         prefs.isQuietHoursEnabled(),
         prefs.getQuietHoursStart(),
         prefs.getQuietHoursEnd(),
-        categorySettings
-    );
+        categorySettings);
   }
 }
-

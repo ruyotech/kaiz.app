@@ -1,12 +1,12 @@
 package app.kaiz.tasks.api;
 
+import app.kaiz.shared.security.CurrentUser;
+import app.kaiz.shared.util.ApiResponse;
 import app.kaiz.tasks.application.TaskService;
 import app.kaiz.tasks.application.dto.TaskCommentDto;
 import app.kaiz.tasks.application.dto.TaskDto;
 import app.kaiz.tasks.application.dto.TaskHistoryDto;
 import app.kaiz.tasks.domain.TaskStatus;
-import app.kaiz.shared.security.CurrentUser;
-import app.kaiz.shared.util.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -74,7 +74,8 @@ public class TaskController {
   @Operation(
       summary = "Get task by ID",
       description = "Retrieve a specific task with comments and history")
-  public ResponseEntity<ApiResponse<TaskDto>> getTaskById(@CurrentUser UUID userId, @PathVariable UUID id) {
+  public ResponseEntity<ApiResponse<TaskDto>> getTaskById(
+      @CurrentUser UUID userId, @PathVariable UUID id) {
     return ResponseEntity.ok(ApiResponse.success(taskService.getTaskById(userId, id)));
   }
 
@@ -83,7 +84,8 @@ public class TaskController {
   public ResponseEntity<ApiResponse<TaskDto>> createTask(
       @CurrentUser UUID userId, @Valid @RequestBody TaskDto.CreateTaskRequest request) {
     TaskDto task = taskService.createTask(userId, request);
-    return ResponseEntity.created(URI.create("/api/v1/tasks/" + task.id())).body(ApiResponse.success(task));
+    return ResponseEntity.created(URI.create("/api/v1/tasks/" + task.id()))
+        .body(ApiResponse.success(task));
   }
 
   @PutMapping("/{id}")
@@ -101,12 +103,14 @@ public class TaskController {
       @CurrentUser UUID userId,
       @PathVariable UUID id,
       @Valid @RequestBody TaskDto.UpdateTaskStatusRequest request) {
-    return ResponseEntity.ok(ApiResponse.success(taskService.updateTaskStatus(userId, id, request.status())));
+    return ResponseEntity.ok(
+        ApiResponse.success(taskService.updateTaskStatus(userId, id, request.status())));
   }
 
   @DeleteMapping("/{id}")
   @Operation(summary = "Delete task", description = "Delete a task")
-  public ResponseEntity<ApiResponse<Void>> deleteTask(@CurrentUser UUID userId, @PathVariable UUID id) {
+  public ResponseEntity<ApiResponse<Void>> deleteTask(
+      @CurrentUser UUID userId, @PathVariable UUID id) {
     taskService.deleteTask(userId, id);
     return ResponseEntity.ok(ApiResponse.success(null));
   }

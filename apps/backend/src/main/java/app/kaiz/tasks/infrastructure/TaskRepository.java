@@ -28,7 +28,8 @@ public interface TaskRepository extends JpaRepository<Task, UUID> {
   @Query("SELECT t FROM Task t WHERE t.user.id = :userId AND t.isDraft = true")
   List<Task> findDraftsByUserId(@Param("userId") UUID userId);
 
-  @Query("SELECT t FROM Task t WHERE t.user.id = :userId AND t.sprint IS NULL AND t.isDraft = false")
+  @Query(
+      "SELECT t FROM Task t WHERE t.user.id = :userId AND t.sprint IS NULL AND t.isDraft = false")
   List<Task> findBacklogByUserId(@Param("userId") UUID userId);
 
   Optional<Task> findByIdAndUserId(UUID id, UUID userId);
@@ -36,8 +37,7 @@ public interface TaskRepository extends JpaRepository<Task, UUID> {
   @Query(
       "SELECT t FROM Task t LEFT JOIN FETCH t.comments LEFT JOIN FETCH t.history WHERE t.id = :id"
           + " AND t.user.id = :userId")
-  Optional<Task> findByIdAndUserIdWithDetails(
-      @Param("id") UUID id, @Param("userId") UUID userId);
+  Optional<Task> findByIdAndUserIdWithDetails(@Param("id") UUID id, @Param("userId") UUID userId);
 
   @Query(
       "SELECT t FROM Task t WHERE t.user.id = :userId AND t.lifeWheelArea.id = :areaId ORDER BY"

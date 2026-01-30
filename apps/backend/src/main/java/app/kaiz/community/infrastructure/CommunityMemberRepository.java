@@ -15,13 +15,13 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface CommunityMemberRepository extends JpaRepository<CommunityMember, UUID> {
 
-    @Query("SELECT m FROM CommunityMember m WHERE m.user.id = :userId")
-    Optional<CommunityMember> findByUserId(@Param("userId") UUID userId);
+  @Query("SELECT m FROM CommunityMember m WHERE m.user.id = :userId")
+  Optional<CommunityMember> findByUserId(@Param("userId") UUID userId);
 
-    Page<CommunityMember> findByDisplayNameContainingIgnoreCase(String query, Pageable pageable);
+  Page<CommunityMember> findByDisplayNameContainingIgnoreCase(String query, Pageable pageable);
 
-    @Query("SELECT m FROM CommunityMember m ORDER BY m.reputationPoints DESC")
-    Page<CommunityMember> findTopByReputationPoints(Pageable pageable);
+  @Query("SELECT m FROM CommunityMember m ORDER BY m.reputationPoints DESC")
+  Page<CommunityMember> findTopByReputationPoints(Pageable pageable);
 
-    List<CommunityMember> findTop5ByOrderByReputationPointsDesc();
+  List<CommunityMember> findTop5ByOrderByReputationPointsDesc();
 }

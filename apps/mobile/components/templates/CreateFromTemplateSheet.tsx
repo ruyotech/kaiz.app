@@ -304,68 +304,84 @@ export function CreateFromTemplateSheet({
             // Track template usage
             await useTemplate(template.id);
 
-            // Build recurrence pattern
+            // Build recurrence object for backend
             const isRecurring = selectedRecurrenceId !== 'none';
-            let recurrencePattern: RecurrencePattern | null = null;
+            let recurrence: any = null;
             
             if (isRecurring) {
                 const preset = RECURRENCE_PRESETS.find(p => p.id === selectedRecurrenceId);
-                let frequency = preset?.frequency || 'weekly';
-                let interval = 1;
+                let frequency = preset?.frequency?.toUpperCase() || 'WEEKLY';
+                let intervalValue = 1;
                 
                 if (selectedRecurrenceId === 'custom') {
-                    frequency = customUnit === 'day' ? 'daily' : customUnit === 'week' ? 'weekly' : 'monthly';
-                    interval = customInterval;
+                    frequency = customUnit === 'day' ? 'DAILY' : customUnit === 'week' ? 'WEEKLY' : 'MONTHLY';
+                    intervalValue = customInterval;
                 } else if (selectedRecurrenceId === 'biweekly') {
-                    frequency = 'weekly';
-                    interval = 2;
+                    frequency = 'BIWEEKLY';
+                    intervalValue = 1;
                 } else if (selectedRecurrenceId === 'weekdays') {
-                    frequency = 'weekly';
+                    frequency = 'WEEKLY';
                 }
+
+                // Format date as YYYY-MM-DD for LocalDate
+                const formatLocalDate = (date: Date) => {
+                    return date.toISOString().split('T')[0];
+                };
+
+                // Build scheduled time string if specified
+                const scheduledTime = hasTime 
+                    ? `${selectedHour.toString().padStart(2, '0')}:${selectedMinute.toString().padStart(2, '0')}:00`
+                    : null;
                 
-                recurrencePattern = {
-                    frequency: frequency as any,
-                    interval,
-                    endDate: hasEndDate && recurrenceEndDate ? recurrenceEndDate.toISOString() : null,
+                recurrence = {
+                    frequency: frequency,
+                    intervalValue: intervalValue,
+                    startDate: formatLocalDate(recurrenceStartDate),
+                    endDate: hasEndDate && recurrenceEndDate ? formatLocalDate(recurrenceEndDate) : null,
+                    dayOfWeek: (selectedRecurrenceId === 'weekly' || selectedRecurrenceId === 'biweekly') 
+                        ? selectedDayOfWeek : null,
+                    dayOfMonth: selectedRecurrenceId === 'monthly' ? selectedDayOfMonth : null,
+                    yearlyDate: selectedRecurrenceId === 'yearly' 
+                        ? formatLocalDate(yearlyDate) : null,
+                    scheduledTime: scheduledTime,
                 };
             }
 
-            // Build time string if specified
-            const scheduledTime = hasTime 
-                ? `${selectedHour.toString().padStart(2, '0')}:${selectedMinute.toString().padStart(2, '0')}` 
-                : undefined;
+            // Build attachments in backend format
+            const formattedAttachments = attachments.length > 0 
+                ? attachments.map(att => ({
+                    filename: att.name || att.uri.split('/').pop() || 'attachment',
+                    fileUrl: att.uri,
+                    fileType: att.type || 'application/octet-stream',
+                    fileSize: att.size || null,
+                }))
+                : null;
 
-            // Create the task
+            // Create the task with backend-compatible format
             const taskData: any = {
                 title: title,
                 description: description,
                 eisenhowerQuadrantId: eisenhowerQuadrantId,
                 lifeWheelAreaId: selectedLifeWheelAreaId || template.defaultLifeWheelAreaId,
-                sprintId: isRecurring ? null : selectedSprintId,  // No sprint for recurring tasks
+                sprintId: isRecurring ? null : selectedSprintId,
                 storyPoints: storyPoints,
-                status: 'todo',
+                status: 'TODO',
+                createdFromTemplateId: template.id,
+                // Recurrence
                 isRecurring: isRecurring,
-                recurrencePattern: recurrencePattern,
-                recurrenceStartDate: isRecurring ? recurrenceStartDate.toISOString() : undefined,
-                // Day/time specific recurrence data
-                ...(isRecurring && {
-                    recurrenceDayOfWeek: (selectedRecurrenceId === 'weekly' || selectedRecurrenceId === 'biweekly') 
-                        ? selectedDayOfWeek : undefined,
-                    recurrenceDayOfMonth: selectedRecurrenceId === 'monthly' ? selectedDayOfMonth : undefined,
-                    recurrenceYearlyDate: selectedRecurrenceId === 'yearly' 
-                        ? yearlyDate.toISOString() : undefined,
-                    scheduledTime: scheduledTime,
-                }),
-                targetDate: isRecurring ? null : (targetDate ? targetDate.toISOString() : undefined),
-                tags: tags,
-                comment: comment.trim() || undefined,
-                attachments: attachments.length > 0 ? attachments : undefined,
+                recurrence: recurrence,
+                // Target date for non-recurring tasks
+                targetDate: !isRecurring && targetDate ? targetDate.toISOString() : null,
+                // Tags as array of strings
+                tags: tags.length > 0 ? tags : null,
+                // Initial comment
+                comment: comment.trim() || null,
+                // Attachments
+                attachments: formattedAttachments,
                 // Event fields
-                ...(template.type === 'event' && {
-                    isEvent: true,
-                    location: location,
-                    isAllDay: isAllDay,
-                }),
+                isEvent: template.type === 'event',
+                location: template.type === 'event' ? location : null,
+                isAllDay: template.type === 'event' ? isAllDay : false,
             };
 
             const newTask = await taskApi.createTask(taskData);

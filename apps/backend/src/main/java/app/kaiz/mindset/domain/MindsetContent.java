@@ -31,7 +31,9 @@ public class MindsetContent extends BaseEntity {
   private String dimensionTag;
 
   @ElementCollection(fetch = FetchType.EAGER)
-  @CollectionTable(name = "mindset_content_tags", joinColumns = @JoinColumn(name = "mindset_content_id"))
+  @CollectionTable(
+      name = "mindset_content_tags",
+      joinColumns = @JoinColumn(name = "mindset_content_id"))
   @Column(name = "tag")
   @Builder.Default
   private List<String> secondaryTags = new ArrayList<>();

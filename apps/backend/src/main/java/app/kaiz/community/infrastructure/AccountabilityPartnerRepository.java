@@ -11,14 +11,14 @@ import org.springframework.stereotype.Repository;
 /** Repository for AccountabilityPartner entity. */
 @Repository
 public interface AccountabilityPartnerRepository
-        extends JpaRepository<AccountabilityPartner, UUID> {
+    extends JpaRepository<AccountabilityPartner, UUID> {
 
-    @Query(
-            "SELECT p FROM AccountabilityPartner p WHERE p.member.id = :memberId OR p.partner.id = :partnerId")
-    List<AccountabilityPartner> findByMemberIdOrPartnerId(
-            @Param("memberId") UUID memberId, @Param("partnerId") UUID partnerId);
+  @Query(
+      "SELECT p FROM AccountabilityPartner p WHERE p.member.id = :memberId OR p.partner.id = :partnerId")
+  List<AccountabilityPartner> findByMemberIdOrPartnerId(
+      @Param("memberId") UUID memberId, @Param("partnerId") UUID partnerId);
 
-    List<AccountabilityPartner> findByMemberId(UUID memberId);
+  List<AccountabilityPartner> findByMemberId(UUID memberId);
 
-    List<AccountabilityPartner> findByPartnerId(UUID partnerId);
+  List<AccountabilityPartner> findByPartnerId(UUID partnerId);
 }

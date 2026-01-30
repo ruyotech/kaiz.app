@@ -85,8 +85,7 @@ public class GlobalExceptionHandler {
       AIProcessingException ex, HttpServletRequest request) {
     log.error("🤖 [AI] Processing error: {}", ex.getMessage(), ex);
     ErrorResponse response =
-        new ErrorResponse(
-            "AI_PROCESSING_ERROR", ex.getMessage(), request.getRequestURI());
+        new ErrorResponse("AI_PROCESSING_ERROR", ex.getMessage(), request.getRequestURI());
     return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(response);
   }
 

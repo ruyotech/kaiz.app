@@ -27,40 +27,20 @@ public record NotificationDto(
     List<ActionDto> actions,
     Instant createdAt) {
 
-  /**
-   * Sender information for the notification.
-   */
-  public record SenderDto(
-      UUID id,
-      String name,
-      String avatar
-  ) {}
+  /** Sender information for the notification. */
+  public record SenderDto(UUID id, String name, String avatar) {}
 
-  /**
-   * Action button for the notification.
-   */
-  public record ActionDto(
-      String id,
-      String label,
-      String action,
-      String style
-  ) {}
+  /** Action button for the notification. */
+  public record ActionDto(String id, String label, String action, String style) {}
 
-  /**
-   * Unread count response.
-   */
-  public record UnreadCountDto(
-      long total,
-      Map<String, Long> byCategory
-  ) {
+  /** Unread count response. */
+  public record UnreadCountDto(long total, Map<String, Long> byCategory) {
     public UnreadCountDto(long total) {
       this(total, Map.of());
     }
   }
 
-  /**
-   * Paginated notifications response.
-   */
+  /** Paginated notifications response. */
   public record NotificationPageDto(
       List<NotificationDto> notifications,
       int page,
@@ -68,17 +48,12 @@ public record NotificationDto(
       long totalElements,
       int totalPages,
       boolean hasNext,
-      boolean hasPrevious
-  ) {}
+      boolean hasPrevious) {}
 
-  /**
-   * Grouped notifications by time period.
-   */
+  /** Grouped notifications by time period. */
   public record GroupedNotificationsDto(
       List<NotificationDto> today,
       List<NotificationDto> yesterday,
       List<NotificationDto> thisWeek,
-      List<NotificationDto> older
-  ) {}
+      List<NotificationDto> older) {}
 }
-

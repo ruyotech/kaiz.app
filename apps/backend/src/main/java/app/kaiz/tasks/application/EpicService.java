@@ -3,12 +3,12 @@ package app.kaiz.tasks.application;
 import app.kaiz.identity.domain.User;
 import app.kaiz.identity.infrastructure.UserRepository;
 import app.kaiz.life_wheel.infrastructure.LifeWheelAreaRepository;
+import app.kaiz.shared.exception.ResourceNotFoundException;
 import app.kaiz.tasks.application.dto.EpicDto;
 import app.kaiz.tasks.domain.Epic;
 import app.kaiz.tasks.domain.EpicStatus;
 import app.kaiz.tasks.infrastructure.EpicRepository;
 import app.kaiz.tasks.infrastructure.SprintRepository;
-import app.kaiz.shared.exception.ResourceNotFoundException;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -68,9 +68,7 @@ public class EpicService {
             .build();
 
     if (request.targetSprintId() != null) {
-      sprintRepository
-          .findById(request.targetSprintId())
-          .ifPresent(epic::setTargetSprint);
+      sprintRepository.findById(request.targetSprintId()).ifPresent(epic::setTargetSprint);
     }
 
     return sdlcMapper.toEpicDto(epicRepository.save(epic));

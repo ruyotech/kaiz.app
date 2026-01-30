@@ -86,7 +86,8 @@ public class NotificationService {
     Instant weekStart = today.minusDays(7).atStartOfDay(zone).toInstant();
 
     List<Notification> allRecent =
-        notificationRepository.findRecentNotifications(userId, weekStart.minus(30, ChronoUnit.DAYS));
+        notificationRepository.findRecentNotifications(
+            userId, weekStart.minus(30, ChronoUnit.DAYS));
 
     List<NotificationDto> todayList = new ArrayList<>();
     List<NotificationDto> yesterdayList = new ArrayList<>();
@@ -219,7 +220,11 @@ public class NotificationService {
 
   @Transactional
   public NotificationDto createNotification(
-      UUID userId, NotificationType type, String title, String content, Map<String, Object> metadata) {
+      UUID userId,
+      NotificationType type,
+      String title,
+      String content,
+      Map<String, Object> metadata) {
     User user =
         userRepository
             .findById(userId)
@@ -258,9 +263,8 @@ public class NotificationService {
 
     // Check user preferences before creating
     NotificationPreferences prefs = getOrCreatePreferences(request.userId());
-    NotificationCategory category = request.category() != null
-        ? request.category()
-        : request.type().getCategory();
+    NotificationCategory category =
+        request.category() != null ? request.category() : request.type().getCategory();
 
     if (!prefs.isCategoryEnabled(category)) {
       log.debug("Notification category {} is disabled for user {}", category, request.userId());
@@ -270,14 +274,17 @@ public class NotificationService {
     // Map actions if provided
     List<Notification.NotificationAction> actions = null;
     if (request.actions() != null && !request.actions().isEmpty()) {
-      actions = request.actions().stream()
-          .map(a -> Notification.NotificationAction.builder()
-              .id(a.id())
-              .label(a.label())
-              .action(a.action())
-              .style(a.style())
-              .build())
-          .collect(Collectors.toList());
+      actions =
+          request.actions().stream()
+              .map(
+                  a ->
+                      Notification.NotificationAction.builder()
+                          .id(a.id())
+                          .label(a.label())
+                          .action(a.action())
+                          .style(a.style())
+                          .build())
+              .collect(Collectors.toList());
     }
 
     Notification notification =
@@ -309,7 +316,8 @@ public class NotificationService {
   }
 
   @Transactional
-  public NotificationPreferencesDto updatePreferences(UUID userId, UpdatePreferencesRequest request) {
+  public NotificationPreferencesDto updatePreferences(
+      UUID userId, UpdatePreferencesRequest request) {
     NotificationPreferences prefs = getOrCreatePreferences(userId);
 
     // Update global settings
@@ -318,7 +326,8 @@ public class NotificationService {
     if (request.inAppEnabled() != null) prefs.setInAppEnabled(request.inAppEnabled());
     if (request.soundEnabled() != null) prefs.setSoundEnabled(request.soundEnabled());
     if (request.vibrationEnabled() != null) prefs.setVibrationEnabled(request.vibrationEnabled());
-    if (request.quietHoursEnabled() != null) prefs.setQuietHoursEnabled(request.quietHoursEnabled());
+    if (request.quietHoursEnabled() != null)
+      prefs.setQuietHoursEnabled(request.quietHoursEnabled());
     if (request.quietHoursStart() != null) prefs.setQuietHoursStart(request.quietHoursStart());
     if (request.quietHoursEnd() != null) prefs.setQuietHoursEnd(request.quietHoursEnd());
 
@@ -349,19 +358,20 @@ public class NotificationService {
   private NotificationPreferences getOrCreatePreferences(UUID userId) {
     return preferencesRepository
         .findByUserId(userId)
-        .orElseGet(() -> {
-          User user = userRepository.findById(userId)
-              .orElseThrow(() -> new ResourceNotFoundException("User", userId.toString()));
-          NotificationPreferences prefs = NotificationPreferences.createDefault(user);
-          return preferencesRepository.save(prefs);
-        });
+        .orElseGet(
+            () -> {
+              User user =
+                  userRepository
+                      .findById(userId)
+                      .orElseThrow(() -> new ResourceNotFoundException("User", userId.toString()));
+              NotificationPreferences prefs = NotificationPreferences.createDefault(user);
+              return preferencesRepository.save(prefs);
+            });
   }
 
   // ============ Scheduled Tasks ============
 
-  /**
-   * Archive expired notifications daily at 2 AM.
-   */
+  /** Archive expired notifications daily at 2 AM. */
   @Scheduled(cron = "0 0 2 * * *")
   @Transactional
   public void archiveExpiredNotifications() {
@@ -371,4 +381,3 @@ public class NotificationService {
     }
   }
 }
-

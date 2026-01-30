@@ -82,9 +82,7 @@ public class EssentiaService {
         progressRepository
             .findByUserIdAndBookId(userId, UUID.fromString(bookId))
             .orElseThrow(
-                () ->
-                    new ResourceNotFoundException(
-                        "Progress not found for book: " + bookId));
+                () -> new ResourceNotFoundException("Progress not found for book: " + bookId));
     return mapper.toProgressDto(progress);
   }
 
@@ -142,9 +140,7 @@ public class EssentiaService {
         progressRepository
             .findByUserIdAndBookId(userId, UUID.fromString(bookId))
             .orElseThrow(
-                () ->
-                    new ResourceNotFoundException(
-                        "Progress not found for book: " + bookId));
+                () -> new ResourceNotFoundException("Progress not found for book: " + bookId));
 
     progress.setCurrentCardIndex(cardIndex);
 

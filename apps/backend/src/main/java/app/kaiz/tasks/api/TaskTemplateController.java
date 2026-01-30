@@ -1,9 +1,9 @@
 package app.kaiz.tasks.api;
 
+import app.kaiz.shared.security.CurrentUser;
 import app.kaiz.tasks.application.TaskTemplateService;
 import app.kaiz.tasks.application.dto.TaskTemplateDto;
 import app.kaiz.tasks.application.dto.TaskTemplateDto.*;
-import app.kaiz.shared.security.CurrentUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -29,32 +29,42 @@ public class TaskTemplateController {
   // ============ List Templates ============
 
   @GetMapping
-  @Operation(summary = "Get all available templates", description = "Get all templates available to the user (global + user's own)")
+  @Operation(
+      summary = "Get all available templates",
+      description = "Get all templates available to the user (global + user's own)")
   public ResponseEntity<List<TaskTemplateDto>> getAllTemplates(@CurrentUser UUID userId) {
     return ResponseEntity.ok(taskTemplateService.getAllAvailableTemplates(userId));
   }
 
   @GetMapping("/global")
-  @Operation(summary = "Get global templates", description = "Get all system-created global templates")
+  @Operation(
+      summary = "Get global templates",
+      description = "Get all system-created global templates")
   public ResponseEntity<List<TaskTemplateDto>> getGlobalTemplates(@CurrentUser UUID userId) {
     return ResponseEntity.ok(taskTemplateService.getGlobalTemplates(userId));
   }
 
   @GetMapping("/global/area/{areaId}")
-  @Operation(summary = "Get global templates by life wheel area", description = "Get global templates filtered by life wheel area")
+  @Operation(
+      summary = "Get global templates by life wheel area",
+      description = "Get global templates filtered by life wheel area")
   public ResponseEntity<List<TaskTemplateDto>> getGlobalTemplatesByArea(
       @CurrentUser UUID userId, @PathVariable String areaId) {
     return ResponseEntity.ok(taskTemplateService.getGlobalTemplatesByLifeWheelArea(userId, areaId));
   }
 
   @GetMapping("/user")
-  @Operation(summary = "Get user's templates", description = "Get all templates created by the current user")
+  @Operation(
+      summary = "Get user's templates",
+      description = "Get all templates created by the current user")
   public ResponseEntity<List<TaskTemplateDto>> getUserTemplates(@CurrentUser UUID userId) {
     return ResponseEntity.ok(taskTemplateService.getTemplatesByUserId(userId));
   }
 
   @GetMapping("/favorites")
-  @Operation(summary = "Get favorite templates", description = "Get user's favorited/bookmarked templates")
+  @Operation(
+      summary = "Get favorite templates",
+      description = "Get user's favorited/bookmarked templates")
   public ResponseEntity<List<TaskTemplateDto>> getFavoriteTemplates(@CurrentUser UUID userId) {
     return ResponseEntity.ok(taskTemplateService.getFavoriteTemplates(userId));
   }
@@ -69,7 +79,9 @@ public class TaskTemplateController {
   // ============ Single Template ============
 
   @GetMapping("/{id}")
-  @Operation(summary = "Get template by ID", description = "Retrieve a specific template (global or user's own)")
+  @Operation(
+      summary = "Get template by ID",
+      description = "Retrieve a specific template (global or user's own)")
   public ResponseEntity<TaskTemplateDto> getTemplateById(
       @CurrentUser UUID userId, @PathVariable UUID id) {
     return ResponseEntity.ok(taskTemplateService.getTemplateById(userId, id));
@@ -116,8 +128,8 @@ public class TaskTemplateController {
   @PostMapping("/{id}/rate")
   @Operation(summary = "Rate template", description = "Rate a template (1-5 stars)")
   public ResponseEntity<RatingResponse> rateTemplate(
-      @CurrentUser UUID userId, 
-      @PathVariable UUID id, 
+      @CurrentUser UUID userId,
+      @PathVariable UUID id,
       @Valid @RequestBody RateTemplateRequest request) {
     return ResponseEntity.ok(taskTemplateService.rateTemplate(userId, id, request.rating()));
   }
@@ -125,7 +137,9 @@ public class TaskTemplateController {
   // ============ Clone ============
 
   @PostMapping("/{id}/clone")
-  @Operation(summary = "Clone template", description = "Clone a global template to user's templates for customization")
+  @Operation(
+      summary = "Clone template",
+      description = "Clone a global template to user's templates for customization")
   public ResponseEntity<TaskTemplateDto> cloneTemplate(
       @CurrentUser UUID userId, @PathVariable UUID id) {
     TaskTemplateDto cloned = taskTemplateService.cloneTemplate(userId, id);
@@ -135,7 +149,9 @@ public class TaskTemplateController {
   // ============ Use Template ============
 
   @PostMapping("/{id}/use")
-  @Operation(summary = "Use template", description = "Increment template usage count (called when creating task from template)")
+  @Operation(
+      summary = "Use template",
+      description = "Increment template usage count (called when creating task from template)")
   public ResponseEntity<Void> useTemplate(@PathVariable UUID id) {
     taskTemplateService.incrementUsage(id);
     return ResponseEntity.ok().build();
@@ -144,21 +160,21 @@ public class TaskTemplateController {
   // ============ Tags ============
 
   @PostMapping("/{id}/tags")
-  @Operation(summary = "Add tag to template", description = "Add a tag to a template (user or global)")
+  @Operation(
+      summary = "Add tag to template",
+      description = "Add a tag to a template (user or global)")
   public ResponseEntity<TagsResponse> addTag(
-      @CurrentUser UUID userId,
-      @PathVariable UUID id,
-      @Valid @RequestBody AddTagRequest request) {
+      @CurrentUser UUID userId, @PathVariable UUID id, @Valid @RequestBody AddTagRequest request) {
     List<String> updatedTags = taskTemplateService.addTag(userId, id, request.tag());
     return ResponseEntity.ok(new TagsResponse(id, updatedTags));
   }
 
   @DeleteMapping("/{id}/tags/{tag}")
-  @Operation(summary = "Remove tag from template", description = "Remove a tag from a template (user or global)")
+  @Operation(
+      summary = "Remove tag from template",
+      description = "Remove a tag from a template (user or global)")
   public ResponseEntity<TagsResponse> removeTag(
-      @CurrentUser UUID userId,
-      @PathVariable UUID id,
-      @PathVariable String tag) {
+      @CurrentUser UUID userId, @PathVariable UUID id, @PathVariable String tag) {
     List<String> updatedTags = taskTemplateService.removeTag(userId, id, tag);
     return ResponseEntity.ok(new TagsResponse(id, updatedTags));
   }
@@ -166,8 +182,8 @@ public class TaskTemplateController {
   // ============ Response DTOs ============
 
   public record FavoriteResponse(UUID templateId, boolean isFavorite) {}
-  
+
   public record TagsResponse(UUID templateId, List<String> tags) {}
-  
+
   public record AddTagRequest(@NotBlank @Size(max = 100) String tag) {}
 }

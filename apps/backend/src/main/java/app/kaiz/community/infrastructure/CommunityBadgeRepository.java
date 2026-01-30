@@ -11,5 +11,5 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface CommunityBadgeRepository extends JpaRepository<CommunityBadge, UUID> {
 
-    Optional<CommunityBadge> findByBadgeType(BadgeType badgeType);
+  Optional<CommunityBadge> findByBadgeType(BadgeType badgeType);
 }

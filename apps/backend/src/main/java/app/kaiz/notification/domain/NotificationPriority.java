@@ -1,8 +1,6 @@
 package app.kaiz.notification.domain;
 
-/**
- * Notification priority levels for organizing notification importance.
- */
+/** Notification priority levels for organizing notification importance. */
 public enum NotificationPriority {
   LOW("low", 0, "#9CA3AF"),
   MEDIUM("medium", 1, "#3B82F6"),
@@ -31,9 +29,7 @@ public enum NotificationPriority {
     return color;
   }
 
-  /**
-   * Convert from string ID to enum.
-   */
+  /** Convert from string ID to enum. */
   public static NotificationPriority fromId(String id) {
     for (NotificationPriority priority : values()) {
       if (priority.id.equalsIgnoreCase(id)) {

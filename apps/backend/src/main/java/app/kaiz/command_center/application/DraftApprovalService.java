@@ -133,14 +133,25 @@ public class DraftApprovalService {
                 new TaskDto.CreateTaskRequest(
                     task.title(),
                     task.description(),
-                    null, // epicId - could use suggestedEpicId if valid UUID
+                    null, // epicId
                     task.lifeWheelAreaId(),
                     task.eisenhowerQuadrantId(),
                     task.suggestedSprintId(),
                     task.storyPoints(),
-                    false, // isDraft
+                    null, // status - will default to TODO
                     BigDecimal.valueOf(0.9), // aiConfidence
-                    null // createdFromTemplateId
+                    null, // createdFromTemplateId
+                    null, // targetDate
+                    false, // isRecurring
+                    null, // recurrence
+                    false, // isEvent
+                    null, // location
+                    false, // isAllDay
+                    null, // eventStartTime
+                    null, // eventEndTime
+                    null, // tags
+                    null, // attachments
+                    null // comment
                     );
             TaskDto created = taskService.createTask(userId, request);
             yield created.id().toString();

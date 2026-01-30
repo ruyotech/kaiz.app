@@ -1,8 +1,8 @@
 package app.kaiz.tasks.api;
 
+import app.kaiz.shared.util.ApiResponse;
 import app.kaiz.tasks.application.SprintService;
 import app.kaiz.tasks.application.dto.SprintDto;
-import app.kaiz.shared.util.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
@@ -19,7 +19,9 @@ public class SprintController {
   private final SprintService sprintService;
 
   @GetMapping
-  @Operation(summary = "Get all sprints", description = "Retrieve all sprints, optionally filtered by year")
+  @Operation(
+      summary = "Get all sprints",
+      description = "Retrieve all sprints, optionally filtered by year")
   public ResponseEntity<ApiResponse<List<SprintDto>>> getSprints(
       @RequestParam(required = false) Integer year) {
     List<SprintDto> sprints =

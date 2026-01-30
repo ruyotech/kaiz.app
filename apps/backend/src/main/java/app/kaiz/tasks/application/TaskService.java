@@ -4,14 +4,17 @@ import app.kaiz.identity.domain.User;
 import app.kaiz.identity.infrastructure.UserRepository;
 import app.kaiz.life_wheel.infrastructure.EisenhowerQuadrantRepository;
 import app.kaiz.life_wheel.infrastructure.LifeWheelAreaRepository;
+import app.kaiz.shared.exception.ResourceNotFoundException;
 import app.kaiz.tasks.application.dto.TaskCommentDto;
 import app.kaiz.tasks.application.dto.TaskDto;
 import app.kaiz.tasks.application.dto.TaskHistoryDto;
 import app.kaiz.tasks.domain.*;
 import app.kaiz.tasks.infrastructure.*;
-import app.kaiz.shared.exception.ResourceNotFoundException;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -28,6 +31,9 @@ public class TaskService {
   private final TaskCommentRepository taskCommentRepository;
   private final TaskHistoryRepository taskHistoryRepository;
   private final TaskTemplateRepository taskTemplateRepository;
+  private final TaskRecurrenceRepository taskRecurrenceRepository;
+  private final TaskAttachmentRepository taskAttachmentRepository;
+  private final UserTagRepository userTagRepository;
   private final EpicRepository epicRepository;
   private final SprintRepository sprintRepository;
   private final UserRepository userRepository;
@@ -96,6 +102,9 @@ public class TaskService {
                     new ResourceNotFoundException(
                         "EisenhowerQuadrant", request.eisenhowerQuadrantId()));
 
+    // Determine status - use provided status or default based on context
+    TaskStatus status = request.status() != null ? request.status() : TaskStatus.TODO;
+
     Task task =
         Task.builder()
             .title(request.title())
@@ -104,26 +113,115 @@ public class TaskService {
             .lifeWheelArea(lifeWheelArea)
             .eisenhowerQuadrant(eisenhowerQuadrant)
             .storyPoints(request.storyPoints() != null ? request.storyPoints() : 3)
-            .isDraft(request.isDraft())
             .aiConfidence(request.aiConfidence())
-            .status(request.isDraft() ? TaskStatus.DRAFT : TaskStatus.TODO)
+            .status(status)
+            .targetDate(request.targetDate())
+            .isRecurring(request.isRecurring())
+            .isEvent(request.isEvent())
+            .location(request.location())
+            .isAllDay(request.isAllDay())
+            .eventStartTime(request.eventStartTime())
+            .eventEndTime(request.eventEndTime())
             .build();
 
+    // Set epic if provided
     if (request.epicId() != null) {
       epicRepository.findByIdAndUserId(request.epicId(), userId).ifPresent(task::setEpic);
     }
 
-    if (request.sprintId() != null) {
+    // Set sprint if provided (only for non-recurring tasks)
+    if (request.sprintId() != null && !request.isRecurring()) {
       sprintRepository.findById(request.sprintId()).ifPresent(task::setSprint);
     }
 
+    // Set created from template if provided
     if (request.createdFromTemplateId() != null) {
       taskTemplateRepository
-          .findByIdAndUserId(request.createdFromTemplateId(), userId)
+          .findById(request.createdFromTemplateId())
           .ifPresent(task::setCreatedFromTemplate);
     }
 
-    return sdlcMapper.toTaskDto(taskRepository.save(task));
+    // Save the task first to get an ID
+    Task savedTask = taskRepository.save(task);
+
+    // Handle recurrence if task is recurring
+    if (request.isRecurring() && request.recurrence() != null) {
+      TaskRecurrence recurrence =
+          TaskRecurrence.builder()
+              .task(savedTask)
+              .frequency(request.recurrence().frequency())
+              .intervalValue(
+                  request.recurrence().intervalValue() != null
+                      ? request.recurrence().intervalValue()
+                      : 1)
+              .startDate(request.recurrence().startDate())
+              .endDate(request.recurrence().endDate())
+              .dayOfWeek(request.recurrence().dayOfWeek())
+              .dayOfMonth(request.recurrence().dayOfMonth())
+              .yearlyDate(request.recurrence().yearlyDate())
+              .scheduledTime(request.recurrence().scheduledTime())
+              .isActive(true)
+              .build();
+      taskRecurrenceRepository.save(recurrence);
+      savedTask.setRecurrence(recurrence);
+    }
+
+    // Handle tags - find or create user tags
+    if (request.tags() != null && !request.tags().isEmpty()) {
+      Set<UserTag> taskTags = new HashSet<>();
+      for (String tagName : request.tags()) {
+        String normalizedTagName = tagName.trim().toLowerCase();
+        if (normalizedTagName.isEmpty()) continue;
+
+        UserTag tag =
+            userTagRepository
+                .findByUserIdAndName(userId, normalizedTagName)
+                .orElseGet(
+                    () -> {
+                      UserTag newTag = UserTag.builder().user(user).name(normalizedTagName).build();
+                      return userTagRepository.save(newTag);
+                    });
+        tag.incrementUsage();
+        taskTags.add(tag);
+      }
+      savedTask.setTags(taskTags);
+    }
+
+    // Handle attachments
+    if (request.attachments() != null && !request.attachments().isEmpty()) {
+      List<TaskAttachment> attachments = new ArrayList<>();
+      for (TaskDto.AttachmentRequest attReq : request.attachments()) {
+        TaskAttachment attachment =
+            TaskAttachment.builder()
+                .task(savedTask)
+                .filename(attReq.filename())
+                .fileUrl(attReq.fileUrl())
+                .fileType(attReq.fileType())
+                .fileSize(attReq.fileSize())
+                .uploadedBy(user)
+                .build();
+        attachments.add(attachment);
+      }
+      taskAttachmentRepository.saveAll(attachments);
+      savedTask.setAttachments(attachments);
+    }
+
+    // Handle initial comment
+    if (request.comment() != null && !request.comment().trim().isEmpty()) {
+      TaskComment comment =
+          TaskComment.builder()
+              .task(savedTask)
+              .user(user)
+              .commentText(request.comment().trim())
+              .isAiGenerated(false)
+              .build();
+      taskCommentRepository.save(comment);
+    }
+
+    // Record creation in history
+    recordHistory(savedTask, user, "status", null, status.name());
+
+    return sdlcMapper.toTaskDto(savedTask);
   }
 
   @Transactional
@@ -156,8 +254,7 @@ public class TaskService {
           lifeWheelAreaRepository
               .findById(request.lifeWheelAreaId())
               .orElseThrow(
-                  () ->
-                      new ResourceNotFoundException("LifeWheelArea", request.lifeWheelAreaId()));
+                  () -> new ResourceNotFoundException("LifeWheelArea", request.lifeWheelAreaId()));
       if (!lifeWheelArea.getId().equals(task.getLifeWheelArea().getId())) {
         recordHistory(
             task, user, "lifeWheelAreaId", task.getLifeWheelArea().getId(), lifeWheelArea.getId());
@@ -208,7 +305,49 @@ public class TaskService {
       }
     }
 
-    task.setDraft(request.isDraft());
+    // Update target date
+    if (request.targetDate() != null) {
+      task.setTargetDate(request.targetDate());
+    }
+
+    // Update event fields
+    if (request.location() != null) {
+      task.setLocation(request.location());
+    }
+    task.setAllDay(request.isAllDay());
+    if (request.eventStartTime() != null) {
+      task.setEventStartTime(request.eventStartTime());
+    }
+    if (request.eventEndTime() != null) {
+      task.setEventEndTime(request.eventEndTime());
+    }
+
+    // Update tags if provided
+    if (request.tags() != null) {
+      // Decrement usage on old tags
+      for (UserTag oldTag : task.getTags()) {
+        oldTag.decrementUsage();
+      }
+
+      // Set new tags
+      Set<UserTag> newTags = new HashSet<>();
+      for (String tagName : request.tags()) {
+        String normalizedTagName = tagName.trim().toLowerCase();
+        if (normalizedTagName.isEmpty()) continue;
+
+        UserTag tag =
+            userTagRepository
+                .findByUserIdAndName(userId, normalizedTagName)
+                .orElseGet(
+                    () -> {
+                      UserTag newTag = UserTag.builder().user(user).name(normalizedTagName).build();
+                      return userTagRepository.save(newTag);
+                    });
+        tag.incrementUsage();
+        newTags.add(tag);
+      }
+      task.setTags(newTags);
+    }
 
     return sdlcMapper.toTaskDto(taskRepository.save(task));
   }
@@ -253,7 +392,8 @@ public class TaskService {
         .findByIdAndUserId(taskId, userId)
         .orElseThrow(() -> new ResourceNotFoundException("Task", taskId.toString()));
 
-    return sdlcMapper.toTaskHistoryDtoList(taskHistoryRepository.findByTaskIdOrderByCreatedAtDesc(taskId));
+    return sdlcMapper.toTaskHistoryDtoList(
+        taskHistoryRepository.findByTaskIdOrderByCreatedAtDesc(taskId));
   }
 
   public List<TaskCommentDto> getTaskComments(UUID userId, UUID taskId) {
@@ -262,7 +402,8 @@ public class TaskService {
         .findByIdAndUserId(taskId, userId)
         .orElseThrow(() -> new ResourceNotFoundException("Task", taskId.toString()));
 
-    return sdlcMapper.toTaskCommentDtoList(taskCommentRepository.findByTaskIdOrderByCreatedAtAsc(taskId));
+    return sdlcMapper.toTaskCommentDtoList(
+        taskCommentRepository.findByTaskIdOrderByCreatedAtAsc(taskId));
   }
 
   @Transactional

@@ -6,15 +6,15 @@ import java.util.UUID;
 
 /** Response DTO for success story. */
 public record SuccessStoryResponse(
-        UUID id,
-        CommunityMemberResponse author,
-        String title,
-        String story,
-        String category,
-        String lifeWheelAreaId,
-        List<String> imageUrls,
-        Integer likeCount,
-        Integer commentCount,
-        Integer celebrateCount,
-        List<StoryCommentResponse> comments,
-        Instant createdAt) {}
+    UUID id,
+    CommunityMemberResponse author,
+    String title,
+    String story,
+    String category,
+    String lifeWheelAreaId,
+    List<String> imageUrls,
+    Integer likeCount,
+    Integer commentCount,
+    Integer celebrateCount,
+    List<StoryCommentResponse> comments,
+    Instant createdAt) {}

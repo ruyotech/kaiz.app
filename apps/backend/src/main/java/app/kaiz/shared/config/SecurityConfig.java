@@ -5,7 +5,6 @@ import app.kaiz.shared.security.JwtAuthenticationFilter;
 import app.kaiz.shared.security.SwaggerIpFilter;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

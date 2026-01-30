@@ -1,10 +1,10 @@
 package app.kaiz.tasks.api;
 
+import app.kaiz.shared.security.CurrentUser;
+import app.kaiz.shared.util.ApiResponse;
 import app.kaiz.tasks.application.EpicService;
 import app.kaiz.tasks.application.dto.EpicDto;
 import app.kaiz.tasks.domain.EpicStatus;
-import app.kaiz.shared.security.CurrentUser;
-import app.kaiz.shared.util.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -38,7 +38,8 @@ public class EpicController {
 
   @GetMapping("/{id}")
   @Operation(summary = "Get epic by ID", description = "Retrieve a specific epic with its tasks")
-  public ResponseEntity<ApiResponse<EpicDto>> getEpicById(@CurrentUser UUID userId, @PathVariable UUID id) {
+  public ResponseEntity<ApiResponse<EpicDto>> getEpicById(
+      @CurrentUser UUID userId, @PathVariable UUID id) {
     return ResponseEntity.ok(ApiResponse.success(epicService.getEpicById(userId, id)));
   }
 
@@ -47,7 +48,8 @@ public class EpicController {
   public ResponseEntity<ApiResponse<EpicDto>> createEpic(
       @CurrentUser UUID userId, @Valid @RequestBody EpicDto.CreateEpicRequest request) {
     EpicDto epic = epicService.createEpic(userId, request);
-    return ResponseEntity.created(URI.create("/api/v1/epics/" + epic.id())).body(ApiResponse.success(epic));
+    return ResponseEntity.created(URI.create("/api/v1/epics/" + epic.id()))
+        .body(ApiResponse.success(epic));
   }
 
   @PutMapping("/{id}")
@@ -61,7 +63,8 @@ public class EpicController {
 
   @DeleteMapping("/{id}")
   @Operation(summary = "Delete epic", description = "Delete an epic")
-  public ResponseEntity<ApiResponse<Void>> deleteEpic(@CurrentUser UUID userId, @PathVariable UUID id) {
+  public ResponseEntity<ApiResponse<Void>> deleteEpic(
+      @CurrentUser UUID userId, @PathVariable UUID id) {
     epicService.deleteEpic(userId, id);
     return ResponseEntity.ok(ApiResponse.success(null));
   }

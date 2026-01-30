@@ -23,6 +23,7 @@ public interface EssentiaUserProgressRepository extends JpaRepository<EssentiaUs
   @Query("SELECT p FROM EssentiaUserProgress p WHERE p.user.id = :userId AND p.isFavorite = true")
   List<EssentiaUserProgress> findFavoritesByUserId(UUID userId);
 
-  @Query("SELECT p FROM EssentiaUserProgress p WHERE p.user.id = :userId AND p.isCompleted = false AND p.currentCardIndex > 0")
+  @Query(
+      "SELECT p FROM EssentiaUserProgress p WHERE p.user.id = :userId AND p.isCompleted = false AND p.currentCardIndex > 0")
   List<EssentiaUserProgress> findInProgressByUserId(UUID userId);
 }

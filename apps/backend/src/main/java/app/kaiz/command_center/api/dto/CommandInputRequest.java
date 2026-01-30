@@ -10,13 +10,13 @@ import java.util.List;
  */
 public record CommandInputRequest(String text, List<AttachmentData> attachments) {
 
-    /**
-     * Attachment data with base64-encoded content.
-     *
-     * @param type The type of attachment: "image", "file", or "voice"
-     * @param name The filename
-     * @param mimeType The MIME type (e.g., "image/jpeg", "audio/m4a")
-     * @param data Base64-encoded file data
-     */
-    public record AttachmentData(String type, String name, String mimeType, String data) {}
+  /**
+   * Attachment data with base64-encoded content.
+   *
+   * @param type The type of attachment: "image", "file", or "voice"
+   * @param name The filename
+   * @param mimeType The MIME type (e.g., "image/jpeg", "audio/m4a")
+   * @param data Base64-encoded file data
+   */
+  public record AttachmentData(String type, String name, String mimeType, String data) {}
 }

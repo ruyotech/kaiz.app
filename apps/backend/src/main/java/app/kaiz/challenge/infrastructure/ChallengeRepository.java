@@ -32,7 +32,8 @@ public interface ChallengeRepository extends JpaRepository<Challenge, UUID> {
       @Param("userId") UUID userId, @Param("areaId") String areaId);
 
   @Query("SELECT COUNT(c) FROM Challenge c WHERE c.user.id = :userId AND c.status = :status")
-  long countByUserIdAndStatus(@Param("userId") UUID userId, @Param("status") ChallengeStatus status);
+  long countByUserIdAndStatus(
+      @Param("userId") UUID userId, @Param("status") ChallengeStatus status);
 
   @Query(
       "SELECT c FROM Challenge c WHERE c.status = 'ACTIVE' AND c.user.id = :userId ORDER BY"

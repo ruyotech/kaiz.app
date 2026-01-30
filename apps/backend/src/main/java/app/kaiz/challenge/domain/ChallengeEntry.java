@@ -4,7 +4,6 @@ import app.kaiz.identity.domain.User;
 import app.kaiz.shared.persistence.BaseEntity;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.time.LocalDate;
 import lombok.*;
 import lombok.experimental.SuperBuilder;

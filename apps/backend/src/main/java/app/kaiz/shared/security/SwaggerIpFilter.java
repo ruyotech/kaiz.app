@@ -13,8 +13,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * Filter to restrict Swagger/API docs access to specific IPs only.
- * This provides additional security for API documentation in production.
+ * Filter to restrict Swagger/API docs access to specific IPs only. This provides additional
+ * security for API documentation in production.
  */
 @Component
 @Slf4j
@@ -26,18 +26,13 @@ public class SwaggerIpFilter extends OncePerRequestFilter {
   @Value("${security.swagger.enabled:true}")
   private boolean swaggerEnabled;
 
-  private static final List<String> SWAGGER_PATHS = List.of(
-      "/swagger-ui",
-      "/swagger-ui.html",
-      "/api-docs",
-      "/v3/api-docs"
-  );
+  private static final List<String> SWAGGER_PATHS =
+      List.of("/swagger-ui", "/swagger-ui.html", "/api-docs", "/v3/api-docs");
 
   @Override
   protected void doFilterInternal(
-      HttpServletRequest request,
-      HttpServletResponse response,
-      FilterChain filterChain) throws ServletException, IOException {
+      HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+      throws ServletException, IOException {
 
     String requestUri = request.getRequestURI();
 
@@ -91,24 +86,27 @@ public class SwaggerIpFilter extends OncePerRequestFilter {
 
   private boolean isIpAllowed(String clientIp, List<String> allowedIps) {
     // Allow localhost always for development
-    if ("127.0.0.1".equals(clientIp) || "0:0:0:0:0:0:0:1".equals(clientIp) || "localhost".equals(clientIp)) {
+    if ("127.0.0.1".equals(clientIp)
+        || "0:0:0:0:0:0:0:1".equals(clientIp)
+        || "localhost".equals(clientIp)) {
       return true;
     }
 
     // Check if client IP is in allowed list
     return allowedIps.stream()
         .map(String::trim)
-        .anyMatch(allowedIp -> {
-          // Support CIDR notation in the future, for now exact match
-          if (allowedIp.equals(clientIp)) {
-            return true;
-          }
-          // Support wildcard suffix (e.g., "192.168.1.*")
-          if (allowedIp.endsWith("*")) {
-            String prefix = allowedIp.substring(0, allowedIp.length() - 1);
-            return clientIp.startsWith(prefix);
-          }
-          return false;
-        });
+        .anyMatch(
+            allowedIp -> {
+              // Support CIDR notation in the future, for now exact match
+              if (allowedIp.equals(clientIp)) {
+                return true;
+              }
+              // Support wildcard suffix (e.g., "192.168.1.*")
+              if (allowedIp.endsWith("*")) {
+                String prefix = allowedIp.substring(0, allowedIp.length() - 1);
+                return clientIp.startsWith(prefix);
+              }
+              return false;
+            });
   }
 }

@@ -4,7 +4,9 @@ import app.kaiz.tasks.application.dto.*;
 import app.kaiz.tasks.domain.*;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.mapstruct.*;
 
 @Mapper(componentModel = "spring")
@@ -37,6 +39,9 @@ public interface SdlcMapper {
   @Mapping(target = "eisenhowerQuadrantId", source = "eisenhowerQuadrant.id")
   @Mapping(target = "sprintId", source = "sprint.id")
   @Mapping(target = "createdFromTemplateId", source = "createdFromTemplate.id")
+  @Mapping(target = "recurrence", source = "recurrence")
+  @Mapping(target = "tags", expression = "java(mapUserTagsToDto(task.getTags()))")
+  @Mapping(target = "attachments", expression = "java(mapAttachmentsToDto(task.getAttachments()))")
   TaskDto toTaskDto(Task task);
 
   @Mapping(target = "epicId", source = "epic.id")
@@ -47,6 +52,9 @@ public interface SdlcMapper {
   @Mapping(target = "createdFromTemplateId", source = "createdFromTemplate.id")
   @Mapping(target = "comments", ignore = true)
   @Mapping(target = "history", ignore = true)
+  @Mapping(target = "recurrence", source = "recurrence")
+  @Mapping(target = "tags", expression = "java(mapUserTagsToDto(task.getTags()))")
+  @Mapping(target = "attachments", expression = "java(mapAttachmentsToDto(task.getAttachments()))")
   TaskDto toTaskDtoWithoutDetails(Task task);
 
   @IterableMapping(qualifiedByName = "toTaskDtoFull")
@@ -68,6 +76,37 @@ public interface SdlcMapper {
       return List.of();
     }
     return tasks.stream().map(this::toTaskDtoWithoutDetails).toList();
+  }
+
+  // TaskRecurrence mappings
+  TaskDto.RecurrenceDto toRecurrenceDto(TaskRecurrence recurrence);
+
+  // UserTag to TagDto mappings
+  default List<TaskDto.TagDto> mapUserTagsToDto(Set<UserTag> tags) {
+    if (tags == null || tags.isEmpty()) {
+      return List.of();
+    }
+    return tags.stream()
+        .map(tag -> new TaskDto.TagDto(tag.getId(), tag.getName(), tag.getColor()))
+        .collect(Collectors.toList());
+  }
+
+  // TaskAttachment to AttachmentDto mappings
+  default List<TaskDto.AttachmentDto> mapAttachmentsToDto(List<TaskAttachment> attachments) {
+    if (attachments == null || attachments.isEmpty()) {
+      return List.of();
+    }
+    return attachments.stream()
+        .map(
+            att ->
+                new TaskDto.AttachmentDto(
+                    att.getId(),
+                    att.getFilename(),
+                    att.getFileUrl(),
+                    att.getFileType(),
+                    att.getFileSize(),
+                    att.getCreatedAt()))
+        .collect(Collectors.toList());
   }
 
   // TaskComment mappings
@@ -92,7 +131,9 @@ public interface SdlcMapper {
   @Mapping(target = "userId", source = "user.id")
   @Mapping(target = "type", source = "type")
   @Mapping(target = "creatorType", source = "creatorType")
-  @Mapping(target = "defaultAttendees", expression = "java(mapStringArrayToList(template.getDefaultAttendees()))")
+  @Mapping(
+      target = "defaultAttendees",
+      expression = "java(mapStringArrayToList(template.getDefaultAttendees()))")
   @Mapping(target = "recurrencePattern", expression = "java(mapRecurrencePattern(template))")
   @Mapping(target = "isFavorite", ignore = true) // Set by service based on user
   @Mapping(target = "userRating", ignore = true) // Set by service based on user
@@ -116,8 +157,7 @@ public interface SdlcMapper {
     return new TaskTemplateDto.RecurrencePatternDto(
         template.getRecurrenceFrequency().name(),
         template.getRecurrenceInterval() != null ? template.getRecurrenceInterval() : 1,
-        template.getRecurrenceEndDate()
-    );
+        template.getRecurrenceEndDate());
   }
 
   // Enums to String

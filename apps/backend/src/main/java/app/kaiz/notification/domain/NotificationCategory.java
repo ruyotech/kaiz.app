@@ -1,8 +1,6 @@
 package app.kaiz.notification.domain;
 
-/**
- * Notification categories for organizing and filtering notifications.
- */
+/** Notification categories for organizing and filtering notifications. */
 public enum NotificationCategory {
   TASKS("tasks", "Tasks", "#3B82F6", "#DBEAFE"),
   CHALLENGES("challenges", "Challenges", "#F59E0B", "#FEF3C7"),
@@ -40,9 +38,7 @@ public enum NotificationCategory {
     return backgroundColor;
   }
 
-  /**
-   * Get the default icon for this category.
-   */
+  /** Get the default icon for this category. */
   public String getIcon() {
     return switch (this) {
       case TASKS -> "checkbox-marked-circle-outline";
@@ -55,9 +51,7 @@ public enum NotificationCategory {
     };
   }
 
-  /**
-   * Convert from string ID to enum.
-   */
+  /** Convert from string ID to enum. */
   public static NotificationCategory fromId(String id) {
     for (NotificationCategory category : values()) {
       if (category.id.equalsIgnoreCase(id)) {

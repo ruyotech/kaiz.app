@@ -12,13 +12,11 @@ import java.util.UUID;
  * @param modifiedDraft If action is MODIFY, the updated draft content
  */
 public record DraftActionRequest(
-        @NotNull UUID draftId,
-        @NotNull DraftAction action,
-        Draft modifiedDraft) {
+    @NotNull UUID draftId, @NotNull DraftAction action, Draft modifiedDraft) {
 
-    public enum DraftAction {
-        APPROVE,  // Accept as-is, create the entity
-        MODIFY,   // Accept with changes, create the entity
-        REJECT    // Discard the draft
-    }
+  public enum DraftAction {
+    APPROVE, // Accept as-is, create the entity
+    MODIFY, // Accept with changes, create the entity
+    REJECT // Discard the draft
+  }
 }

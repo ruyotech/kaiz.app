@@ -24,6 +24,7 @@ public interface EssentiaBookRepository extends JpaRepository<EssentiaBook, UUID
   @Query("SELECT b FROM EssentiaBook b ORDER BY b.completionCount DESC")
   List<EssentiaBook> findAllOrderByPopularity();
 
-  @Query("SELECT DISTINCT b.category FROM EssentiaBook b WHERE b.category IS NOT NULL ORDER BY b.category")
+  @Query(
+      "SELECT DISTINCT b.category FROM EssentiaBook b WHERE b.category IS NOT NULL ORDER BY b.category")
   List<String> findAllCategories();
 }

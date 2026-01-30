@@ -153,11 +153,7 @@ public class AdminDtos {
       boolean active) {}
 
   public record UpdateFaqRequest(
-      String question,
-      String answer,
-      String category,
-      Integer displayOrder,
-      Boolean active) {}
+      String question, String answer, String category, Integer displayOrder, Boolean active) {}
 
   // ============ Pricing Tier DTOs ============
 

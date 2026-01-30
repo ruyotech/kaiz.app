@@ -23,10 +23,8 @@ public interface EpicRepository extends JpaRepository<Epic, UUID> {
 
   Optional<Epic> findByIdAndUserId(UUID id, UUID userId);
 
-  @Query(
-      "SELECT e FROM Epic e LEFT JOIN FETCH e.tasks WHERE e.id = :id AND e.user.id = :userId")
-  Optional<Epic> findByIdAndUserIdWithTasks(
-      @Param("id") UUID id, @Param("userId") UUID userId);
+  @Query("SELECT e FROM Epic e LEFT JOIN FETCH e.tasks WHERE e.id = :id AND e.user.id = :userId")
+  Optional<Epic> findByIdAndUserIdWithTasks(@Param("id") UUID id, @Param("userId") UUID userId);
 
   @Query("SELECT e FROM Epic e WHERE e.user.id = :userId AND e.lifeWheelArea.id = :areaId")
   List<Epic> findByUserIdAndLifeWheelAreaId(

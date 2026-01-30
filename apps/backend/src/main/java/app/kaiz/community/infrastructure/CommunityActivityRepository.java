@@ -12,7 +12,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface CommunityActivityRepository extends JpaRepository<CommunityActivity, UUID> {
 
-    Page<CommunityActivity> findByMemberId(UUID memberId, Pageable pageable);
+  Page<CommunityActivity> findByMemberId(UUID memberId, Pageable pageable);
 
-    List<CommunityActivity> findTop10ByOrderByCreatedAtDesc();
+  List<CommunityActivity> findTop10ByOrderByCreatedAtDesc();
 }

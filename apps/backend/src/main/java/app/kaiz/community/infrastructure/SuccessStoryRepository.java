@@ -12,9 +12,9 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface SuccessStoryRepository extends JpaRepository<SuccessStory, UUID> {
 
-    Page<SuccessStory> findByCategory(StoryCategory category, Pageable pageable);
+  Page<SuccessStory> findByCategory(StoryCategory category, Pageable pageable);
 
-    Page<SuccessStory> findByAuthorId(UUID authorId, Pageable pageable);
+  Page<SuccessStory> findByAuthorId(UUID authorId, Pageable pageable);
 
-    Page<SuccessStory> findByLifeWheelAreaId(String lifeWheelAreaId, Pageable pageable);
+  Page<SuccessStory> findByLifeWheelAreaId(String lifeWheelAreaId, Pageable pageable);
 }

@@ -1,8 +1,8 @@
 package app.kaiz.notification.domain;
 
 /**
- * Comprehensive notification types for Kaiz. Covers all app features: tasks, challenges,
- * community, learning, events, system, and AI.
+ * Comprehensive notification types for Kaiz. Covers all app features: tasks, challenges, community,
+ * learning, events, system, and AI.
  */
 public enum NotificationType {
   // ==========================================
@@ -120,31 +120,93 @@ public enum NotificationType {
   /** Get the category for this notification type. */
   public NotificationCategory getCategory() {
     return switch (this) {
-      case TASK_ASSIGNED, TASK_COMPLETED, TASK_CREATED, TASK_OVERDUE, TASK_DUE_SOON, TASK_REMINDER,
-          TASK_STATUS_CHANGED, TASK_COMMENT, TASK_SHARED,
-          SPRINT_STARTED, SPRINT_ENDING, SPRINT_COMPLETED, EPIC_MILESTONE -> NotificationCategory.TASKS;
+      case TASK_ASSIGNED,
+              TASK_COMPLETED,
+              TASK_CREATED,
+              TASK_OVERDUE,
+              TASK_DUE_SOON,
+              TASK_REMINDER,
+              TASK_STATUS_CHANGED,
+              TASK_COMMENT,
+              TASK_SHARED,
+              SPRINT_STARTED,
+              SPRINT_ENDING,
+              SPRINT_COMPLETED,
+              EPIC_MILESTONE ->
+          NotificationCategory.TASKS;
 
-      case CHALLENGE_STARTED, CHALLENGE_REMINDER, CHALLENGE_DAILY_REMINDER, CHALLENGE_STREAK,
-          CHALLENGE_COMPLETED, CHALLENGE_MILESTONE, CHALLENGE_INVITATION, CHALLENGE_INVITE,
-          CHALLENGE_CHEERED, CHALLENGE_PARTNER_UPDATE, CHALLENGE -> NotificationCategory.CHALLENGES;
+      case CHALLENGE_STARTED,
+              CHALLENGE_REMINDER,
+              CHALLENGE_DAILY_REMINDER,
+              CHALLENGE_STREAK,
+              CHALLENGE_COMPLETED,
+              CHALLENGE_MILESTONE,
+              CHALLENGE_INVITATION,
+              CHALLENGE_INVITE,
+              CHALLENGE_CHEERED,
+              CHALLENGE_PARTNER_UPDATE,
+              CHALLENGE ->
+          NotificationCategory.CHALLENGES;
 
-      case PARTNER_REQUEST, PARTNER_ACCEPTED, KUDOS_RECEIVED, COMPLIMENT_RECEIVED,
-          GROUP_INVITATION, GROUP_ACTIVITY, QUESTION_ANSWERED, STORY_LIKED,
-          STORY_COMMENT, LEADERBOARD_RANK_UP, BADGE_EARNED, COMMUNITY_NEW_FOLLOWER,
-          COMMUNITY_LIKE, COMMUNITY_COMMENT, COMMUNITY_MENTION, FRIEND_ACHIEVEMENT -> NotificationCategory.COMMUNITY;
+      case PARTNER_REQUEST,
+              PARTNER_ACCEPTED,
+              KUDOS_RECEIVED,
+              COMPLIMENT_RECEIVED,
+              GROUP_INVITATION,
+              GROUP_ACTIVITY,
+              QUESTION_ANSWERED,
+              STORY_LIKED,
+              STORY_COMMENT,
+              LEADERBOARD_RANK_UP,
+              BADGE_EARNED,
+              COMMUNITY_NEW_FOLLOWER,
+              COMMUNITY_LIKE,
+              COMMUNITY_COMMENT,
+              COMMUNITY_MENTION,
+              FRIEND_ACHIEVEMENT ->
+          NotificationCategory.COMMUNITY;
 
-      case LEARNING_REMINDER, STREAK_AT_RISK, STREAK_MILESTONE, BOOK_COMPLETED,
-          CHALLENGE_PROGRESS, FLASHCARD_REVIEW, ESSENTIA_NEW_LESSON, ESSENTIA_LESSON_COMPLETE,
-          ESSENTIA_STREAK, ESSENTIA_QUIZ_RESULT -> NotificationCategory.ESSENTIA;
+      case LEARNING_REMINDER,
+              STREAK_AT_RISK,
+              STREAK_MILESTONE,
+              BOOK_COMPLETED,
+              CHALLENGE_PROGRESS,
+              FLASHCARD_REVIEW,
+              ESSENTIA_NEW_LESSON,
+              ESSENTIA_LESSON_COMPLETE,
+              ESSENTIA_STREAK,
+              ESSENTIA_QUIZ_RESULT ->
+          NotificationCategory.ESSENTIA;
 
-      case BIRTHDAY_REMINDER, EVENT_REMINDER, EVENT_INVITE, BILL_DUE, ANNIVERSARY, FAMILY,
-          REMINDER -> NotificationCategory.EVENTS;
+      case BIRTHDAY_REMINDER,
+              EVENT_REMINDER,
+              EVENT_INVITE,
+              BILL_DUE,
+              ANNIVERSARY,
+              FAMILY,
+              REMINDER ->
+          NotificationCategory.EVENTS;
 
-      case FEATURE_ANNOUNCEMENT, APP_UPDATE, SYSTEM_UPDATE, TIP_OF_DAY, WEEKLY_SUMMARY,
-          ACHIEVEMENT_UNLOCKED, LEVEL_UP, SECURITY_ALERT, SYSTEM, ACHIEVEMENT -> NotificationCategory.SYSTEM;
+      case FEATURE_ANNOUNCEMENT,
+              APP_UPDATE,
+              SYSTEM_UPDATE,
+              TIP_OF_DAY,
+              WEEKLY_SUMMARY,
+              ACHIEVEMENT_UNLOCKED,
+              LEVEL_UP,
+              SECURITY_ALERT,
+              SYSTEM,
+              ACHIEVEMENT ->
+          NotificationCategory.SYSTEM;
 
-      case AI_INSIGHT, AI_RECOMMENDATION, AI_SUGGESTION, AI_DAILY_BRIEF, AI_WEEKLY_REVIEW,
-          AI_WEEKLY_REPORT, AI_SCRUM_MASTER -> NotificationCategory.AI;
+      case AI_INSIGHT,
+              AI_RECOMMENDATION,
+              AI_SUGGESTION,
+              AI_DAILY_BRIEF,
+              AI_WEEKLY_REVIEW,
+              AI_WEEKLY_REPORT,
+              AI_SCRUM_MASTER ->
+          NotificationCategory.AI;
     };
   }
 

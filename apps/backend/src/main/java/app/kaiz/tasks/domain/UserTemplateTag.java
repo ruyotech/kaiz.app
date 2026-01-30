@@ -7,14 +7,13 @@ import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 /**
- * Entity representing a user's personal tag for a template.
- * This allows users to add their own tags to any template (including global ones)
- * without modifying the template itself.
+ * Entity representing a user's personal tag for a template. This allows users to add their own tags
+ * to any template (including global ones) without modifying the template itself.
  */
 @Entity
-@Table(name = "user_template_tags", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"user_id", "template_id", "tag"})
-})
+@Table(
+    name = "user_template_tags",
+    uniqueConstraints = {@UniqueConstraint(columnNames = {"user_id", "template_id", "tag"})})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -22,14 +21,14 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 public class UserTemplateTag extends BaseEntity {
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "user_id", nullable = false)
+  private User user;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "template_id", nullable = false)
-    private TaskTemplate template;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "template_id", nullable = false)
+  private TaskTemplate template;
 
-    @Column(name = "tag", nullable = false, length = 100)
-    private String tag;
+  @Column(name = "tag", nullable = false, length = 100)
+  private String tag;
 }

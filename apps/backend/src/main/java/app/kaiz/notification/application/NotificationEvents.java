@@ -349,7 +349,8 @@ public final class NotificationEvents {
     private final int newLevel;
     private final java.util.List<String> unlockedFeatures;
 
-    public LevelUp(Object source, UUID userId, int newLevel, java.util.List<String> unlockedFeatures) {
+    public LevelUp(
+        Object source, UUID userId, int newLevel, java.util.List<String> unlockedFeatures) {
       super(source, userId);
       this.newLevel = newLevel;
       this.unlockedFeatures = unlockedFeatures;

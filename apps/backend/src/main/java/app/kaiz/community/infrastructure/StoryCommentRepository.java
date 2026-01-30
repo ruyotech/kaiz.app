@@ -10,7 +10,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface StoryCommentRepository extends JpaRepository<StoryComment, UUID> {
 
-    List<StoryComment> findByStoryId(UUID storyId);
+  List<StoryComment> findByStoryId(UUID storyId);
 
-    List<StoryComment> findByAuthorId(UUID authorId);
+  List<StoryComment> findByAuthorId(UUID authorId);
 }
