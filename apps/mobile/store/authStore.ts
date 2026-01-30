@@ -150,10 +150,18 @@ export const useAuthStore = create<AuthState>()(
 
 // Register callback to handle token expiration from API layer
 setOnAuthExpired(() => {
-    console.log('🔐 Auth expired, logging out...');
+    console.log('🔐 Auth expired, logging out and redirecting to login...');
     useAuthStore.setState({ 
         user: null, 
         isAuthenticated: false, 
         error: 'Session expired. Please log in again.' 
+    });
+    
+    // Navigate to login page
+    // Using dynamic import to avoid circular dependencies
+    import('expo-router').then(({ router }) => {
+        router.replace('/(auth)/login');
+    }).catch((err) => {
+        console.warn('Failed to navigate to login:', err);
     });
 });

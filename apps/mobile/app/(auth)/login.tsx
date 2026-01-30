@@ -53,8 +53,12 @@ export default function LoginScreen() {
         getStoredCredentials,
     } = useBiometricStore();
 
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
+    // Default dev credentials for easier testing in simulator
+    const DEV_EMAIL = __DEV__ ? 'erajbabayev@gmail.com' : '';
+    const DEV_PASSWORD = __DEV__ ? 'Safiya373!' : '';
+    
+    const [email, setEmail] = useState(DEV_EMAIL);
+    const [password, setPassword] = useState(DEV_PASSWORD);
     const [emailError, setEmailError] = useState('');
     const [passwordError, setPasswordError] = useState('');
     const [showPassword, setShowPassword] = useState(false);
