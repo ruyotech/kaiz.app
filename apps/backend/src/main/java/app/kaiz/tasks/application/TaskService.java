@@ -29,6 +29,7 @@ public class TaskService {
 
   private final TaskRepository taskRepository;
   private final TaskCommentRepository taskCommentRepository;
+  private final TaskCommentAttachmentRepository taskCommentAttachmentRepository;
   private final TaskHistoryRepository taskHistoryRepository;
   private final TaskTemplateRepository taskTemplateRepository;
   private final TaskRecurrenceRepository taskRecurrenceRepository;
@@ -458,6 +459,24 @@ public class TaskService {
             .build();
 
     TaskComment savedComment = taskCommentRepository.save(comment);
+
+    // Handle attachments if provided
+    if (request.attachments() != null && !request.attachments().isEmpty()) {
+      List<TaskCommentAttachment> attachments = new ArrayList<>();
+      for (TaskCommentDto.AttachmentRequest attReq : request.attachments()) {
+        TaskCommentAttachment attachment =
+            TaskCommentAttachment.builder()
+                .comment(savedComment)
+                .filename(attReq.filename())
+                .fileUrl(attReq.fileUrl())
+                .fileType(attReq.fileType())
+                .fileSize(attReq.fileSize())
+                .build();
+        attachments.add(attachment);
+      }
+      taskCommentAttachmentRepository.saveAll(attachments);
+      savedComment.setAttachments(attachments);
+    }
 
     // Record in history that a comment was added
     recordHistory(task, user, "comment", null, "Comment added");

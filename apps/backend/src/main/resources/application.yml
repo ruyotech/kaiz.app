@@ -134,3 +134,11 @@ kaiz:
     # AI processing timeout in seconds
     ai-timeout-seconds: 30
 
+# ============================================================================
+# Google Cloud Storage Configuration
+# ============================================================================
+gcp:
+  storage:
+    bucket: ${GCS_BUCKET:kaiz-app-uploads}
+    public-url-base: ${GCS_PUBLIC_URL_BASE:https://storage.googleapis.com}
+

@@ -3,10 +3,11 @@ import { View, Text, ScrollView, TouchableOpacity, TextInput, Modal, Pressable, 
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Task, TaskComment, TaskHistory } from '../../../../types/models';
-import { lifeWheelApi, taskApi } from '../../../../services/api';
+import { lifeWheelApi, taskApi, fileUploadApi } from '../../../../services/api';
 import { useEpicStore } from '../../../../store/epicStore';
 import { useTaskStore } from '../../../../store/taskStore';
 import { useTranslation } from '../../../../hooks/useTranslation';
+import { AttachmentPicker, AttachmentPreview, CommentAttachment } from '../../../../components/ui/AttachmentPicker';
 
 type TabType = 'overview' | 'comments' | 'checklist' | 'history';
 
@@ -68,6 +69,10 @@ export default function TaskWorkView() {
 
     // Quick status update
     const [showStatusMenu, setShowStatusMenu] = useState(false);
+
+    // Comment attachments
+    const [showAttachmentPicker, setShowAttachmentPicker] = useState(false);
+    const [commentAttachments, setCommentAttachments] = useState<CommentAttachment[]>([]);
 
     // Load comments from API
     const loadComments = useCallback(async (taskId: string) => {
@@ -232,15 +237,51 @@ export default function TaskWorkView() {
     };
 
     const handleAddComment = async () => {
-        if (newComment.trim() && task) {
+        if ((newComment.trim() || commentAttachments.length > 0) && task) {
             setSubmittingComment(true);
             try {
+                // First, upload any attachments to cloud storage
+                let uploadedAttachments: Array<{
+                    filename: string;
+                    fileUrl: string;
+                    fileType: string;
+                    fileSize: number | null;
+                }> = [];
+
+                if (commentAttachments.length > 0) {
+                    console.log('📤 Uploading comment attachments...');
+                    for (const attachment of commentAttachments) {
+                        const uploadResult = await fileUploadApi.uploadFile({
+                            uri: attachment.uri,
+                            name: attachment.name,
+                            mimeType: attachment.mimeType,
+                        });
+
+                        if (uploadResult.success && uploadResult.data) {
+                            uploadedAttachments.push({
+                                filename: uploadResult.data.filename,
+                                fileUrl: uploadResult.data.fileUrl,
+                                fileType: uploadResult.data.fileType,
+                                fileSize: uploadResult.data.fileSize,
+                            });
+                        } else {
+                            console.error('Failed to upload attachment:', attachment.name, uploadResult.error);
+                            throw new Error(`Failed to upload ${attachment.name}`);
+                        }
+                    }
+                    console.log('✅ All attachments uploaded:', uploadedAttachments.length);
+                }
+
+                // Now add the comment with attachments
                 const createdComment = await taskApi.addComment(task.id, { 
-                    commentText: newComment.trim() 
+                    commentText: newComment.trim() || 'Attachment added',
+                    attachments: uploadedAttachments.length > 0 ? uploadedAttachments : undefined,
                 });
+                
                 // Add the new comment to the list
                 setComments([...comments, createdComment]);
                 setNewComment('');
+                setCommentAttachments([]);
             } catch (error) {
                 console.error('Error adding comment:', error);
             } finally {
@@ -554,6 +595,62 @@ export default function TaskWorkView() {
                                             </Text>
                                         </View>
                                         <Text className="text-gray-600">{comment.commentText}</Text>
+                                        
+                                        {/* Comment Attachments */}
+                                        {(comment as any).attachments && (comment as any).attachments.length > 0 && (
+                                            <View className="mt-3 flex-row flex-wrap gap-2">
+                                                {(comment as any).attachments.map((attachment: any, index: number) => (
+                                                    <TouchableOpacity
+                                                        key={attachment.id || index}
+                                                        className="bg-gray-50 rounded-lg p-2 flex-row items-center"
+                                                        style={{ maxWidth: '48%' }}
+                                                        onPress={() => {
+                                                            if (attachment.fileUrl) {
+                                                                Linking.openURL(attachment.fileUrl);
+                                                            }
+                                                        }}
+                                                    >
+                                                        {attachment.fileType?.startsWith('image/') ? (
+                                                            <Image 
+                                                                source={{ uri: attachment.fileUrl }} 
+                                                                className="w-10 h-10 rounded"
+                                                                resizeMode="cover"
+                                                            />
+                                                        ) : attachment.fileType?.startsWith('audio/') ? (
+                                                            <View className="w-10 h-10 rounded bg-purple-100 items-center justify-center">
+                                                                <MaterialCommunityIcons 
+                                                                    name="microphone" 
+                                                                    size={20} 
+                                                                    color="#7C3AED" 
+                                                                />
+                                                            </View>
+                                                        ) : (
+                                                            <View className="w-10 h-10 rounded bg-gray-100 items-center justify-center">
+                                                                <MaterialCommunityIcons 
+                                                                    name={
+                                                                        attachment.fileType?.includes('pdf') ? 'file-pdf-box' :
+                                                                        attachment.fileType?.includes('word') ? 'file-word-box' :
+                                                                        'file-document'
+                                                                    } 
+                                                                    size={20} 
+                                                                    color="#6B7280" 
+                                                                />
+                                                            </View>
+                                                        )}
+                                                        <View className="flex-1 ml-2">
+                                                            <Text className="text-xs text-gray-800 font-medium" numberOfLines={1}>
+                                                                {attachment.filename}
+                                                            </Text>
+                                                            {attachment.fileSize && (
+                                                                <Text className="text-xs text-gray-500">
+                                                                    {(attachment.fileSize / 1024).toFixed(1)} KB
+                                                                </Text>
+                                                            )}
+                                                        </View>
+                                                    </TouchableOpacity>
+                                                ))}
+                                            </View>
+                                        )}
                                     </View>
                                 ))}
                             </>
@@ -570,30 +667,37 @@ export default function TaskWorkView() {
                                 textAlignVertical="top"
                             />
 
-                            {/* Attachment Options */}
-                            <View className="flex-row gap-2 mb-3">
-                                <TouchableOpacity className="flex-1 bg-gray-100 py-2.5 rounded-lg flex-row items-center justify-center">
-                                    <MaterialCommunityIcons name="image" size={18} color="#6B7280" />
-                                    <Text className="text-gray-700 text-xs font-medium ml-1.5">{t('common.image')}</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity className="flex-1 bg-gray-100 py-2.5 rounded-lg flex-row items-center justify-center">
-                                    <MaterialCommunityIcons name="camera" size={18} color="#6B7280" />
-                                    <Text className="text-gray-700 text-xs font-medium ml-1.5">{t('common.camera')}</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity className="flex-1 bg-gray-100 py-2.5 rounded-lg flex-row items-center justify-center">
-                                    <MaterialCommunityIcons name="file" size={18} color="#6B7280" />
-                                    <Text className="text-gray-700 text-xs font-medium ml-1.5">{t('common.file')}</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity className="flex-1 bg-gray-100 py-2.5 rounded-lg flex-row items-center justify-center">
-                                    <MaterialCommunityIcons name="microphone" size={18} color="#6B7280" />
-                                    <Text className="text-gray-700 text-xs font-medium ml-1.5">{t('common.voice')}</Text>
-                                </TouchableOpacity>
-                            </View>
+                            {/* Comment Attachments Preview */}
+                            {commentAttachments.length > 0 && (
+                                <View className="mb-3">
+                                    <AttachmentPreview
+                                        attachments={commentAttachments}
+                                        onRemove={(index) => setCommentAttachments(prev => prev.filter((_, i) => i !== index))}
+                                        compact
+                                    />
+                                </View>
+                            )}
+
+                            {/* Attachment Button */}
+                            <TouchableOpacity
+                                onPress={() => setShowAttachmentPicker(true)}
+                                className="flex-row items-center justify-center bg-gray-100 py-2.5 rounded-lg mb-3"
+                            >
+                                <MaterialCommunityIcons name="attachment" size={20} color="#6B7280" />
+                                <Text className="text-gray-700 text-sm font-medium ml-2">
+                                    {t('common.addAttachment') || 'Add Attachment'}
+                                </Text>
+                                {commentAttachments.length > 0 && (
+                                    <View className="ml-2 bg-blue-500 px-2 py-0.5 rounded-full">
+                                        <Text className="text-white text-xs font-semibold">{commentAttachments.length}</Text>
+                                    </View>
+                                )}
+                            </TouchableOpacity>
 
                             <TouchableOpacity
                                 onPress={handleAddComment}
-                                disabled={!newComment.trim() || submittingComment}
-                                className={`py-3 rounded-lg ${newComment.trim() && !submittingComment ? 'bg-blue-600' : 'bg-gray-300'}`}
+                                disabled={(!newComment.trim() && commentAttachments.length === 0) || submittingComment}
+                                className={`py-3 rounded-lg ${(newComment.trim() || commentAttachments.length > 0) && !submittingComment ? 'bg-blue-600' : 'bg-gray-300'}`}
                             >
                                 <Text className="text-white text-center font-semibold">
                                     {submittingComment ? 'Posting...' : t('tasks.details.postComment')}
@@ -870,6 +974,17 @@ export default function TaskWorkView() {
                     </Pressable>
                 </Pressable>
             </Modal >
+
+            {/* Attachment Picker Modal */}
+            <AttachmentPicker
+                visible={showAttachmentPicker}
+                onClose={() => setShowAttachmentPicker(false)}
+                onAttachmentAdded={(attachment) => {
+                    setCommentAttachments(prev => [...prev, attachment]);
+                }}
+                maxAttachments={5}
+                currentAttachmentsCount={commentAttachments.length}
+            />
         </View >
     );
 }

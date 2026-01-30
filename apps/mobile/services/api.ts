@@ -832,12 +832,25 @@ export const taskApi = {
     },
 
     /**
-     * Add comment to task
+     * Add comment to task with optional attachments
      */
-    async addComment(taskId: string, data: { commentText: string }): Promise<any> {
+    async addComment(taskId: string, data: { 
+        commentText: string;
+        isAiGenerated?: boolean;
+        attachments?: Array<{
+            filename: string;
+            fileUrl: string;
+            fileType: string;
+            fileSize: number | null;
+        }>;
+    }): Promise<any> {
         return request<any>(`/tasks/${taskId}/comments`, {
             method: 'POST',
-            body: JSON.stringify(data),
+            body: JSON.stringify({
+                commentText: data.commentText,
+                isAiGenerated: data.isAiGenerated || false,
+                attachments: data.attachments || null,
+            }),
         }, true);
     },
 };
@@ -1162,7 +1175,7 @@ export const notificationApi = {
 };
 
 // Task Template API (Extended)
-import { TaskTemplate, CreateTemplateRequest, TemplateFilterOptions, RecurrencePattern } from '../types/models';
+import { TaskTemplate, TemplateFilterOptions, RecurrencePattern } from '../types/models';
 
 export interface RatingResponse {
     templateId: string;
@@ -1715,6 +1728,157 @@ function getMimeTypeFromFilename(filename: string): string {
     };
     return mimeTypes[ext || ''] || 'application/octet-stream';
 }
+
+// File Upload API
+export interface FileUploadResult {
+    filename: string;
+    fileUrl: string;
+    fileType: string;
+    fileSize: number;
+}
+
+export const fileUploadApi = {
+    /**
+     * Upload a single file to cloud storage
+     */
+    async uploadFile(file: {
+        uri: string;
+        name?: string;
+        mimeType?: string;
+    }): Promise<ApiResponse<FileUploadResult>> {
+        console.log('📤 [File Upload] Uploading file:', file);
+
+        const formData = new FormData();
+        const filename = file.name || getFilenameFromUri(file.uri);
+        const mimeType = file.mimeType || getMimeTypeFromFilename(filename);
+
+        formData.append('file', {
+            uri: file.uri,
+            name: filename,
+            type: mimeType,
+        } as any);
+
+        try {
+            const token = await AsyncStorage.getItem(ACCESS_TOKEN_KEY);
+            
+            const response = await fetch(`${API_V1}/files/upload`, {
+                method: 'POST',
+                headers: {
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                body: formData,
+            });
+
+            console.log('📤 [File Upload] Response status:', response.status);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('📤 [File Upload] Error response:', errorText);
+                throw new Error(`HTTP ${response.status}: ${errorText}`);
+            }
+
+            const data = await response.json();
+            console.log('📤 [File Upload] Success:', data);
+            return data;
+        } catch (error: any) {
+            console.error('📤 [File Upload] Error:', error);
+            return {
+                success: false,
+                error: error.message || 'Failed to upload file',
+            };
+        }
+    },
+
+    /**
+     * Upload multiple files to cloud storage
+     */
+    async uploadMultipleFiles(files: Array<{
+        uri: string;
+        name?: string;
+        mimeType?: string;
+    }>): Promise<ApiResponse<FileUploadResult[]>> {
+        console.log('📤 [File Upload] Uploading multiple files:', files.length);
+
+        const formData = new FormData();
+
+        for (const file of files) {
+            const filename = file.name || getFilenameFromUri(file.uri);
+            const mimeType = file.mimeType || getMimeTypeFromFilename(filename);
+
+            formData.append('files', {
+                uri: file.uri,
+                name: filename,
+                type: mimeType,
+            } as any);
+        }
+
+        try {
+            const token = await AsyncStorage.getItem(ACCESS_TOKEN_KEY);
+            
+            const response = await fetch(`${API_V1}/files/upload-multiple`, {
+                method: 'POST',
+                headers: {
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                body: formData,
+            });
+
+            console.log('📤 [File Upload] Response status:', response.status);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('📤 [File Upload] Error response:', errorText);
+                throw new Error(`HTTP ${response.status}: ${errorText}`);
+            }
+
+            const data = await response.json();
+            console.log('📤 [File Upload] Success:', data);
+            return data;
+        } catch (error: any) {
+            console.error('📤 [File Upload] Error:', error);
+            return {
+                success: false,
+                error: error.message || 'Failed to upload files',
+            };
+        }
+    },
+
+    /**
+     * Delete a file from cloud storage
+     */
+    async deleteFile(fileUrl: string): Promise<ApiResponse<{ deleted: boolean }>> {
+        console.log('🗑️ [File Upload] Deleting file:', fileUrl);
+
+        try {
+            const token = await AsyncStorage.getItem(ACCESS_TOKEN_KEY);
+            
+            const response = await fetch(`${API_V1}/files/delete?fileUrl=${encodeURIComponent(fileUrl)}`, {
+                method: 'DELETE',
+                headers: {
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+            });
+
+            console.log('🗑️ [File Upload] Response status:', response.status);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('🗑️ [File Upload] Error response:', errorText);
+                throw new Error(`HTTP ${response.status}: ${errorText}`);
+            }
+
+            const data = await response.json();
+            console.log('🗑️ [File Upload] Success:', data);
+            return data;
+        } catch (error: any) {
+            console.error('🗑️ [File Upload] Error:', error);
+            return {
+                success: false,
+                error: error.message || 'Failed to delete file',
+            };
+        }
+    },
+};
 
 // AI Input Parsing (placeholder until backend AI service is ready)
 export const aiApi = {

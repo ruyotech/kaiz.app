@@ -113,9 +113,31 @@ public interface SdlcMapper {
   @Mapping(target = "taskId", source = "task.id")
   @Mapping(target = "userId", source = "user.id")
   @Mapping(target = "userName", source = "user.fullName")
+  @Mapping(
+      target = "attachments",
+      expression = "java(mapCommentAttachments(comment.getAttachments()))")
   TaskCommentDto toTaskCommentDto(TaskComment comment);
 
   List<TaskCommentDto> toTaskCommentDtoList(List<TaskComment> comments);
+
+  /** Map comment attachments to DTOs */
+  default List<TaskCommentDto.AttachmentDto> mapCommentAttachments(
+      List<TaskCommentAttachment> attachments) {
+    if (attachments == null) {
+      return List.of();
+    }
+    return attachments.stream()
+        .map(
+            att ->
+                new TaskCommentDto.AttachmentDto(
+                    att.getId(),
+                    att.getFilename(),
+                    att.getFileUrl(),
+                    att.getFileType(),
+                    att.getFileSize(),
+                    att.getCreatedAt()))
+        .collect(Collectors.toList());
+  }
 
   // TaskHistory mappings
   @Mapping(target = "taskId", source = "task.id")

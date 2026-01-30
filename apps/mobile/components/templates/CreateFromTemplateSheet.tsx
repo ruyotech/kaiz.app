@@ -17,9 +17,10 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { TaskTemplate, RecurrencePattern } from '../../types/models';
 import { LIFE_WHEEL_CONFIG } from './TemplateCard';
 import { useTemplateStore } from '../../store/templateStore';
-import { taskApi, sprintApi, lifeWheelApi } from '../../services/api';
+import { taskApi, sprintApi, lifeWheelApi, fileUploadApi } from '../../services/api';
 import { STORY_POINTS } from '../../utils/constants';
 import { Calendar } from 'react-native-calendars';
+import { AttachmentPicker, AttachmentPreview, CommentAttachment } from '../ui/AttachmentPicker';
 
 interface CreateFromTemplateSheetProps {
     visible: boolean;
@@ -160,7 +161,8 @@ export function CreateFromTemplateSheet({
     const [commentBold, setCommentBold] = useState(false);
     const [commentItalic, setCommentItalic] = useState(false);
     const [commentBulletList, setCommentBulletList] = useState(false);
-    const [attachments, setAttachments] = useState<{name: string; type: string}[]>([]);
+    const [attachments, setAttachments] = useState<CommentAttachment[]>([]);
+    const [showAttachmentPicker, setShowAttachmentPicker] = useState(false);
 
     // Event-specific state
     const [location, setLocation] = useState('');
@@ -359,15 +361,46 @@ export function CreateFromTemplateSheet({
                 };
             }
 
-            // Build attachments in backend format
-            const formattedAttachments = attachments.length > 0 
-                ? attachments.map(att => ({
-                    filename: att.name || att.uri.split('/').pop() || 'attachment',
-                    fileUrl: att.uri,
-                    fileType: att.type || 'application/octet-stream',
-                    fileSize: att.size || null,
-                }))
-                : null;
+            // Upload attachments to cloud storage first
+            let formattedAttachments: Array<{
+                filename: string;
+                fileUrl: string;
+                fileType: string;
+                fileSize: number | null;
+            }> | null = null;
+
+            if (attachments.length > 0) {
+                console.log('📤 Uploading task attachments...');
+                const uploadedAttachments: Array<{
+                    filename: string;
+                    fileUrl: string;
+                    fileType: string;
+                    fileSize: number | null;
+                }> = [];
+
+                for (const att of attachments) {
+                    const uploadResult = await fileUploadApi.uploadFile({
+                        uri: att.uri,
+                        name: att.name || att.uri.split('/').pop() || 'attachment',
+                        mimeType: att.mimeType,
+                    });
+
+                    if (uploadResult.success && uploadResult.data) {
+                        uploadedAttachments.push({
+                            filename: uploadResult.data.filename,
+                            fileUrl: uploadResult.data.fileUrl,
+                            fileType: uploadResult.data.fileType,
+                            fileSize: uploadResult.data.fileSize,
+                        });
+                    } else {
+                        console.error('Failed to upload attachment:', att.name, uploadResult.error);
+                        throw new Error(`Failed to upload ${att.name}`);
+                    }
+                }
+
+                console.log('✅ All attachments uploaded:', uploadedAttachments.length);
+                formattedAttachments = uploadedAttachments;
+            }
 
             // Create the task with backend-compatible format
             const taskData: any = {
@@ -1092,35 +1125,12 @@ export function CreateFromTemplateSheet({
                                         
                                         <View className="h-5 w-px bg-gray-300 mx-2" />
                                         
-                                        {/* Attachment Button */}
+                                        {/* Attachment Button - Opens Picker Modal */}
                                         <TouchableOpacity
-                                            onPress={() => {
-                                                // Simulate adding an attachment
-                                                Alert.alert(
-                                                    'Add Attachment',
-                                                    'Choose attachment type',
-                                                    [
-                                                        { text: 'Photo Library', onPress: () => setAttachments([...attachments, { name: 'image.jpg', type: 'image' }]) },
-                                                        { text: 'Take Photo', onPress: () => setAttachments([...attachments, { name: 'photo.jpg', type: 'image' }]) },
-                                                        { text: 'File', onPress: () => setAttachments([...attachments, { name: 'document.pdf', type: 'file' }]) },
-                                                        { text: 'Cancel', style: 'cancel' },
-                                                    ]
-                                                );
-                                            }}
-                                            className="w-8 h-8 rounded-lg items-center justify-center mr-1"
-                                        >
-                                            <Ionicons name="attach" size={18} color="#6b7280" />
-                                        </TouchableOpacity>
-                                        <TouchableOpacity
-                                            onPress={() => {
-                                                Alert.alert('Add Image', 'Select from gallery', [
-                                                    { text: 'Choose Image', onPress: () => setAttachments([...attachments, { name: 'image.png', type: 'image' }]) },
-                                                    { text: 'Cancel', style: 'cancel' },
-                                                ]);
-                                            }}
+                                            onPress={() => setShowAttachmentPicker(true)}
                                             className="w-8 h-8 rounded-lg items-center justify-center"
                                         >
-                                            <Ionicons name="image-outline" size={18} color="#6b7280" />
+                                            <Ionicons name="attach" size={18} color="#6b7280" />
                                         </TouchableOpacity>
                                     </View>
                                     
@@ -1144,24 +1154,11 @@ export function CreateFromTemplateSheet({
                                     {/* Attachments Preview */}
                                     {attachments.length > 0 && (
                                         <View className="px-4 pb-3">
-                                            <View className="flex-row flex-wrap gap-2">
-                                                {attachments.map((att, idx) => (
-                                                    <View
-                                                        key={idx}
-                                                        className="flex-row items-center bg-white rounded-lg px-2 py-1.5 border border-gray-200"
-                                                    >
-                                                        <Ionicons 
-                                                            name={att.type === 'image' ? 'image' : 'document'} 
-                                                            size={14} 
-                                                            color="#6b7280" 
-                                                        />
-                                                        <Text className="text-xs text-gray-600 ml-1.5 mr-1">{att.name}</Text>
-                                                        <TouchableOpacity onPress={() => setAttachments(attachments.filter((_, i) => i !== idx))}>
-                                                            <Ionicons name="close-circle" size={14} color="#9ca3af" />
-                                                        </TouchableOpacity>
-                                                    </View>
-                                                ))}
-                                            </View>
+                                            <AttachmentPreview
+                                                attachments={attachments}
+                                                onRemove={(index) => setAttachments(prev => prev.filter((_, i) => i !== index))}
+                                                compact
+                                            />
                                         </View>
                                     )}
                                 </View>
@@ -1435,6 +1432,17 @@ export function CreateFromTemplateSheet({
                 </View>
             </View>
         </Modal>
+
+        {/* Attachment Picker Modal */}
+        <AttachmentPicker
+            visible={showAttachmentPicker}
+            onClose={() => setShowAttachmentPicker(false)}
+            onAttachmentAdded={(attachment) => {
+                setAttachments(prev => [...prev, attachment]);
+            }}
+            maxAttachments={5}
+            currentAttachmentsCount={attachments.length}
+        />
     </>
     );
 }

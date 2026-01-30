@@ -86,6 +86,13 @@
             <version>1.20.1</version>
         </dependency>
 
+        <!-- Google Cloud Storage (for file uploads) -->
+        <dependency>
+            <groupId>com.google.cloud</groupId>
+            <artifactId>google-cloud-storage</artifactId>
+            <version>2.47.0</version>
+        </dependency>
+
         <!-- JWT -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>

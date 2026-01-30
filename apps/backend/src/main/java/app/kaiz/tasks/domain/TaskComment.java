@@ -3,6 +3,8 @@ package app.kaiz.tasks.domain;
 import app.kaiz.identity.domain.User;
 import app.kaiz.shared.persistence.BaseEntity;
 import jakarta.persistence.*;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
@@ -29,4 +31,9 @@ public class TaskComment extends BaseEntity {
   @Column(name = "is_ai_generated", nullable = false)
   @Builder.Default
   private boolean isAiGenerated = false;
+
+  // Attachments
+  @OneToMany(mappedBy = "comment", cascade = CascadeType.ALL, orphanRemoval = true)
+  @Builder.Default
+  private List<TaskCommentAttachment> attachments = new ArrayList<>();
 }
