@@ -29,7 +29,7 @@ import {
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system';
+import { File } from 'expo-file-system/next';
 import { 
     useAudioRecorder, 
     RecordingPresets,
@@ -62,11 +62,15 @@ interface AttachmentPickerProps {
 
 async function getFileInfo(uri: string): Promise<{ size: number; exists: boolean }> {
     try {
-        const info = await FileSystem.getInfoAsync(uri);
-        return {
-            exists: info.exists,
-            size: info.exists && 'size' in info ? info.size : 0,
-        };
+        // Use the new expo-file-system/next API
+        const file = new File(uri);
+        const exists = file.exists;
+        if (exists) {
+            // For size, we use the File's size property
+            const size = file.size ?? 0;
+            return { exists: true, size };
+        }
+        return { exists: false, size: 0 };
     } catch (error) {
         console.error('❌ Error getting file info:', error);
         return { exists: false, size: 0 };

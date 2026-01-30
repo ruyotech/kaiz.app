@@ -434,7 +434,7 @@ public class TaskService {
         .orElseThrow(() -> new ResourceNotFoundException("Task", taskId.toString()));
 
     return sdlcMapper.toTaskCommentDtoList(
-        taskCommentRepository.findByTaskIdOrderByCreatedAtAsc(taskId));
+        taskCommentRepository.findByTaskIdWithAttachmentsOrderByCreatedAtAsc(taskId));
   }
 
   @Transactional
