@@ -67,7 +67,6 @@ export default function TemplatesScreen() {
             <ScreenHeader
                 title="Challenge Templates"
                 subtitle="Start with proven challenges"
-                showBack
                 useSafeArea={false}
             />
             

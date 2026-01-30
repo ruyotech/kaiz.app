@@ -84,7 +84,10 @@ export function AppSwitcher() {
     }, [isAppSwitcherOpen, unreadCount]);
 
     const handleAppSelect = (app: typeof APPS[0]) => {
-        setCurrentApp(app.id);
+        // Don't change currentApp for templates - it's an overlay, not a context switch
+        if (app.id !== 'templates') {
+            setCurrentApp(app.id);
+        }
         router.push(app.route as any);
         toggleAppSwitcher();
     };

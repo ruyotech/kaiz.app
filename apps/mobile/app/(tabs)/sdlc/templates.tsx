@@ -184,7 +184,7 @@ export default function TemplatesScreen() {
             <TouchableOpacity
                 onPress={() => handleTemplatePress(item)}
                 activeOpacity={0.7}
-                className="mx-4 my-1.5 rounded-xl overflow-hidden"
+                className="mx-2 my-1.5 rounded-xl overflow-hidden"
                 style={{ 
                     backgroundColor: index % 2 === 0 ? '#fafafa' : '#ffffff',
                 }}
@@ -333,12 +333,6 @@ export default function TemplatesScreen() {
             >
                 {/* Title row - in safe area */}
                 <View className="px-4 py-3 flex-row items-center justify-between">
-                    <TouchableOpacity
-                        onPress={() => router.back()}
-                        className="p-1 -ml-1"
-                    >
-                        <Ionicons name="arrow-back" size={24} color="white" />
-                    </TouchableOpacity>
                     <Text className="text-lg font-bold text-white">Templates</Text>
                     <TouchableOpacity
                         onPress={() => router.push('/(tabs)/sdlc/create-template' as any)}

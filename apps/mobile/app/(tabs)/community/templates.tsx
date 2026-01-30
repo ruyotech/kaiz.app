@@ -66,14 +66,9 @@ export default function TemplatesScreen() {
             <SafeAreaView edges={['top']} className="bg-white border-b border-gray-200">
                 <View className="px-4 py-3">
                     <View className="flex-row items-center justify-between">
-                        <View className="flex-row items-center">
-                            <TouchableOpacity onPress={() => router.back()} className="mr-3">
-                                <MaterialCommunityIcons name="arrow-left" size={24} color="#374151" />
-                            </TouchableOpacity>
-                            <View>
-                                <Text className="text-xl font-bold text-gray-900">Templates</Text>
-                                <Text className="text-xs text-gray-500">Ready-to-use plans & rituals</Text>
-                            </View>
+                        <View>
+                            <Text className="text-xl font-bold text-gray-900">Templates</Text>
+                            <Text className="text-xs text-gray-500">Ready-to-use plans & rituals</Text>
                         </View>
                         <TouchableOpacity className="bg-purple-600 px-4 py-2 rounded-full flex-row items-center">
                             <MaterialCommunityIcons name="plus" size={18} color="#fff" />
