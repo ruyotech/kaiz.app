@@ -26,15 +26,14 @@ type SourceTab = 'global' | 'my' | 'favorites' | 'rated';
 
 const LIFE_WHEEL_AREAS = [
     { id: 'all', name: 'All', emoji: '🎯', color: '#6b7280' },
-    { id: 'life-health', name: 'Health', emoji: '💪', color: '#10b981' },
-    { id: 'life-career', name: 'Career', emoji: '💼', color: '#3b82f6' },
-    { id: 'life-finance', name: 'Finance', emoji: '💰', color: '#f59e0b' },
-    { id: 'life-family', name: 'Family', emoji: '👨‍👩‍👧‍👦', color: '#ec4899' },
-    { id: 'life-romance', name: 'Romance', emoji: '❤️', color: '#ef4444' },
-    { id: 'life-friends', name: 'Friends', emoji: '👥', color: '#8b5cf6' },
-    { id: 'life-growth', name: 'Growth', emoji: '📚', color: '#06b6d4' },
-    { id: 'life-fun', name: 'Fun', emoji: '🎉', color: '#f97316' },
-    { id: 'life-environment', name: 'Environment', emoji: '🌍', color: '#84cc16' },
+    { id: 'lw-1', name: 'Health', emoji: '💪', color: '#10b981' },
+    { id: 'lw-2', name: 'Career', emoji: '💼', color: '#3b82f6' },
+    { id: 'lw-3', name: 'Finance', emoji: '💰', color: '#f59e0b' },
+    { id: 'lw-4', name: 'Growth', emoji: '📚', color: '#8b5cf6' },
+    { id: 'lw-5', name: 'Family & Romance', emoji: '❤️', color: '#ef4444' },
+    { id: 'lw-6', name: 'Friends', emoji: '👥', color: '#ec4899' },
+    { id: 'lw-7', name: 'Fun', emoji: '🎉', color: '#14b8a6' },
+    { id: 'lw-8', name: 'Environment', emoji: '🌍', color: '#84cc16' },
 ];
 
 export default function TemplatesScreen() {
@@ -177,69 +176,76 @@ export default function TemplatesScreen() {
     };
 
     // Render minimal template item
-    const renderTemplateItem = ({ item }: { item: TaskTemplate }) => {
+    const renderTemplateItem = ({ item, index }: { item: TaskTemplate; index: number }) => {
         const wheelConfig = getWheelConfig(item.defaultLifeWheelAreaId || '');
 
         return (
             <TouchableOpacity
                 onPress={() => handleTemplatePress(item)}
                 activeOpacity={0.7}
-                className="py-4 border-b border-gray-50"
+                className="mx-4 my-1.5 rounded-xl overflow-hidden"
+                style={{ 
+                    backgroundColor: index % 2 === 0 ? '#fafafa' : '#ffffff',
+                }}
             >
-                {/* Main Row */}
-                <View className="flex-row items-start">
-                    {/* Icon with gradient-like effect */}
-                    <View className="relative mr-3">
-                        <View
-                            className="w-14 h-14 rounded-2xl items-center justify-center"
-                            style={{ backgroundColor: wheelConfig.color + '18' }}
-                        >
-                            <Text className="text-2xl">{item.icon || wheelConfig.emoji}</Text>
+                {/* Left accent + content */}
+                <View className="flex-row">
+                    {/* Left color accent bar */}
+                    <View 
+                        className="w-1 rounded-l-xl"
+                        style={{ backgroundColor: wheelConfig.color }}
+                    />
+                    
+                    {/* Main content with padding */}
+                    <View className="flex-1 flex-row items-start p-3">
+                        {/* Icon with gradient-like effect */}
+                        <View className="relative mr-3">
+                            <View
+                                className="w-12 h-12 rounded-xl items-center justify-center"
+                                style={{ backgroundColor: wheelConfig.color + '18' }}
+                            >
+                                <Text className="text-xl">{item.icon || wheelConfig.emoji}</Text>
+                            </View>
                         </View>
-                        {/* Small wheel indicator dot */}
-                        <View 
-                            className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full items-center justify-center border-2 border-white"
-                            style={{ backgroundColor: wheelConfig.color }}
-                        >
-                            <Text className="text-[8px]">{wheelConfig.emoji}</Text>
-                        </View>
-                    </View>
 
-                    {/* Content */}
-                    <View className="flex-1">
-                        {/* Title Row */}
-                        <Text className="font-bold text-gray-900 text-base" numberOfLines={1}>
-                            {item.name}
-                        </Text>
-
-                        {/* Wheel of Life - inline style */}
-                        <View className="flex-row items-center mt-1">
+                        {/* Content */}
+                        <View className="flex-1">
+                        {/* Title Row with Life Wheel */}
+                        <View className="flex-row items-center justify-between">
+                            <Text className="font-bold text-gray-900 text-base flex-1 mr-2" numberOfLines={1}>
+                                {item.name}
+                            </Text>
                             <View 
-                                className="w-2 h-2 rounded-full mr-1.5"
-                                style={{ backgroundColor: wheelConfig.color }}
-                            />
-                            <Text className="text-xs font-medium" style={{ color: wheelConfig.color }}>
-                                {wheelConfig.name}
-                            </Text>
-                            <Text className="text-gray-300 mx-2">•</Text>
-                            <Ionicons name="star" size={11} color="#fbbf24" />
-                            <Text className="text-xs text-gray-600 ml-0.5 font-medium">
-                                {item.rating.toFixed(1)}
-                            </Text>
-                            <Text className="text-gray-300 mx-2">•</Text>
+                                className="flex-row items-center px-2 py-0.5 rounded-full"
+                                style={{ backgroundColor: wheelConfig.color + '20' }}
+                            >
+                                <Text className="text-xs mr-1">{wheelConfig.emoji}</Text>
+                                <Text className="text-[11px] font-semibold" style={{ color: wheelConfig.color }}>
+                                    {wheelConfig.name}
+                                </Text>
+                            </View>
+                        </View>
+
+                        {/* Stats row */}
+                        <View className="flex-row items-center mt-1.5 gap-3">
+                            <View className="flex-row items-center">
+                                <Ionicons name="star" size={12} color="#f59e0b" />
+                                <Text className="text-xs text-gray-600 ml-1 font-medium">
+                                    {item.rating.toFixed(1)}
+                                </Text>
+                            </View>
+                            
                             <Text className="text-xs text-gray-400">
                                 {item.usageCount.toLocaleString()} uses
                             </Text>
+
                             {item.recurrencePattern && (
-                                <>
-                                    <Text className="text-gray-300 mx-2">•</Text>
-                                    <View className="flex-row items-center bg-purple-50 px-1.5 py-0.5 rounded">
-                                        <Ionicons name="repeat" size={10} color="#9333ea" />
-                                        <Text className="text-[10px] text-purple-600 ml-0.5 font-medium">
-                                            {item.recurrencePattern.frequency}
-                                        </Text>
-                                    </View>
-                                </>
+                                <View className="flex-row items-center">
+                                    <Ionicons name="repeat" size={11} color="#9333ea" />
+                                    <Text className="text-[11px] text-purple-600 ml-1 font-medium">
+                                        {item.recurrencePattern.frequency}
+                                    </Text>
+                                </View>
                             )}
                         </View>
 
@@ -270,6 +276,7 @@ export default function TemplatesScreen() {
                                 )}
                             </View>
                         )}
+                        </View>
                     </View>
                 </View>
             </TouchableOpacity>

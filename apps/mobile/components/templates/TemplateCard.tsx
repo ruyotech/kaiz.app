@@ -15,15 +15,14 @@ interface TemplateCardProps {
 }
 
 export const LIFE_WHEEL_CONFIG: Record<string, { color: string; name: string; emoji: string }> = {
-    'life-health': { color: '#10b981', name: 'Health', emoji: '💪' },
-    'life-career': { color: '#3b82f6', name: 'Career', emoji: '💼' },
-    'life-finance': { color: '#f59e0b', name: 'Finance', emoji: '💰' },
-    'life-family': { color: '#ec4899', name: 'Family', emoji: '👨‍👩‍👧‍👦' },
-    'life-romance': { color: '#ef4444', name: 'Romance', emoji: '❤️' },
-    'life-friends': { color: '#8b5cf6', name: 'Friends', emoji: '👥' },
-    'life-growth': { color: '#06b6d4', name: 'Growth', emoji: '📚' },
-    'life-fun': { color: '#f97316', name: 'Fun', emoji: '🎉' },
-    'life-environment': { color: '#84cc16', name: 'Environment', emoji: '🌍' },
+    'lw-1': { color: '#10b981', name: 'Health', emoji: '💪' },
+    'lw-2': { color: '#3b82f6', name: 'Career', emoji: '💼' },
+    'lw-3': { color: '#f59e0b', name: 'Finance', emoji: '💰' },
+    'lw-4': { color: '#8b5cf6', name: 'Growth', emoji: '📚' },
+    'lw-5': { color: '#ef4444', name: 'Family & Romance', emoji: '❤️' },
+    'lw-6': { color: '#ec4899', name: 'Friends', emoji: '👥' },
+    'lw-7': { color: '#14b8a6', name: 'Fun', emoji: '🎉' },
+    'lw-8': { color: '#84cc16', name: 'Environment', emoji: '🌍' },
 };
 
 const getLifeWheelConfig = (areaId: string) => {
