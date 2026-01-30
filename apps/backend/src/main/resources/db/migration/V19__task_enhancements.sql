@@ -5,7 +5,7 @@
 -- 1. Add BACKLOG status to tasks
 ALTER TABLE tasks DROP CONSTRAINT IF EXISTS chk_task_status;
 ALTER TABLE tasks ADD CONSTRAINT chk_task_status 
-    CHECK (status IN ('DRAFT', 'BACKLOG', 'TODO', 'IN_PROGRESS', 'DONE'));
+    CHECK (status IN ('draft', 'backlog', 'todo', 'in_progress', 'done'));
 
 -- 2. Add target_date column to tasks (for non-recurring tasks with due date)
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS target_date TIMESTAMP WITH TIME ZONE;
