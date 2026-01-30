@@ -1,36 +1,19 @@
-import { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Modal, Pressable } from 'react-native';
+import { useState, useEffect, useCallback } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, Modal, Pressable, Image, Linking } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Task } from '../../../../types/models';
-import { lifeWheelApi } from '../../../../services/api';
+import { Task, TaskComment, TaskHistory } from '../../../../types/models';
+import { lifeWheelApi, taskApi } from '../../../../services/api';
 import { useEpicStore } from '../../../../store/epicStore';
 import { useTaskStore } from '../../../../store/taskStore';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
 type TabType = 'overview' | 'comments' | 'checklist' | 'history';
 
-type Comment = {
-    id: string;
-    userId: string;
-    userName: string;
-    text: string;
-    timestamp: Date;
-};
-
 type ChecklistItem = {
     id: string;
     text: string;
     completed: boolean;
-};
-
-type HistoryItem = {
-    id: string;
-    userId: string;
-    userName: string;
-    action: string;
-    timestamp: Date;
-    details: string;
 };
 
 interface LifeWheelArea {
@@ -40,28 +23,37 @@ interface LifeWheelArea {
     icon: string;
 }
 
+interface Attachment {
+    id: string;
+    filename: string;
+    fileUrl: string;
+    fileType: string;
+    fileSize: number | null;
+}
+
 export default function TaskWorkView() {
     const router = useRouter();
     const { t } = useTranslation();
     const { id } = useLocalSearchParams();
     const { epics, fetchEpics } = useEpicStore();
-    const { tasks, fetchTasks, getTaskHistory, addTaskHistory } = useTaskStore();
+    const { tasks, fetchTasks } = useTaskStore();
     const [loading, setLoading] = useState(true);
     const [task, setTask] = useState<Task | null>(null);
     const [activeTab, setActiveTab] = useState<TabType>('overview');
     const [lifeWheelAreas, setLifeWheelAreas] = useState<LifeWheelArea[]>([]);
 
-    // Comments
-    const [comments, setComments] = useState<Comment[]>([
-        {
-            id: '1',
-            userId: 'user1',
-            userName: 'John Doe',
-            text: 'Started working on this task. Will focus on the backend integration first.',
-            timestamp: new Date(Date.now() - 3600000),
-        },
-    ]);
+    // Comments - fetched from API
+    const [comments, setComments] = useState<TaskComment[]>([]);
+    const [commentsLoading, setCommentsLoading] = useState(false);
     const [newComment, setNewComment] = useState('');
+    const [submittingComment, setSubmittingComment] = useState(false);
+
+    // History - fetched from API
+    const [history, setHistory] = useState<TaskHistory[]>([]);
+    const [historyLoading, setHistoryLoading] = useState(false);
+
+    // Attachments from task
+    const [attachments, setAttachments] = useState<Attachment[]>([]);
 
     // Checklist
     const [checklist, setChecklist] = useState<ChecklistItem[]>([
@@ -77,8 +69,31 @@ export default function TaskWorkView() {
     // Quick status update
     const [showStatusMenu, setShowStatusMenu] = useState(false);
 
-    // Get history from store
-    const history = task ? getTaskHistory(task.id) : [];
+    // Load comments from API
+    const loadComments = useCallback(async (taskId: string) => {
+        try {
+            setCommentsLoading(true);
+            const fetchedComments = await taskApi.getTaskComments(taskId);
+            setComments(fetchedComments || []);
+        } catch (error) {
+            console.error('Error loading comments:', error);
+        } finally {
+            setCommentsLoading(false);
+        }
+    }, []);
+
+    // Load history from API
+    const loadHistory = useCallback(async (taskId: string) => {
+        try {
+            setHistoryLoading(true);
+            const fetchedHistory = await taskApi.getTaskHistory(taskId);
+            setHistory(fetchedHistory || []);
+        } catch (error) {
+            console.error('Error loading history:', error);
+        } finally {
+            setHistoryLoading(false);
+        }
+    }, []);
 
     useEffect(() => {
         loadTask();
@@ -111,17 +126,15 @@ export default function TaskWorkView() {
         const foundTask = tasks.find((t: Task) => t.id === id);
         if (foundTask) {
             setTask(foundTask);
-
-            // Initialize history if empty
-            const existingHistory = getTaskHistory(foundTask.id);
-            if (existingHistory.length === 0) {
-                addTaskHistory(foundTask.id, {
-                    userId: 'user2',
-                    userName: 'Jane Smith',
-                    action: 'Task created',
-                    details: 'Created task in Sprint 03',
-                });
+            
+            // Set attachments from task
+            if ((foundTask as any).attachments) {
+                setAttachments((foundTask as any).attachments);
             }
+            
+            // Load comments and history from API
+            loadComments(foundTask.id);
+            loadHistory(foundTask.id);
         }
     }, [tasks, id]);
 
@@ -137,38 +150,102 @@ export default function TaskWorkView() {
     };
 
     const statusOptions: Array<{ value: Task['status'] | 'blocked'; label: string; icon: string; color: string; bgColor: string }> = [
-        { value: 'draft', label: 'Draft', icon: 'file-document-edit', color: '#9CA3AF', bgColor: '#6B7280' },
+        { value: 'draft', label: 'Move to Backlog', icon: 'archive-outline', color: '#9CA3AF', bgColor: '#6B7280' },
         { value: 'todo', label: 'To Do', icon: 'checkbox-blank-circle-outline', color: '#6B7280', bgColor: '#4B5563' },
         { value: 'in_progress', label: 'In Progress', icon: 'progress-clock', color: '#3B82F6', bgColor: '#2563EB' },
         { value: 'blocked', label: 'Blocked', icon: 'alert-circle', color: '#EF4444', bgColor: '#DC2626' },
         { value: 'done', label: 'Done', icon: 'check-circle', color: '#10B981', bgColor: '#059669' },
     ];
 
-    const handleStatusChange = (newStatus: Task['status']) => {
+    // Helper to format date safely
+    const formatDate = (dateValue: string | Date | undefined | null): string => {
+        if (!dateValue) return '';
+        try {
+            const date = typeof dateValue === 'string' ? new Date(dateValue) : dateValue;
+            if (isNaN(date.getTime())) return '';
+            return date.toLocaleString();
+        } catch {
+            return '';
+        }
+    };
+
+    // Get friendly description for history field changes
+    const getHistoryDescription = (item: TaskHistory): { action: string; detail: string } => {
+        const fieldName = item.fieldName?.toLowerCase() || '';
+        
+        if (fieldName === 'status') {
+            if (!item.oldValue && item.newValue) {
+                return { action: 'Task created', detail: `Initial status: ${item.newValue}` };
+            }
+            if (item.newValue === 'TODO' && item.oldValue === 'DRAFT') {
+                return { action: 'Moved to Sprint', detail: 'Task added to active sprint' };
+            }
+            return { action: 'Status changed', detail: `${item.oldValue || 'None'} → ${item.newValue}` };
+        }
+        if (fieldName === 'sprintid' || fieldName === 'sprint_id') {
+            if (!item.oldValue && item.newValue) {
+                return { action: 'Added to Sprint', detail: `Sprint: ${item.newValue}` };
+            }
+            if (item.oldValue && !item.newValue) {
+                return { action: 'Removed from Sprint', detail: 'Moved to backlog' };
+            }
+            return { action: 'Sprint changed', detail: `${item.oldValue} → ${item.newValue}` };
+        }
+        if (fieldName === 'comment') {
+            return { action: 'Comment added', detail: '' };
+        }
+        if (fieldName === 'attachment') {
+            return { action: 'Attachment added', detail: item.newValue || '' };
+        }
+        if (fieldName === 'title') {
+            return { action: 'Title updated', detail: item.newValue || '' };
+        }
+        if (fieldName === 'description') {
+            return { action: 'Description updated', detail: '' };
+        }
+        if (fieldName === 'storypoints' || fieldName === 'story_points') {
+            return { action: 'Story points changed', detail: `${item.oldValue || '0'} → ${item.newValue}` };
+        }
+        
+        // Default
+        return { 
+            action: `${fieldName.charAt(0).toUpperCase() + fieldName.slice(1)} changed`, 
+            detail: item.oldValue ? `${item.oldValue} → ${item.newValue}` : `Set to: ${item.newValue}` 
+        };
+    };
+
+    const handleStatusChange = async (newStatus: Task['status']) => {
         if (task) {
+            const oldStatus = task.status;
             setTask({ ...task, status: newStatus });
-            // Add to history
-            addTaskHistory(task.id, {
-                userId: 'current-user',
-                userName: 'You',
-                action: 'Status changed',
-                details: `Changed from "${task.status}" to "${newStatus}"`,
-            });
+            try {
+                await taskApi.updateTask(task.id, { status: newStatus });
+                // Reload history to get the updated history from backend
+                loadHistory(task.id);
+            } catch (error) {
+                console.error('Error updating status:', error);
+                // Revert on error
+                setTask({ ...task, status: oldStatus });
+            }
         }
         setShowStatusMenu(false);
     };
 
-    const handleAddComment = () => {
-        if (newComment.trim()) {
-            const comment: Comment = {
-                id: Date.now().toString(),
-                userId: 'current-user',
-                userName: 'You',
-                text: newComment,
-                timestamp: new Date(),
-            };
-            setComments([...comments, comment]);
-            setNewComment('');
+    const handleAddComment = async () => {
+        if (newComment.trim() && task) {
+            setSubmittingComment(true);
+            try {
+                const createdComment = await taskApi.addComment(task.id, { 
+                    commentText: newComment.trim() 
+                });
+                // Add the new comment to the list
+                setComments([...comments, createdComment]);
+                setNewComment('');
+            } catch (error) {
+                console.error('Error adding comment:', error);
+            } finally {
+                setSubmittingComment(false);
+            }
         }
     };
 
@@ -256,9 +333,9 @@ export default function TaskWorkView() {
             <View className="bg-white border-b border-gray-200 flex-row">
                 {[
                     { id: 'overview', label: t('tasks.tabs.overview'), icon: 'information-outline' },
-                    { id: 'comments', label: t('tasks.tabs.comments'), icon: 'comment-outline', badge: comments.length },
+                    { id: 'comments', label: t('tasks.tabs.comments'), icon: 'comment-outline', badge: (comments.length + attachments.length) > 0 ? (comments.length + attachments.length) : undefined },
                     { id: 'checklist', label: t('tasks.tabs.checklist'), icon: 'checkbox-marked-outline', badge: `${completedChecklist}/${totalChecklist}` },
-                    { id: 'history', label: t('tasks.tabs.history'), icon: 'history' },
+                    { id: 'history', label: t('tasks.tabs.history'), icon: 'history', badge: history.length > 0 ? history.length : undefined },
                 ].map((tab) => (
                     <TouchableOpacity
                         key={tab.id}
@@ -392,17 +469,95 @@ export default function TaskWorkView() {
                 {/* Comments Tab */}
                 {activeTab === 'comments' && (
                     <View className="p-4">
-                        {comments.map((comment) => (
-                            <View key={comment.id} className="bg-white rounded-lg p-4 mb-3">
-                                <View className="flex-row justify-between items-start mb-2">
-                                    <Text className="font-semibold text-gray-800">{comment.userName}</Text>
-                                    <Text className="text-xs text-gray-500">
-                                        {comment.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                    </Text>
-                                </View>
-                                <Text className="text-gray-600">{comment.text}</Text>
+                        {commentsLoading ? (
+                            <View className="items-center py-8">
+                                <Text className="text-gray-500">{t('common.loading')}</Text>
                             </View>
-                        ))}
+                        ) : (comments.length === 0 && attachments.length === 0) ? (
+                            <View className="bg-white rounded-lg p-8 items-center mb-4">
+                                <MaterialCommunityIcons name="comment-outline" size={48} color="#D1D5DB" />
+                                <Text className="text-gray-500 mt-3">No activity yet</Text>
+                                <Text className="text-gray-400 text-sm">Comments and attachments will appear here</Text>
+                            </View>
+                        ) : (
+                            <>
+                                {/* Show attachments first if any */}
+                                {attachments.length > 0 && (
+                                    <View className="bg-white rounded-lg p-4 mb-3">
+                                        <View className="flex-row items-center mb-3">
+                                            <MaterialCommunityIcons name="attachment" size={18} color="#6B7280" />
+                                            <Text className="font-semibold text-gray-700 ml-2">Attachments ({attachments.length})</Text>
+                                        </View>
+                                        <View className="flex-row flex-wrap gap-2">
+                                            {attachments.map((attachment) => (
+                                                <TouchableOpacity 
+                                                    key={attachment.id} 
+                                                    className="bg-gray-50 rounded-lg p-2 flex-row items-center"
+                                                    style={{ maxWidth: '48%' }}
+                                                    onPress={() => {
+                                                        if (attachment.fileUrl) {
+                                                            Linking.openURL(attachment.fileUrl);
+                                                        }
+                                                    }}
+                                                >
+                                                    {attachment.fileType?.startsWith('image/') ? (
+                                                        <Image 
+                                                            source={{ uri: attachment.fileUrl }} 
+                                                            className="w-10 h-10 rounded"
+                                                            resizeMode="cover"
+                                                        />
+                                                    ) : (
+                                                        <View className="w-10 h-10 rounded bg-gray-100 items-center justify-center">
+                                                            <MaterialCommunityIcons 
+                                                                name={
+                                                                    attachment.fileType?.includes('pdf') ? 'file-pdf-box' :
+                                                                    attachment.fileType?.includes('word') ? 'file-word-box' :
+                                                                    'file-document'
+                                                                } 
+                                                                size={20} 
+                                                                color="#6B7280" 
+                                                            />
+                                                        </View>
+                                                    )}
+                                                    <View className="flex-1 ml-2">
+                                                        <Text className="text-xs text-gray-800 font-medium" numberOfLines={1}>
+                                                            {attachment.filename}
+                                                        </Text>
+                                                        {attachment.fileSize && (
+                                                            <Text className="text-xs text-gray-500">
+                                                                {(attachment.fileSize / 1024).toFixed(1)} KB
+                                                            </Text>
+                                                        )}
+                                                    </View>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </View>
+                                    </View>
+                                )}
+                                
+                                {/* Show comments */}
+                                {comments.map((comment) => (
+                                    <View key={comment.id} className="bg-white rounded-lg p-4 mb-3">
+                                        <View className="flex-row justify-between items-start mb-2">
+                                            <View className="flex-row items-center">
+                                                <Text className="font-semibold text-gray-800">
+                                                    {(comment as any).userName || 'User'}
+                                                </Text>
+                                                {comment.isAiGenerated && (
+                                                    <View className="ml-2 bg-purple-100 px-2 py-0.5 rounded">
+                                                        <Text className="text-xs text-purple-600">AI</Text>
+                                                    </View>
+                                                )}
+                                            </View>
+                                            <Text className="text-xs text-gray-500">
+                                                {formatDate((comment as any).createdAt || comment.timestamp)}
+                                            </Text>
+                                        </View>
+                                        <Text className="text-gray-600">{comment.commentText}</Text>
+                                    </View>
+                                ))}
+                            </>
+                        )}
 
                         <View className="bg-white rounded-lg p-4">
                             <TextInput
@@ -437,10 +592,12 @@ export default function TaskWorkView() {
 
                             <TouchableOpacity
                                 onPress={handleAddComment}
-                                disabled={!newComment.trim()}
-                                className={`py-3 rounded-lg ${newComment.trim() ? 'bg-blue-600' : 'bg-gray-300'}`}
+                                disabled={!newComment.trim() || submittingComment}
+                                className={`py-3 rounded-lg ${newComment.trim() && !submittingComment ? 'bg-blue-600' : 'bg-gray-300'}`}
                             >
-                                <Text className="text-white text-center font-semibold">{t('tasks.details.postComment')}</Text>
+                                <Text className="text-white text-center font-semibold">
+                                    {submittingComment ? 'Posting...' : t('tasks.details.postComment')}
+                                </Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -515,25 +672,154 @@ export default function TaskWorkView() {
                 {
                     activeTab === 'history' && (
                         <View className="p-4">
-                            {history.map((item) => (
-                                <View key={item.id} className="bg-white rounded-lg p-4 mb-3">
-                                    <View className="flex-row items-start">
-                                        <View className="w-8 h-8 rounded-full bg-blue-100 items-center justify-center mr-3">
-                                            <MaterialCommunityIcons name="account" size={18} color="#3B82F6" />
-                                        </View>
-                                        <View className="flex-1">
-                                            <View className="flex-row justify-between items-start mb-1">
-                                                <Text className="font-semibold text-gray-800">{item.userName}</Text>
-                                                <Text className="text-xs text-gray-500">
-                                                    {item.timestamp.toLocaleString()}
-                                                </Text>
-                                            </View>
-                                            <Text className="text-sm text-gray-600 mb-1">{item.action}</Text>
-                                            <Text className="text-sm text-gray-500">{item.details}</Text>
-                                        </View>
-                                    </View>
+                            {historyLoading ? (
+                                <View className="items-center py-8">
+                                    <Text className="text-gray-500">{t('common.loading')}</Text>
                                 </View>
-                            ))}
+                            ) : (() => {
+                                // Build unified timeline
+                                type TimelineEntry = {
+                                    id: string;
+                                    type: 'created' | 'sprint' | 'change';
+                                    action: string;
+                                    detail: string;
+                                    userName: string;
+                                    timestamp: Date;
+                                    icon: string;
+                                    iconColor: string;
+                                    bgColor: string;
+                                };
+                                
+                                const timeline: TimelineEntry[] = [];
+                                
+                                // 1. Add task creation entry
+                                if (task?.createdAt) {
+                                    const createdDate = new Date(task.createdAt);
+                                    if (!isNaN(createdDate.getTime())) {
+                                        // Check if task was created directly to sprint or backlog
+                                        const wasCreatedToSprint = task.sprintId && 
+                                            !history.some(h => 
+                                                (h.fieldName?.toLowerCase() === 'sprintid' || h.fieldName?.toLowerCase() === 'sprint_id') &&
+                                                !h.oldValue && h.newValue
+                                            );
+                                        
+                                        timeline.push({
+                                            id: 'task-created',
+                                            type: 'created',
+                                            action: 'Task created',
+                                            detail: wasCreatedToSprint 
+                                                ? `Created directly in Sprint ${task.sprintId}` 
+                                                : 'Created in backlog',
+                                            userName: 'System',
+                                            timestamp: createdDate,
+                                            icon: 'plus-circle',
+                                            iconColor: '#10B981',
+                                            bgColor: 'bg-green-100',
+                                        });
+                                    }
+                                }
+                                
+                                // 2. Add history entries
+                                history.forEach((item) => {
+                                    const { action, detail } = getHistoryDescription(item);
+                                    const isCreation = action === 'Task created';
+                                    const isSprint = action.includes('Sprint');
+                                    const isComment = action === 'Comment added';
+                                    const isAttachment = action === 'Attachment added';
+                                    
+                                    // Skip if this is a duplicate creation entry
+                                    if (isCreation && timeline.some(t => t.type === 'created')) {
+                                        return;
+                                    }
+                                    
+                                    const timestamp = new Date(item.timestamp);
+                                    if (isNaN(timestamp.getTime())) return;
+                                    
+                                    // Determine icon and colors based on action type
+                                    let icon = 'pencil';
+                                    let iconColor = '#3B82F6';
+                                    let bgColor = 'bg-blue-100';
+                                    
+                                    if (isCreation) {
+                                        icon = 'plus-circle';
+                                        iconColor = '#10B981';
+                                        bgColor = 'bg-green-100';
+                                    } else if (isSprint) {
+                                        icon = 'calendar-arrow-right';
+                                        iconColor = '#8B5CF6';
+                                        bgColor = 'bg-purple-100';
+                                    } else if (isComment) {
+                                        icon = 'comment-text';
+                                        iconColor = '#F59E0B';
+                                        bgColor = 'bg-yellow-100';
+                                    } else if (isAttachment) {
+                                        icon = 'attachment';
+                                        iconColor = '#EC4899';
+                                        bgColor = 'bg-pink-100';
+                                    }
+                                    
+                                    timeline.push({
+                                        id: item.id,
+                                        type: isSprint ? 'sprint' : 'change',
+                                        action,
+                                        detail,
+                                        userName: (item as any).changedByUserName || 'User',
+                                        timestamp,
+                                        icon,
+                                        iconColor,
+                                        bgColor,
+                                    });
+                                });
+                                
+                                // Sort by timestamp descending (newest first)
+                                timeline.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+                                
+                                if (timeline.length === 0) {
+                                    return (
+                                        <View className="bg-white rounded-lg p-8 items-center">
+                                            <MaterialCommunityIcons name="history" size={48} color="#D1D5DB" />
+                                            <Text className="text-gray-500 mt-3">No history yet</Text>
+                                            <Text className="text-gray-400 text-sm">Task changes will appear here</Text>
+                                        </View>
+                                    );
+                                }
+                                
+                                return timeline.map((entry, index) => (
+                                    <View key={entry.id} className="bg-white rounded-lg p-4 mb-3">
+                                        <View className="flex-row items-start">
+                                            <View className={`w-8 h-8 rounded-full items-center justify-center mr-3 ${entry.bgColor}`}>
+                                                <MaterialCommunityIcons 
+                                                    name={entry.icon as any} 
+                                                    size={18} 
+                                                    color={entry.iconColor} 
+                                                />
+                                            </View>
+                                            <View className="flex-1">
+                                                <View className="flex-row justify-between items-start mb-1">
+                                                    <Text className="font-semibold text-gray-800">
+                                                        {entry.userName}
+                                                    </Text>
+                                                    <Text className="text-xs text-gray-500">
+                                                        {entry.timestamp.toLocaleString()}
+                                                    </Text>
+                                                </View>
+                                                <Text className="text-sm text-gray-600 mb-1">
+                                                    {entry.action}
+                                                </Text>
+                                                {entry.detail && (
+                                                    <Text className="text-sm text-gray-500">
+                                                        {entry.detail}
+                                                    </Text>
+                                                )}
+                                            </View>
+                                        </View>
+                                        {/* Timeline connector line */}
+                                        {index < timeline.length - 1 && (
+                                            <View className="absolute left-8 top-14 bottom-0 w-0.5 bg-gray-200" style={{ height: 20 }} />
+                                        )}
+                                    </View>
+                                ));
+                            })()}
                         </View>
                     )
                 }

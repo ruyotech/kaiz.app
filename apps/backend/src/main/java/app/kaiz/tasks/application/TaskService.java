@@ -427,7 +427,12 @@ public class TaskService {
             .isAiGenerated(request.isAiGenerated())
             .build();
 
-    return sdlcMapper.toTaskCommentDto(taskCommentRepository.save(comment));
+    TaskComment savedComment = taskCommentRepository.save(comment);
+
+    // Record in history that a comment was added
+    recordHistory(task, user, "comment", null, "Comment added");
+
+    return sdlcMapper.toTaskCommentDto(savedComment);
   }
 
   private void recordHistory(Task task, User user, String field, String oldValue, String newValue) {
