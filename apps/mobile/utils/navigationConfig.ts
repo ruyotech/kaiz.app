@@ -53,6 +53,10 @@ export const NAV_CONFIGS: Record<AppContext, NavIcon[]> = {
         { nameKey: 'navigation.tabs.inbox', icon: 'bell', route: '/(tabs)/notifications' },
         { nameKey: 'navigation.tabs.more', icon: 'dots-horizontal', route: 'more' },
     ],
+    templates: [
+        { nameKey: 'navigation.sdlc.templates', icon: 'file-document-multiple', route: '/(tabs)/sdlc/templates' },
+        { nameKey: 'navigation.tabs.more', icon: 'dots-horizontal', route: 'more' },
+    ],
 };
 
 export const MORE_MENUS: Record<AppContext, MoreMenuItem[]> = {
@@ -138,6 +142,11 @@ export const MORE_MENUS: Record<AppContext, MoreMenuItem[]> = {
         { nameKey: 'settings.title', icon: 'cog', route: '/(tabs)/notifications/settings' },
         { nameKey: 'navigation.moreMenu.clearAll', icon: 'notification-clear-all', route: 'clear-notifications' },
     ],
+    templates: [
+        { nameKey: 'navigation.moreMenu.createTemplate', icon: 'plus-circle', route: '/(tabs)/sdlc/create-template' },
+        { nameKey: 'navigation.tabs.tasks', icon: 'view-dashboard-outline', route: '/(tabs)/sdlc' },
+        { nameKey: 'settings.title', icon: 'cog', route: '/(tabs)/settings' },
+    ],
 };
 
 export interface App {
@@ -151,6 +160,7 @@ export interface App {
 export const APPS: App[] = [
     { id: 'sdlc', nameKey: 'navigation.tabs.tasks', icon: 'view-dashboard-outline', color: '#3B82F6', route: '/(tabs)/sdlc' },
     { id: 'sensai', nameKey: 'navigation.tabs.sensai', icon: 'robot', color: '#10B981', route: '/(tabs)/sensai' },
+    { id: 'templates', nameKey: 'navigation.sdlc.templates', icon: 'file-document-multiple', color: '#14B8A6', route: '/(tabs)/sdlc/templates' },
     { id: 'challenges', nameKey: 'navigation.tabs.challenges', icon: 'target', color: '#F59E0B', route: '/(tabs)/challenges' },
     { id: 'pomodoro', nameKey: 'navigation.tabs.focus', icon: 'circle-slice-8', color: '#EF4444', route: '/(tabs)/pomodoro' },
     { id: 'essentia', nameKey: 'navigation.tabs.essentia', icon: 'brain', color: '#8B5CF6', route: '/(tabs)/essentia' },

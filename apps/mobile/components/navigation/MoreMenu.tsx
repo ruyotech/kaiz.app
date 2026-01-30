@@ -15,7 +15,8 @@ export function MoreMenu() {
     const router = useRouter();
     const { t } = useTranslation();
 
-    const menuItems = MORE_MENUS[currentApp];
+    // Fallback to sdlc menu items if current app doesn't have a menu defined
+    const menuItems = MORE_MENUS[currentApp] || MORE_MENUS['sdlc'] || [];
 
     const handleItemPress = (route: string) => {
         // Handle special actions

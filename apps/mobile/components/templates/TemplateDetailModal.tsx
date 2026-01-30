@@ -54,9 +54,10 @@ export function TemplateDetailModal({
     onUseTemplate,
     onCloneTemplate,
 }: TemplateDetailModalProps) {
-    const { toggleFavorite, rateTemplate, addTemplateTag, removeTemplateTag } = useTemplateStore();
+    const { toggleFavorite, rateTemplate, addTemplateTag, removeTemplateTag, getTemplateById } = useTemplateStore();
     const [userRating, setUserRating] = useState<number>(template?.userRating || 0);
     const [isRating, setIsRating] = useState(false);
+    const [isFavorite, setIsFavorite] = useState<boolean>(template?.isFavorite || false);
     const [userTags, setUserTags] = useState<string[]>(template?.userTags || []);
     const [newTag, setNewTag] = useState('');
     const [showTagInput, setShowTagInput] = useState(false);
@@ -68,6 +69,7 @@ export function TemplateDetailModal({
         if (template) {
             setUserTags(template.userTags || []);
             setUserRating(template.userRating || 0);
+            setIsFavorite(template.isFavorite || false);
         }
     }, [template]);
 
@@ -79,22 +81,31 @@ export function TemplateDetailModal({
         : defaultWheelConfig;
 
     const handleRate = async (rating: number) => {
-        setUserRating(rating);
+        // If clicking the same rating, unrate (set to 0)
+        const newRating = rating === userRating ? 0 : rating;
+        setUserRating(newRating);
         setIsRating(true);
         try {
-            await rateTemplate(template.id, rating);
+            await rateTemplate(template.id, newRating);
         } catch (error) {
             console.error('Failed to rate template:', error);
+            // Revert on error
+            setUserRating(userRating);
         } finally {
             setIsRating(false);
         }
     };
 
     const handleFavorite = async () => {
+        // Optimistically update UI
+        setIsFavorite(!isFavorite);
         try {
-            await toggleFavorite(template.id);
+            const newFavoriteStatus = await toggleFavorite(template.id);
+            setIsFavorite(newFavoriteStatus);
         } catch (error) {
             console.error('Failed to toggle favorite:', error);
+            // Revert on error
+            setIsFavorite(isFavorite);
         }
     };
 
@@ -163,9 +174,9 @@ export function TemplateDetailModal({
                     <Text className="text-lg font-semibold">Template Details</Text>
                     <TouchableOpacity onPress={handleFavorite} className="p-2 -mr-2">
                         <Ionicons
-                            name={template.isFavorite ? 'heart' : 'heart-outline'}
+                            name={isFavorite ? 'heart' : 'heart-outline'}
                             size={28}
-                            color={template.isFavorite ? '#ef4444' : '#374151'}
+                            color={isFavorite ? '#ef4444' : '#374151'}
                         />
                     </TouchableOpacity>
                 </View>
@@ -255,10 +266,15 @@ export function TemplateDetailModal({
                                     Saving your rating...
                                 </Text>
                             ) : userRating > 0 ? (
-                                <View className="flex-row items-center justify-center mt-3">
-                                    <Ionicons name="checkmark-circle" size={14} color="#10b981" />
-                                    <Text className="text-xs text-green-600 ml-1">
-                                        You rated this {userRating}/5 ⭐
+                                <View className="items-center mt-3">
+                                    <View className="flex-row items-center">
+                                        <Ionicons name="checkmark-circle" size={14} color="#10b981" />
+                                        <Text className="text-xs text-green-600 ml-1">
+                                            You rated this {userRating}/5 ⭐
+                                        </Text>
+                                    </View>
+                                    <Text className="text-xs text-blue-400 mt-1">
+                                        Tap the same star to remove rating
                                     </Text>
                                 </View>
                             ) : (
@@ -343,27 +359,10 @@ export function TemplateDetailModal({
                             </View>
                         </View>
 
-                        {/* Template Tags (read-only, from the template) */}
-                        {template.tags && template.tags.length > 0 && (
-                            <View className="mb-6">
-                                <Text className="text-sm font-medium text-gray-500 mb-3">Template Tags</Text>
-                                <View className="flex-row flex-wrap gap-2">
-                                    {template.tags.map((tag, index) => (
-                                        <View
-                                            key={index}
-                                            className="px-3 py-1.5 bg-gray-100 rounded-full"
-                                        >
-                                            <Text className="text-gray-700">#{tag}</Text>
-                                        </View>
-                                    ))}
-                                </View>
-                            </View>
-                        )}
-
-                        {/* My Tags (user-specific, editable) */}
+                        {/* Tags Section - Combined view */}
                         <View className="mb-6">
                             <View className="flex-row items-center justify-between mb-3">
-                                <Text className="text-sm font-medium text-gray-500">My Tags</Text>
+                                <Text className="text-sm font-medium text-gray-500">Tags</Text>
                                 <TouchableOpacity 
                                     onPress={() => setShowTagInput(!showTagInput)}
                                     className="flex-row items-center"
@@ -379,7 +378,7 @@ export function TemplateDetailModal({
                                 </TouchableOpacity>
                             </View>
                             
-                            {/* Tag Input */}
+                            {/* Tag Input - Always at top when visible */}
                             {showTagInput && (
                                 <View className="flex-row items-center mb-3 bg-blue-50 rounded-xl p-2">
                                     <TextInput
@@ -406,34 +405,63 @@ export function TemplateDetailModal({
                                 </View>
                             )}
 
-                            {/* User Tags List */}
+                            {/* Combined Tags Display */}
                             <View className="flex-row flex-wrap gap-2">
-                                {userTags.length > 0 ? (
-                                    userTags.map((tag, index) => (
-                                        <View
-                                            key={index}
-                                            className="px-3 py-1.5 bg-blue-100 rounded-full flex-row items-center"
+                                {/* User's personal tags (editable, shown first with blue styling) */}
+                                {userTags.map((tag, index) => (
+                                    <View
+                                        key={`user-${index}`}
+                                        className="px-3 py-1.5 bg-blue-100 rounded-full flex-row items-center"
+                                    >
+                                        <Text className="text-blue-700">#{tag}</Text>
+                                        <TouchableOpacity
+                                            onPress={() => handleRemoveTag(tag)}
+                                            disabled={removingTagId === tag}
+                                            className="ml-2"
                                         >
-                                            <Text className="text-blue-700">#{tag}</Text>
-                                            <TouchableOpacity
-                                                onPress={() => handleRemoveTag(tag)}
-                                                disabled={removingTagId === tag}
-                                                className="ml-2"
-                                            >
-                                                {removingTagId === tag ? (
-                                                    <ActivityIndicator size="small" color="#3b82f6" />
-                                                ) : (
-                                                    <Ionicons name="close-circle" size={16} color="#60a5fa" />
-                                                )}
-                                            </TouchableOpacity>
-                                        </View>
-                                    ))
-                                ) : (
+                                            {removingTagId === tag ? (
+                                                <ActivityIndicator size="small" color="#3b82f6" />
+                                            ) : (
+                                                <Ionicons name="close-circle" size={16} color="#60a5fa" />
+                                            )}
+                                        </TouchableOpacity>
+                                    </View>
+                                ))}
+                                
+                                {/* Template's global tags (read-only, shown with gray styling) */}
+                                {template.tags && template.tags.map((tag, index) => (
+                                    <View
+                                        key={`global-${index}`}
+                                        className="px-3 py-1.5 bg-gray-100 rounded-full flex-row items-center"
+                                    >
+                                        <Text className="text-gray-600">#{tag}</Text>
+                                        <Ionicons name="globe-outline" size={12} color="#9ca3af" className="ml-1" />
+                                    </View>
+                                ))}
+                                
+                                {/* Empty state */}
+                                {userTags.length === 0 && (!template.tags || template.tags.length === 0) && (
                                     <Text className="text-gray-400 text-sm italic">
-                                        Add your personal tags to organize this template.
+                                        No tags yet. Add your personal tags to organize this template.
                                     </Text>
                                 )}
                             </View>
+                            
+                            {/* Legend for tag types */}
+                            {(userTags.length > 0 || (template.tags && template.tags.length > 0)) && (
+                                <View className="flex-row items-center mt-3 gap-4">
+                                    <View className="flex-row items-center">
+                                        <View className="w-3 h-3 rounded-full bg-blue-100 mr-1" />
+                                        <Text className="text-xs text-gray-500">My tags</Text>
+                                    </View>
+                                    {template.tags && template.tags.length > 0 && (
+                                        <View className="flex-row items-center">
+                                            <View className="w-3 h-3 rounded-full bg-gray-100 mr-1" />
+                                            <Text className="text-xs text-gray-500">Template tags</Text>
+                                        </View>
+                                    )}
+                                </View>
+                            )}
                         </View>
 
                         {/* Clone option for global templates */}
