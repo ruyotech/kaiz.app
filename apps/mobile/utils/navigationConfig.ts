@@ -57,15 +57,24 @@ export const NAV_CONFIGS: Record<AppContext, NavIcon[]> = {
         { nameKey: 'navigation.sdlc.templates', icon: 'file-document-multiple', route: '/(tabs)/sdlc/templates' },
         { nameKey: 'navigation.tabs.more', icon: 'dots-horizontal', route: 'more' },
     ],
+    backlog: [
+        { nameKey: 'navigation.sdlc.backlog', icon: 'inbox', route: '/(tabs)/sdlc/backlog' },
+        { nameKey: 'navigation.tabs.more', icon: 'dots-horizontal', route: 'more' },
+    ],
+    epics: [
+        { nameKey: 'navigation.sdlc.epics', icon: 'bookmark-multiple', route: '/(tabs)/sdlc/epics' },
+        { nameKey: 'navigation.tabs.more', icon: 'dots-horizontal', route: 'more' },
+    ],
+    taskSearch: [
+        { nameKey: 'navigation.sdlc.taskSearch', icon: 'magnify', route: '/(tabs)/sdlc/search-tasks' },
+        { nameKey: 'navigation.tabs.more', icon: 'dots-horizontal', route: 'more' },
+    ],
 };
 
 export const MORE_MENUS: Record<AppContext, MoreMenuItem[]> = {
     sdlc: [
-        { nameKey: 'navigation.sdlc.taskSearch', icon: 'magnify', route: '/(tabs)/sdlc/search-tasks' },
-        { nameKey: 'navigation.sdlc.backlog', icon: 'inbox', route: '/(tabs)/sdlc/backlog' },
         { nameKey: 'navigation.sdlc.reports', icon: 'chart-line', route: '/(tabs)/sdlc/reports' },
         { nameKey: 'navigation.sdlc.velocity', icon: 'speedometer', route: '/(tabs)/sdlc/velocity' },
-        { nameKey: 'navigation.sdlc.epics', icon: 'bookmark-multiple', route: '/(tabs)/sdlc/epics' },
         { nameKey: 'navigation.sdlc.knowledgeHub', icon: 'school', route: '/(tabs)/sdlc/wiki' },
     ],
     sensai: [
@@ -142,7 +151,19 @@ export const MORE_MENUS: Record<AppContext, MoreMenuItem[]> = {
     ],
     templates: [
         { nameKey: 'navigation.moreMenu.createTemplate', icon: 'plus-circle', route: '/(tabs)/sdlc/create-template' },
-        { nameKey: 'navigation.tabs.tasks', icon: 'view-dashboard-outline', route: '/(tabs)/sdlc' },
+        { nameKey: 'navigation.tabs.sprints', icon: 'view-dashboard-outline', route: '/(tabs)/sdlc' },
+        { nameKey: 'settings.title', icon: 'cog', route: '/(tabs)/settings' },
+    ],
+    backlog: [
+        { nameKey: 'navigation.tabs.sprints', icon: 'view-dashboard-outline', route: '/(tabs)/sdlc' },
+        { nameKey: 'settings.title', icon: 'cog', route: '/(tabs)/settings' },
+    ],
+    epics: [
+        { nameKey: 'navigation.tabs.sprints', icon: 'view-dashboard-outline', route: '/(tabs)/sdlc' },
+        { nameKey: 'settings.title', icon: 'cog', route: '/(tabs)/settings' },
+    ],
+    taskSearch: [
+        { nameKey: 'navigation.tabs.sprints', icon: 'view-dashboard-outline', route: '/(tabs)/sdlc' },
         { nameKey: 'settings.title', icon: 'cog', route: '/(tabs)/settings' },
     ],
 };
@@ -156,8 +177,11 @@ export interface App {
 }
 
 export const APPS: App[] = [
-    { id: 'sdlc', nameKey: 'navigation.tabs.tasks', icon: 'view-dashboard-outline', color: '#3B82F6', route: '/(tabs)/sdlc' },
+    { id: 'sdlc', nameKey: 'navigation.tabs.sprints', icon: 'view-dashboard-outline', color: '#3B82F6', route: '/(tabs)/sdlc' },
     { id: 'sensai', nameKey: 'navigation.tabs.sensai', icon: 'robot', color: '#10B981', route: '/(tabs)/sensai' },
+    { id: 'backlog', nameKey: 'navigation.sdlc.backlog', icon: 'inbox', color: '#6366F1', route: '/(tabs)/sdlc/backlog' },
+    { id: 'epics', nameKey: 'navigation.sdlc.epics', icon: 'bookmark-multiple', color: '#8B5CF6', route: '/(tabs)/sdlc/epics' },
+    { id: 'taskSearch', nameKey: 'navigation.tabs.tasks', icon: 'format-list-checkbox', color: '#0EA5E9', route: '/(tabs)/sdlc/search-tasks' },
     { id: 'templates', nameKey: 'navigation.sdlc.templates', icon: 'file-document-multiple', color: '#14B8A6', route: '/(tabs)/sdlc/templates' },
     { id: 'challenges', nameKey: 'navigation.tabs.challenges', icon: 'target', color: '#F59E0B', route: '/(tabs)/challenges' },
     { id: 'pomodoro', nameKey: 'navigation.tabs.focus', icon: 'circle-slice-8', color: '#EF4444', route: '/(tabs)/pomodoro' },
