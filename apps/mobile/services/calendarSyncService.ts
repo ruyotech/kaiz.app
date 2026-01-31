@@ -215,12 +215,17 @@ class CalendarSyncService {
             // Fetch all calendars from device
             const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
             
+            console.log(`[calendarSyncService] Found ${calendars.length} Apple calendars`);
+            calendars.forEach((cal, i) => {
+                console.log(`[calendarSyncService] Calendar ${i}: "${cal.title}" (id: ${cal.id}, primary: ${cal.isPrimary})`);
+            });
+            
             const externalCalendars: ExternalCalendar[] = calendars.map((cal) => ({
                 id: cal.id,
                 name: cal.title,
                 color: cal.color || '#6B7280',
                 provider: 'apple' as CalendarProvider,
-                isSelected: cal.isPrimary || false,
+                isSelected: true, // Auto-select ALL calendars by default
                 isPrimary: cal.isPrimary || false,
                 accessLevel: cal.allowsModifications ? 'owner' : 'read',
             }));
