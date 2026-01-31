@@ -570,6 +570,21 @@ export default function SettingsScreen() {
                 </SettingSection>
 
                 {/* ============================================ */}
+                {/* INTEGRATIONS */}
+                {/* ============================================ */}
+                <SettingSection title="Integrations" titleIcon="🔗">
+                    <SettingItem
+                        icon="calendar-sync"
+                        iconColor="#10B981"
+                        iconBgColor="#D1FAE5"
+                        label="Calendar Integrations"
+                        sublabel="Connect Apple, Google, or Outlook calendars"
+                        onPress={() => router.push('/(tabs)/settings/integrations')}
+                        isLast
+                    />
+                </SettingSection>
+
+                {/* ============================================ */}
                 {/* SECURITY (Face ID / Touch ID) */}
                 {/* ============================================ */}
                 {biometricCapability?.isHardwareAvailable && (
