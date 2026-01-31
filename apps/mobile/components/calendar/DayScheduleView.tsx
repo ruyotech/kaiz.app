@@ -1,8 +1,9 @@
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { format } from 'date-fns';
+import { format, isSameDay, parseISO } from 'date-fns';
 import { Task } from '../../types/models';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useCalendarSyncStore, type ExternalEvent } from '../../store/calendarSyncStore';
 
 // Helper to check if a string is an emoji (not a MaterialCommunityIcons name)
 const isEmoji = (str: string): boolean => {
@@ -162,6 +163,31 @@ const isWeekdayRecurring = (task: Task): boolean => {
     return task.recurrence?.frequency === 'DAILY';
 };
 
+// Get external event position on timeline
+const getExternalEventPosition = (event: ExternalEvent, currentDate: Date) => {
+    if (event.isAllDay) return null; // All-day events shown separately
+    
+    try {
+        const startDate = new Date(event.startDate);
+        const endDate = new Date(event.endDate);
+        
+        if (!isSameDay(startDate, currentDate)) return null;
+        
+        const startMinutes = startDate.getHours() * 60 + startDate.getMinutes();
+        const endMinutes = endDate.getHours() * 60 + endDate.getMinutes();
+        
+        const startSlotIndex = Math.floor(startMinutes / 30);
+        const top = startSlotIndex * SLOT_HEIGHT;
+        
+        const durationMinutes = endMinutes - startMinutes;
+        const height = Math.max((durationMinutes / 30) * SLOT_HEIGHT, SLOT_HEIGHT);
+        
+        return { top, height, startTime: startMinutes, endTime: endMinutes };
+    } catch {
+        return null;
+    }
+};
+
 export function DayScheduleView({
     currentDate,
     tasks,
@@ -170,9 +196,27 @@ export function DayScheduleView({
     onTaskPress,
 }: DayScheduleViewProps) {
     const { t } = useTranslation();
+    
+    // Get external calendar events from store
+    const externalEvents = useCalendarSyncStore((state) => state.events);
+    
+    // Filter external events for current day
+    const dayExternalEvents = externalEvents.filter(event => {
+        try {
+            const eventStart = new Date(event.startDate);
+            return isSameDay(eventStart, currentDate);
+        } catch {
+            return false;
+        }
+    });
+    
+    // Separate all-day and timed external events
+    const allDayExternalEvents = dayExternalEvents.filter(e => e.isAllDay);
+    const timedExternalEvents = dayExternalEvents.filter(e => !e.isAllDay);
 
     // Debug: Log all tasks with recurrence
     console.log('📅 DayScheduleView - currentDate:', currentDate.toISOString());
+    console.log('📅 External events for day:', dayExternalEvents.length);
     console.log('📅 All tasks with recurrence:', tasks.filter(t => isTaskRecurring(t)).map(t => ({
         title: t.title,
         isRecurring: t.isRecurring,
@@ -477,6 +521,95 @@ export function DayScheduleView({
         );
     };
 
+    // Render external calendar event (blocked time)
+    const renderExternalEvent = (event: ExternalEvent) => {
+        const position = getExternalEventPosition(event, currentDate);
+        if (!position) return null;
+        
+        const startTime = new Date(event.startDate);
+        const endTime = new Date(event.endDate);
+        const startTimeStr = format(startTime, 'HH:mm');
+        const endTimeStr = format(endTime, 'HH:mm');
+        
+        // Get provider color
+        const providerColors: Record<string, string> = {
+            apple: '#FF3B30',
+            google: '#4285F4',
+            microsoft: '#0078D4',
+        };
+        const color = providerColors[event.provider] || '#6B7280';
+        
+        return (
+            <View
+                key={event.id}
+                className="absolute left-16 right-2 rounded-lg overflow-hidden"
+                style={{
+                    top: position.top + 2,
+                    height: Math.max(position.height - 4, 36),
+                    backgroundColor: `${color}15`,
+                    borderLeftWidth: 3,
+                    borderLeftColor: color,
+                }}
+            >
+                <View className="flex-1 p-2">
+                    <View className="flex-row items-center">
+                        <MaterialCommunityIcons 
+                            name={event.provider === 'apple' ? 'apple' : event.provider === 'google' ? 'google' : 'microsoft'} 
+                            size={12} 
+                            color={color} 
+                        />
+                        <Text 
+                            className="text-xs font-semibold ml-1 flex-1" 
+                            style={{ color }}
+                            numberOfLines={1}
+                        >
+                            {event.title}
+                        </Text>
+                    </View>
+                    <Text className="text-[10px] mt-0.5" style={{ color: `${color}99` }}>
+                        {startTimeStr} - {endTimeStr} • Blocked
+                    </Text>
+                    {event.location && (
+                        <View className="flex-row items-center mt-0.5">
+                            <MaterialCommunityIcons name="map-marker-outline" size={10} color={`${color}99`} />
+                            <Text className="text-[10px] ml-0.5" style={{ color: `${color}99` }} numberOfLines={1}>
+                                {event.location}
+                            </Text>
+                        </View>
+                    )}
+                </View>
+            </View>
+        );
+    };
+    
+    // Render all-day external event
+    const renderAllDayExternalEvent = (event: ExternalEvent) => {
+        const providerColors: Record<string, string> = {
+            apple: '#FF3B30',
+            google: '#4285F4',
+            microsoft: '#0078D4',
+        };
+        const color = providerColors[event.provider] || '#6B7280';
+        
+        return (
+            <View
+                key={event.id}
+                className="flex-row items-center rounded-lg px-3 py-2 mt-1"
+                style={{ backgroundColor: `${color}15` }}
+            >
+                <MaterialCommunityIcons 
+                    name={event.provider === 'apple' ? 'apple' : event.provider === 'google' ? 'google' : 'microsoft'} 
+                    size={14} 
+                    color={color} 
+                />
+                <Text className="font-medium flex-1 ml-2" style={{ color }}>
+                    {event.title}
+                </Text>
+                <Text className="text-xs" style={{ color: `${color}99` }}>All Day</Text>
+            </View>
+        );
+    };
+
     return (
         <View className="flex-1">
             {/* Day Header */}
@@ -495,6 +628,14 @@ export function DayScheduleView({
                                 </TouchableOpacity>
                             </View>
                         ))}
+                    </View>
+                )}
+                
+                {/* All-day external events */}
+                {allDayExternalEvents.length > 0 && (
+                    <View className="mt-2">
+                        <Text className="text-xs text-gray-500 font-semibold mb-1">EXTERNAL CALENDAR</Text>
+                        {allDayExternalEvents.map(renderAllDayExternalEvent)}
                     </View>
                 )}
             </View>
@@ -527,6 +668,9 @@ export function DayScheduleView({
                         </View>
                     ))}
 
+                    {/* External Calendar Events (blocked time - render first, behind tasks) */}
+                    {timedExternalEvents.map(renderExternalEvent)}
+
                     {/* Scheduled Tasks (positioned absolutely) */}
                     {scheduledTasks.map(renderScheduledTask)}
 
@@ -546,7 +690,7 @@ export function DayScheduleView({
             </ScrollView>
 
             {/* Empty state */}
-            {dayTasks.length === 0 && (
+            {dayTasks.length === 0 && timedExternalEvents.length === 0 && (
                 <View className="absolute inset-0 items-center justify-center">
                     <MaterialCommunityIcons name="calendar-blank-outline" size={64} color="#D1D5DB" />
                     <Text className="text-gray-400 mt-4 text-center">

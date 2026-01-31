@@ -62,9 +62,22 @@ import {
 // ============================================================================
 
 // OAuth Client IDs - Replace with your actual client IDs in production
-const GOOGLE_CLIENT_ID_IOS = 'YOUR_GOOGLE_IOS_CLIENT_ID.apps.googleusercontent.com';
-const GOOGLE_CLIENT_ID_ANDROID = 'YOUR_GOOGLE_ANDROID_CLIENT_ID.apps.googleusercontent.com';
-const MICROSOFT_CLIENT_ID = 'YOUR_MICROSOFT_CLIENT_ID';
+// To enable Google Calendar:
+// 1. Go to https://console.cloud.google.com/
+// 2. Create OAuth 2.0 credentials for iOS and Android
+// 3. Add Calendar API scope: https://www.googleapis.com/auth/calendar.readonly
+const GOOGLE_CLIENT_ID_IOS = ''; // Your iOS client ID from Google Cloud Console
+const GOOGLE_CLIENT_ID_ANDROID = ''; // Your Android client ID from Google Cloud Console
+
+// To enable Microsoft Calendar:
+// 1. Go to https://portal.azure.com/
+// 2. Register an app in Azure Active Directory
+// 3. Add Calendars.Read permission
+const MICROSOFT_CLIENT_ID = ''; // Your client ID from Azure Portal
+
+// Check if OAuth is configured
+const isGoogleConfigured = () => GOOGLE_CLIENT_ID_IOS.length > 10 || GOOGLE_CLIENT_ID_ANDROID.length > 10;
+const isMicrosoftConfigured = () => MICROSOFT_CLIENT_ID.length > 10;
 
 // Secure store keys
 const SECURE_STORE_KEYS = {
@@ -301,6 +314,14 @@ class CalendarSyncService {
         error?: string;
     }> {
         try {
+            // Check if Google OAuth is configured
+            if (!isGoogleConfigured()) {
+                return {
+                    success: false,
+                    error: 'Google Calendar integration coming soon. OAuth credentials need to be configured.',
+                };
+            }
+            
             await this.init();
             if (!AuthSession) {
                 return {
@@ -619,6 +640,14 @@ class CalendarSyncService {
         error?: string;
     }> {
         try {
+            // Check if Microsoft OAuth is configured
+            if (!isMicrosoftConfigured()) {
+                return {
+                    success: false,
+                    error: 'Microsoft Calendar integration coming soon. OAuth credentials need to be configured.',
+                };
+            }
+            
             await this.init();
             if (!AuthSession) {
                 return {

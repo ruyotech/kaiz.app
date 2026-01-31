@@ -27,7 +27,11 @@
         "NSFaceIDUsageDescription": "Allow $(PRODUCT_NAME) to use Face ID for quick and secure login.",
         "NSCameraUsageDescription": "Allow $(PRODUCT_NAME) to access your camera to take photos and attach them to messages.",
         "NSMicrophoneUsageDescription": "Allow $(PRODUCT_NAME) to access your microphone to record voice messages.",
-        "NSPhotoLibraryUsageDescription": "Allow $(PRODUCT_NAME) to access your photo library to attach images to messages."
+        "NSPhotoLibraryUsageDescription": "Allow $(PRODUCT_NAME) to access your photo library to attach images to messages.",
+        "NSCalendarsUsageDescription": "Allow $(PRODUCT_NAME) to read your calendars to show blocked time and adjust your sprint capacity.",
+        "NSCalendarsFullAccessUsageDescription": "Allow $(PRODUCT_NAME) to read your calendars to show blocked time and adjust your sprint capacity.",
+        "NSRemindersUsageDescription": "Allow $(PRODUCT_NAME) to access reminders.",
+        "NSRemindersFullAccessUsageDescription": "Allow $(PRODUCT_NAME) to access reminders."
       }
     },
     "android": {
@@ -72,7 +76,13 @@
       ],
       "expo-secure-store",
       "@react-native-community/datetimepicker",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Allow $(PRODUCT_NAME) to read your calendars to show blocked time and adjust your sprint capacity."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
