@@ -40,7 +40,8 @@ const STATUS_CONFIG: Record<string, { bg: string; text: string; icon: string; la
 
 // Get recurrence label based on frequency - in week view show combined label
 const getRecurrenceLabel = (task: Task, viewType: 'week' | 'day'): { label: string; emoji: string } | null => {
-    if (!task.isRecurring || !task.recurrence) return null;
+    // Check both isRecurring flag and recurrence object (backend sometimes returns isRecurring: false incorrectly)
+    if (!task.recurrence?.frequency) return null;
 
     const freq = task.recurrence.frequency;
 
@@ -69,6 +70,12 @@ const getRecurrenceLabel = (task: Task, viewType: 'week' | 'day'): { label: stri
             return { label: 'Daily', emoji: '📅' };
         case 'WEEKLY':
             return { label: 'Weekly', emoji: '🔄' };
+        case 'BIWEEKLY':
+            return { label: 'Bi-weekly', emoji: '📆' };
+        case 'MONTHLY':
+            return { label: 'Monthly', emoji: '🗓️' };
+        case 'YEARLY':
+            return { label: 'Yearly', emoji: '🎂' };
         default:
             return null;
     }

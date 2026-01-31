@@ -14,7 +14,6 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { TaskTemplate, RecurrencePattern } from '../../types/models';
 import { LIFE_WHEEL_CONFIG } from './TemplateCard';
 import { useTemplateStore } from '../../store/templateStore';
@@ -135,13 +134,13 @@ export function CreateFromTemplateSheet({
     const [selectedDayOfWeek, setSelectedDayOfWeek] = useState<number>(new Date().getDay()); // 0=Sun, 1=Mon...
     const [selectedDayOfMonth, setSelectedDayOfMonth] = useState<number>(1); // 1-31
     const [yearlyDate, setYearlyDate] = useState<Date>(new Date()); // For yearly: specific date
+    const [showYearlyPicker, setShowYearlyPicker] = useState(false); // Inline yearly date picker expansion
     const [hasTime, setHasTime] = useState(false);
     const [selectedHour, setSelectedHour] = useState<number>(9); // Default 9 AM
     const [selectedMinute, setSelectedMinute] = useState<number>(0);
     const [hasEndTime, setHasEndTime] = useState(false);
     const [selectedEndHour, setSelectedEndHour] = useState<number>(10); // Default 10 AM (1 hour after start)
     const [selectedEndMinute, setSelectedEndMinute] = useState<number>(0);
-    const [showYearlyDatePicker, setShowYearlyDatePicker] = useState(false);
 
     // Days of week for selection
     const DAYS_OF_WEEK = [
@@ -197,6 +196,7 @@ export function CreateFromTemplateSheet({
             setHasEndTime(false);
             setSelectedEndHour(10);
             setSelectedEndMinute(0);
+            setShowYearlyPicker(false); // Close inline picker
             
             // Set recurrence from template
             if (template.recurrencePattern) {
@@ -670,13 +670,13 @@ export function CreateFromTemplateSheet({
                                     </View>
                                 )}
 
-                                {/* Yearly Date Selector */}
+                                {/* Yearly Date Selector - Inline Expandable */}
                                 {selectedRecurrenceId === 'yearly' && (
                                     <View className="mt-3">
                                         <TouchableOpacity
-                                            onPress={() => setShowYearlyDatePicker(true)}
+                                            onPress={() => setShowYearlyPicker(!showYearlyPicker)}
                                             activeOpacity={0.7}
-                                            className="p-4 bg-pink-50 rounded-xl border border-pink-200 flex-row items-center"
+                                            className={`p-4 bg-pink-50 border border-pink-200 flex-row items-center ${showYearlyPicker ? 'rounded-t-xl border-b-0' : 'rounded-xl'}`}
                                         >
                                             <View className="w-10 h-10 rounded-full bg-pink-100 items-center justify-center mr-3">
                                                 <Text className="text-lg">🎂</Text>
@@ -687,8 +687,80 @@ export function CreateFromTemplateSheet({
                                                     {yearlyDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
                                                 </Text>
                                             </View>
-                                            <Ionicons name="calendar" size={22} color="#db2777" />
+                                            <Ionicons name={showYearlyPicker ? "chevron-up" : "chevron-down"} size={22} color="#db2777" />
                                         </TouchableOpacity>
+                                        
+                                        {/* Inline Month & Day Picker */}
+                                        {showYearlyPicker && (
+                                            <View className="bg-pink-50 rounded-b-xl border border-t-0 border-pink-200 p-4">
+                                                {/* Month Selection */}
+                                                <Text className="text-sm font-medium text-pink-700 mb-2">Month</Text>
+                                                <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4">
+                                                    <View className="flex-row gap-2">
+                                                        {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((month, index) => (
+                                                            <TouchableOpacity
+                                                                key={month}
+                                                                onPress={() => {
+                                                                    const newDate = new Date(yearlyDate);
+                                                                    newDate.setMonth(index);
+                                                                    // Adjust day if it exceeds days in new month
+                                                                    const daysInMonth = new Date(newDate.getFullYear(), index + 1, 0).getDate();
+                                                                    if (newDate.getDate() > daysInMonth) {
+                                                                        newDate.setDate(daysInMonth);
+                                                                    }
+                                                                    setYearlyDate(newDate);
+                                                                }}
+                                                                className={`px-4 py-2 rounded-full ${
+                                                                    yearlyDate.getMonth() === index 
+                                                                        ? 'bg-pink-500' 
+                                                                        : 'bg-white border border-pink-200'
+                                                                }`}
+                                                            >
+                                                                <Text className={`font-medium ${
+                                                                    yearlyDate.getMonth() === index ? 'text-white' : 'text-pink-700'
+                                                                }`}>
+                                                                    {month}
+                                                                </Text>
+                                                            </TouchableOpacity>
+                                                        ))}
+                                                    </View>
+                                                </ScrollView>
+                                                
+                                                {/* Day Selection - Calendar Grid */}
+                                                <Text className="text-sm font-medium text-pink-700 mb-2">Day</Text>
+                                                <View className="flex-row flex-wrap justify-between">
+                                                    {Array.from({ length: new Date(yearlyDate.getFullYear(), yearlyDate.getMonth() + 1, 0).getDate() }, (_, i) => i + 1).map((day) => (
+                                                        <TouchableOpacity
+                                                            key={day}
+                                                            onPress={() => {
+                                                                const newDate = new Date(yearlyDate);
+                                                                newDate.setDate(day);
+                                                                setYearlyDate(newDate);
+                                                            }}
+                                                            className={`w-[13%] aspect-square rounded-full items-center justify-center mb-2 ${
+                                                                yearlyDate.getDate() === day 
+                                                                    ? 'bg-pink-500' 
+                                                                    : 'bg-white border border-pink-200'
+                                                            }`}
+                                                        >
+                                                            <Text className={`font-medium ${
+                                                                yearlyDate.getDate() === day ? 'text-white' : 'text-pink-700'
+                                                            }`}>
+                                                                {day}
+                                                            </Text>
+                                                        </TouchableOpacity>
+                                                    ))}
+                                                </View>
+                                                
+                                                {/* Done Button */}
+                                                <TouchableOpacity
+                                                    onPress={() => setShowYearlyPicker(false)}
+                                                    className="mt-4 bg-pink-500 py-3 rounded-xl items-center"
+                                                >
+                                                    <Text className="text-white font-semibold">Done</Text>
+                                                </TouchableOpacity>
+                                            </View>
+                                        )}
                                     </View>
                                 )}
 
@@ -1237,6 +1309,100 @@ export function CreateFromTemplateSheet({
                             </>
                         )}
                     </TouchableOpacity>
+
+                    {/* Date Picker Overlay - Inside main modal to avoid stacking issues */}
+                    {showDatePicker && (
+                        <View className="absolute inset-0 bg-black/50 justify-end" style={{ zIndex: 1000 }}>
+                            <View className="bg-white rounded-t-3xl" style={{ maxHeight: '85%' }}>
+                                <View className="flex-row items-center justify-between px-4 py-4 border-b border-gray-100">
+                                    <TouchableOpacity onPress={() => setShowDatePicker(false)} className="p-2 -ml-2">
+                                        <Ionicons name="close" size={28} color="#374151" />
+                                    </TouchableOpacity>
+                                    <Text className="text-lg font-semibold">
+                                        {datePickerMode === 'target' ? 'Due Date' : 
+                                         datePickerMode === 'start' ? 'Start Date' : 
+                                         datePickerMode === 'yearly' ? '🎂 Yearly Date' : 'End Date'}
+                                    </Text>
+                                    {datePickerMode === 'target' && (
+                                        <TouchableOpacity 
+                                            onPress={() => {
+                                                setTargetDate(null);
+                                                setShowDatePicker(false);
+                                            }} 
+                                            className="p-2"
+                                        >
+                                            <Text className="text-red-500 font-medium">Clear</Text>
+                                        </TouchableOpacity>
+                                    )}
+                                    {datePickerMode === 'end' && (
+                                        <TouchableOpacity 
+                                            onPress={() => {
+                                                setRecurrenceEndDate(null);
+                                                setHasEndDate(false);
+                                                setShowDatePicker(false);
+                                            }} 
+                                            className="p-2"
+                                        >
+                                            <Text className="text-red-500 font-medium">Clear</Text>
+                                        </TouchableOpacity>
+                                    )}
+                                    {(datePickerMode === 'start' || datePickerMode === 'yearly') && <View className="w-10" />}
+                                </View>
+                                
+                                {/* Info banner for yearly */}
+                                {datePickerMode === 'yearly' && (
+                                    <View className="mx-4 mt-4 p-3 bg-pink-50 rounded-xl">
+                                        <Text className="text-center text-pink-700 font-medium">
+                                            Pick the month and day for your yearly event
+                                        </Text>
+                                    </View>
+                                )}
+                                
+                                <View className="p-4">
+                                    <Calendar
+                                        current={datePickerMode === 'yearly' ? yearlyDate.toISOString().split('T')[0] : undefined}
+                                        onDayPress={(day: { dateString: string }) => {
+                                            const selectedDate = new Date(day.dateString);
+                                            if (datePickerMode === 'target') {
+                                                setTargetDate(selectedDate);
+                                            } else if (datePickerMode === 'start') {
+                                                setRecurrenceStartDate(selectedDate);
+                                            } else if (datePickerMode === 'yearly') {
+                                                selectedDate.setFullYear(new Date().getFullYear());
+                                                setYearlyDate(selectedDate);
+                                            } else {
+                                                setRecurrenceEndDate(selectedDate);
+                                            }
+                                            setShowDatePicker(false);
+                                        }}
+                                        markedDates={{
+                                            ...(datePickerMode === 'target' && targetDate ? {
+                                                [targetDate.toISOString().split('T')[0]]: { selected: true, selectedColor: '#3b82f6' }
+                                            } : {}),
+                                            ...(datePickerMode === 'start' ? {
+                                                [recurrenceStartDate.toISOString().split('T')[0]]: { selected: true, selectedColor: '#16a34a' }
+                                            } : {}),
+                                            ...(datePickerMode === 'end' && recurrenceEndDate ? {
+                                                [recurrenceEndDate.toISOString().split('T')[0]]: { selected: true, selectedColor: '#ea580c' }
+                                            } : {}),
+                                            ...(datePickerMode === 'yearly' ? {
+                                                [yearlyDate.toISOString().split('T')[0]]: { selected: true, selectedColor: '#db2777' }
+                                            } : {}),
+                                        }}
+                                        minDate={datePickerMode === 'end' ? recurrenceStartDate.toISOString().split('T')[0] : undefined}
+                                        theme={{
+                                            todayTextColor: datePickerMode === 'yearly' ? '#db2777' : '#3b82f6',
+                                            selectedDayBackgroundColor: 
+                                                datePickerMode === 'start' ? '#16a34a' : 
+                                                datePickerMode === 'end' ? '#ea580c' : 
+                                                datePickerMode === 'yearly' ? '#db2777' : '#3b82f6',
+                                            arrowColor: datePickerMode === 'yearly' ? '#db2777' : '#3b82f6',
+                                        }}
+                                    />
+                                </View>
+                            </View>
+                        </View>
+                    )}
                 </View>
             </KeyboardAvoidingView>
         </Modal>
@@ -1334,103 +1500,6 @@ export function CreateFromTemplateSheet({
             </View>
         </Modal>
 
-        {/* Date Picker Modal - Handles target, start, end, yearly dates */}
-        <Modal
-            visible={showDatePicker}
-            animationType="slide"
-            presentationStyle="pageSheet"
-            onRequestClose={() => setShowDatePicker(false)}
-        >
-            <View className="flex-1 bg-white">
-                <View className="flex-row items-center justify-between px-4 py-4 border-b border-gray-100">
-                    <TouchableOpacity onPress={() => setShowDatePicker(false)} className="p-2 -ml-2">
-                        <Ionicons name="close" size={28} color="#374151" />
-                    </TouchableOpacity>
-                    <Text className="text-lg font-semibold">
-                        {datePickerMode === 'target' ? 'Due Date' : 
-                         datePickerMode === 'start' ? 'Start Date' : 
-                         datePickerMode === 'yearly' ? 'Yearly Date' : 'End Date'}
-                    </Text>
-                    {datePickerMode === 'target' && (
-                        <TouchableOpacity 
-                            onPress={() => {
-                                setTargetDate(null);
-                                setShowDatePicker(false);
-                            }} 
-                            className="p-2"
-                        >
-                            <Text className="text-red-500 font-medium">Clear</Text>
-                        </TouchableOpacity>
-                    )}
-                    {datePickerMode === 'end' && (
-                        <TouchableOpacity 
-                            onPress={() => {
-                                setRecurrenceEndDate(null);
-                                setHasEndDate(false);
-                                setShowDatePicker(false);
-                            }} 
-                            className="p-2"
-                        >
-                            <Text className="text-red-500 font-medium">Clear</Text>
-                        </TouchableOpacity>
-                    )}
-                    {(datePickerMode === 'start' || datePickerMode === 'yearly') && <View className="w-10" />}
-                </View>
-                
-                {/* Info banner for yearly */}
-                {datePickerMode === 'yearly' && (
-                    <View className="mx-4 mt-4 p-3 bg-pink-50 rounded-xl">
-                        <Text className="text-center text-pink-700 font-medium">
-                            🎂 Pick the month and day for your yearly event
-                        </Text>
-                    </View>
-                )}
-                
-                <View className="flex-1 p-4">
-                    <Calendar
-                        current={datePickerMode === 'yearly' ? yearlyDate.toISOString().split('T')[0] : undefined}
-                        onDayPress={(day: { dateString: string }) => {
-                            const selectedDate = new Date(day.dateString);
-                            if (datePickerMode === 'target') {
-                                setTargetDate(selectedDate);
-                            } else if (datePickerMode === 'start') {
-                                setRecurrenceStartDate(selectedDate);
-                            } else if (datePickerMode === 'yearly') {
-                                selectedDate.setFullYear(new Date().getFullYear());
-                                setYearlyDate(selectedDate);
-                            } else {
-                                setRecurrenceEndDate(selectedDate);
-                            }
-                            setShowDatePicker(false);
-                        }}
-                        markedDates={{
-                            ...(datePickerMode === 'target' && targetDate ? {
-                                [targetDate.toISOString().split('T')[0]]: { selected: true, selectedColor: '#3b82f6' }
-                            } : {}),
-                            ...(datePickerMode === 'start' ? {
-                                [recurrenceStartDate.toISOString().split('T')[0]]: { selected: true, selectedColor: '#16a34a' }
-                            } : {}),
-                            ...(datePickerMode === 'end' && recurrenceEndDate ? {
-                                [recurrenceEndDate.toISOString().split('T')[0]]: { selected: true, selectedColor: '#ea580c' }
-                            } : {}),
-                            ...(datePickerMode === 'yearly' ? {
-                                [yearlyDate.toISOString().split('T')[0]]: { selected: true, selectedColor: '#db2777' }
-                            } : {}),
-                        }}
-                        minDate={datePickerMode === 'end' ? recurrenceStartDate.toISOString().split('T')[0] : undefined}
-                        theme={{
-                            todayTextColor: datePickerMode === 'yearly' ? '#db2777' : '#3b82f6',
-                            selectedDayBackgroundColor: 
-                                datePickerMode === 'start' ? '#16a34a' : 
-                                datePickerMode === 'end' ? '#ea580c' : 
-                                datePickerMode === 'yearly' ? '#db2777' : '#3b82f6',
-                            arrowColor: datePickerMode === 'yearly' ? '#db2777' : '#3b82f6',
-                        }}
-                    />
-                </View>
-            </View>
-        </Modal>
-
         {/* Attachment Picker Modal */}
         <AttachmentPicker
             visible={showAttachmentPicker}
@@ -1441,58 +1510,6 @@ export function CreateFromTemplateSheet({
             maxAttachments={5}
             currentAttachmentsCount={attachments.length}
         />
-
-        {/* Yearly Date Picker Modal - Native DateTimePicker */}
-        <Modal
-            visible={showYearlyDatePicker}
-            transparent={true}
-            animationType="slide"
-            onRequestClose={() => setShowYearlyDatePicker(false)}
-        >
-            <Pressable 
-                className="flex-1 justify-end bg-black/40"
-                onPress={() => setShowYearlyDatePicker(false)}
-            >
-                <Pressable onPress={(e) => e.stopPropagation()}>
-                    <View className="bg-white rounded-t-3xl">
-                        <View className="flex-row justify-between items-center px-4 py-3 border-b border-gray-200">
-                            <TouchableOpacity onPress={() => setShowYearlyDatePicker(false)}>
-                                <Text className="text-gray-600 font-medium">Cancel</Text>
-                            </TouchableOpacity>
-                            <Text className="text-lg font-semibold">🎂 Pick Date</Text>
-                            <TouchableOpacity onPress={() => setShowYearlyDatePicker(false)}>
-                                <Text className="text-pink-600 font-semibold">Done</Text>
-                            </TouchableOpacity>
-                        </View>
-                        {Platform.OS === 'ios' ? (
-                            <DateTimePicker
-                                value={yearlyDate}
-                                mode="date"
-                                display="spinner"
-                                onChange={(event: DateTimePickerEvent, selectedDate?: Date) => {
-                                    if (selectedDate) {
-                                        setYearlyDate(selectedDate);
-                                    }
-                                }}
-                                style={{ height: 200 }}
-                            />
-                        ) : (
-                            <DateTimePicker
-                                value={yearlyDate}
-                                mode="date"
-                                display="spinner"
-                                onChange={(event: DateTimePickerEvent, selectedDate?: Date) => {
-                                    if (selectedDate) {
-                                        setYearlyDate(selectedDate);
-                                    }
-                                }}
-                                style={{ height: 200 }}
-                            />
-                        )}
-                    </View>
-                </Pressable>
-            </Pressable>
-        </Modal>
     </>
     );
 }

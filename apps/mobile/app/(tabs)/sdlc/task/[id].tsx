@@ -154,6 +154,13 @@ export default function TaskWorkView() {
         if (foundTask) {
             setTask(foundTask);
             
+            // Debug: Log task recurrence info
+            console.log('📋 Task Detail - task:', {
+                title: foundTask.title,
+                isRecurring: foundTask.isRecurring,
+                recurrence: foundTask.recurrence,
+            });
+            
             // Set attachments from task
             if ((foundTask as any).attachments) {
                 setAttachments((foundTask as any).attachments);
@@ -505,6 +512,41 @@ export default function TaskWorkView() {
                                 </View>
                             </View>
                         </View>
+
+                        {/* Recurrence Schedule (for recurring tasks) */}
+                        {(task.isRecurring || task.recurrence?.frequency) && task.recurrence && (
+                            <View className="bg-white rounded-xl p-4 mb-3 shadow-sm">
+                                <Text className="text-sm font-semibold text-gray-700 mb-3">📅 Recurring Schedule</Text>
+                                <View className="bg-pink-50 rounded-lg p-3 border border-pink-200">
+                                    <View className="flex-row items-center">
+                                        <Text className="text-2xl mr-3">
+                                            {task.recurrence.frequency === 'DAILY' ? '📆' :
+                                             task.recurrence.frequency === 'WEEKLY' ? '📅' :
+                                             task.recurrence.frequency === 'BIWEEKLY' ? '🗓️' :
+                                             task.recurrence.frequency === 'MONTHLY' ? '🗓️' :
+                                             task.recurrence.frequency === 'YEARLY' ? '🎂' : '🔄'}
+                                        </Text>
+                                        <View className="flex-1">
+                                            <Text className="text-pink-800 font-semibold">
+                                                {task.recurrence.frequency === 'DAILY' ? 'Every Day' :
+                                                 task.recurrence.frequency === 'WEEKLY' ? `Every Week on ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][task.recurrence.dayOfWeek || 0]}` :
+                                                 task.recurrence.frequency === 'BIWEEKLY' ? `Every 2 Weeks on ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][task.recurrence.dayOfWeek || 0]}` :
+                                                 task.recurrence.frequency === 'MONTHLY' ? `Every Month on Day ${task.recurrence.dayOfMonth}` :
+                                                 task.recurrence.frequency === 'YEARLY' && task.recurrence.yearlyDate ? 
+                                                    `Every Year on ${new Date(task.recurrence.yearlyDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}` :
+                                                 'Recurring'}
+                                            </Text>
+                                            {task.recurrence.scheduledTime && (
+                                                <Text className="text-pink-600 text-sm mt-1">
+                                                    ⏰ {task.recurrence.scheduledTime.substring(0, 5)}
+                                                    {task.recurrence.scheduledEndTime && ` - ${task.recurrence.scheduledEndTime.substring(0, 5)}`}
+                                                </Text>
+                                            )}
+                                        </View>
+                                    </View>
+                                </View>
+                            </View>
+                        )}
 
                         {/* Eisenhower Matrix & Tags */}
                         <View className="bg-white rounded-xl p-4 mb-3 shadow-sm">

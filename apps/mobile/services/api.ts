@@ -272,12 +272,19 @@ async function requestRaw<T>(
             headers,
         });
 
-        // For DELETE with no content
-        if (response.status === 204) {
+        // For DELETE with no content or empty responses
+        if (response.status === 204 || response.headers.get('content-length') === '0') {
             return undefined as T;
         }
 
-        const data = await response.json();
+        // Check if response has a body before parsing
+        const text = await response.text();
+        if (!text || text.trim() === '') {
+            console.log('🌐 API Response (raw): Success, empty body');
+            return undefined as T;
+        }
+
+        const data = JSON.parse(text);
 
         if (!response.ok) {
             console.error('🌐 API Error:', data);

@@ -99,7 +99,7 @@ const getEisenhowerInfo = (quadrantId: string): { label: string; shortLabel: str
 
 // Get recurrence display label (for weekdaily tasks in day view, don't show tag since we're viewing specific day)
 const getRecurrenceDayLabel = (task: Task, currentDate: Date): string | null => {
-    if (!task.isRecurring || !task.recurrence) return null;
+    if (!task.recurrence?.frequency) return null;
     const freq = task.recurrence.frequency;
     switch (freq) {
         case 'DAILY': return null; // Daily tasks appear every day, no special label needed
@@ -114,9 +114,14 @@ const getRecurrenceDayLabel = (task: Task, currentDate: Date): string | null => 
     }
 };
 
+// Check if task is recurring (check both flag and recurrence object)
+const isTaskRecurring = (task: Task): boolean => {
+    return task.isRecurring === true || (task.recurrence?.frequency != null);
+};
+
 // Check if task should appear on this day
 const shouldShowOnDay = (task: Task, currentDate: Date): boolean => {
-    if (!task.isRecurring || !task.recurrence) {
+    if (!isTaskRecurring(task) || !task.recurrence) {
         // Non-recurring task - show if matches sprint (default behavior)
         return true;
     }
@@ -134,6 +139,15 @@ const shouldShowOnDay = (task: Task, currentDate: Date): boolean => {
         case 'MONTHLY':
             // Show on specific day of month
             return task.recurrence.dayOfMonth === currentDate.getDate();
+        case 'YEARLY': {
+            // Show on specific month and day
+            const yearlyDate = task.recurrence.yearlyDate;
+            if (yearlyDate) {
+                const yd = new Date(yearlyDate);
+                return yd.getMonth() === currentDate.getMonth() && yd.getDate() === currentDate.getDate();
+            }
+            return false;
+        }
         default:
             return true;
     }
@@ -145,7 +159,7 @@ const isWeekdayRecurring = (task: Task): boolean => {
     // or we check if it's daily and doesn't have weekend scheduling
     // For now, we'll treat any DAILY recurring task as potentially weekday
     // The backend should ideally store a `daysOfWeek` array
-    return task.isRecurring === true && task.recurrence?.frequency === 'DAILY';
+    return task.recurrence?.frequency === 'DAILY';
 };
 
 export function DayScheduleView({
@@ -157,8 +171,29 @@ export function DayScheduleView({
 }: DayScheduleViewProps) {
     const { t } = useTranslation();
 
+    // Debug: Log all tasks with recurrence
+    console.log('📅 DayScheduleView - currentDate:', currentDate.toISOString());
+    console.log('📅 All tasks with recurrence:', tasks.filter(t => isTaskRecurring(t)).map(t => ({
+        title: t.title,
+        isRecurring: t.isRecurring,
+        frequency: t.recurrence?.frequency,
+        yearlyDate: t.recurrence?.yearlyDate,
+    })));
+
     // Filter tasks for current day
-    const dayTasks = tasks.filter(task => shouldShowOnDay(task, currentDate));
+    const dayTasks = tasks.filter(task => {
+        const shouldShow = shouldShowOnDay(task, currentDate);
+        if (task.recurrence?.frequency === 'YEARLY') {
+            console.log('📅 YEARLY task check:', task.title, 'yearlyDate:', task.recurrence?.yearlyDate, 'shouldShow:', shouldShow);
+        }
+        return shouldShow;
+    });
+
+    // Get special events for this day (birthdays, anniversaries - yearly recurring)
+    const specialEvents = dayTasks.filter(task => 
+        isTaskRecurring(task) && 
+        task.recurrence?.frequency === 'YEARLY'
+    );
 
     // Separate tasks with scheduled times
     const scheduledTasks = dayTasks.filter(task => {
@@ -308,13 +343,14 @@ export function DayScheduleView({
 
         // Get recurrence label
         const getRecurrenceLabel = () => {
-            if (!task.isRecurring || !task.recurrence) return null;
+            if (!isTaskRecurring(task) || !task.recurrence) return null;
             const freq = task.recurrence.frequency;
             switch (freq) {
                 case 'DAILY': return '📅';
                 case 'WEEKLY': return '🔄';
                 case 'BIWEEKLY': return '📆';
                 case 'MONTHLY': return '🗓️';
+                case 'YEARLY': return '🎂';
                 default: return '🔁';
             }
         };
@@ -447,6 +483,20 @@ export function DayScheduleView({
             <View className="px-4 py-3 bg-white border-b border-gray-100">
                 <Text className="text-lg font-bold text-gray-900">{dayName}</Text>
                 <Text className="text-sm text-gray-500">{dateStr}</Text>
+                {/* Special Events (Birthdays, Anniversaries) */}
+                {specialEvents.length > 0 && (
+                    <View className="mt-2">
+                        {specialEvents.map(event => (
+                            <View key={event.id} className="flex-row items-center bg-pink-50 rounded-lg px-3 py-2 mt-1">
+                                <Text className="text-lg mr-2">🎂</Text>
+                                <Text className="text-pink-700 font-medium flex-1">{event.title}</Text>
+                                <TouchableOpacity onPress={() => onTaskPress(event.id)}>
+                                    <Text className="text-pink-500 text-sm">View →</Text>
+                                </TouchableOpacity>
+                            </View>
+                        ))}
+                    </View>
+                )}
             </View>
 
             {/* All-day tasks hidden in daily view (timeline only) */}
