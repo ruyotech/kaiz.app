@@ -127,14 +127,6 @@ export function AppSwitcher() {
                     className="absolute inset-0"
                 />
                 
-                {/* Decorative gradient orbs */}
-                <View className="absolute top-20 -left-20 w-60 h-60 rounded-full opacity-20" 
-                    style={{ backgroundColor: '#3B82F6', transform: [{ scale: 1.5 }] }} 
-                />
-                <View className="absolute top-40 -right-20 w-40 h-40 rounded-full opacity-15" 
-                    style={{ backgroundColor: '#10B981' }} 
-                />
-                
                 {/* Header */}
                 <View 
                     className="flex-row justify-between items-center px-5"
