@@ -87,7 +87,10 @@
     "experiments": {
       "typedRoutes": true
     },
-    "scheme": "kaizapp",
+    "scheme": [
+      "kaizapp",
+      "com.googleusercontent.apps.213334506754-k9e7o51nhk43ns35lt9qraut5poidn5j"
+    ],
     "extra": {
       "router": {},
       "eas": {

@@ -61,13 +61,11 @@ import {
 // Constants
 // ============================================================================
 
-// OAuth Client IDs - Replace with your actual client IDs in production
-// To enable Google Calendar:
-// 1. Go to https://console.cloud.google.com/
-// 2. Create OAuth 2.0 credentials for iOS and Android
-// 3. Add Calendar API scope: https://www.googleapis.com/auth/calendar.readonly
+// OAuth Client IDs
+// Google Calendar OAuth credentials
 const GOOGLE_CLIENT_ID_IOS = '213334506754-k9e7o51nhk43ns35lt9qraut5poidn5j.apps.googleusercontent.com';
 const GOOGLE_CLIENT_ID_ANDROID = '213334506754-vu4rs22355b10v3j6gp2ogu4qfhhfbhi.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID_WEB = '213334506754-5aiv5miv5nm3gm321d9im7d8201f5038.apps.googleusercontent.com';
 
 // To enable Microsoft Calendar:
 // 1. Go to https://portal.azure.com/
@@ -76,7 +74,7 @@ const GOOGLE_CLIENT_ID_ANDROID = '213334506754-vu4rs22355b10v3j6gp2ogu4qfhhfbhi.
 const MICROSOFT_CLIENT_ID = ''; // Your client ID from Azure Portal
 
 // Check if OAuth is configured
-const isGoogleConfigured = () => GOOGLE_CLIENT_ID_IOS.length > 10 || GOOGLE_CLIENT_ID_ANDROID.length > 10;
+const isGoogleConfigured = () => GOOGLE_CLIENT_ID_WEB.length > 10;
 const isMicrosoftConfigured = () => MICROSOFT_CLIENT_ID.length > 10;
 
 // Secure store keys
@@ -303,16 +301,29 @@ class CalendarSyncService {
     private getGoogleAuthRequest() {
         if (!AuthSession) return null;
         
+        // Use platform-specific client IDs
         const clientId = Platform.select({
             ios: GOOGLE_CLIENT_ID_IOS,
             android: GOOGLE_CLIENT_ID_ANDROID,
-            default: GOOGLE_CLIENT_ID_IOS,
-        });
+            default: GOOGLE_CLIENT_ID_WEB,
+        })!;
         
-        const redirectUri = AuthSession.makeRedirectUri({
-            scheme: 'kaizapp',
-            path: 'oauth/google',
-        });
+        // For iOS, use the reversed client ID as the redirect URI scheme
+        // This is Google's required format for native iOS OAuth
+        let redirectUri: string;
+        if (Platform.OS === 'ios') {
+            // Format: com.googleusercontent.apps.{CLIENT_ID_PREFIX}:/oauth2callback
+            const clientIdPrefix = GOOGLE_CLIENT_ID_IOS.split('.apps.googleusercontent.com')[0];
+            redirectUri = `com.googleusercontent.apps.${clientIdPrefix}:/oauth2callback`;
+        } else {
+            redirectUri = AuthSession.makeRedirectUri({
+                scheme: 'kaizapp',
+                path: 'oauth/google',
+            });
+        }
+        
+        console.log('[calendarSyncService] Google OAuth redirect URI:', redirectUri);
+        console.log('[calendarSyncService] Google OAuth client ID:', clientId);
         
         return new AuthSession.AuthRequest({
             clientId,
@@ -365,18 +376,29 @@ class CalendarSyncService {
             }
             
             // Exchange code for tokens
+            // Use the same redirect URI and client ID as the auth request
+            const clientId = Platform.select({
+                ios: GOOGLE_CLIENT_ID_IOS,
+                android: GOOGLE_CLIENT_ID_ANDROID,
+                default: GOOGLE_CLIENT_ID_WEB,
+            })!;
+            
+            let redirectUri: string;
+            if (Platform.OS === 'ios') {
+                const clientIdPrefix = GOOGLE_CLIENT_ID_IOS.split('.apps.googleusercontent.com')[0];
+                redirectUri = `com.googleusercontent.apps.${clientIdPrefix}:/oauth2callback`;
+            } else {
+                redirectUri = AuthSession.makeRedirectUri({
+                    scheme: 'kaizapp',
+                    path: 'oauth/google',
+                });
+            }
+            
             const tokenResult = await AuthSession.exchangeCodeAsync(
                 {
-                    clientId: Platform.select({
-                        ios: GOOGLE_CLIENT_ID_IOS,
-                        android: GOOGLE_CLIENT_ID_ANDROID,
-                        default: GOOGLE_CLIENT_ID_IOS,
-                    }),
+                    clientId,
                     code: result.params.code,
-                    redirectUri: AuthSession.makeRedirectUri({
-                        scheme: 'kaizapp',
-                        path: 'oauth/google',
-                    }),
+                    redirectUri,
                     extraParams: {
                         code_verifier: request.codeVerifier!,
                     },
