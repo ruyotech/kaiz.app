@@ -34,6 +34,9 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+// Components
+import { CalendarAliasModal } from '../../../components/calendar/CalendarAliasModal';
+
 // Stores
 import {
     useCalendarSyncStore,
@@ -261,7 +264,7 @@ function ProviderCard({
 }
 
 /**
- * Calendar selection modal
+ * Calendar selection modal with Life Context settings
  */
 function CalendarSelectionModal({
     visible,
@@ -278,6 +281,15 @@ function CalendarSelectionModal({
     const toggleCalendarSelection = useCalendarSyncStore((s) => s.toggleCalendarSelection);
     const selectAllCalendars = useCalendarSyncStore((s) => s.selectAllCalendars);
     
+    // State for alias modal
+    const [aliasModalVisible, setAliasModalVisible] = useState(false);
+    const [selectedCalendar, setSelectedCalendar] = useState<ExternalCalendar | null>(null);
+    
+    const handleOpenAliasModal = (calendar: ExternalCalendar) => {
+        setSelectedCalendar(calendar);
+        setAliasModalVisible(true);
+    };
+    
     if (!provider || !connection) return null;
     
     const config = CALENDAR_PROVIDERS[provider];
@@ -286,113 +298,169 @@ function CalendarSelectionModal({
     const someSelected = calendars.some((c) => c.isSelected);
     
     return (
-        <Modal
-            visible={visible}
-            animationType="slide"
-            transparent
-            onRequestClose={onClose}
-        >
-            <TouchableOpacity
-                className="flex-1 bg-black/50 justify-end"
-                activeOpacity={1}
-                onPress={onClose}
+        <>
+            <Modal
+                visible={visible}
+                animationType="slide"
+                transparent
+                onRequestClose={onClose}
             >
                 <TouchableOpacity
+                    className="flex-1 bg-black/50 justify-end"
                     activeOpacity={1}
-                    onPress={(e) => e.stopPropagation()}
-                    className="bg-white rounded-t-3xl max-h-[80%]"
+                    onPress={onClose}
                 >
-                    {/* Handle */}
-                    <View className="items-center pt-3 pb-2">
-                        <View className="w-10 h-1 bg-gray-300 rounded-full" />
-                    </View>
-                    
-                    {/* Header */}
-                    <View className="flex-row justify-between items-center px-5 pb-4 border-b border-gray-100">
-                        <View className="flex-row items-center">
-                            <View
-                                className="w-9 h-9 rounded-lg items-center justify-center mr-3"
-                                style={{ backgroundColor: config.bgColor }}
-                            >
-                                <MaterialCommunityIcons
-                                    name={config.icon as IconName}
-                                    size={20}
-                                    color={config.color}
-                                />
-                            </View>
-                            <View>
-                                <Text className="text-lg font-bold text-gray-900">Select Calendars</Text>
-                                <Text className="text-xs text-gray-500">{config.name}</Text>
-                            </View>
-                        </View>
-                        <TouchableOpacity onPress={onClose} className="p-1">
-                            <MaterialCommunityIcons name="close" size={24} color="#8E8E93" />
-                        </TouchableOpacity>
-                    </View>
-                    
-                    {/* Select All */}
                     <TouchableOpacity
-                        onPress={() => selectAllCalendars(provider, !allSelected)}
-                        className="flex-row items-center px-5 py-4 border-b border-gray-100"
-                        activeOpacity={0.7}
+                        activeOpacity={1}
+                        onPress={(e) => e.stopPropagation()}
+                        className="bg-white rounded-t-3xl max-h-[80%]"
                     >
-                        <MaterialCommunityIcons
-                            name={allSelected ? 'checkbox-marked' : someSelected ? 'minus-box' : 'checkbox-blank-outline'}
-                            size={24}
-                            color={allSelected || someSelected ? '#3B82F6' : '#9CA3AF'}
-                        />
-                        <Text className="ml-3 text-base font-semibold text-gray-900">Select All</Text>
-                    </TouchableOpacity>
-                    
-                    {/* Calendar List */}
-                    <ScrollView className="px-5" bounces={false}>
-                        {calendars.map((calendar, index) => (
-                            <TouchableOpacity
-                                key={calendar.id}
-                                onPress={() => toggleCalendarSelection(provider, calendar.id)}
-                                className={`flex-row items-center py-4 ${
-                                    index < calendars.length - 1 ? 'border-b border-gray-100' : ''
-                                }`}
-                                activeOpacity={0.7}
-                            >
-                                <MaterialCommunityIcons
-                                    name={calendar.isSelected ? 'checkbox-marked' : 'checkbox-blank-outline'}
-                                    size={24}
-                                    color={calendar.isSelected ? '#3B82F6' : '#9CA3AF'}
-                                />
+                        {/* Handle */}
+                        <View className="items-center pt-3 pb-2">
+                            <View className="w-10 h-1 bg-gray-300 rounded-full" />
+                        </View>
+                        
+                        {/* Header */}
+                        <View className="flex-row justify-between items-center px-5 pb-4 border-b border-gray-100">
+                            <View className="flex-row items-center">
                                 <View
-                                    className="w-4 h-4 rounded-full mx-3"
-                                    style={{ backgroundColor: calendar.color }}
-                                />
-                                <View className="flex-1">
-                                    <Text className="text-base text-gray-900">{calendar.name}</Text>
-                                    {calendar.isPrimary && (
-                                        <Text className="text-xs text-gray-500">Primary</Text>
-                                    )}
+                                    className="w-9 h-9 rounded-lg items-center justify-center mr-3"
+                                    style={{ backgroundColor: config.bgColor }}
+                                >
+                                    <MaterialCommunityIcons
+                                        name={config.icon as IconName}
+                                        size={20}
+                                        color={config.color}
+                                    />
                                 </View>
-                                {calendar.accessLevel === 'owner' && (
-                                    <MaterialCommunityIcons name="account" size={16} color="#9CA3AF" />
-                                )}
+                                <View>
+                                    <Text className="text-lg font-bold text-gray-900">Select Calendars</Text>
+                                    <Text className="text-xs text-gray-500">{config.name}</Text>
+                                </View>
+                            </View>
+                            <TouchableOpacity onPress={onClose} className="p-1">
+                                <MaterialCommunityIcons name="close" size={24} color="#8E8E93" />
                             </TouchableOpacity>
-                        ))}
-                    </ScrollView>
-                    
-                    {/* Done Button */}
-                    <View className="px-5 py-4 border-t border-gray-100">
+                        </View>
+                        
+                        {/* Life Context Tip */}
+                        <View className="mx-5 mt-3 mb-2 p-3 bg-indigo-50 rounded-xl flex-row items-center">
+                            <MaterialCommunityIcons name="lightbulb-outline" size={18} color="#6366F1" />
+                            <Text className="ml-2 text-xs text-indigo-700 flex-1">
+                                Tap the ⚙️ to set a Life Context (Personal, Work, etc.) for each calendar
+                            </Text>
+                        </View>
+                        
+                        {/* Select All */}
                         <TouchableOpacity
-                            onPress={onClose}
-                            className="bg-blue-500 rounded-xl py-4 items-center"
-                            activeOpacity={0.8}
+                            onPress={() => selectAllCalendars(provider, !allSelected)}
+                            className="flex-row items-center px-5 py-4 border-b border-gray-100"
+                            activeOpacity={0.7}
                         >
-                            <Text className="text-white font-semibold text-base">Done</Text>
+                            <MaterialCommunityIcons
+                                name={allSelected ? 'checkbox-marked' : someSelected ? 'minus-box' : 'checkbox-blank-outline'}
+                                size={24}
+                                color={allSelected || someSelected ? '#3B82F6' : '#9CA3AF'}
+                            />
+                            <Text className="ml-3 text-base font-semibold text-gray-900">Select All</Text>
                         </TouchableOpacity>
-                    </View>
-                    
-                    {/* Safe area bottom padding */}
-                    <View className="h-6" />
+                        
+                        {/* Calendar List */}
+                        <ScrollView className="px-5" bounces={false}>
+                            {calendars.map((calendar, index) => (
+                                <View
+                                    key={calendar.id}
+                                    className={`flex-row items-center py-3 ${
+                                        index < calendars.length - 1 ? 'border-b border-gray-100' : ''
+                                    }`}
+                                >
+                                    {/* Checkbox */}
+                                    <TouchableOpacity
+                                        onPress={() => toggleCalendarSelection(provider, calendar.id)}
+                                        className="flex-row items-center flex-1"
+                                        activeOpacity={0.7}
+                                    >
+                                        <MaterialCommunityIcons
+                                            name={calendar.isSelected ? 'checkbox-marked' : 'checkbox-blank-outline'}
+                                            size={24}
+                                            color={calendar.isSelected ? '#3B82F6' : '#9CA3AF'}
+                                        />
+                                        <View
+                                            className="w-4 h-4 rounded-full mx-3"
+                                            style={{ backgroundColor: calendar.contextColor || calendar.color }}
+                                        />
+                                        <View className="flex-1">
+                                            <View className="flex-row items-center">
+                                                <Text className="text-base text-gray-900">
+                                                    {calendar.alias || calendar.name}
+                                                </Text>
+                                                {calendar.alias && calendar.alias !== calendar.name && (
+                                                    <View
+                                                        className="ml-2 px-1.5 py-0.5 rounded"
+                                                        style={{ backgroundColor: (calendar.contextColor || '#6B7280') + '20' }}
+                                                    >
+                                                        <Text
+                                                            className="text-[10px] font-medium"
+                                                            style={{ color: calendar.contextColor || '#6B7280' }}
+                                                        >
+                                                            {calendar.alias}
+                                                        </Text>
+                                                    </View>
+                                                )}
+                                            </View>
+                                            {calendar.alias && calendar.alias !== calendar.name && (
+                                                <Text className="text-xs text-gray-400">{calendar.name}</Text>
+                                            )}
+                                            {!calendar.alias && calendar.isPrimary && (
+                                                <Text className="text-xs text-gray-500">Primary</Text>
+                                            )}
+                                        </View>
+                                    </TouchableOpacity>
+                                    
+                                    {/* Settings button for Life Context */}
+                                    <TouchableOpacity
+                                        onPress={() => handleOpenAliasModal(calendar)}
+                                        className="p-2"
+                                        activeOpacity={0.7}
+                                    >
+                                        <MaterialCommunityIcons
+                                            name="cog-outline"
+                                            size={20}
+                                            color={calendar.alias ? (calendar.contextColor || '#6366F1') : '#9CA3AF'}
+                                        />
+                                    </TouchableOpacity>
+                                </View>
+                            ))}
+                        </ScrollView>
+                        
+                        {/* Done Button */}
+                        <View className="px-5 py-4 border-t border-gray-100">
+                            <TouchableOpacity
+                                onPress={onClose}
+                                className="bg-blue-500 rounded-xl py-4 items-center"
+                                activeOpacity={0.8}
+                            >
+                                <Text className="text-white font-semibold text-base">Done</Text>
+                            </TouchableOpacity>
+                        </View>
+                        
+                        {/* Safe area bottom padding */}
+                        <View className="h-6" />
+                    </TouchableOpacity>
                 </TouchableOpacity>
-            </TouchableOpacity>
-        </Modal>
+            </Modal>
+            
+            {/* Alias Modal */}
+            <CalendarAliasModal
+                visible={aliasModalVisible}
+                onClose={() => {
+                    setAliasModalVisible(false);
+                    setSelectedCalendar(null);
+                }}
+                calendar={selectedCalendar}
+                provider={provider}
+            />
+        </>
     );
 }
 

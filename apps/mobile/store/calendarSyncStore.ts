@@ -39,6 +39,19 @@ export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'er
 export type SyncStatus = 'idle' | 'syncing' | 'success' | 'error';
 
 /**
+ * Preset life context options for calendars
+ */
+export const LIFE_CONTEXTS = [
+    { label: 'Personal', color: '#10B981', icon: 'account' },
+    { label: 'Work', color: '#3B82F6', icon: 'briefcase' },
+    { label: 'Family', color: '#EC4899', icon: 'home-heart' },
+    { label: 'Side Hustle', color: '#F59E0B', icon: 'rocket-launch' },
+    { label: 'Health', color: '#EF4444', icon: 'heart-pulse' },
+    { label: 'Education', color: '#8B5CF6', icon: 'school' },
+    { label: 'Social', color: '#06B6D4', icon: 'account-group' },
+] as const;
+
+/**
  * Individual calendar from a provider
  */
 export interface ExternalCalendar {
@@ -49,6 +62,9 @@ export interface ExternalCalendar {
     isSelected: boolean;
     isPrimary: boolean;
     accessLevel: 'read' | 'owner' | 'editor' | 'freebusy';
+    // Life Context customization
+    alias?: string; // Custom name like "Work @ Google", "Personal", "Side Hustle"
+    contextColor?: string; // Custom color for the context tag
 }
 
 /**
@@ -65,6 +81,9 @@ export interface ExternalEvent {
     location?: string;
     notes?: string;
     recurrence?: string;
+    // Context info (populated from calendar settings)
+    calendarAlias?: string;
+    calendarContextColor?: string;
 }
 
 /**
@@ -143,6 +162,8 @@ interface CalendarSyncState {
     setCalendars: (provider: CalendarProvider, calendars: ExternalCalendar[]) => void;
     toggleCalendarSelection: (provider: CalendarProvider, calendarId: string) => void;
     selectAllCalendars: (provider: CalendarProvider, selected: boolean) => void;
+    setCalendarAlias: (provider: CalendarProvider, calendarId: string, alias: string, contextColor?: string) => void;
+    getCalendarById: (provider: CalendarProvider, calendarId: string) => ExternalCalendar | undefined;
     
     // Event actions
     setExternalEvents: (events: ExternalEvent[]) => void;
@@ -439,6 +460,26 @@ export const useCalendarSyncStore = create<CalendarSyncState>()(
                 }));
             },
             
+            setCalendarAlias: (provider: CalendarProvider, calendarId: string, alias: string, contextColor?: string) => {
+                set((state) => ({
+                    connections: {
+                        ...state.connections,
+                        [provider]: {
+                            ...state.connections[provider],
+                            calendars: state.connections[provider].calendars.map((cal) =>
+                                cal.id === calendarId
+                                    ? { ...cal, alias, contextColor: contextColor || cal.contextColor }
+                                    : cal
+                            ),
+                        },
+                    },
+                }));
+            },
+            
+            getCalendarById: (provider: CalendarProvider, calendarId: string) => {
+                return get().connections[provider].calendars.find((cal) => cal.id === calendarId);
+            },
+            
             // ================================================================
             // Event Actions
             // ================================================================
@@ -454,8 +495,20 @@ export const useCalendarSyncStore = create<CalendarSyncState>()(
                     const existingIds = new Set(state.externalEvents.map((e) => e.id));
                     const newEvents = events.filter((e) => !existingIds.has(e.id));
                     
-                    console.log(`[calendarSyncStore] Adding ${newEvents.length} new events (${existingIds.size} existing)`);
-                    const updatedEvents = [...state.externalEvents, ...newEvents];
+                    // Enrich events with calendar alias and context color
+                    const enrichedEvents = newEvents.map((event) => {
+                        const calendar = state.connections[event.provider]?.calendars.find(
+                            (cal) => cal.id === event.calendarId
+                        );
+                        return {
+                            ...event,
+                            calendarAlias: calendar?.alias || calendar?.name || event.provider,
+                            calendarContextColor: calendar?.contextColor || calendar?.color || '#6B7280',
+                        };
+                    });
+                    
+                    console.log(`[calendarSyncStore] Adding ${enrichedEvents.length} new events (${existingIds.size} existing)`);
+                    const updatedEvents = [...state.externalEvents, ...enrichedEvents];
                     console.log(`[calendarSyncStore] Total events after add:`, updatedEvents.length);
                     
                     return {

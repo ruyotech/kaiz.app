@@ -538,13 +538,14 @@ export function DayScheduleView({
         const startTimeStr = format(startTime, 'HH:mm');
         const endTimeStr = format(endTime, 'HH:mm');
         
-        // Get provider color
+        // Use context color if available, otherwise provider color
         const providerColors: Record<string, string> = {
             apple: '#FF3B30',
             google: '#4285F4',
             microsoft: '#0078D4',
         };
-        const color = providerColors[event.provider] || '#6B7280';
+        const color = event.calendarContextColor || providerColors[event.provider] || '#6B7280';
+        const contextLabel = event.calendarAlias || event.provider;
         
         return (
             <View
@@ -552,29 +553,34 @@ export function DayScheduleView({
                 className="absolute left-16 right-2 rounded-lg overflow-hidden"
                 style={{
                     top: position.top + 2,
-                    height: Math.max(position.height - 4, 36),
+                    height: Math.max(position.height - 4, 44),
                     backgroundColor: `${color}15`,
                     borderLeftWidth: 3,
                     borderLeftColor: color,
                 }}
             >
                 <View className="flex-1 p-2">
-                    <View className="flex-row items-center">
-                        <MaterialCommunityIcons 
-                            name={event.provider === 'apple' ? 'apple' : event.provider === 'google' ? 'google' : 'microsoft'} 
-                            size={12} 
-                            color={color} 
-                        />
-                        <Text 
-                            className="text-xs font-semibold ml-1 flex-1" 
-                            style={{ color }}
-                            numberOfLines={1}
+                    {/* Context Tag */}
+                    <View className="flex-row items-center mb-0.5">
+                        <View
+                            className="px-1.5 py-0.5 rounded mr-1.5"
+                            style={{ backgroundColor: `${color}25` }}
                         >
-                            {event.title}
-                        </Text>
+                            <Text className="text-[9px] font-semibold" style={{ color }}>
+                                {contextLabel}
+                            </Text>
+                        </View>
                     </View>
+                    
+                    <Text 
+                        className="text-xs font-semibold flex-1" 
+                        style={{ color }}
+                        numberOfLines={1}
+                    >
+                        {event.title}
+                    </Text>
                     <Text className="text-[10px] mt-0.5" style={{ color: `${color}99` }}>
-                        {startTimeStr} - {endTimeStr} • Blocked
+                        {startTimeStr} - {endTimeStr}
                     </Text>
                     {event.location && (
                         <View className="flex-row items-center mt-0.5">
@@ -596,7 +602,8 @@ export function DayScheduleView({
             google: '#4285F4',
             microsoft: '#0078D4',
         };
-        const color = providerColors[event.provider] || '#6B7280';
+        const color = event.calendarContextColor || providerColors[event.provider] || '#6B7280';
+        const contextLabel = event.calendarAlias || event.provider;
         
         return (
             <View
@@ -604,12 +611,16 @@ export function DayScheduleView({
                 className="flex-row items-center rounded-lg px-3 py-2 mt-1"
                 style={{ backgroundColor: `${color}15` }}
             >
-                <MaterialCommunityIcons 
-                    name={event.provider === 'apple' ? 'apple' : event.provider === 'google' ? 'google' : 'microsoft'} 
-                    size={14} 
-                    color={color} 
-                />
-                <Text className="font-medium flex-1 ml-2" style={{ color }}>
+                {/* Context Tag */}
+                <View
+                    className="px-1.5 py-0.5 rounded mr-2"
+                    style={{ backgroundColor: `${color}25` }}
+                >
+                    <Text className="text-[9px] font-semibold" style={{ color }}>
+                        {contextLabel}
+                    </Text>
+                </View>
+                <Text className="font-medium flex-1" style={{ color }} numberOfLines={1}>
                     {event.title}
                 </Text>
                 <Text className="text-xs" style={{ color: `${color}99` }}>All Day</Text>
