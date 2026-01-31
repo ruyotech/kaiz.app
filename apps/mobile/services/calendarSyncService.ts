@@ -67,7 +67,7 @@ import {
 // 2. Create OAuth 2.0 credentials for iOS and Android
 // 3. Add Calendar API scope: https://www.googleapis.com/auth/calendar.readonly
 const GOOGLE_CLIENT_ID_IOS = '213334506754-k9e7o51nhk43ns35lt9qraut5poidn5j.apps.googleusercontent.com';
-const GOOGLE_CLIENT_ID_ANDROID = ''; // Your Android client ID from Google Cloud Console
+const GOOGLE_CLIENT_ID_ANDROID = '213334506754-vu4rs22355b10v3j6gp2ogu4qfhhfbhi.apps.googleusercontent.com';
 
 // To enable Microsoft Calendar:
 // 1. Go to https://portal.azure.com/
