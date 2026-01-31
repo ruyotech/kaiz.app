@@ -7,7 +7,6 @@ import { getSprintName, getWeekNumber, getWeekStartDate } from '../../../utils/d
 import { getMonthShort, formatLocalized } from '../../../utils/localizedDate';
 import { WeekHeader } from '../../../components/calendar/WeekHeader';
 import { MonthSelector } from '../../../components/calendar/MonthSelector';
-import { ViewOptionsMenu } from '../../../components/calendar/ViewOptionsMenu';
 import { DayScheduleView } from '../../../components/calendar/DayScheduleView';
 import { EnhancedTaskCard } from '../../../components/calendar/EnhancedTaskCard';
 import { taskApi, sprintApi, epicApi, lifeWheelApi } from '../../../services/api';
@@ -35,7 +34,7 @@ export default function SprintCalendar() {
     const [viewType, setViewType] = useState<'day' | 'week'>('week'); // NEW: day vs week view
     const [isMonthExpanded, setIsMonthExpanded] = useState(false); // NEW: month view expansion
     const [currentSprint, setCurrentSprint] = useState<any>(null); // Store current sprint data
-    const [viewMenuVisible, setViewMenuVisible] = useState(false); // View options menu
+    // view options menu removed from header
     const [epics, setEpics] = useState<any[]>([]); // Store epics for epic info display
     const [lifeWheelAreas, setLifeWheelAreas] = useState<LifeWheelArea[]>([]); // Life wheel areas for task display
 
@@ -477,13 +476,6 @@ export default function SprintCalendar() {
                     toggleElement={
                         <View className="flex-row items-center">
                             <TouchableOpacity
-                                onPress={() => setViewMenuVisible(true)}
-                                className="bg-white/20 px-2 py-1 rounded border border-white/40 mr-2"
-                            >
-                                <MaterialCommunityIcons name="eye-outline" size={16} color="white" />
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
                                 onPress={() => setViewType(viewType === 'week' ? 'day' : 'week')}
                                 className="bg-white/20 px-3 py-1 rounded border border-white/40"
                             >
@@ -493,13 +485,6 @@ export default function SprintCalendar() {
                             </TouchableOpacity>
                         </View>
                     }
-                />
-
-                <ViewOptionsMenu
-                    visible={viewMenuVisible}
-                    onClose={() => setViewMenuVisible(false)}
-                    currentView={viewMode}
-                    onViewChange={setViewMode}
                 />
             </View>
 

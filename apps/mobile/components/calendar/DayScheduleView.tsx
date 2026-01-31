@@ -160,15 +160,10 @@ export function DayScheduleView({
     // Filter tasks for current day
     const dayTasks = tasks.filter(task => shouldShowOnDay(task, currentDate));
 
-    // Separate tasks with scheduled times vs all-day tasks
+    // Separate tasks with scheduled times
     const scheduledTasks = dayTasks.filter(task => {
         const pos = getTaskPosition(task);
         return pos !== null;
-    });
-
-    const allDayTasks = dayTasks.filter(task => {
-        const pos = getTaskPosition(task);
-        return pos === null;
     });
 
     // Format current date for display
@@ -454,18 +449,7 @@ export function DayScheduleView({
                 <Text className="text-sm text-gray-500">{dateStr}</Text>
             </View>
 
-            {/* All Day Tasks Section */}
-            {allDayTasks.length > 0 && (
-                <View className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-                    <View className="flex-row items-center mb-2">
-                        <MaterialCommunityIcons name="calendar-today" size={16} color="#6B7280" />
-                        <Text className="text-sm font-semibold text-gray-600 ml-2">
-                            All Day ({allDayTasks.length})
-                        </Text>
-                    </View>
-                    {allDayTasks.map(renderAllDayTask)}
-                </View>
-            )}
+            {/* All-day tasks hidden in daily view (timeline only) */}
 
             {/* Schedule Timeline */}
             <ScrollView className="flex-1 bg-white">

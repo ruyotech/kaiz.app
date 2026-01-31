@@ -14,6 +14,7 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { TaskTemplate, RecurrencePattern } from '../../types/models';
 import { LIFE_WHEEL_CONFIG } from './TemplateCard';
 import { useTemplateStore } from '../../store/templateStore';
@@ -673,10 +674,7 @@ export function CreateFromTemplateSheet({
                                 {selectedRecurrenceId === 'yearly' && (
                                     <View className="mt-3">
                                         <TouchableOpacity
-                                            onPress={() => { 
-                                                setDatePickerMode('yearly'); 
-                                                setShowDatePicker(true); 
-                                            }}
+                                            onPress={() => setShowYearlyDatePicker(true)}
                                             activeOpacity={0.7}
                                             className="p-4 bg-pink-50 rounded-xl border border-pink-200 flex-row items-center"
                                         >
@@ -1443,6 +1441,58 @@ export function CreateFromTemplateSheet({
             maxAttachments={5}
             currentAttachmentsCount={attachments.length}
         />
+
+        {/* Yearly Date Picker Modal - Native DateTimePicker */}
+        <Modal
+            visible={showYearlyDatePicker}
+            transparent={true}
+            animationType="slide"
+            onRequestClose={() => setShowYearlyDatePicker(false)}
+        >
+            <Pressable 
+                className="flex-1 justify-end bg-black/40"
+                onPress={() => setShowYearlyDatePicker(false)}
+            >
+                <Pressable onPress={(e) => e.stopPropagation()}>
+                    <View className="bg-white rounded-t-3xl">
+                        <View className="flex-row justify-between items-center px-4 py-3 border-b border-gray-200">
+                            <TouchableOpacity onPress={() => setShowYearlyDatePicker(false)}>
+                                <Text className="text-gray-600 font-medium">Cancel</Text>
+                            </TouchableOpacity>
+                            <Text className="text-lg font-semibold">🎂 Pick Date</Text>
+                            <TouchableOpacity onPress={() => setShowYearlyDatePicker(false)}>
+                                <Text className="text-pink-600 font-semibold">Done</Text>
+                            </TouchableOpacity>
+                        </View>
+                        {Platform.OS === 'ios' ? (
+                            <DateTimePicker
+                                value={yearlyDate}
+                                mode="date"
+                                display="spinner"
+                                onChange={(event: DateTimePickerEvent, selectedDate?: Date) => {
+                                    if (selectedDate) {
+                                        setYearlyDate(selectedDate);
+                                    }
+                                }}
+                                style={{ height: 200 }}
+                            />
+                        ) : (
+                            <DateTimePicker
+                                value={yearlyDate}
+                                mode="date"
+                                display="spinner"
+                                onChange={(event: DateTimePickerEvent, selectedDate?: Date) => {
+                                    if (selectedDate) {
+                                        setYearlyDate(selectedDate);
+                                    }
+                                }}
+                                style={{ height: 200 }}
+                            />
+                        )}
+                    </View>
+                </Pressable>
+            </Pressable>
+        </Modal>
     </>
     );
 }

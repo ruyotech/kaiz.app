@@ -70,7 +70,8 @@
           "faceIDPermission": "Allow $(PRODUCT_NAME) to use Face ID for quick and secure login."
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true
