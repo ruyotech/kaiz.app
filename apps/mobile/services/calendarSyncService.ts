@@ -248,14 +248,26 @@ class CalendarSyncService {
     ): Promise<ExternalEvent[]> {
         try {
             await this.init();
-            if (!Calendar) return [];
+            if (!Calendar) {
+                console.log('[calendarSyncService] Calendar module not available');
+                return [];
+            }
+            
+            console.log(`[calendarSyncService] Fetching Apple events for calendars:`, calendarIds);
+            console.log(`[calendarSyncService] Date range: ${startDate.toISOString()} to ${endDate.toISOString()}`);
+            
             const events = await Calendar.getEventsAsync(
                 calendarIds,
                 startDate,
                 endDate
             );
             
-            return events.map((event) => ({
+            console.log(`[calendarSyncService] Raw Apple Calendar events:`, events.length);
+            events.forEach((e, i) => {
+                console.log(`[calendarSyncService] Event ${i}: "${e.title}" from ${e.startDate} to ${e.endDate}`);
+            });
+            
+            const mappedEvents = events.map((event) => ({
                 id: `apple_${event.id}`,
                 calendarId: event.calendarId,
                 provider: 'apple' as CalendarProvider,
@@ -267,6 +279,9 @@ class CalendarSyncService {
                 notes: event.notes || undefined,
                 recurrence: event.recurrenceRule ? JSON.stringify(event.recurrenceRule) : undefined,
             }));
+            
+            console.log(`[calendarSyncService] Mapped events:`, mappedEvents);
+            return mappedEvents;
         } catch (error) {
             console.error('Error fetching Apple Calendar events:', error);
             return [];

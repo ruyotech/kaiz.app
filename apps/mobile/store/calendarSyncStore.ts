@@ -448,13 +448,18 @@ export const useCalendarSyncStore = create<CalendarSyncState>()(
             },
             
             addEvents: (events: ExternalEvent[]) => {
+                console.log(`[calendarSyncStore] addEvents called with ${events.length} events`);
                 set((state) => {
                     // Merge events, avoiding duplicates by ID
                     const existingIds = new Set(state.externalEvents.map((e) => e.id));
                     const newEvents = events.filter((e) => !existingIds.has(e.id));
                     
+                    console.log(`[calendarSyncStore] Adding ${newEvents.length} new events (${existingIds.size} existing)`);
+                    const updatedEvents = [...state.externalEvents, ...newEvents];
+                    console.log(`[calendarSyncStore] Total events after add:`, updatedEvents.length);
+                    
                     return {
-                        externalEvents: [...state.externalEvents, ...newEvents],
+                        externalEvents: updatedEvents,
                     };
                 });
             },

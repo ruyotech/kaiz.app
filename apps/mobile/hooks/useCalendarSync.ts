@@ -133,6 +133,9 @@ export function useCalendarSync(): UseCalendarSyncReturn {
     
     const syncProviderInternal = async (provider: CalendarProvider): Promise<boolean> => {
         const connection = connections[provider];
+        console.log(`[useCalendarSync] syncProviderInternal called for ${provider}`);
+        console.log(`[useCalendarSync] Connection status:`, connection.status);
+        
         if (connection.status !== 'connected') return false;
         
         startSync(provider);
@@ -142,7 +145,10 @@ export function useCalendarSync(): UseCalendarSyncReturn {
                 .filter((c) => c.isSelected)
                 .map((c) => c.id);
             
+            console.log(`[useCalendarSync] Selected calendar IDs:`, selectedCalendarIds);
+            
             if (selectedCalendarIds.length === 0) {
+                console.log(`[useCalendarSync] No calendars selected, skipping sync`);
                 completeSync(provider, true);
                 return true;
             }
@@ -151,13 +157,17 @@ export function useCalendarSync(): UseCalendarSyncReturn {
             clearProviderEvents(provider);
             
             // Fetch new events
+            console.log(`[useCalendarSync] Fetching events for range: ${syncSettings.syncRangeDays} days`);
             const events = await calendarSyncService.syncProviderEvents(
                 provider,
                 selectedCalendarIds,
                 syncSettings.syncRangeDays
             );
             
+            console.log(`[useCalendarSync] Fetched ${events.length} events:`, events);
+            
             addEvents(events);
+            console.log(`[useCalendarSync] Events added to store`);
             completeSync(provider, true);
             return true;
         } catch (error) {
