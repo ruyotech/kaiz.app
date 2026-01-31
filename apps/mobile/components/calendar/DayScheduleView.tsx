@@ -197,15 +197,22 @@ export function DayScheduleView({
 }: DayScheduleViewProps) {
     const { t } = useTranslation();
     
-    // Get external calendar events from store (default to empty array)
-    const externalEvents = useCalendarSyncStore((state) => state.events) || [];
+    // Get external calendar events from store (correct property name is externalEvents)
+    const externalEvents = useCalendarSyncStore((state) => state.externalEvents) || [];
+    
+    // Debug: Log store state
+    console.log('📅 DayScheduleView - externalEvents count:', externalEvents.length);
+    console.log('📅 DayScheduleView - externalEvents:', JSON.stringify(externalEvents.slice(0, 3)));
     
     // Filter external events for current day
     const dayExternalEvents = externalEvents.filter(event => {
         try {
             const eventStart = new Date(event.startDate);
-            return isSameDay(eventStart, currentDate);
-        } catch {
+            const isSame = isSameDay(eventStart, currentDate);
+            console.log('📅 Event check:', event.title, eventStart.toISOString(), 'isSameDay:', isSame);
+            return isSame;
+        } catch (e) {
+            console.log('📅 Event filter error:', e);
             return false;
         }
     });
