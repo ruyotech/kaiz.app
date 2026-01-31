@@ -197,8 +197,8 @@ export function DayScheduleView({
 }: DayScheduleViewProps) {
     const { t } = useTranslation();
     
-    // Get external calendar events from store
-    const externalEvents = useCalendarSyncStore((state) => state.events);
+    // Get external calendar events from store (default to empty array)
+    const externalEvents = useCalendarSyncStore((state) => state.events) || [];
     
     // Filter external events for current day
     const dayExternalEvents = externalEvents.filter(event => {
