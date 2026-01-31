@@ -8,8 +8,66 @@ import { Avatar } from '../components/ui/Avatar';
 import { Button } from '../components/ui/Button';
 import { useAuthStore } from '../store/authStore';
 import { useNotificationStore } from '../store/notificationStore';
+import { useSubscriptionStore, SUBSCRIPTION_TIERS, isPaidTier } from '../store/subscriptionStore';
 import { useRouter } from 'expo-router';
 import { useTranslation } from '../hooks';
+
+// Subscription Badge Component
+function SubscriptionBadge({ tier, onPress }: { tier: string; onPress: () => void }) {
+    // Map legacy tier names to subscription store tiers
+    const tierKey = tier === 'pro' ? 'pro_monthly' : tier as keyof typeof SUBSCRIPTION_TIERS;
+    const config = SUBSCRIPTION_TIERS[tierKey] || SUBSCRIPTION_TIERS.free;
+    
+    return (
+        <TouchableOpacity 
+            onPress={onPress}
+            className="flex-row items-center px-3 py-1.5 rounded-full mt-2"
+            style={{ backgroundColor: config.badge.bgColor }}
+            activeOpacity={0.7}
+        >
+            <MaterialCommunityIcons
+                name={config.badge.icon as any}
+                size={16}
+                color={config.badge.color}
+            />
+            <Text 
+                className="font-semibold text-sm ml-1.5"
+                style={{ color: config.badge.color }}
+            >
+                {config.name}
+            </Text>
+            <MaterialCommunityIcons
+                name="chevron-right"
+                size={16}
+                color={config.badge.color}
+                style={{ marginLeft: 4 }}
+            />
+        </TouchableOpacity>
+    );
+}
+
+// Upgrade Prompt Component for free users
+function UpgradePrompt({ onPress }: { onPress: () => void }) {
+    return (
+        <TouchableOpacity
+            onPress={onPress}
+            className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl p-4 mb-4"
+            style={{ backgroundColor: '#3B82F6' }}
+            activeOpacity={0.8}
+        >
+            <View className="flex-row items-center">
+                <View className="w-10 h-10 rounded-full bg-white/20 items-center justify-center mr-3">
+                    <MaterialCommunityIcons name="rocket-launch" size={22} color="#FFFFFF" />
+                </View>
+                <View className="flex-1">
+                    <Text className="text-white font-bold text-base">Unlock Pro Features</Text>
+                    <Text className="text-white/80 text-sm">Unlimited sprints, all ceremonies & more</Text>
+                </View>
+                <MaterialCommunityIcons name="chevron-right" size={24} color="#FFFFFF" />
+            </View>
+        </TouchableOpacity>
+    );
+}
 
 // Settings menu item component
 function SettingsMenuItem({ 
@@ -62,25 +120,41 @@ export default function ProfileScreen() {
     const { t } = useTranslation();
     const { user, logout } = useAuthStore();
     const { unreadCount } = useNotificationStore();
+    const { subscription } = useSubscriptionStore();
 
     const handleLogout = async () => {
         await logout();
         router.replace('/(auth)/login');
     };
 
+    const navigateToSubscription = () => {
+        router.push('/(tabs)/settings/subscription');
+    };
+
     if (!user) return null;
+
+    // Check if user is on free tier
+    const isFreeTier = subscription.tier === 'free' || user.subscriptionTier === 'free';
 
     return (
         <Container>
             <ScreenHeader title={t('profile.title')} showBack showNotifications={false} />
 
             <ScrollView className="flex-1 p-4">
+                {/* Upgrade Prompt for Free Users */}
+                {isFreeTier && <UpgradePrompt onPress={navigateToSubscription} />}
+
                 {/* User Info */}
                 <Card className="mb-4">
                     <View className="items-center mb-4">
                         <Avatar name={user.fullName} size="lg" />
                         <Text className="text-2xl font-bold mt-3">{user.fullName}</Text>
                         <Text className="text-gray-600">{user.email}</Text>
+                        {/* Subscription Badge */}
+                        <SubscriptionBadge 
+                            tier={subscription.tier || user.subscriptionTier} 
+                            onPress={navigateToSubscription}
+                        />
                     </View>
 
                     <View className="border-t border-gray-200 pt-4">
@@ -88,10 +162,18 @@ export default function ProfileScreen() {
                             <Text className="text-gray-600">Account Type</Text>
                             <Text className="font-semibold capitalize">{user.accountType.replace('_', ' ')}</Text>
                         </View>
-                        <View className="flex-row justify-between mb-2">
+                        <TouchableOpacity 
+                            onPress={navigateToSubscription}
+                            className="flex-row justify-between mb-2"
+                        >
                             <Text className="text-gray-600">Subscription</Text>
-                            <Text className="font-semibold capitalize">{user.subscriptionTier}</Text>
-                        </View>
+                            <View className="flex-row items-center">
+                                <Text className="font-semibold capitalize text-blue-600">
+                                    {SUBSCRIPTION_TIERS[subscription.tier]?.name || user.subscriptionTier}
+                                </Text>
+                                <MaterialCommunityIcons name="chevron-right" size={16} color="#3B82F6" />
+                            </View>
+                        </TouchableOpacity>
                         <View className="flex-row justify-between">
                             <Text className="text-gray-600">Timezone</Text>
                             <Text className="font-semibold">{user.timezone}</Text>

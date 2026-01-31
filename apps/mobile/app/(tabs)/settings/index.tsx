@@ -557,6 +557,14 @@ export default function SettingsScreen() {
                         label={t('settings.account.avatar')}
                         sublabel={t('settings.account.avatarSubtitle')}
                         onPress={() => {/* Open avatar picker */}}
+                    />
+                    <SettingItem
+                        icon="crown"
+                        iconColor="#F59E0B"
+                        iconBgColor="#FEF3C7"
+                        label="Subscription"
+                        sublabel="Manage your plan and billing"
+                        onPress={() => router.push('/(tabs)/settings/subscription')}
                         isLast
                     />
                 </SettingSection>

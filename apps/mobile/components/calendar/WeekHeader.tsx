@@ -1,8 +1,10 @@
 import { View, Text, TouchableOpacity } from 'react-native';
-import { format, addDays, isSameMonth, addMonths, subMonths } from 'date-fns';
+import { format, addDays, isSameMonth, addMonths, subMonths, isBefore, isAfter, parseISO } from 'date-fns';
 import { getWeekStartDate, getMonthCalendarDays, getSprintStatus } from '../../utils/dateHelpers';
 import { useState, useRef } from 'react';
 import { MonthSelector } from './MonthSelector';
+import { useAuthStore } from '../../store/authStore';
+import { useSubscriptionStore } from '../../store/subscriptionStore';
 
 interface WeekHeaderProps {
     currentDate: Date;
@@ -17,6 +19,98 @@ interface WeekHeaderProps {
     onMonthSelect?: (date: Date) => void;
     viewType?: 'day' | 'week';
 }
+
+/**
+ * Calendar color coding based on subscription and enrollment status:
+ * - Gray (#9CA3AF): Before user enrollment date
+ * - Red (#EF4444): Past days (completed sprints, read-only)
+ * - Yellow/Gold (#FBBF24): Current day (today's focus)
+ * - Green (#10B981): Future days within subscription
+ * - Gray (#6B7280): Future days beyond subscription ("Renew to unlock")
+ */
+type DayColorType = 'pre-enrollment' | 'past' | 'current' | 'future' | 'beyond-subscription';
+
+function getDayColorType(
+    date: Date,
+    today: Date,
+    enrollmentDate: Date | null,
+    subscriptionEndDate: Date | null
+): DayColorType {
+    const dateNorm = new Date(date);
+    dateNorm.setHours(0, 0, 0, 0);
+    
+    const todayNorm = new Date(today);
+    todayNorm.setHours(0, 0, 0, 0);
+    
+    // Before enrollment date - gray out
+    if (enrollmentDate && isBefore(dateNorm, enrollmentDate)) {
+        return 'pre-enrollment';
+    }
+    
+    // Beyond subscription end date - locked
+    if (subscriptionEndDate && isAfter(dateNorm, subscriptionEndDate)) {
+        return 'beyond-subscription';
+    }
+    
+    // Current day
+    if (dateNorm.getTime() === todayNorm.getTime()) {
+        return 'current';
+    }
+    
+    // Past days
+    if (isBefore(dateNorm, todayNorm)) {
+        return 'past';
+    }
+    
+    // Future days within subscription
+    return 'future';
+}
+
+function getWeekColorType(
+    weekDays: Date[],
+    today: Date,
+    enrollmentDate: Date | null,
+    subscriptionEndDate: Date | null
+): DayColorType {
+    const todayNorm = new Date(today);
+    todayNorm.setHours(0, 0, 0, 0);
+    
+    const weekStart = new Date(weekDays[0]);
+    weekStart.setHours(0, 0, 0, 0);
+    
+    const weekEnd = new Date(weekDays[6]);
+    weekEnd.setHours(23, 59, 59, 999);
+    
+    // If entire week is before enrollment
+    if (enrollmentDate && isAfter(enrollmentDate, weekEnd)) {
+        return 'pre-enrollment';
+    }
+    
+    // If entire week is beyond subscription
+    if (subscriptionEndDate && isAfter(weekStart, subscriptionEndDate)) {
+        return 'beyond-subscription';
+    }
+    
+    // Current week
+    if (weekStart <= todayNorm && todayNorm <= weekEnd) {
+        return 'current';
+    }
+    
+    // Past week
+    if (weekEnd < todayNorm) {
+        return 'past';
+    }
+    
+    return 'future';
+}
+
+const COLOR_MAP: Record<DayColorType, { bg: string; text: string; weekBg: string }> = {
+    'pre-enrollment': { bg: '#9CA3AF', text: 'text-gray-400', weekBg: 'bg-gray-400/20' },
+    'past': { bg: '#EF4444', text: 'text-red-200', weekBg: 'bg-red-500/20' },
+    'current': { bg: '#FBBF24', text: 'text-yellow-100', weekBg: 'bg-yellow-500/30' },
+    'future': { bg: '#10B981', text: 'text-green-100', weekBg: 'bg-green-500/20' },
+    'beyond-subscription': { bg: '#6B7280', text: 'text-gray-400', weekBg: 'bg-gray-500/20' },
+};
 
 export function WeekHeader({
     currentDate,
@@ -34,6 +128,20 @@ export function WeekHeader({
     const [monthViewDate, setMonthViewDate] = useState(currentDate);
     const touchStart = useRef({ x: 0, y: 0 });
     const touchMove = useRef({ x: 0, y: 0 });
+    
+    // Get enrollment and subscription dates
+    const { user } = useAuthStore();
+    const { subscription } = useSubscriptionStore();
+    
+    const enrollmentDate = user?.enrollmentDate 
+        ? parseISO(user.enrollmentDate) 
+        : user?.createdAt 
+            ? parseISO(user.createdAt) 
+            : null;
+    
+    const subscriptionEndDate = subscription.endDate 
+        ? parseISO(subscription.endDate) 
+        : null;
 
     // Determine background color based on week timing
     const today = new Date();
@@ -42,20 +150,21 @@ export function WeekHeader({
     const weekStart = getWeekStartDate(currentDate);
     const weekEnd = addDays(weekStart, 6);
     weekEnd.setHours(23, 59, 59, 999);
+    
+    // Get week color type for header background
+    const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+    const weekColorType = getWeekColorType(weekDays, today, enrollmentDate, subscriptionEndDate);
 
-    let bgColor = 'bg-gray-400';
-
-    // Compare week dates with today
-    if (weekEnd < today) {
-        // Week is completely in the past
-        bgColor = 'bg-red-500';
-    } else if (weekStart <= today && weekEnd >= today) {
-        // Current week (today falls within this week)
-        bgColor = 'bg-yellow-500';
-    } else if (weekStart > today) {
-        // Future week
-        bgColor = 'bg-green-500';
-    }
+    // Map to Tailwind classes
+    const bgColorMap: Record<DayColorType, string> = {
+        'pre-enrollment': 'bg-gray-400',
+        'past': 'bg-red-500',
+        'current': 'bg-yellow-500',
+        'future': 'bg-green-500',
+        'beyond-subscription': 'bg-gray-500',
+    };
+    
+    const bgColor = bgColorMap[weekColorType];
 
     const handleMonthSwipe = (direction: 'left' | 'right') => {
         if (direction === 'left') {
@@ -104,12 +213,16 @@ export function WeekHeader({
                 {weekDays.map((day, index) => {
                     const isToday = format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
                     const isSelected = format(day, 'yyyy-MM-dd') === format(currentDate, 'yyyy-MM-dd');
+                    const dayColorType = getDayColorType(day, today, enrollmentDate, subscriptionEndDate);
+                    const isLocked = dayColorType === 'pre-enrollment' || dayColorType === 'beyond-subscription';
 
                     return (
                         <TouchableOpacity
                             key={index}
                             className="items-center"
-                            onPress={() => onDatePress?.(day)}
+                            onPress={() => !isLocked && onDatePress?.(day)}
+                            disabled={isLocked}
+                            style={{ opacity: isLocked ? 0.5 : 1 }}
                         >
                             <Text className="text-white text-xs font-semibold mb-1">
                                 {format(day, 'EEE')}
@@ -129,30 +242,10 @@ export function WeekHeader({
         );
     };
 
-    // Get week status color (yellow=current, green=future, red=past)
+    // Get week status color with subscription awareness
     const getWeekStatusColor = (weekDays: Date[]): string => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        const weekStart = weekDays[0];
-        const weekEnd = weekDays[6];
-        
-        const startNorm = new Date(weekStart);
-        startNorm.setHours(0, 0, 0, 0);
-        
-        const endNorm = new Date(weekEnd);
-        endNorm.setHours(23, 59, 59, 999);
-
-        if (endNorm < today) {
-            // Week is in the past
-            return 'bg-red-500/20';
-        } else if (startNorm <= today && endNorm >= today) {
-            // Current week
-            return 'bg-yellow-500/30';
-        } else {
-            // Future week
-            return 'bg-green-500/20';
-        }
+        const colorType = getWeekColorType(weekDays, today, enrollmentDate, subscriptionEndDate);
+        return COLOR_MAP[colorType].weekBg;
     };
 
     const renderMonthView = () => {
@@ -193,15 +286,21 @@ export function WeekHeader({
                                 const isToday = format(day, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd');
                                 const isCurrentMonth = isSameMonth(day, monthViewDate);
                                 const isSelected = format(day, 'yyyy-MM-dd') === format(currentDate, 'yyyy-MM-dd');
+                                const dayColorType = getDayColorType(day, today, enrollmentDate, subscriptionEndDate);
+                                const isLocked = dayColorType === 'pre-enrollment' || dayColorType === 'beyond-subscription';
 
                                 return (
                                     <TouchableOpacity
                                         key={dayIndex}
                                         className="w-10 h-10 items-center justify-center"
+                                        disabled={isLocked}
                                         onPress={() => {
-                                            setMonthViewDate(day);
-                                            onDatePress?.(day);
+                                            if (!isLocked) {
+                                                setMonthViewDate(day);
+                                                onDatePress?.(day);
+                                            }
                                         }}
+                                        style={{ opacity: isLocked ? 0.4 : 1 }}
                                     >
                                         <View
                                             className={`w-8 h-8 rounded-full items-center justify-center ${isToday ? 'bg-white' : isSelected ? 'bg-white/40' : ''
@@ -225,8 +324,12 @@ export function WeekHeader({
                     );
                 })}
 
-                {/* Week Color Legend */}
-                <View className="flex-row justify-center items-center mt-2 gap-3">
+                {/* Week Color Legend - Enhanced with subscription states */}
+                <View className="flex-row justify-center items-center mt-2 gap-2 flex-wrap">
+                    <View className="flex-row items-center">
+                        <View className="w-3 h-3 rounded bg-gray-400/60 mr-1" />
+                        <Text className="text-white/80 text-[10px]">Pre-enroll</Text>
+                    </View>
                     <View className="flex-row items-center">
                         <View className="w-3 h-3 rounded bg-red-500/60 mr-1" />
                         <Text className="text-white/80 text-[10px]">Past</Text>
@@ -239,6 +342,12 @@ export function WeekHeader({
                         <View className="w-3 h-3 rounded bg-green-500/60 mr-1" />
                         <Text className="text-white/80 text-[10px]">Future</Text>
                     </View>
+                    {subscriptionEndDate && (
+                        <View className="flex-row items-center">
+                            <View className="w-3 h-3 rounded bg-gray-500/60 mr-1" />
+                            <Text className="text-white/80 text-[10px]">Locked</Text>
+                        </View>
+                    )}
                 </View>
 
                 {/* Month Selector - Right under the calendar */}

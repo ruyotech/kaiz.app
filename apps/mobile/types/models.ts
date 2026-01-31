@@ -4,10 +4,15 @@ export interface User {
     email: string;
     fullName: string;
     accountType: 'individual' | 'family_adult' | 'family_child' | 'corporate';
-    subscriptionTier: 'free' | 'pro' | 'family' | 'corporate' | 'enterprise';
+    subscriptionTier: 'free' | 'pro' | 'pro_monthly' | 'pro_annual' | 'family' | 'corporate' | 'enterprise';
     timezone: string;
     avatarUrl: string | null;
     createdAt: string;
+    // Subscription & enrollment
+    enrollmentDate?: string; // ISO date when user enrolled
+    subscriptionStartDate?: string | null; // ISO date
+    subscriptionEndDate?: string | null; // ISO date
+    subscriptionAutoRenew?: boolean;
 }
 
 export interface Family {
