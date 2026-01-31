@@ -127,22 +127,28 @@ function ProviderCard({
     onSync: (accountId?: string) => void;
 }) {
     const config = CALENDAR_PROVIDERS[provider];
-    const accounts = useCalendarSyncStore((s) => s.getAccountsForProvider(provider));
-    const connection = useCalendarSyncStore((s) => s.connections[provider]);
-    
-    // Check if any account is connected or connecting
-    const connectedAccounts = accounts.filter(a => a.status === 'connected');
-    const connectingAccounts = accounts.filter(a => a.status === 'connecting');
-    const hasError = accounts.some(a => a.status === 'error');
-    const isConnected = connectedAccounts.length > 0;
-    const isConnecting = connectingAccounts.length > 0;
-    const isSyncing = accounts.some(a => a.syncStatus === 'syncing');
-    
-    // Total calendars across all accounts
-    const totalCalendars = accounts.reduce((sum, a) => sum + a.calendars.length, 0);
-    const selectedCalendars = accounts.reduce(
-        (sum, a) => sum + a.calendars.filter(c => c.isSelected).length, 0
+    // Use stable selector to avoid infinite re-renders
+    const allAccounts = useCalendarSyncStore((s) => s.accounts);
+    const accounts = React.useMemo(
+        () => allAccounts.filter(a => a.provider === provider),
+        [allAccounts, provider]
     );
+    
+    // Memoize all computed values to prevent unnecessary re-renders
+    const { connectedAccounts, connectingAccounts, hasError, isConnected, isConnecting, isSyncing, totalCalendars, selectedCalendars } = React.useMemo(() => {
+        const connected = accounts.filter(a => a.status === 'connected');
+        const connecting = accounts.filter(a => a.status === 'connecting');
+        return {
+            connectedAccounts: connected,
+            connectingAccounts: connecting,
+            hasError: accounts.some(a => a.status === 'error'),
+            isConnected: connected.length > 0,
+            isConnecting: connecting.length > 0,
+            isSyncing: accounts.some(a => a.syncStatus === 'syncing'),
+            totalCalendars: accounts.reduce((sum, a) => sum + a.calendars.length, 0),
+            selectedCalendars: accounts.reduce((sum, a) => sum + a.calendars.filter(c => c.isSelected).length, 0),
+        };
+    }, [accounts]);
     
     return (
         <View className="bg-white rounded-2xl mb-3 overflow-hidden border border-gray-100 shadow-sm">
@@ -301,17 +307,23 @@ function CalendarSelectionModal({
     provider: CalendarProvider | null;
     accountId?: string;
 }) {
-    const accounts = useCalendarSyncStore((s) =>
-        provider ? s.getAccountsForProvider(provider) : []
+    // Use stable selector to avoid infinite re-renders
+    const allAccounts = useCalendarSyncStore((s) => s.accounts);
+    const accounts = React.useMemo(
+        () => provider ? allAccounts.filter(a => a.provider === provider) : [],
+        [allAccounts, provider]
     );
     const toggleCalendarSelection = useCalendarSyncStore((s) => s.toggleCalendarSelection);
     const selectAllCalendars = useCalendarSyncStore((s) => s.selectAllCalendars);
     
     // If accountId is provided, show only that account's calendars
     // Otherwise show all accounts' calendars grouped
-    const targetAccounts = accountId 
-        ? accounts.filter(a => a.id === accountId)
-        : accounts.filter(a => a.status === 'connected');
+    const targetAccounts = React.useMemo(
+        () => accountId 
+            ? accounts.filter(a => a.id === accountId)
+            : accounts.filter(a => a.status === 'connected'),
+        [accounts, accountId]
+    );
     
     // State for alias modal
     const [aliasModalVisible, setAliasModalVisible] = useState(false);

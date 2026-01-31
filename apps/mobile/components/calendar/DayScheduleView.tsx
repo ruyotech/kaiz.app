@@ -1,9 +1,180 @@
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Modal, Linking } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { format, isSameDay, parseISO } from 'date-fns';
 import { Task } from '../../types/models';
 import { useTranslation } from '../../hooks/useTranslation';
-import { useCalendarSyncStore, type ExternalEvent } from '../../store/calendarSyncStore';
+import { useCalendarSyncStore, type ExternalEvent, CALENDAR_PROVIDERS } from '../../store/calendarSyncStore';
+
+// Helper to get friendly account name from email
+const getFriendlyAccountName = (email?: string, provider?: string): string => {
+    if (!email) return provider ? CALENDAR_PROVIDERS[provider as keyof typeof CALENDAR_PROVIDERS]?.name || provider : 'Calendar';
+    
+    // Extract username part before @
+    const username = email.split('@')[0];
+    // Capitalize first letter
+    return username.charAt(0).toUpperCase() + username.slice(1);
+};
+
+// External Event Detail Modal Component
+const ExternalEventDetailModal = ({
+    visible,
+    event,
+    onClose,
+}: {
+    visible: boolean;
+    event: ExternalEvent | null;
+    onClose: () => void;
+}) => {
+    if (!event) return null;
+    
+    const startTime = new Date(event.startDate);
+    const endTime = new Date(event.endDate);
+    
+    const providerColors: Record<string, string> = {
+        apple: '#FF3B30',
+        google: '#4285F4',
+        microsoft: '#0078D4',
+    };
+    const color = event.calendarContextColor || providerColors[event.provider] || '#6B7280';
+    const accountName = getFriendlyAccountName(event.accountEmail, event.provider);
+    const providerName = CALENDAR_PROVIDERS[event.provider as keyof typeof CALENDAR_PROVIDERS]?.name || event.provider;
+    
+    return (
+        <Modal
+            visible={visible}
+            transparent
+            animationType="slide"
+            onRequestClose={onClose}
+        >
+            <TouchableOpacity
+                className="flex-1 bg-black/50 justify-end"
+                activeOpacity={1}
+                onPress={onClose}
+            >
+                <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
+                    <View className="bg-white rounded-t-3xl max-h-[80%]">
+                        {/* Header */}
+                        <View className="flex-row items-center justify-between px-5 py-4 border-b border-gray-100">
+                            <View className="flex-1">
+                                <View className="flex-row items-center">
+                                    <View
+                                        className="w-3 h-3 rounded-full mr-2"
+                                        style={{ backgroundColor: color }}
+                                    />
+                                    <Text className="text-xs text-gray-500">{providerName} • {accountName}</Text>
+                                </View>
+                            </View>
+                            <TouchableOpacity onPress={onClose} className="p-2 -mr-2">
+                                <MaterialCommunityIcons name="close" size={24} color="#6B7280" />
+                            </TouchableOpacity>
+                        </View>
+                        
+                        <ScrollView className="px-5 py-4">
+                            {/* Title */}
+                            <Text className="text-xl font-bold text-gray-900 mb-4">
+                                {event.title}
+                            </Text>
+                            
+                            {/* Date & Time */}
+                            <View className="flex-row items-start mb-4">
+                                <View className="w-10 h-10 rounded-xl bg-gray-100 items-center justify-center mr-3">
+                                    <MaterialCommunityIcons name="clock-outline" size={20} color="#6B7280" />
+                                </View>
+                                <View className="flex-1">
+                                    <Text className="text-sm font-medium text-gray-900">
+                                        {format(startTime, 'EEEE, MMMM d, yyyy')}
+                                    </Text>
+                                    {event.isAllDay ? (
+                                        <Text className="text-sm text-gray-500">All Day</Text>
+                                    ) : (
+                                        <Text className="text-sm text-gray-500">
+                                            {format(startTime, 'h:mm a')} - {format(endTime, 'h:mm a')}
+                                        </Text>
+                                    )}
+                                </View>
+                            </View>
+                            
+                            {/* Location */}
+                            {event.location && (
+                                <TouchableOpacity
+                                    className="flex-row items-start mb-4"
+                                    onPress={() => {
+                                        const url = `https://maps.google.com/?q=${encodeURIComponent(event.location!)}`;
+                                        Linking.openURL(url);
+                                    }}
+                                >
+                                    <View className="w-10 h-10 rounded-xl bg-gray-100 items-center justify-center mr-3">
+                                        <MaterialCommunityIcons name="map-marker-outline" size={20} color="#6B7280" />
+                                    </View>
+                                    <View className="flex-1">
+                                        <Text className="text-sm font-medium text-gray-900">
+                                            {event.location}
+                                        </Text>
+                                        <Text className="text-xs text-blue-500">Tap to open in Maps</Text>
+                                    </View>
+                                </TouchableOpacity>
+                            )}
+                            
+                            {/* Description/Notes */}
+                            {event.notes && (
+                                <View className="flex-row items-start mb-4">
+                                    <View className="w-10 h-10 rounded-xl bg-gray-100 items-center justify-center mr-3">
+                                        <MaterialCommunityIcons name="text" size={20} color="#6B7280" />
+                                    </View>
+                                    <View className="flex-1">
+                                        <Text className="text-sm text-gray-700 leading-5">
+                                            {event.notes}
+                                        </Text>
+                                    </View>
+                                </View>
+                            )}
+                            
+                            {/* Calendar Info */}
+                            <View className="flex-row items-start mb-4">
+                                <View className="w-10 h-10 rounded-xl bg-gray-100 items-center justify-center mr-3">
+                                    <MaterialCommunityIcons name="calendar" size={20} color="#6B7280" />
+                                </View>
+                                <View className="flex-1">
+                                    <Text className="text-sm font-medium text-gray-900">
+                                        {event.calendarAlias || 'External Calendar'}
+                                    </Text>
+                                    <Text className="text-xs text-gray-500">
+                                        {event.accountEmail || providerName}
+                                    </Text>
+                                </View>
+                            </View>
+                            
+                            {/* Recurrence */}
+                            {event.recurrence && (
+                                <View className="flex-row items-start mb-4">
+                                    <View className="w-10 h-10 rounded-xl bg-gray-100 items-center justify-center mr-3">
+                                        <MaterialCommunityIcons name="repeat" size={20} color="#6B7280" />
+                                    </View>
+                                    <View className="flex-1">
+                                        <Text className="text-sm text-gray-700">
+                                            Recurring Event
+                                        </Text>
+                                    </View>
+                                </View>
+                            )}
+                            
+                            {/* Read-only notice */}
+                            <View className="bg-blue-50 rounded-xl p-3 mt-2 mb-6">
+                                <View className="flex-row items-center">
+                                    <MaterialCommunityIcons name="shield-check" size={16} color="#3B82F6" />
+                                    <Text className="text-xs text-blue-600 ml-2">
+                                        This is a read-only event from your {providerName}
+                                    </Text>
+                                </View>
+                            </View>
+                        </ScrollView>
+                    </View>
+                </TouchableOpacity>
+            </TouchableOpacity>
+        </Modal>
+    );
+};
 
 // Helper to check if a string is an emoji (not a MaterialCommunityIcons name)
 const isEmoji = (str: string): boolean => {
@@ -196,6 +367,10 @@ export function DayScheduleView({
     onTaskPress,
 }: DayScheduleViewProps) {
     const { t } = useTranslation();
+    
+    // State for external event detail modal
+    const [selectedExternalEvent, setSelectedExternalEvent] = useState<ExternalEvent | null>(null);
+    const [showEventDetailModal, setShowEventDetailModal] = useState(false);
     
     // Get external calendar events from store (correct property name is externalEvents)
     const externalEvents = useCalendarSyncStore((state) => state.externalEvents) || [];
@@ -528,6 +703,12 @@ export function DayScheduleView({
         );
     };
 
+    // Handle external event tap
+    const handleExternalEventPress = (event: ExternalEvent) => {
+        setSelectedExternalEvent(event);
+        setShowEventDetailModal(true);
+    };
+    
     // Render external calendar event (blocked time)
     const renderExternalEvent = (event: ExternalEvent) => {
         const position = getExternalEventPosition(event, currentDate);
@@ -545,10 +726,12 @@ export function DayScheduleView({
             microsoft: '#0078D4',
         };
         const color = event.calendarContextColor || providerColors[event.provider] || '#6B7280';
-        const contextLabel = event.calendarAlias || event.provider;
+        // Get friendly account name instead of full email
+        const accountName = getFriendlyAccountName(event.accountEmail, event.provider);
+        const contextLabel = event.calendarAlias || accountName;
         
         return (
-            <View
+            <TouchableOpacity
                 key={event.id}
                 className="absolute left-16 right-2 rounded-lg overflow-hidden"
                 style={{
@@ -558,9 +741,11 @@ export function DayScheduleView({
                     borderLeftWidth: 3,
                     borderLeftColor: color,
                 }}
+                activeOpacity={0.7}
+                onPress={() => handleExternalEventPress(event)}
             >
                 <View className="flex-1 p-2">
-                    {/* Context Tag */}
+                    {/* Context Tag - show friendly account name */}
                     <View className="flex-row items-center mb-0.5">
                         <View
                             className="px-1.5 py-0.5 rounded mr-1.5"
@@ -591,7 +776,7 @@ export function DayScheduleView({
                         </View>
                     )}
                 </View>
-            </View>
+            </TouchableOpacity>
         );
     };
     
@@ -603,13 +788,17 @@ export function DayScheduleView({
             microsoft: '#0078D4',
         };
         const color = event.calendarContextColor || providerColors[event.provider] || '#6B7280';
-        const contextLabel = event.calendarAlias || event.provider;
+        // Get friendly account name instead of full email
+        const accountName = getFriendlyAccountName(event.accountEmail, event.provider);
+        const contextLabel = event.calendarAlias || accountName;
         
         return (
-            <View
+            <TouchableOpacity
                 key={event.id}
                 className="flex-row items-center rounded-lg px-3 py-2 mt-1"
                 style={{ backgroundColor: `${color}15` }}
+                activeOpacity={0.7}
+                onPress={() => handleExternalEventPress(event)}
             >
                 {/* Context Tag */}
                 <View
@@ -624,7 +813,7 @@ export function DayScheduleView({
                     {event.title}
                 </Text>
                 <Text className="text-xs" style={{ color: `${color}99` }}>All Day</Text>
-            </View>
+            </TouchableOpacity>
         );
     };
 
@@ -716,6 +905,16 @@ export function DayScheduleView({
                     </Text>
                 </View>
             )}
+            
+            {/* External Event Detail Modal */}
+            <ExternalEventDetailModal
+                visible={showEventDetailModal}
+                event={selectedExternalEvent}
+                onClose={() => {
+                    setShowEventDetailModal(false);
+                    setSelectedExternalEvent(null);
+                }}
+            />
         </View>
     );
 }
