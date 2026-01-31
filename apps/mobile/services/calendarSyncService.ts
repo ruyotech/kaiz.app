@@ -68,11 +68,10 @@ const GOOGLE_CLIENT_ID_IOS = '213334506754-k9e7o51nhk43ns35lt9qraut5poidn5j.apps
 const GOOGLE_CLIENT_ID_ANDROID = '213334506754-vu4rs22355b10v3j6gp2ogu4qfhhfbhi.apps.googleusercontent.com';
 const GOOGLE_CLIENT_ID_WEB = '213334506754-5aiv5miv5nm3gm321d9im7d8201f5038.apps.googleusercontent.com';
 
-// To enable Microsoft Calendar:
-// 1. Go to https://portal.azure.com/
-// 2. Register an app in Azure Active Directory
-// 3. Add Calendars.Read permission
-const MICROSOFT_CLIENT_ID = ''; // Your client ID from Azure Portal
+// Microsoft Calendar OAuth credentials
+// Azure Portal App Registration: Kaiz LifeOS
+// Tenant: ruyotech.com (Directory ID: 39ea8666-ccb0-480d-b319-70005a9b1dd6)
+const MICROSOFT_CLIENT_ID = '4bce3d72-b5b4-4d33-bb4f-a16eb0dd8f3e';
 
 // Check if OAuth is configured
 const isGoogleConfigured = () => GOOGLE_CLIENT_ID_WEB.length > 10;
@@ -81,7 +80,9 @@ const isMicrosoftConfigured = () => MICROSOFT_CLIENT_ID.length > 10;
 // Secure store keys - now support multi-account with email suffix
 const getSecureStoreKey = (baseKey: string, accountEmail?: string) => {
     const suffix = accountEmail ? `_${accountEmail.replace(/[^a-zA-Z0-9]/g, '_')}` : '';
-    return `${baseKey}${suffix}`;
+    const key = `${baseKey}${suffix}`;
+    console.log(`[calendarSyncService] getSecureStoreKey: baseKey=${baseKey}, email=${accountEmail}, result=${key}`);
+    return key;
 };
 
 const SECURE_STORE_KEYS = {
@@ -778,15 +779,16 @@ class CalendarSyncService {
                 microsoftDiscovery
             );
             
-            // Store tokens securely
+            // Fetch user info first so we know the email
+            const userInfo = await this.fetchMicrosoftUserInfo(tokenResult.accessToken);
+            
+            // Store tokens securely (keyed by email for multi-account support)
             await this.storeMicrosoftTokens(
                 tokenResult.accessToken,
                 tokenResult.refreshToken || '',
-                tokenResult.expiresIn
+                tokenResult.expiresIn,
+                userInfo?.email
             );
-            
-            // Fetch user info
-            const userInfo = await this.fetchMicrosoftUserInfo(tokenResult.accessToken);
             
             // Fetch calendars
             const calendars = await this.fetchMicrosoftCalendars(tokenResult.accessToken);
@@ -807,42 +809,73 @@ class CalendarSyncService {
     }
     
     /**
-     * Store Microsoft tokens securely
+     * Store Microsoft tokens securely (multi-account support)
      */
     private async storeMicrosoftTokens(
         accessToken: string,
         refreshToken: string,
-        expiresIn?: number
+        expiresIn?: number,
+        accountEmail?: string
     ): Promise<void> {
         if (!SecureStore) return;
-        await SecureStore.setItemAsync(SECURE_STORE_KEYS.MICROSOFT_ACCESS_TOKEN, accessToken);
+        
+        console.log(`[calendarSyncService] storeMicrosoftTokens called with email:`, accountEmail);
+        
+        const accessKey = getSecureStoreKey(SECURE_STORE_KEYS.MICROSOFT_ACCESS_TOKEN, accountEmail);
+        const refreshKey = getSecureStoreKey(SECURE_STORE_KEYS.MICROSOFT_REFRESH_TOKEN, accountEmail);
+        const expiryKey = getSecureStoreKey(SECURE_STORE_KEYS.MICROSOFT_TOKEN_EXPIRY, accountEmail);
+        
+        await SecureStore.setItemAsync(accessKey, accessToken);
         if (refreshToken) {
-            await SecureStore.setItemAsync(SECURE_STORE_KEYS.MICROSOFT_REFRESH_TOKEN, refreshToken);
+            await SecureStore.setItemAsync(refreshKey, refreshToken);
         }
         if (expiresIn) {
             const expiryDate = new Date(Date.now() + expiresIn * 1000).toISOString();
-            await SecureStore.setItemAsync(SECURE_STORE_KEYS.MICROSOFT_TOKEN_EXPIRY, expiryDate);
+            await SecureStore.setItemAsync(expiryKey, expiryDate);
         }
     }
     
     /**
-     * Get stored Microsoft access token, refreshing if needed
+     * Get stored Microsoft access token, refreshing if needed (multi-account support)
      */
-    async getMicrosoftAccessToken(): Promise<string | null> {
+    async getMicrosoftAccessToken(accountEmail?: string): Promise<string | null> {
         try {
+            console.log(`[calendarSyncService] getMicrosoftAccessToken called with email:`, accountEmail);
             await this.init();
-            if (!SecureStore) return null;
-            const accessToken = await SecureStore.getItemAsync(SECURE_STORE_KEYS.MICROSOFT_ACCESS_TOKEN);
-            const expiryStr = await SecureStore.getItemAsync(SECURE_STORE_KEYS.MICROSOFT_TOKEN_EXPIRY);
+            if (!SecureStore) {
+                console.log(`[calendarSyncService] SecureStore not available`);
+                return null;
+            }
             
-            if (!accessToken) return null;
+            const accessKey = getSecureStoreKey(SECURE_STORE_KEYS.MICROSOFT_ACCESS_TOKEN, accountEmail);
+            const expiryKey = getSecureStoreKey(SECURE_STORE_KEYS.MICROSOFT_TOKEN_EXPIRY, accountEmail);
+            
+            const accessToken = await SecureStore.getItemAsync(accessKey);
+            const expiryStr = await SecureStore.getItemAsync(expiryKey);
+            
+            console.log(`[calendarSyncService] Token found:`, accessToken ? 'yes (length=' + accessToken.length + ')' : 'no');
+            console.log(`[calendarSyncService] Expiry:`, expiryStr);
+            
+            if (!accessToken) {
+                // Try without email suffix as fallback (for backwards compatibility)
+                if (accountEmail) {
+                    console.log(`[calendarSyncService] Trying without email suffix as fallback`);
+                    const fallbackKey = SECURE_STORE_KEYS.MICROSOFT_ACCESS_TOKEN;
+                    const fallbackToken = await SecureStore.getItemAsync(fallbackKey);
+                    if (fallbackToken) {
+                        console.log(`[calendarSyncService] Found token with fallback key`);
+                        return fallbackToken;
+                    }
+                }
+                return null;
+            }
             
             // Check if token is expired
             if (expiryStr) {
                 const expiry = new Date(expiryStr);
                 if (expiry <= new Date()) {
                     // Token expired, try to refresh
-                    return await this.refreshMicrosoftToken();
+                    return await this.refreshMicrosoftToken(accountEmail);
                 }
             }
             
@@ -854,12 +887,14 @@ class CalendarSyncService {
     }
     
     /**
-     * Refresh Microsoft access token
+     * Refresh Microsoft access token (multi-account support)
      */
-    private async refreshMicrosoftToken(): Promise<string | null> {
+    private async refreshMicrosoftToken(accountEmail?: string): Promise<string | null> {
         try {
             if (!SecureStore || !AuthSession) return null;
-            const refreshToken = await SecureStore.getItemAsync(SECURE_STORE_KEYS.MICROSOFT_REFRESH_TOKEN);
+            
+            const refreshKey = getSecureStoreKey(SECURE_STORE_KEYS.MICROSOFT_REFRESH_TOKEN, accountEmail);
+            const refreshToken = await SecureStore.getItemAsync(refreshKey);
             if (!refreshToken) return null;
             
             const result = await AuthSession.refreshAsync(
@@ -873,7 +908,8 @@ class CalendarSyncService {
             await this.storeMicrosoftTokens(
                 result.accessToken,
                 result.refreshToken || refreshToken,
-                result.expiresIn
+                result.expiresIn,
+                accountEmail
             );
             
             return result.accessToken;
@@ -908,27 +944,32 @@ class CalendarSyncService {
     }
     
     /**
-     * Fetch Microsoft calendars
+     * Fetch Microsoft calendars (multi-account support)
      */
-    async fetchMicrosoftCalendars(accessToken?: string): Promise<ExternalCalendar[]> {
+    async fetchMicrosoftCalendars(accessToken?: string, accountEmail?: string): Promise<ExternalCalendar[]> {
         try {
-            const token = accessToken || (await this.getMicrosoftAccessToken());
+            const token = accessToken || (await this.getMicrosoftAccessToken(accountEmail));
             if (!token) return [];
             
             const response = await fetch(`${MICROSOFT_GRAPH_API}/me/calendars`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             
-            if (!response.ok) return [];
+            if (!response.ok) {
+                console.error('[calendarSyncService] Microsoft Calendar API error:', response.status, await response.text());
+                return [];
+            }
             
             const data = await response.json();
+            
+            console.log(`[calendarSyncService] Found ${data.value?.length || 0} Microsoft calendars`);
             
             return (data.value || []).map((cal: any) => ({
                 id: cal.id,
                 name: cal.name,
                 color: cal.hexColor || '#0078D4',
                 provider: 'microsoft' as CalendarProvider,
-                isSelected: cal.isDefaultCalendar || false,
+                isSelected: true, // Auto-select ALL calendars by default
                 isPrimary: cal.isDefaultCalendar || false,
                 accessLevel: cal.canEdit ? 'owner' : 'read',
             }));
@@ -939,15 +980,22 @@ class CalendarSyncService {
     }
     
     /**
-     * Fetch events from Microsoft Calendar
+     * Fetch events from Microsoft Calendar (multi-account support)
      */
     async fetchMicrosoftCalendarEvents(
         calendarIds: string[],
         startDate: Date,
-        endDate: Date
+        endDate: Date,
+        accountEmail?: string
     ): Promise<ExternalEvent[]> {
         try {
-            const accessToken = await this.getMicrosoftAccessToken();
+            console.log(`[calendarSyncService] fetchMicrosoftCalendarEvents called`);
+            console.log(`[calendarSyncService] calendarIds:`, calendarIds);
+            console.log(`[calendarSyncService] dateRange:`, startDate.toISOString(), 'to', endDate.toISOString());
+            console.log(`[calendarSyncService] accountEmail:`, accountEmail);
+            
+            const accessToken = await this.getMicrosoftAccessToken(accountEmail);
+            console.log(`[calendarSyncService] Got access token:`, accessToken ? 'yes' : 'no');
             if (!accessToken) return [];
             
             const allEvents: ExternalEvent[] = [];
@@ -962,28 +1010,67 @@ class CalendarSyncService {
                 
                 const response = await fetch(
                     `${MICROSOFT_GRAPH_API}/me/calendars/${calendarId}/calendarView?${params}`,
-                    { headers: { Authorization: `Bearer ${accessToken}` } }
+                    { 
+                        headers: { 
+                            Authorization: `Bearer ${accessToken}`,
+                            // Request times in UTC for consistent handling across timezones
+                            'Prefer': 'outlook.timezone="UTC"',
+                        } 
+                    }
                 );
                 
-                if (!response.ok) continue;
+                if (!response.ok) {
+                    console.error('[calendarSyncService] Microsoft Calendar API error:', response.status, await response.text());
+                    continue;
+                }
                 
                 const data = await response.json();
+                console.log(`[calendarSyncService] Microsoft raw events for calendar ${calendarId}:`, JSON.stringify(data.value?.slice(0, 2)));
                 
-                const events = (data.value || []).map((event: any) => ({
-                    id: `microsoft_${event.id}`,
-                    calendarId,
-                    provider: 'microsoft' as CalendarProvider,
-                    title: event.subject || 'Untitled Event',
-                    startDate: event.start?.dateTime,
-                    endDate: event.end?.dateTime,
-                    isAllDay: event.isAllDay || false,
-                    location: event.location?.displayName,
-                    notes: event.bodyPreview,
-                    recurrence: event.recurrence ? JSON.stringify(event.recurrence) : undefined,
-                }));
+                const events = (data.value || []).map((event: any) => {
+                    // Microsoft Graph returns dateTime without timezone, and timeZone separately
+                    // We requested UTC timezone via Prefer header, so all times are in UTC
+                    let startDate = event.start?.dateTime;
+                    let endDate = event.end?.dateTime;
+                    
+                    // Remove fractional seconds (e.g., .0000000) first
+                    if (startDate && startDate.includes('.')) {
+                        startDate = startDate.split('.')[0];
+                    }
+                    if (endDate && endDate.includes('.')) {
+                        endDate = endDate.split('.')[0];
+                    }
+                    
+                    // Always append Z suffix since we requested UTC timezone from Microsoft Graph
+                    // This ensures JavaScript Date parsing treats the time as UTC, not local time
+                    if (startDate && !startDate.endsWith('Z')) {
+                        startDate = startDate + 'Z';
+                    }
+                    if (endDate && !endDate.endsWith('Z')) {
+                        endDate = endDate + 'Z';
+                    }
+                    
+                    return {
+                        id: `microsoft_${event.id}`,
+                        calendarId,
+                        provider: 'microsoft' as CalendarProvider,
+                        title: event.subject || 'Untitled Event',
+                        startDate,
+                        endDate,
+                        isAllDay: event.isAllDay || false,
+                        location: event.location?.displayName,
+                        notes: event.bodyPreview,
+                        recurrence: event.recurrence ? JSON.stringify(event.recurrence) : undefined,
+                        accountId: accountEmail,
+                        accountEmail,
+                    };
+                });
                 
                 allEvents.push(...events);
             }
+            
+            console.log(`[calendarSyncService] Total Microsoft events fetched:`, allEvents.length);
+            console.log(`[calendarSyncService] Microsoft events sample:`, JSON.stringify(allEvents.slice(0, 2)));
             
             return allEvents;
         } catch (error) {
@@ -993,16 +1080,34 @@ class CalendarSyncService {
     }
     
     /**
-     * Disconnect Microsoft Calendar
+     * Disconnect Microsoft Calendar (multi-account support)
      */
-    async disconnectMicrosoftCalendar(): Promise<void> {
+    async disconnectMicrosoftCalendar(accountEmail?: string): Promise<void> {
         try {
             await this.init();
             if (!SecureStore) return;
+            
+            const accessKey = getSecureStoreKey(SECURE_STORE_KEYS.MICROSOFT_ACCESS_TOKEN, accountEmail);
+            const refreshKey = getSecureStoreKey(SECURE_STORE_KEYS.MICROSOFT_REFRESH_TOKEN, accountEmail);
+            const expiryKey = getSecureStoreKey(SECURE_STORE_KEYS.MICROSOFT_TOKEN_EXPIRY, accountEmail);
+            
+            const accessToken = await SecureStore.getItemAsync(accessKey);
+            
+            // Revoke token if exists
+            if (accessToken && AuthSession) {
+                try {
+                    // Microsoft doesn't have a standard revocation endpoint like Google
+                    // but we can try to sign out
+                    console.log('[calendarSyncService] Clearing Microsoft tokens for:', accountEmail || 'default');
+                } catch (e) {
+                    console.warn('Failed to revoke Microsoft token:', e);
+                }
+            }
+            
             // Clear stored tokens
-            await SecureStore.deleteItemAsync(SECURE_STORE_KEYS.MICROSOFT_ACCESS_TOKEN);
-            await SecureStore.deleteItemAsync(SECURE_STORE_KEYS.MICROSOFT_REFRESH_TOKEN);
-            await SecureStore.deleteItemAsync(SECURE_STORE_KEYS.MICROSOFT_TOKEN_EXPIRY);
+            await SecureStore.deleteItemAsync(accessKey);
+            await SecureStore.deleteItemAsync(refreshKey);
+            await SecureStore.deleteItemAsync(expiryKey);
         } catch (error) {
             console.error('Error disconnecting Microsoft Calendar:', error);
         }
@@ -1046,7 +1151,7 @@ class CalendarSyncService {
                 await this.disconnectGoogleCalendar(accountEmail);
                 break;
             case 'microsoft':
-                await this.disconnectMicrosoftCalendar();
+                await this.disconnectMicrosoftCalendar(accountEmail);
                 break;
         }
     }
@@ -1073,7 +1178,7 @@ class CalendarSyncService {
             case 'google':
                 return this.fetchGoogleCalendarEvents(calendarIds, startDate, endDate, accountEmail);
             case 'microsoft':
-                return this.fetchMicrosoftCalendarEvents(calendarIds, startDate, endDate);
+                return this.fetchMicrosoftCalendarEvents(calendarIds, startDate, endDate, accountEmail);
             default:
                 return [];
         }

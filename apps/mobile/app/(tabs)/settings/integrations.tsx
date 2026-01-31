@@ -135,13 +135,16 @@ function ProviderCard({
     );
     
     // Memoize all computed values to prevent unnecessary re-renders
-    const { connectedAccounts, connectingAccounts, hasError, isConnected, isConnecting, isSyncing, totalCalendars, selectedCalendars } = React.useMemo(() => {
+    const { connectedAccounts, connectingAccounts, errorAccount, hasError, isConnected, isConnecting, isSyncing, totalCalendars, selectedCalendars } = React.useMemo(() => {
         const connected = accounts.filter(a => a.status === 'connected');
         const connecting = accounts.filter(a => a.status === 'connecting');
+        const errorAcc = accounts.find(a => a.status === 'error' && a.errorMessage);
         return {
             connectedAccounts: connected,
             connectingAccounts: connecting,
-            hasError: accounts.some(a => a.status === 'error'),
+            errorAccount: errorAcc,
+            // Only show error state if there are NO connected accounts and there IS an error
+            hasError: connected.length === 0 && accounts.some(a => a.status === 'error'),
             isConnected: connected.length > 0,
             isConnecting: connecting.length > 0,
             isSyncing: accounts.some(a => a.syncStatus === 'syncing'),
@@ -203,11 +206,11 @@ function ProviderCard({
                 )}
             </View>
             
-            {/* Error Message from any account */}
-            {hasError && accounts.find(a => a.errorMessage)?.errorMessage && (
+            {/* Error Message from any account - only show if no connected accounts */}
+            {hasError && errorAccount?.errorMessage && (
                 <View className="px-4 py-3 bg-red-50">
                     <Text className="text-red-600 text-sm">
-                        {accounts.find(a => a.errorMessage)?.errorMessage}
+                        {errorAccount.errorMessage}
                     </Text>
                 </View>
             )}
@@ -764,6 +767,15 @@ export default function IntegrationsScreen() {
             const result = await calendarSyncService.connectProvider(provider);
             
             if (result.success) {
+                // Clean up any error accounts from previous failed attempts
+                const currentAccounts = useCalendarSyncStore.getState().accounts;
+                const errorAccounts = currentAccounts.filter(
+                    a => a.provider === provider && a.status === 'error'
+                );
+                for (const errorAcc of errorAccounts) {
+                    useCalendarSyncStore.getState().removeAccount(errorAcc.id);
+                }
+                
                 completeConnection(provider, {
                     accountEmail: result.accountEmail,
                     accountName: result.accountName,

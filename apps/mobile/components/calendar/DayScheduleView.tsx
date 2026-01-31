@@ -382,12 +382,27 @@ export function DayScheduleView({
     // Filter external events for current day
     const dayExternalEvents = externalEvents.filter(event => {
         try {
-            const eventStart = new Date(event.startDate);
+            // Handle different date formats (ISO string, date string, etc.)
+            let eventStart: Date;
+            if (event.startDate) {
+                // Try parsing as-is first
+                eventStart = new Date(event.startDate);
+                
+                // If invalid, try adding timezone
+                if (isNaN(eventStart.getTime())) {
+                    // Microsoft sometimes returns dates like "2026-01-31T19:30:00"
+                    eventStart = new Date(event.startDate + 'Z');
+                }
+            } else {
+                console.log('📅 Event has no startDate:', event.title);
+                return false;
+            }
+            
             const isSame = isSameDay(eventStart, currentDate);
-            console.log('📅 Event check:', event.title, eventStart.toISOString(), 'isSameDay:', isSame);
+            console.log('📅 Event check:', event.title, 'provider:', event.provider, 'raw:', event.startDate, 'parsed:', eventStart.toISOString(), 'isSameDay:', isSame);
             return isSame;
         } catch (e) {
-            console.log('📅 Event filter error:', e);
+            console.log('📅 Event filter error:', event.title, e);
             return false;
         }
     });
