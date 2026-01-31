@@ -548,16 +548,21 @@ class CalendarSyncService {
                 headers: { Authorization: `Bearer ${token}` },
             });
             
-            if (!response.ok) return [];
+            if (!response.ok) {
+                console.error('[calendarSyncService] Google Calendar API error:', response.status, await response.text());
+                return [];
+            }
             
             const data = await response.json();
+            
+            console.log(`[calendarSyncService] Found ${data.items?.length || 0} Google calendars`);
             
             return (data.items || []).map((cal: any) => ({
                 id: cal.id,
                 name: cal.summary || cal.id,
                 color: cal.backgroundColor || '#4285F4',
                 provider: 'google' as CalendarProvider,
-                isSelected: cal.primary || false,
+                isSelected: true, // Auto-select ALL calendars by default
                 isPrimary: cal.primary || false,
                 accessLevel: cal.accessRole === 'owner' ? 'owner' : 'read',
             }));
