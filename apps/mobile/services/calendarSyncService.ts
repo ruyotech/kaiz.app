@@ -331,6 +331,11 @@ class CalendarSyncService {
             redirectUri,
             responseType: AuthSession.ResponseType.Code,
             usePKCE: true,
+            // Force consent screen to ensure all scopes are granted
+            extraParams: {
+                access_type: 'offline',
+                prompt: 'consent',
+            },
         });
     }
     
