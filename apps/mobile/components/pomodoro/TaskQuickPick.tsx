@@ -4,7 +4,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTaskStore } from '@/store/taskStore';
 import { Task } from '@/types/models';
 import { getWeekNumber } from '@/utils/dateHelpers';
-import { sprintApi, taskApi } from '@/services/api';
+import { sprintApi, taskApi, AuthExpiredError } from '@/services/api';
 import { useTranslation } from '@/hooks/useTranslation';
 
 interface TaskQuickPickProps {
@@ -40,6 +40,8 @@ export default function TaskQuickPick({ onSelectTask }: TaskQuickPickProps) {
         setSprintTasks(filtered);
       }
     } catch (error) {
+      // Ignore auth expired errors - redirect is handled automatically
+      if (error instanceof AuthExpiredError) return;
       console.error('Error loading sprint tasks:', error);
     } finally {
       setLoading(false);

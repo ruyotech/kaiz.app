@@ -9,7 +9,7 @@ import { WeekHeader } from '../../../components/calendar/WeekHeader';
 import { MonthSelector } from '../../../components/calendar/MonthSelector';
 import { DayScheduleView } from '../../../components/calendar/DayScheduleView';
 import { EnhancedTaskCard } from '../../../components/calendar/EnhancedTaskCard';
-import { taskApi, sprintApi, epicApi, lifeWheelApi } from '../../../services/api';
+import { taskApi, sprintApi, epicApi, lifeWheelApi, AuthExpiredError } from '../../../services/api';
 import { Task } from '../../../types/models';
 import { useTranslation } from '../../../hooks/useTranslation';
 
@@ -88,6 +88,8 @@ export default function SprintCalendar() {
                     setWeekTasks([]);
                 }
             } catch (error) {
+                // Ignore auth expired errors - redirect is handled automatically
+                if (error instanceof AuthExpiredError) return;
                 console.error('Error loading tasks:', error);
             } finally {
                 setLoading(false);

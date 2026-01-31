@@ -6,6 +6,7 @@ import { Task } from '../../../../types/models';
 import { useTaskStore } from '../../../../store/taskStore';
 import { useEpicStore } from '../../../../store/epicStore';
 import { useTranslation } from '../../../../hooks/useTranslation';
+import { AuthExpiredError } from '../../../../services/api';
 
 export default function TaskEditScreen() {
     const router = useRouter();
@@ -41,6 +42,8 @@ export default function TaskEditScreen() {
             setLoading(true);
             await fetchTasks();
         } catch (error) {
+            // Ignore auth expired errors - redirect is handled automatically
+            if (error instanceof AuthExpiredError) return;
             console.error('Error loading task:', error);
         } finally {
             setLoading(false);

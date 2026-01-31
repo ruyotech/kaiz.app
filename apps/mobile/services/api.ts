@@ -118,6 +118,14 @@ export class ApiError extends Error {
     }
 }
 
+// Special error for auth expiration - should be handled silently by components
+export class AuthExpiredError extends Error {
+    constructor() {
+        super('Session expired');
+        this.name = 'AuthExpiredError';
+    }
+}
+
 // Token management
 async function getAccessToken(): Promise<string | null> {
     return AsyncStorage.getItem(ACCESS_TOKEN_KEY);
@@ -220,13 +228,15 @@ async function request<T>(
         };
 
         if (!response.ok) {
-            console.error('🌐 API Error:', data);
-            
-            // Auto-logout on 401 Unauthorized
+            // Auto-logout on 401 Unauthorized - handle silently
             if (response.status === 401) {
+                console.log('🔐 Session expired, redirecting to login...');
                 await triggerAuthExpiration();
+                // Throw silent error that components should not display
+                throw new AuthExpiredError();
             }
             
+            console.error('🌐 API Error:', data);
             throw new ApiError(
                 getErrorMessage(data.error),
                 response.status,
@@ -310,13 +320,15 @@ async function requestRaw<T>(
         const data = JSON.parse(text);
 
         if (!response.ok) {
-            console.error('🌐 API Error:', data);
-            
-            // Auto-logout on 401 Unauthorized
+            // Auto-logout on 401 Unauthorized - handle silently
             if (response.status === 401) {
+                console.log('🔐 Session expired, redirecting to login...');
                 await triggerAuthExpiration();
+                // Throw silent error that components should not display
+                throw new AuthExpiredError();
             }
             
+            console.error('🌐 API Error:', data);
             // Handle error response (may or may not be wrapped)
             const errorMsg = data?.error?.message || data?.error || data?.message || 'Request failed';
             throw new ApiError(errorMsg, response.status);

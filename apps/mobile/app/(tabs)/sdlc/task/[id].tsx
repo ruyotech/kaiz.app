@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, TextInput, Modal, Pressable, 
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Task, TaskComment, TaskHistory } from '../../../../types/models';
-import { lifeWheelApi, taskApi, fileUploadApi } from '../../../../services/api';
+import { lifeWheelApi, taskApi, fileUploadApi, AuthExpiredError } from '../../../../services/api';
 import { useEpicStore } from '../../../../store/epicStore';
 import { useTaskStore } from '../../../../store/taskStore';
 import { useTranslation } from '../../../../hooks/useTranslation';
@@ -103,6 +103,8 @@ export default function TaskWorkView() {
             const fetchedComments = await taskApi.getTaskComments(taskId);
             setComments(fetchedComments || []);
         } catch (error) {
+            // Ignore auth expired errors - redirect is handled automatically
+            if (error instanceof AuthExpiredError) return;
             console.error('Error loading comments:', error);
         } finally {
             setCommentsLoading(false);
@@ -116,6 +118,8 @@ export default function TaskWorkView() {
             const fetchedHistory = await taskApi.getTaskHistory(taskId);
             setHistory(fetchedHistory || []);
         } catch (error) {
+            // Ignore auth expired errors - redirect is handled automatically
+            if (error instanceof AuthExpiredError) return;
             console.error('Error loading history:', error);
         } finally {
             setHistoryLoading(false);
@@ -133,6 +137,8 @@ export default function TaskWorkView() {
             setLoading(true);
             await fetchTasks();
         } catch (error) {
+            // Ignore auth expired errors - redirect is handled automatically
+            if (error instanceof AuthExpiredError) return;
             console.error('Error loading task:', error);
         } finally {
             setLoading(false);
@@ -144,6 +150,8 @@ export default function TaskWorkView() {
             const areas = await lifeWheelApi.getLifeWheelAreas();
             setLifeWheelAreas(areas);
         } catch (error) {
+            // Ignore auth expired errors - redirect is handled automatically
+            if (error instanceof AuthExpiredError) return;
             console.error('Error loading life wheel areas:', error);
         }
     };
