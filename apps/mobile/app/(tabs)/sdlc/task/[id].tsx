@@ -8,6 +8,9 @@ import { useEpicStore } from '../../../../store/epicStore';
 import { useTaskStore } from '../../../../store/taskStore';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { AttachmentPicker, AttachmentPreview, CommentAttachment } from '../../../../components/ui/AttachmentPicker';
+import { RichTextComment } from '../../../../components/ui/RichTextComment';
+import { AttachmentPreviewModal, AttachmentData } from '../../../../components/ui/AttachmentPreviewModal';
+import { RichTextEditor } from '../../../../components/ui/RichTextEditor';
 
 type TabType = 'overview' | 'comments' | 'checklist' | 'history';
 
@@ -73,6 +76,25 @@ export default function TaskWorkView() {
     // Comment attachments
     const [showAttachmentPicker, setShowAttachmentPicker] = useState(false);
     const [commentAttachments, setCommentAttachments] = useState<CommentAttachment[]>([]);
+
+    // Attachment preview modal
+    const [previewModalVisible, setPreviewModalVisible] = useState(false);
+    const [previewAttachment, setPreviewAttachment] = useState<AttachmentData | null>(null);
+    const [previewAttachments, setPreviewAttachments] = useState<AttachmentData[]>([]);
+    const [previewInitialIndex, setPreviewInitialIndex] = useState(0);
+
+    // Open attachment in preview modal
+    const openAttachmentPreview = useCallback((attachment: AttachmentData, allAttachments?: AttachmentData[], index?: number) => {
+        setPreviewAttachment(attachment);
+        if (allAttachments && allAttachments.length > 0) {
+            setPreviewAttachments(allAttachments);
+            setPreviewInitialIndex(index || 0);
+        } else {
+            setPreviewAttachments([]);
+            setPreviewInitialIndex(0);
+        }
+        setPreviewModalVisible(true);
+    }, []);
 
     // Load comments from API
     const loadComments = useCallback(async (taskId: string) => {
@@ -178,14 +200,36 @@ export default function TaskWorkView() {
     const getHistoryDescription = (item: TaskHistory): { action: string; detail: string } => {
         const fieldName = item.fieldName?.toLowerCase() || '';
         
+        // Helper to format status for display
+        const formatStatus = (status: string | null): string => {
+            if (!status) return 'None';
+            const statusMap: Record<string, string> = {
+                'DRAFT': '📋 Backlog',
+                'TODO': '📝 To Do',
+                'IN_PROGRESS': '🔄 In Progress',
+                'BLOCKED': '🚫 Blocked',
+                'DONE': '✅ Done',
+            };
+            return statusMap[status.toUpperCase()] || status;
+        };
+        
         if (fieldName === 'status') {
             if (!item.oldValue && item.newValue) {
-                return { action: 'Task created', detail: `Initial status: ${item.newValue}` };
+                return { action: 'Task created', detail: `Initial status: ${formatStatus(item.newValue)}` };
             }
             if (item.newValue === 'TODO' && item.oldValue === 'DRAFT') {
                 return { action: 'Moved to Sprint', detail: 'Task added to active sprint' };
             }
-            return { action: 'Status changed', detail: `${item.oldValue || 'None'} → ${item.newValue}` };
+            if (item.newValue === 'DONE') {
+                return { action: '🎉 Task completed!', detail: `${formatStatus(item.oldValue)} → ${formatStatus(item.newValue)}` };
+            }
+            if (item.newValue === 'BLOCKED') {
+                return { action: '⚠️ Task blocked', detail: `${formatStatus(item.oldValue)} → ${formatStatus(item.newValue)}` };
+            }
+            if (item.newValue === 'IN_PROGRESS') {
+                return { action: 'Started working', detail: `${formatStatus(item.oldValue)} → ${formatStatus(item.newValue)}` };
+            }
+            return { action: 'Status changed', detail: `${formatStatus(item.oldValue)} → ${formatStatus(item.newValue)}` };
         }
         if (fieldName === 'sprintid' || fieldName === 'sprint_id') {
             if (!item.oldValue && item.newValue) {
@@ -224,7 +268,9 @@ export default function TaskWorkView() {
             const oldStatus = task.status;
             setTask({ ...task, status: newStatus });
             try {
-                await taskApi.updateTask(task.id, { status: newStatus });
+                // Convert to uppercase for backend API (DRAFT, TODO, IN_PROGRESS, DONE)
+                const apiStatus = newStatus.toUpperCase();
+                await taskApi.updateTask(task.id, { status: apiStatus });
                 // Reload history to get the updated history from backend
                 loadHistory(task.id);
             } catch (error) {
@@ -321,6 +367,27 @@ export default function TaskWorkView() {
     const completedChecklist = checklist.filter(item => item.completed).length;
     const totalChecklist = checklist.length;
 
+    // Calculate timeline count for history badge (1 for task created + history entries minus duplicates)
+    const getTimelineCount = () => {
+        let count = 0;
+        // Add 1 for task created entry if task has createdAt
+        if (task?.createdAt) {
+            count = 1;
+        }
+        // Add history entries, excluding duplicate creation entries
+        history.forEach((item) => {
+            const fieldName = item.fieldName?.toLowerCase() || '';
+            const isCreation = fieldName === 'status' && !item.oldValue && item.newValue;
+            // Skip if this would be a duplicate creation entry
+            if (isCreation && task?.createdAt) {
+                return;
+            }
+            count++;
+        });
+        return count;
+    };
+    const timelineCount = getTimelineCount();
+
     return (
         <View className="flex-1 bg-gray-50">
             {/* Header with Task Name - Status Based Color */}
@@ -376,7 +443,7 @@ export default function TaskWorkView() {
                     { id: 'overview', label: t('tasks.tabs.overview'), icon: 'information-outline' },
                     { id: 'comments', label: t('tasks.tabs.comments'), icon: 'comment-outline', badge: (comments.length + attachments.length) > 0 ? (comments.length + attachments.length) : undefined },
                     { id: 'checklist', label: t('tasks.tabs.checklist'), icon: 'checkbox-marked-outline', badge: `${completedChecklist}/${totalChecklist}` },
-                    { id: 'history', label: t('tasks.tabs.history'), icon: 'history', badge: history.length > 0 ? history.length : undefined },
+                    { id: 'history', label: t('tasks.tabs.history'), icon: 'history', badge: timelineCount > 0 ? timelineCount : undefined },
                 ].map((tab) => (
                     <TouchableOpacity
                         key={tab.id}
@@ -530,15 +597,17 @@ export default function TaskWorkView() {
                                             <Text className="font-semibold text-gray-700 ml-2">Attachments ({attachments.length})</Text>
                                         </View>
                                         <View className="flex-row flex-wrap gap-2">
-                                            {attachments.map((attachment) => (
+                                            {attachments.map((attachment, index) => (
                                                 <TouchableOpacity 
                                                     key={attachment.id} 
                                                     className="bg-gray-50 rounded-lg p-2 flex-row items-center"
                                                     style={{ maxWidth: '48%' }}
                                                     onPress={() => {
-                                                        if (attachment.fileUrl) {
-                                                            Linking.openURL(attachment.fileUrl);
-                                                        }
+                                                        openAttachmentPreview(
+                                                            attachment as AttachmentData,
+                                                            attachments as AttachmentData[],
+                                                            index
+                                                        );
                                                     }}
                                                 >
                                                     {attachment.fileType?.startsWith('image/') ? (
@@ -594,20 +663,21 @@ export default function TaskWorkView() {
                                                 {formatDate((comment as any).createdAt || comment.timestamp)}
                                             </Text>
                                         </View>
-                                        <Text className="text-gray-600">{comment.commentText}</Text>
+                                        {/* Rich Text Comment with markdown support */}
+                                        <RichTextComment text={comment.commentText} textColor="#4B5563" />
                                         
                                         {/* Comment Attachments */}
                                         {(comment as any).attachments && (comment as any).attachments.length > 0 && (
                                             <View className="mt-3 flex-row flex-wrap gap-2">
-                                                {(comment as any).attachments.map((attachment: any, index: number) => (
+                                                {(comment as any).attachments.map((attachment: any, index: number) => {
+                                                    const commentAttachmentsList: AttachmentData[] = (comment as any).attachments;
+                                                    return (
                                                     <TouchableOpacity
                                                         key={attachment.id || index}
                                                         className="bg-gray-50 rounded-lg p-2 flex-row items-center"
                                                         style={{ maxWidth: '48%' }}
                                                         onPress={() => {
-                                                            if (attachment.fileUrl) {
-                                                                Linking.openURL(attachment.fileUrl);
-                                                            }
+                                                            openAttachmentPreview(attachment, commentAttachmentsList, index);
                                                         }}
                                                     >
                                                         {attachment.fileType?.startsWith('image/') ? (
@@ -648,7 +718,8 @@ export default function TaskWorkView() {
                                                             )}
                                                         </View>
                                                     </TouchableOpacity>
-                                                ))}
+                                                    );
+                                                })}
                                             </View>
                                         )}
                                     </View>
@@ -656,20 +727,21 @@ export default function TaskWorkView() {
                             </>
                         )}
 
-                        <View className="bg-white rounded-lg p-4">
-                            <TextInput
+                        {/* Rich Text Comment Editor */}
+                        <View className="bg-white rounded-xl p-4 shadow-sm">
+                            <Text className="text-sm font-semibold text-gray-700 mb-3">Add Comment</Text>
+                            
+                            <RichTextEditor
                                 value={newComment}
-                                onChangeText={setNewComment}
-                                placeholder="Add a comment about your progress..."
-                                multiline
-                                numberOfLines={3}
-                                className="border border-gray-300 rounded-lg px-3 py-2 mb-3"
-                                textAlignVertical="top"
+                                onChange={setNewComment}
+                                placeholder="Write your comment here..."
+                                minHeight={100}
+                                maxHeight={200}
                             />
 
                             {/* Comment Attachments Preview */}
                             {commentAttachments.length > 0 && (
-                                <View className="mb-3">
+                                <View className="mt-3">
                                     <AttachmentPreview
                                         attachments={commentAttachments}
                                         onRemove={(index) => setCommentAttachments(prev => prev.filter((_, i) => i !== index))}
@@ -678,31 +750,40 @@ export default function TaskWorkView() {
                                 </View>
                             )}
 
-                            {/* Attachment Button */}
-                            <TouchableOpacity
-                                onPress={() => setShowAttachmentPicker(true)}
-                                className="flex-row items-center justify-center bg-gray-100 py-2.5 rounded-lg mb-3"
-                            >
-                                <MaterialCommunityIcons name="attachment" size={20} color="#6B7280" />
-                                <Text className="text-gray-700 text-sm font-medium ml-2">
-                                    {t('common.addAttachment') || 'Add Attachment'}
-                                </Text>
-                                {commentAttachments.length > 0 && (
-                                    <View className="ml-2 bg-blue-500 px-2 py-0.5 rounded-full">
-                                        <Text className="text-white text-xs font-semibold">{commentAttachments.length}</Text>
-                                    </View>
-                                )}
-                            </TouchableOpacity>
+                            {/* Action Buttons */}
+                            <View className="flex-row gap-3 mt-4">
+                                {/* Attachment Button */}
+                                <TouchableOpacity
+                                    onPress={() => setShowAttachmentPicker(true)}
+                                    className="flex-1 flex-row items-center justify-center bg-gray-100 py-3 rounded-lg"
+                                >
+                                    <MaterialCommunityIcons name="attachment" size={20} color="#6B7280" />
+                                    <Text className="text-gray-700 text-sm font-medium ml-2">
+                                        Attach
+                                    </Text>
+                                    {commentAttachments.length > 0 && (
+                                        <View className="ml-2 bg-blue-500 px-2 py-0.5 rounded-full">
+                                            <Text className="text-white text-xs font-semibold">{commentAttachments.length}</Text>
+                                        </View>
+                                    )}
+                                </TouchableOpacity>
 
-                            <TouchableOpacity
-                                onPress={handleAddComment}
-                                disabled={(!newComment.trim() && commentAttachments.length === 0) || submittingComment}
-                                className={`py-3 rounded-lg ${(newComment.trim() || commentAttachments.length > 0) && !submittingComment ? 'bg-blue-600' : 'bg-gray-300'}`}
-                            >
-                                <Text className="text-white text-center font-semibold">
-                                    {submittingComment ? 'Posting...' : t('tasks.details.postComment')}
-                                </Text>
-                            </TouchableOpacity>
+                                {/* Post Comment Button */}
+                                <TouchableOpacity
+                                    onPress={handleAddComment}
+                                    disabled={(!newComment.trim() && commentAttachments.length === 0) || submittingComment}
+                                    className={`flex-1 flex-row items-center justify-center py-3 rounded-lg ${(newComment.trim() || commentAttachments.length > 0) && !submittingComment ? 'bg-blue-600' : 'bg-gray-300'}`}
+                                >
+                                    <MaterialCommunityIcons 
+                                        name={submittingComment ? "loading" : "send"} 
+                                        size={18} 
+                                        color="#FFFFFF" 
+                                    />
+                                    <Text className="text-white font-semibold ml-2">
+                                        {submittingComment ? 'Posting...' : 'Post'}
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
                         </View>
                     </View>
                 )}
@@ -836,7 +917,7 @@ export default function TaskWorkView() {
                                         return;
                                     }
                                     
-                                    const timestamp = new Date(item.timestamp);
+                                    const timestamp = new Date(item.createdAt);
                                     if (isNaN(timestamp.getTime())) return;
                                     
                                     // Determine icon and colors based on action type
@@ -984,6 +1065,15 @@ export default function TaskWorkView() {
                 }}
                 maxAttachments={5}
                 currentAttachmentsCount={commentAttachments.length}
+            />
+
+            {/* Attachment Preview Modal - View images, audio, documents in-app */}
+            <AttachmentPreviewModal
+                visible={previewModalVisible}
+                onClose={() => setPreviewModalVisible(false)}
+                attachment={previewAttachment}
+                attachments={previewAttachments}
+                initialIndex={previewInitialIndex}
             />
         </View >
     );

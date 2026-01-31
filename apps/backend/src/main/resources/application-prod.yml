@@ -10,6 +10,9 @@ spring:
       idle-timeout: 300000
       max-lifetime: 900000
 
+  flyway:
+    repair-on-migrate: true
+
   jpa:
     show-sql: false
     hibernate:

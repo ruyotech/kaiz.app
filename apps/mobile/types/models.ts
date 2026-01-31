@@ -113,7 +113,8 @@ export interface TaskHistory {
     oldValue: string;
     newValue: string;
     changedByUserId: string;
-    timestamp: string;
+    changedByUserName?: string;
+    createdAt: string;
 }
 
 export interface TaskComment {
