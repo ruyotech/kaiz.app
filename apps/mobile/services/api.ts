@@ -140,9 +140,37 @@ async function clearTokens(): Promise<void> {
 
 // Callback for handling auth expiration - can be set by the app
 let onAuthExpired: (() => void) | null = null;
+// Track if we've already triggered auth expiration to avoid multiple calls
+let authExpirationTriggered = false;
 
 export function setOnAuthExpired(callback: () => void): void {
     onAuthExpired = callback;
+    // Reset the flag when a new callback is set (e.g., after login)
+    authExpirationTriggered = false;
+}
+
+export function resetAuthExpirationFlag(): void {
+    authExpirationTriggered = false;
+}
+
+// Helper to trigger auth expiration callback safely
+async function triggerAuthExpiration(): Promise<void> {
+    if (authExpirationTriggered) {
+        console.log('🔐 Auth expiration already triggered, skipping...');
+        return;
+    }
+    
+    authExpirationTriggered = true;
+    console.log('🔐 Token expired, clearing auth and redirecting...');
+    await clearTokens();
+    
+    if (onAuthExpired) {
+        try {
+            onAuthExpired();
+        } catch (err) {
+            console.warn('Failed to execute onAuthExpired callback:', err);
+        }
+    }
 }
 
 // HTTP request helper
@@ -196,12 +224,7 @@ async function request<T>(
             
             // Auto-logout on 401 Unauthorized
             if (response.status === 401) {
-                console.log('🔐 Token expired, clearing auth...');
-                await clearTokens();
-                // Notify app to redirect to login
-                if (onAuthExpired) {
-                    onAuthExpired();
-                }
+                await triggerAuthExpiration();
             }
             
             throw new ApiError(
@@ -291,11 +314,7 @@ async function requestRaw<T>(
             
             // Auto-logout on 401 Unauthorized
             if (response.status === 401) {
-                console.log('🔐 Token expired, clearing auth...');
-                await clearTokens();
-                if (onAuthExpired) {
-                    onAuthExpired();
-                }
+                await triggerAuthExpiration();
             }
             
             // Handle error response (may or may not be wrapped)

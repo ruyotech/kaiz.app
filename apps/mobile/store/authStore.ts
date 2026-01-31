@@ -2,7 +2,8 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User } from '../types/models';
-import { authApi, ApiError, setOnAuthExpired } from '../services/api';
+import { authApi, ApiError, setOnAuthExpired, resetAuthExpirationFlag } from '../services/api';
+import { router } from 'expo-router';
 
 interface AuthState {
     user: User | null;
@@ -33,6 +34,8 @@ export const useAuthStore = create<AuthState>()(
                 try {
                     console.log('🔐 Logging in...');
                     const { user } = await authApi.login(email, password);
+                    // Reset auth expiration flag on successful login
+                    resetAuthExpirationFlag();
                     set({ user, loading: false, isAuthenticated: true });
                 } catch (error) {
                     const message = error instanceof ApiError 
@@ -53,6 +56,8 @@ export const useAuthStore = create<AuthState>()(
                         fullName,
                         timezone: timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
                     });
+                    // Reset auth expiration flag on successful registration
+                    resetAuthExpirationFlag();
                     set({ user, loading: false, isAuthenticated: true });
                 } catch (error) {
                     const message = error instanceof ApiError 
@@ -157,11 +162,22 @@ setOnAuthExpired(() => {
         error: 'Session expired. Please log in again.' 
     });
     
-    // Navigate to login page
-    // Using dynamic import to avoid circular dependencies
-    import('expo-router').then(({ router }) => {
-        router.replace('/(auth)/login');
-    }).catch((err) => {
-        console.warn('Failed to navigate to login:', err);
-    });
+    // Navigate to login page using direct router import
+    // Using setTimeout to ensure state is updated before navigation
+    setTimeout(() => {
+        try {
+            router.replace('/(auth)/login');
+            console.log('✅ Redirected to login page');
+        } catch (err) {
+            console.warn('Failed to navigate to login:', err);
+            // Fallback: try again with a longer delay
+            setTimeout(() => {
+                try {
+                    router.replace('/(auth)/login');
+                } catch (e) {
+                    console.error('Failed to redirect to login after retry:', e);
+                }
+            }, 500);
+        }
+    }, 100);
 });
