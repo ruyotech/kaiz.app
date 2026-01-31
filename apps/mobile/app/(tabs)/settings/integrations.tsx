@@ -394,22 +394,9 @@ function CalendarSelectionModal({
                                                 <Text className="text-base text-gray-900">
                                                     {calendar.alias || calendar.name}
                                                 </Text>
-                                                {calendar.alias && calendar.alias !== calendar.name && (
-                                                    <View
-                                                        className="ml-2 px-1.5 py-0.5 rounded"
-                                                        style={{ backgroundColor: (calendar.contextColor || '#6B7280') + '20' }}
-                                                    >
-                                                        <Text
-                                                            className="text-[10px] font-medium"
-                                                            style={{ color: calendar.contextColor || '#6B7280' }}
-                                                        >
-                                                            {calendar.alias}
-                                                        </Text>
-                                                    </View>
-                                                )}
                                             </View>
                                             {calendar.alias && calendar.alias !== calendar.name && (
-                                                <Text className="text-xs text-gray-400">{calendar.name}</Text>
+                                                <Text className="text-xs text-gray-400">was: {calendar.name}</Text>
                                             )}
                                             {!calendar.alias && calendar.isPrimary && (
                                                 <Text className="text-xs text-gray-500">Primary</Text>
@@ -417,16 +404,20 @@ function CalendarSelectionModal({
                                         </View>
                                     </TouchableOpacity>
                                     
-                                    {/* Settings button for Life Context */}
+                                    {/* Settings button for Life Context - with hitSlop for better tapping */}
                                     <TouchableOpacity
-                                        onPress={() => handleOpenAliasModal(calendar)}
-                                        className="p-2"
-                                        activeOpacity={0.7}
+                                        onPress={() => {
+                                            console.log('[Integrations] Gear tapped for:', calendar.name);
+                                            handleOpenAliasModal(calendar);
+                                        }}
+                                        hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+                                        className="p-3 -mr-2"
+                                        activeOpacity={0.5}
                                     >
                                         <MaterialCommunityIcons
-                                            name="cog-outline"
-                                            size={20}
-                                            color={calendar.alias ? (calendar.contextColor || '#6366F1') : '#9CA3AF'}
+                                            name="cog"
+                                            size={22}
+                                            color={calendar.alias ? (calendar.contextColor || '#6366F1') : '#6B7280'}
                                         />
                                     </TouchableOpacity>
                                 </View>
