@@ -669,6 +669,17 @@ export default function IntegrationsScreen() {
         calendarSyncService.isAvailable().then(setNativeAvailable);
     }, []);
     
+    // Auto-reset stuck "connecting" states on mount
+    // This fixes the case where OAuth was cancelled but state remained "connecting"
+    useEffect(() => {
+        (['apple', 'google', 'microsoft'] as CalendarProvider[]).forEach((provider) => {
+            if (connections[provider].status === 'connecting') {
+                console.log(`[Integrations] Resetting stuck connecting state for ${provider}`);
+                disconnectProvider(provider);
+            }
+        });
+    }, []); // Only run on mount
+    
     // ========================================================================
     // Handlers
     // ========================================================================
