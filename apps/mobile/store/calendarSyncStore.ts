@@ -5,14 +5,15 @@
  * read-only sync capabilities. Never writes to user calendars.
  * 
  * Features:
- * - Multiple provider support
- * - Calendar selection per provider
+ * - Multiple ACCOUNTS per provider (e.g., multiple Google accounts)
+ * - Calendar selection per account
  * - Background sync with configurable frequency
  * - External events as blocked time
  * - Capacity adjustment for sprint planning
+ * - Life Context system for calendar aliases
  * 
  * @author Kaiz Team
- * @version 1.0.0
+ * @version 2.0.0 - Multi-account support
  */
 
 import { create } from 'zustand';
@@ -52,7 +53,7 @@ export const LIFE_CONTEXTS = [
 ] as const;
 
 /**
- * Individual calendar from a provider
+ * Individual calendar from a provider account
  */
 export interface ExternalCalendar {
     id: string;
@@ -65,6 +66,8 @@ export interface ExternalCalendar {
     // Life Context customization
     alias?: string; // Custom name like "Work @ Google", "Personal", "Side Hustle"
     contextColor?: string; // Custom color for the context tag
+    // Multi-account support
+    accountId?: string; // Links to parent ProviderAccount
 }
 
 /**
@@ -84,12 +87,17 @@ export interface ExternalEvent {
     // Context info (populated from calendar settings)
     calendarAlias?: string;
     calendarContextColor?: string;
+    // Multi-account support
+    accountId?: string;
+    accountEmail?: string;
 }
 
 /**
- * Provider connection information
+ * A connected account for a provider
+ * Multiple accounts can exist per provider (e.g., multiple Google accounts)
  */
-export interface ProviderConnection {
+export interface ProviderAccount {
+    id: string; // Unique ID (email for OAuth providers, 'local' for Apple local)
     provider: CalendarProvider;
     status: ConnectionStatus;
     accountEmail?: string;
@@ -99,7 +107,25 @@ export interface ProviderConnection {
     syncStatus: SyncStatus;
     errorMessage?: string;
     calendars: ExternalCalendar[];
-    accessToken?: string; // Stored securely, not persisted in plain store
+    accessToken?: string;
+    refreshToken?: string;
+    tokenExpiresAt?: string;
+}
+
+/**
+ * @deprecated Use ProviderAccount instead. Kept for backwards compatibility.
+ */
+export interface ProviderConnection {
+    provider: CalendarProvider;
+    status: ConnectionStatus;
+    accountEmail?: string;
+    accountName?: string;
+    connectedAt?: string;
+    lastSyncAt?: string;
+    syncStatus: SyncStatus;
+    errorMessage?: string;
+    calendars: ExternalCalendar[];
+    accessToken?: string;
     refreshToken?: string;
     tokenExpiresAt?: string;
 }
@@ -129,10 +155,13 @@ export interface ProviderConfig {
 }
 
 /**
- * Calendar sync store state
+ * Calendar sync store state - Multi-account version
  */
 interface CalendarSyncState {
-    // Provider connections
+    // Multi-account storage: array of all connected accounts
+    accounts: ProviderAccount[];
+    
+    // Legacy support: computed connections object for backward compatibility
     connections: Record<CalendarProvider, ProviderConnection>;
     
     // External events cache
@@ -147,33 +176,41 @@ interface CalendarSyncState {
     
     // Computed values
     getConnectedProviders: () => CalendarProvider[];
+    getAccountsForProvider: (provider: CalendarProvider) => ProviderAccount[];
     getSelectedCalendars: () => ExternalCalendar[];
     getEventsForDateRange: (startDate: string, endDate: string) => ExternalEvent[];
     getBlockedHoursForDate: (date: string) => number;
     getTotalBlockedHoursForWeek: (weekStartDate: string) => number;
+    getTotalConnectedAccounts: () => number;
     
-    // Connection actions
-    initiateConnection: (provider: CalendarProvider) => void;
-    completeConnection: (provider: CalendarProvider, data: Partial<ProviderConnection>) => void;
-    disconnectProvider: (provider: CalendarProvider) => void;
-    setConnectionError: (provider: CalendarProvider, error: string) => void;
+    // Multi-account actions
+    addAccount: (account: ProviderAccount) => void;
+    updateAccount: (accountId: string, data: Partial<ProviderAccount>) => void;
+    removeAccount: (accountId: string) => void;
+    getAccountById: (accountId: string) => ProviderAccount | undefined;
+    
+    // Connection actions (legacy + multi-account)
+    initiateConnection: (provider: CalendarProvider, accountId?: string) => void;
+    completeConnection: (provider: CalendarProvider, data: Partial<ProviderAccount>, accountId?: string) => void;
+    disconnectProvider: (provider: CalendarProvider, accountId?: string) => void;
+    setConnectionError: (provider: CalendarProvider, error: string, accountId?: string) => void;
     
     // Calendar actions
-    setCalendars: (provider: CalendarProvider, calendars: ExternalCalendar[]) => void;
-    toggleCalendarSelection: (provider: CalendarProvider, calendarId: string) => void;
-    selectAllCalendars: (provider: CalendarProvider, selected: boolean) => void;
-    setCalendarAlias: (provider: CalendarProvider, calendarId: string, alias: string, contextColor?: string) => void;
-    getCalendarById: (provider: CalendarProvider, calendarId: string) => ExternalCalendar | undefined;
+    setCalendars: (provider: CalendarProvider, calendars: ExternalCalendar[], accountId?: string) => void;
+    toggleCalendarSelection: (provider: CalendarProvider, calendarId: string, accountId?: string) => void;
+    selectAllCalendars: (provider: CalendarProvider, selected: boolean, accountId?: string) => void;
+    setCalendarAlias: (provider: CalendarProvider, calendarId: string, alias: string, contextColor?: string, accountId?: string) => void;
+    getCalendarById: (provider: CalendarProvider, calendarId: string, accountId?: string) => ExternalCalendar | undefined;
     
     // Event actions
     setExternalEvents: (events: ExternalEvent[]) => void;
     addEvents: (events: ExternalEvent[]) => void;
-    clearProviderEvents: (provider: CalendarProvider) => void;
+    clearProviderEvents: (provider: CalendarProvider, accountId?: string) => void;
     
     // Sync actions
-    startSync: (provider?: CalendarProvider) => void;
-    completeSync: (provider: CalendarProvider, success: boolean, error?: string) => void;
-    updateLastSyncTime: (provider?: CalendarProvider) => void;
+    startSync: (provider?: CalendarProvider, accountId?: string) => void;
+    completeSync: (provider: CalendarProvider, success: boolean, error?: string, accountId?: string) => void;
+    updateLastSyncTime: (provider?: CalendarProvider, accountId?: string) => void;
     
     // Settings actions
     updateSyncSettings: (settings: Partial<SyncSettings>) => void;
@@ -227,13 +264,54 @@ const createInitialProviderConnection = (provider: CalendarProvider): ProviderCo
     calendars: [],
 });
 
+/**
+ * Build legacy connections object from accounts array
+ * Returns aggregated status per provider for backwards compatibility
+ */
+const buildConnectionsFromAccounts = (accounts: ProviderAccount[]): Record<CalendarProvider, ProviderConnection> => {
+    const connections: Record<CalendarProvider, ProviderConnection> = {
+        apple: createInitialProviderConnection('apple'),
+        google: createInitialProviderConnection('google'),
+        microsoft: createInitialProviderConnection('microsoft'),
+    };
+    
+    // For each provider, aggregate accounts
+    (['apple', 'google', 'microsoft'] as CalendarProvider[]).forEach(provider => {
+        const providerAccounts = accounts.filter(a => a.provider === provider);
+        if (providerAccounts.length > 0) {
+            // Check if ANY account is connected
+            const connectedAccount = providerAccounts.find(a => a.status === 'connected');
+            const primaryAccount = connectedAccount || providerAccounts[0];
+            
+            connections[provider] = {
+                provider: primaryAccount.provider,
+                status: connectedAccount ? 'connected' : primaryAccount.status,
+                accountEmail: primaryAccount.accountEmail,
+                accountName: primaryAccount.accountName,
+                connectedAt: primaryAccount.connectedAt,
+                lastSyncAt: primaryAccount.lastSyncAt,
+                syncStatus: primaryAccount.syncStatus,
+                errorMessage: primaryAccount.errorMessage,
+                // Merge all calendars from all accounts for this provider
+                calendars: providerAccounts.flatMap(a => a.calendars),
+                accessToken: primaryAccount.accessToken,
+                refreshToken: primaryAccount.refreshToken,
+                tokenExpiresAt: primaryAccount.tokenExpiresAt,
+            };
+        }
+    });
+    
+    return connections;
+};
+
 const initialState = {
+    accounts: [] as ProviderAccount[],
     connections: {
         apple: createInitialProviderConnection('apple'),
         google: createInitialProviderConnection('google'),
         microsoft: createInitialProviderConnection('microsoft'),
     },
-    externalEvents: [],
+    externalEvents: [] as ExternalEvent[],
     syncSettings: {
         autoSyncEnabled: true,
         syncFrequencyMinutes: 60, // Hourly
@@ -242,7 +320,7 @@ const initialState = {
         showEventsAsBlockedTime: true,
     },
     isGlobalSyncing: false,
-    lastGlobalSyncAt: null,
+    lastGlobalSyncAt: null as string | null,
 };
 
 // ============================================================================
@@ -259,22 +337,32 @@ export const useCalendarSyncStore = create<CalendarSyncState>()(
             // ================================================================
             
             getConnectedProviders: () => {
-                const { connections } = get();
-                return (Object.keys(connections) as CalendarProvider[]).filter(
-                    (provider) => connections[provider].status === 'connected'
-                );
+                const { accounts } = get();
+                const providers = new Set<CalendarProvider>();
+                accounts.forEach(account => {
+                    if (account.status === 'connected') {
+                        providers.add(account.provider);
+                    }
+                });
+                return Array.from(providers);
+            },
+            
+            getAccountsForProvider: (provider: CalendarProvider) => {
+                return get().accounts.filter(a => a.provider === provider);
             },
             
             getSelectedCalendars: () => {
-                const { connections } = get();
+                const { accounts } = get();
                 const selectedCalendars: ExternalCalendar[] = [];
                 
-                (Object.keys(connections) as CalendarProvider[]).forEach((provider) => {
-                    const connection = connections[provider];
-                    if (connection.status === 'connected') {
-                        connection.calendars
+                accounts.forEach((account) => {
+                    if (account.status === 'connected') {
+                        account.calendars
                             .filter((cal) => cal.isSelected)
-                            .forEach((cal) => selectedCalendars.push(cal));
+                            .forEach((cal) => selectedCalendars.push({
+                                ...cal,
+                                accountId: account.id,
+                            }));
                     }
                 });
                 
@@ -282,14 +370,14 @@ export const useCalendarSyncStore = create<CalendarSyncState>()(
             },
             
             getEventsForDateRange: (startDate: string, endDate: string) => {
-                const { externalEvents, connections } = get();
+                const { externalEvents, accounts } = get();
                 const start = new Date(startDate);
                 const end = new Date(endDate);
                 
-                // Get selected calendar IDs
+                // Get selected calendar IDs from all accounts
                 const selectedCalendarIds = new Set<string>();
-                (Object.keys(connections) as CalendarProvider[]).forEach((provider) => {
-                    connections[provider].calendars
+                accounts.forEach((account) => {
+                    account.calendars
                         .filter((cal) => cal.isSelected)
                         .forEach((cal) => selectedCalendarIds.add(cal.id));
                 });
@@ -326,11 +414,11 @@ export const useCalendarSyncStore = create<CalendarSyncState>()(
                     const eventEnd = new Date(event.endDate);
                     
                     // Clamp to day boundaries
-                    const start = eventStart < dayStart ? dayStart : eventStart;
-                    const end = eventEnd > dayEnd ? dayEnd : eventEnd;
+                    const startClamped = eventStart < dayStart ? dayStart : eventStart;
+                    const endClamped = eventEnd > dayEnd ? dayEnd : eventEnd;
                     
                     // Calculate duration in minutes
-                    const durationMs = end.getTime() - start.getTime();
+                    const durationMs = endClamped.getTime() - startClamped.getTime();
                     totalMinutes += durationMs / (1000 * 60);
                 });
                 
@@ -351,133 +439,427 @@ export const useCalendarSyncStore = create<CalendarSyncState>()(
                 return totalHours;
             },
             
-            // ================================================================
-            // Connection Actions
-            // ================================================================
-            
-            initiateConnection: (provider: CalendarProvider) => {
-                set((state) => ({
-                    connections: {
-                        ...state.connections,
-                        [provider]: {
-                            ...state.connections[provider],
-                            status: 'connecting',
-                            errorMessage: undefined,
-                        },
-                    },
-                }));
+            getTotalConnectedAccounts: () => {
+                return get().accounts.filter(a => a.status === 'connected').length;
             },
             
-            completeConnection: (provider: CalendarProvider, data: Partial<ProviderConnection>) => {
-                set((state) => ({
-                    connections: {
-                        ...state.connections,
-                        [provider]: {
-                            ...state.connections[provider],
-                            ...data,
-                            status: 'connected',
-                            connectedAt: new Date().toISOString(),
-                            errorMessage: undefined,
-                        },
-                    },
-                }));
-            },
+            // ================================================================
+            // Multi-Account Actions
+            // ================================================================
             
-            disconnectProvider: (provider: CalendarProvider) => {
+            addAccount: (account: ProviderAccount) => {
                 set((state) => {
-                    // Clear events from this provider
-                    const filteredEvents = state.externalEvents.filter(
-                        (event) => event.provider !== provider
-                    );
+                    // Check if account already exists
+                    const existingIndex = state.accounts.findIndex(a => a.id === account.id);
+                    if (existingIndex >= 0) {
+                        // Update existing account
+                        const newAccounts = [...state.accounts];
+                        newAccounts[existingIndex] = { ...newAccounts[existingIndex], ...account };
+                        return {
+                            accounts: newAccounts,
+                            connections: buildConnectionsFromAccounts(newAccounts),
+                        };
+                    }
                     
+                    // Add new account
+                    const newAccounts = [...state.accounts, account];
                     return {
-                        connections: {
-                            ...state.connections,
-                            [provider]: createInitialProviderConnection(provider),
-                        },
-                        externalEvents: filteredEvents,
+                        accounts: newAccounts,
+                        connections: buildConnectionsFromAccounts(newAccounts),
                     };
                 });
             },
             
-            setConnectionError: (provider: CalendarProvider, error: string) => {
-                set((state) => ({
-                    connections: {
-                        ...state.connections,
-                        [provider]: {
-                            ...state.connections[provider],
-                            status: 'error',
-                            errorMessage: error,
+            updateAccount: (accountId: string, data: Partial<ProviderAccount>) => {
+                set((state) => {
+                    const newAccounts = state.accounts.map(account =>
+                        account.id === accountId
+                            ? { ...account, ...data }
+                            : account
+                    );
+                    return {
+                        accounts: newAccounts,
+                        connections: buildConnectionsFromAccounts(newAccounts),
+                    };
+                });
+            },
+            
+            removeAccount: (accountId: string) => {
+                set((state) => {
+                    const accountToRemove = state.accounts.find(a => a.id === accountId);
+                    const newAccounts = state.accounts.filter(a => a.id !== accountId);
+                    
+                    // Also remove events from this account
+                    const newEvents = accountToRemove
+                        ? state.externalEvents.filter(e => e.accountId !== accountId)
+                        : state.externalEvents;
+                    
+                    return {
+                        accounts: newAccounts,
+                        connections: buildConnectionsFromAccounts(newAccounts),
+                        externalEvents: newEvents,
+                    };
+                });
+            },
+            
+            getAccountById: (accountId: string) => {
+                return get().accounts.find(a => a.id === accountId);
+            },
+            
+            // ================================================================
+            // Connection Actions (backwards compatible + multi-account)
+            // ================================================================
+            
+            initiateConnection: (provider: CalendarProvider, accountId?: string) => {
+                if (accountId) {
+                    // Multi-account: update specific account
+                    set((state) => {
+                        const existingAccount = state.accounts.find(a => a.id === accountId);
+                        if (existingAccount) {
+                            const newAccounts = state.accounts.map(a =>
+                                a.id === accountId
+                                    ? { ...a, status: 'connecting' as ConnectionStatus, errorMessage: undefined }
+                                    : a
+                            );
+                            return {
+                                accounts: newAccounts,
+                                connections: buildConnectionsFromAccounts(newAccounts),
+                            };
+                        }
+                        
+                        // Create new account in connecting state
+                        const newAccount: ProviderAccount = {
+                            id: accountId,
+                            provider,
+                            status: 'connecting',
+                            syncStatus: 'idle',
+                            calendars: [],
+                        };
+                        const newAccounts = [...state.accounts, newAccount];
+                        return {
+                            accounts: newAccounts,
+                            connections: buildConnectionsFromAccounts(newAccounts),
+                        };
+                    });
+                } else {
+                    // Legacy: create a temporary account or update first account for provider
+                    const tempId = `${provider}_connecting_${Date.now()}`;
+                    set((state) => {
+                        const existingAccounts = state.accounts.filter(a => a.provider === provider);
+                        if (existingAccounts.length === 0) {
+                            // Create new temporary account
+                            const newAccount: ProviderAccount = {
+                                id: tempId,
+                                provider,
+                                status: 'connecting',
+                                syncStatus: 'idle',
+                                calendars: [],
+                            };
+                            const newAccounts = [...state.accounts, newAccount];
+                            return {
+                                accounts: newAccounts,
+                                connections: buildConnectionsFromAccounts(newAccounts),
+                            };
+                        }
+                        
+                        // Update legacy connections for backwards compatibility
+                        return {
+                            connections: {
+                                ...state.connections,
+                                [provider]: {
+                                    ...state.connections[provider],
+                                    status: 'connecting',
+                                    errorMessage: undefined,
+                                },
+                            },
+                        };
+                    });
+                }
+            },
+            
+            completeConnection: (provider: CalendarProvider, data: Partial<ProviderAccount>, accountId?: string) => {
+                const now = new Date().toISOString();
+                
+                set((state) => {
+                    // Find the account to update
+                    let targetAccountId = accountId;
+                    
+                    if (!targetAccountId && data.accountEmail) {
+                        // Try to find by email
+                        targetAccountId = data.accountEmail;
+                    }
+                    
+                    if (!targetAccountId) {
+                        // Find first connecting account for this provider
+                        const connectingAccount = state.accounts.find(
+                            a => a.provider === provider && a.status === 'connecting'
+                        );
+                        targetAccountId = connectingAccount?.id;
+                    }
+                    
+                    if (targetAccountId) {
+                        // Check if this account already exists with different ID (e.g., temp ID)
+                        const existingByEmail = data.accountEmail 
+                            ? state.accounts.find(a => a.accountEmail === data.accountEmail && a.provider === provider)
+                            : null;
+                        
+                        let newAccounts: ProviderAccount[];
+                        
+                        if (existingByEmail && existingByEmail.id !== targetAccountId) {
+                            // Merge: remove temp account, update existing
+                            newAccounts = state.accounts
+                                .filter(a => a.id !== targetAccountId)
+                                .map(a => a.id === existingByEmail.id
+                                    ? {
+                                        ...a,
+                                        ...data,
+                                        status: 'connected' as ConnectionStatus,
+                                        connectedAt: now,
+                                        errorMessage: undefined,
+                                    }
+                                    : a
+                                );
+                        } else if (state.accounts.find(a => a.id === targetAccountId)) {
+                            // Update existing account
+                            newAccounts = state.accounts.map(a =>
+                                a.id === targetAccountId
+                                    ? {
+                                        ...a,
+                                        ...data,
+                                        id: data.accountEmail || a.id, // Update ID to email if available
+                                        status: 'connected' as ConnectionStatus,
+                                        connectedAt: now,
+                                        errorMessage: undefined,
+                                    }
+                                    : a
+                            );
+                        } else {
+                            // Create new account
+                            const newAccount: ProviderAccount = {
+                                id: data.accountEmail || targetAccountId,
+                                provider,
+                                status: 'connected',
+                                syncStatus: 'idle',
+                                connectedAt: now,
+                                calendars: [],
+                                ...data,
+                            };
+                            newAccounts = [...state.accounts, newAccount];
+                        }
+                        
+                        return {
+                            accounts: newAccounts,
+                            connections: buildConnectionsFromAccounts(newAccounts),
+                        };
+                    }
+                    
+                    // Fallback: create new account
+                    const newAccount: ProviderAccount = {
+                        id: data.accountEmail || `${provider}_${Date.now()}`,
+                        provider,
+                        status: 'connected',
+                        syncStatus: 'idle',
+                        connectedAt: now,
+                        calendars: [],
+                        ...data,
+                    };
+                    const newAccounts = [...state.accounts, newAccount];
+                    
+                    return {
+                        accounts: newAccounts,
+                        connections: buildConnectionsFromAccounts(newAccounts),
+                    };
+                });
+            },
+            
+            disconnectProvider: (provider: CalendarProvider, accountId?: string) => {
+                set((state) => {
+                    if (accountId) {
+                        // Remove specific account
+                        const newAccounts = state.accounts.filter(a => a.id !== accountId);
+                        const newEvents = state.externalEvents.filter(e => e.accountId !== accountId);
+                        
+                        return {
+                            accounts: newAccounts,
+                            connections: buildConnectionsFromAccounts(newAccounts),
+                            externalEvents: newEvents,
+                        };
+                    }
+                    
+                    // Remove ALL accounts for this provider
+                    const newAccounts = state.accounts.filter(a => a.provider !== provider);
+                    const newEvents = state.externalEvents.filter(e => e.provider !== provider);
+                    
+                    return {
+                        accounts: newAccounts,
+                        connections: buildConnectionsFromAccounts(newAccounts),
+                        externalEvents: newEvents,
+                    };
+                });
+            },
+            
+            setConnectionError: (provider: CalendarProvider, error: string, accountId?: string) => {
+                set((state) => {
+                    if (accountId) {
+                        const newAccounts = state.accounts.map(a =>
+                            a.id === accountId
+                                ? { ...a, status: 'error' as ConnectionStatus, errorMessage: error }
+                                : a
+                        );
+                        return {
+                            accounts: newAccounts,
+                            connections: buildConnectionsFromAccounts(newAccounts),
+                        };
+                    }
+                    
+                    // Find first account for provider (usually connecting one)
+                    const firstAccount = state.accounts.find(
+                        a => a.provider === provider && (a.status === 'connecting' || a.status === 'connected')
+                    );
+                    if (firstAccount) {
+                        const newAccounts = state.accounts.map(a =>
+                            a.id === firstAccount.id
+                                ? { ...a, status: 'error' as ConnectionStatus, errorMessage: error }
+                                : a
+                        );
+                        return {
+                            accounts: newAccounts,
+                            connections: buildConnectionsFromAccounts(newAccounts),
+                        };
+                    }
+                    
+                    // Legacy fallback
+                    return {
+                        connections: {
+                            ...state.connections,
+                            [provider]: {
+                                ...state.connections[provider],
+                                status: 'error',
+                                errorMessage: error,
+                            },
                         },
-                    },
-                }));
+                    };
+                });
             },
             
             // ================================================================
             // Calendar Actions
             // ================================================================
             
-            setCalendars: (provider: CalendarProvider, calendars: ExternalCalendar[]) => {
-                set((state) => ({
-                    connections: {
-                        ...state.connections,
-                        [provider]: {
-                            ...state.connections[provider],
-                            calendars,
+            setCalendars: (provider: CalendarProvider, calendars: ExternalCalendar[], accountId?: string) => {
+                set((state) => {
+                    const targetAccountId = accountId || state.accounts.find(a => a.provider === provider && a.status === 'connected')?.id;
+                    
+                    if (targetAccountId) {
+                        const newAccounts = state.accounts.map(a =>
+                            a.id === targetAccountId
+                                ? { ...a, calendars: calendars.map(c => ({ ...c, accountId: targetAccountId })) }
+                                : a
+                        );
+                        return {
+                            accounts: newAccounts,
+                            connections: buildConnectionsFromAccounts(newAccounts),
+                        };
+                    }
+                    
+                    // Legacy fallback
+                    return {
+                        connections: {
+                            ...state.connections,
+                            [provider]: {
+                                ...state.connections[provider],
+                                calendars,
+                            },
                         },
-                    },
-                }));
+                    };
+                });
             },
             
-            toggleCalendarSelection: (provider: CalendarProvider, calendarId: string) => {
-                set((state) => ({
-                    connections: {
-                        ...state.connections,
-                        [provider]: {
-                            ...state.connections[provider],
-                            calendars: state.connections[provider].calendars.map((cal) =>
+            toggleCalendarSelection: (provider: CalendarProvider, calendarId: string, accountId?: string) => {
+                set((state) => {
+                    // Search in all accounts
+                    const newAccounts = state.accounts.map(account => {
+                        if (account.provider !== provider) return account;
+                        if (accountId && account.id !== accountId) return account;
+                        
+                        const hasCalendar = account.calendars.some(c => c.id === calendarId);
+                        if (!hasCalendar) return account;
+                        
+                        return {
+                            ...account,
+                            calendars: account.calendars.map(cal =>
                                 cal.id === calendarId
                                     ? { ...cal, isSelected: !cal.isSelected }
                                     : cal
                             ),
-                        },
-                    },
-                }));
+                        };
+                    });
+                    
+                    return {
+                        accounts: newAccounts,
+                        connections: buildConnectionsFromAccounts(newAccounts),
+                    };
+                });
             },
             
-            selectAllCalendars: (provider: CalendarProvider, selected: boolean) => {
-                set((state) => ({
-                    connections: {
-                        ...state.connections,
-                        [provider]: {
-                            ...state.connections[provider],
-                            calendars: state.connections[provider].calendars.map((cal) => ({
+            selectAllCalendars: (provider: CalendarProvider, selected: boolean, accountId?: string) => {
+                set((state) => {
+                    const newAccounts = state.accounts.map(account => {
+                        if (account.provider !== provider) return account;
+                        if (accountId && account.id !== accountId) return account;
+                        
+                        return {
+                            ...account,
+                            calendars: account.calendars.map(cal => ({
                                 ...cal,
                                 isSelected: selected,
                             })),
-                        },
-                    },
-                }));
+                        };
+                    });
+                    
+                    return {
+                        accounts: newAccounts,
+                        connections: buildConnectionsFromAccounts(newAccounts),
+                    };
+                });
             },
             
-            setCalendarAlias: (provider: CalendarProvider, calendarId: string, alias: string, contextColor?: string) => {
-                set((state) => ({
-                    connections: {
-                        ...state.connections,
-                        [provider]: {
-                            ...state.connections[provider],
-                            calendars: state.connections[provider].calendars.map((cal) =>
+            setCalendarAlias: (provider: CalendarProvider, calendarId: string, alias: string, contextColor?: string, accountId?: string) => {
+                set((state) => {
+                    const newAccounts = state.accounts.map(account => {
+                        if (account.provider !== provider) return account;
+                        if (accountId && account.id !== accountId) return account;
+                        
+                        const hasCalendar = account.calendars.some(c => c.id === calendarId);
+                        if (!hasCalendar) return account;
+                        
+                        return {
+                            ...account,
+                            calendars: account.calendars.map(cal =>
                                 cal.id === calendarId
                                     ? { ...cal, alias, contextColor: contextColor || cal.contextColor }
                                     : cal
                             ),
-                        },
-                    },
-                }));
+                        };
+                    });
+                    
+                    return {
+                        accounts: newAccounts,
+                        connections: buildConnectionsFromAccounts(newAccounts),
+                    };
+                });
             },
             
-            getCalendarById: (provider: CalendarProvider, calendarId: string) => {
-                return get().connections[provider].calendars.find((cal) => cal.id === calendarId);
+            getCalendarById: (provider: CalendarProvider, calendarId: string, accountId?: string) => {
+                const { accounts } = get();
+                for (const account of accounts) {
+                    if (account.provider !== provider) continue;
+                    if (accountId && account.id !== accountId) continue;
+                    
+                    const calendar = account.calendars.find(c => c.id === calendarId);
+                    if (calendar) return calendar;
+                }
+                return undefined;
             },
             
             // ================================================================
@@ -497,9 +879,15 @@ export const useCalendarSyncStore = create<CalendarSyncState>()(
                     
                     // Enrich events with calendar alias and context color
                     const enrichedEvents = newEvents.map((event) => {
-                        const calendar = state.connections[event.provider]?.calendars.find(
-                            (cal) => cal.id === event.calendarId
-                        );
+                        // Find calendar in accounts
+                        let calendar: ExternalCalendar | undefined;
+                        for (const account of state.accounts) {
+                            if (account.provider === event.provider) {
+                                calendar = account.calendars.find(c => c.id === event.calendarId);
+                                if (calendar) break;
+                            }
+                        }
+                        
                         return {
                             ...event,
                             calendarAlias: calendar?.alias || calendar?.name || event.provider,
@@ -517,11 +905,14 @@ export const useCalendarSyncStore = create<CalendarSyncState>()(
                 });
             },
             
-            clearProviderEvents: (provider: CalendarProvider) => {
+            clearProviderEvents: (provider: CalendarProvider, accountId?: string) => {
                 set((state) => ({
-                    externalEvents: state.externalEvents.filter(
-                        (event) => event.provider !== provider
-                    ),
+                    externalEvents: state.externalEvents.filter((event) => {
+                        if (accountId) {
+                            return event.accountId !== accountId;
+                        }
+                        return event.provider !== provider;
+                    }),
                 }));
             },
             
@@ -529,60 +920,76 @@ export const useCalendarSyncStore = create<CalendarSyncState>()(
             // Sync Actions
             // ================================================================
             
-            startSync: (provider?: CalendarProvider) => {
-                if (provider) {
-                    set((state) => ({
-                        connections: {
-                            ...state.connections,
-                            [provider]: {
-                                ...state.connections[provider],
-                                syncStatus: 'syncing',
-                            },
-                        },
-                    }));
-                } else {
-                    // Global sync - mark all connected providers as syncing
-                    set((state) => {
-                        const updatedConnections = { ...state.connections };
-                        (Object.keys(updatedConnections) as CalendarProvider[]).forEach((p) => {
-                            if (updatedConnections[p].status === 'connected') {
-                                updatedConnections[p] = {
-                                    ...updatedConnections[p],
-                                    syncStatus: 'syncing',
-                                };
-                            }
-                        });
-                        
+            startSync: (provider?: CalendarProvider, accountId?: string) => {
+                set((state) => {
+                    if (accountId) {
+                        // Sync specific account
+                        const newAccounts = state.accounts.map(a =>
+                            a.id === accountId
+                                ? { ...a, syncStatus: 'syncing' as SyncStatus }
+                                : a
+                        );
                         return {
-                            connections: updatedConnections,
-                            isGlobalSyncing: true,
+                            accounts: newAccounts,
+                            connections: buildConnectionsFromAccounts(newAccounts),
                         };
-                    });
-                }
+                    }
+                    
+                    if (provider) {
+                        // Sync all accounts for provider
+                        const newAccounts = state.accounts.map(a =>
+                            a.provider === provider && a.status === 'connected'
+                                ? { ...a, syncStatus: 'syncing' as SyncStatus }
+                                : a
+                        );
+                        return {
+                            accounts: newAccounts,
+                            connections: buildConnectionsFromAccounts(newAccounts),
+                        };
+                    }
+                    
+                    // Global sync - all connected accounts
+                    const newAccounts = state.accounts.map(a =>
+                        a.status === 'connected'
+                            ? { ...a, syncStatus: 'syncing' as SyncStatus }
+                            : a
+                    );
+                    
+                    return {
+                        accounts: newAccounts,
+                        connections: buildConnectionsFromAccounts(newAccounts),
+                        isGlobalSyncing: true,
+                    };
+                });
             },
             
-            completeSync: (provider: CalendarProvider, success: boolean, error?: string) => {
+            completeSync: (provider: CalendarProvider, success: boolean, error?: string, accountId?: string) => {
                 const now = new Date().toISOString();
                 
-                set((state) => ({
-                    connections: {
-                        ...state.connections,
-                        [provider]: {
-                            ...state.connections[provider],
-                            syncStatus: success ? 'success' : 'error',
-                            lastSyncAt: success ? now : state.connections[provider].lastSyncAt,
+                set((state) => {
+                    const newAccounts = state.accounts.map(a => {
+                        if (accountId && a.id !== accountId) return a;
+                        if (!accountId && a.provider !== provider) return a;
+                        
+                        return {
+                            ...a,
+                            syncStatus: (success ? 'success' : 'error') as SyncStatus,
+                            lastSyncAt: success ? now : a.lastSyncAt,
                             errorMessage: error,
-                        },
-                    },
-                }));
+                        };
+                    });
+                    
+                    return {
+                        accounts: newAccounts,
+                        connections: buildConnectionsFromAccounts(newAccounts),
+                    };
+                });
                 
-                // Check if all providers finished syncing
+                // Check if all accounts finished syncing
                 setTimeout(() => {
-                    const { connections } = get();
-                    const allFinished = (Object.keys(connections) as CalendarProvider[]).every(
-                        (p) =>
-                            connections[p].status !== 'connected' ||
-                            connections[p].syncStatus !== 'syncing'
+                    const { accounts } = get();
+                    const allFinished = accounts.every(
+                        (a) => a.status !== 'connected' || a.syncStatus !== 'syncing'
                     );
                     
                     if (allFinished) {
@@ -591,22 +998,36 @@ export const useCalendarSyncStore = create<CalendarSyncState>()(
                 }, 100);
             },
             
-            updateLastSyncTime: (provider?: CalendarProvider) => {
+            updateLastSyncTime: (provider?: CalendarProvider, accountId?: string) => {
                 const now = new Date().toISOString();
                 
-                if (provider) {
-                    set((state) => ({
-                        connections: {
-                            ...state.connections,
-                            [provider]: {
-                                ...state.connections[provider],
-                                lastSyncAt: now,
-                            },
-                        },
-                    }));
-                } else {
-                    set({ lastGlobalSyncAt: now });
-                }
+                set((state) => {
+                    if (accountId) {
+                        const newAccounts = state.accounts.map(a =>
+                            a.id === accountId
+                                ? { ...a, lastSyncAt: now }
+                                : a
+                        );
+                        return {
+                            accounts: newAccounts,
+                            connections: buildConnectionsFromAccounts(newAccounts),
+                        };
+                    }
+                    
+                    if (provider) {
+                        const newAccounts = state.accounts.map(a =>
+                            a.provider === provider
+                                ? { ...a, lastSyncAt: now }
+                                : a
+                        );
+                        return {
+                            accounts: newAccounts,
+                            connections: buildConnectionsFromAccounts(newAccounts),
+                        };
+                    }
+                    
+                    return { lastGlobalSyncAt: now };
+                });
             },
             
             // ================================================================
@@ -631,25 +1052,54 @@ export const useCalendarSyncStore = create<CalendarSyncState>()(
             },
         }),
         {
-            name: 'kaiz-calendar-sync-storage',
+            name: 'kaiz-calendar-sync-storage-v2',
             storage: createJSONStorage(() => AsyncStorage),
             partialize: (state) => ({
-                // Only persist non-sensitive data
-                connections: Object.fromEntries(
-                    Object.entries(state.connections).map(([key, conn]) => [
-                        key,
-                        {
-                            ...conn,
-                            // Don't persist tokens
-                            accessToken: undefined,
-                            refreshToken: undefined,
-                        },
-                    ])
-                ),
+                // Persist accounts (without tokens)
+                accounts: state.accounts.map(account => ({
+                    ...account,
+                    accessToken: undefined,
+                    refreshToken: undefined,
+                })),
                 externalEvents: state.externalEvents,
                 syncSettings: state.syncSettings,
                 lastGlobalSyncAt: state.lastGlobalSyncAt,
             }),
+            // Migration from v1 to v2
+            migrate: (persistedState: any, version: number) => {
+                if (version === 0 || !persistedState.accounts) {
+                    // Migrate from old connections-based storage to accounts-based
+                    const oldConnections = persistedState.connections as Record<CalendarProvider, ProviderConnection> | undefined;
+                    if (oldConnections) {
+                        const migratedAccounts: ProviderAccount[] = [];
+                        
+                        (['apple', 'google', 'microsoft'] as CalendarProvider[]).forEach(provider => {
+                            const conn = oldConnections[provider];
+                            if (conn && conn.status === 'connected') {
+                                migratedAccounts.push({
+                                    id: conn.accountEmail || provider,
+                                    provider,
+                                    status: conn.status,
+                                    accountEmail: conn.accountEmail,
+                                    accountName: conn.accountName,
+                                    connectedAt: conn.connectedAt,
+                                    lastSyncAt: conn.lastSyncAt,
+                                    syncStatus: conn.syncStatus,
+                                    errorMessage: conn.errorMessage,
+                                    calendars: conn.calendars.map(c => ({ ...c, accountId: conn.accountEmail || provider })),
+                                });
+                            }
+                        });
+                        
+                        return {
+                            ...persistedState,
+                            accounts: migratedAccounts,
+                        };
+                    }
+                }
+                return persistedState;
+            },
+            version: 1,
         }
     )
 );

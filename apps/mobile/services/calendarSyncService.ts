@@ -55,6 +55,7 @@ import {
     type ExternalCalendar,
     type ExternalEvent,
     type ProviderConnection,
+    type ProviderAccount,
 } from '../store/calendarSyncStore';
 
 // ============================================================================
@@ -77,7 +78,12 @@ const MICROSOFT_CLIENT_ID = ''; // Your client ID from Azure Portal
 const isGoogleConfigured = () => GOOGLE_CLIENT_ID_WEB.length > 10;
 const isMicrosoftConfigured = () => MICROSOFT_CLIENT_ID.length > 10;
 
-// Secure store keys
+// Secure store keys - now support multi-account with email suffix
+const getSecureStoreKey = (baseKey: string, accountEmail?: string) => {
+    const suffix = accountEmail ? `_${accountEmail.replace(/[^a-zA-Z0-9]/g, '_')}` : '';
+    return `${baseKey}${suffix}`;
+};
+
 const SECURE_STORE_KEYS = {
     GOOGLE_ACCESS_TOKEN: 'kaiz_google_calendar_access_token',
     GOOGLE_REFRESH_TOKEN: 'kaiz_google_calendar_refresh_token',
@@ -411,24 +417,31 @@ class CalendarSyncService {
                 googleDiscovery
             );
             
-            // Store tokens securely
+            // Fetch user info first so we know the email
+            const userInfo = await this.fetchGoogleUserInfo(tokenResult.accessToken);
+            
+            // Store tokens securely (keyed by email for multi-account support)
             await this.storeGoogleTokens(
                 tokenResult.accessToken,
                 tokenResult.refreshToken || '',
-                tokenResult.expiresIn
+                tokenResult.expiresIn,
+                userInfo?.email
             );
-            
-            // Fetch user info
-            const userInfo = await this.fetchGoogleUserInfo(tokenResult.accessToken);
             
             // Fetch calendars
             const calendars = await this.fetchGoogleCalendars(tokenResult.accessToken);
+            
+            // Tag calendars with account ID
+            const taggedCalendars = calendars.map(cal => ({
+                ...cal,
+                accountId: userInfo?.email,
+            }));
             
             return {
                 success: true,
                 accountEmail: userInfo?.email,
                 accountName: userInfo?.name,
-                calendars,
+                calendars: taggedCalendars,
             };
         } catch (error) {
             console.error('Error connecting Google Calendar:', error);
@@ -440,33 +453,42 @@ class CalendarSyncService {
     }
     
     /**
-     * Store Google tokens securely
+     * Store Google tokens securely (multi-account support)
      */
     private async storeGoogleTokens(
         accessToken: string,
         refreshToken: string,
-        expiresIn?: number
+        expiresIn?: number,
+        accountEmail?: string
     ): Promise<void> {
         if (!SecureStore) return;
-        await SecureStore.setItemAsync(SECURE_STORE_KEYS.GOOGLE_ACCESS_TOKEN, accessToken);
+        const accessKey = getSecureStoreKey(SECURE_STORE_KEYS.GOOGLE_ACCESS_TOKEN, accountEmail);
+        const refreshKey = getSecureStoreKey(SECURE_STORE_KEYS.GOOGLE_REFRESH_TOKEN, accountEmail);
+        const expiryKey = getSecureStoreKey(SECURE_STORE_KEYS.GOOGLE_TOKEN_EXPIRY, accountEmail);
+        
+        await SecureStore.setItemAsync(accessKey, accessToken);
         if (refreshToken) {
-            await SecureStore.setItemAsync(SECURE_STORE_KEYS.GOOGLE_REFRESH_TOKEN, refreshToken);
+            await SecureStore.setItemAsync(refreshKey, refreshToken);
         }
         if (expiresIn) {
             const expiryDate = new Date(Date.now() + expiresIn * 1000).toISOString();
-            await SecureStore.setItemAsync(SECURE_STORE_KEYS.GOOGLE_TOKEN_EXPIRY, expiryDate);
+            await SecureStore.setItemAsync(expiryKey, expiryDate);
         }
     }
     
     /**
-     * Get stored Google access token, refreshing if needed
+     * Get stored Google access token, refreshing if needed (multi-account support)
      */
-    async getGoogleAccessToken(): Promise<string | null> {
+    async getGoogleAccessToken(accountEmail?: string): Promise<string | null> {
         try {
             await this.init();
             if (!SecureStore) return null;
-            const accessToken = await SecureStore.getItemAsync(SECURE_STORE_KEYS.GOOGLE_ACCESS_TOKEN);
-            const expiryStr = await SecureStore.getItemAsync(SECURE_STORE_KEYS.GOOGLE_TOKEN_EXPIRY);
+            
+            const accessKey = getSecureStoreKey(SECURE_STORE_KEYS.GOOGLE_ACCESS_TOKEN, accountEmail);
+            const expiryKey = getSecureStoreKey(SECURE_STORE_KEYS.GOOGLE_TOKEN_EXPIRY, accountEmail);
+            
+            const accessToken = await SecureStore.getItemAsync(accessKey);
+            const expiryStr = await SecureStore.getItemAsync(expiryKey);
             
             if (!accessToken) return null;
             
@@ -475,7 +497,7 @@ class CalendarSyncService {
                 const expiry = new Date(expiryStr);
                 if (expiry <= new Date()) {
                     // Token expired, try to refresh
-                    return await this.refreshGoogleToken();
+                    return await this.refreshGoogleToken(accountEmail);
                 }
             }
             
@@ -487,12 +509,14 @@ class CalendarSyncService {
     }
     
     /**
-     * Refresh Google access token
+     * Refresh Google access token (multi-account support)
      */
-    private async refreshGoogleToken(): Promise<string | null> {
+    private async refreshGoogleToken(accountEmail?: string): Promise<string | null> {
         try {
             if (!SecureStore || !AuthSession) return null;
-            const refreshToken = await SecureStore.getItemAsync(SECURE_STORE_KEYS.GOOGLE_REFRESH_TOKEN);
+            
+            const refreshKey = getSecureStoreKey(SECURE_STORE_KEYS.GOOGLE_REFRESH_TOKEN, accountEmail);
+            const refreshToken = await SecureStore.getItemAsync(refreshKey);
             if (!refreshToken) return null;
             
             const result = await AuthSession.refreshAsync(
@@ -510,7 +534,8 @@ class CalendarSyncService {
             await this.storeGoogleTokens(
                 result.accessToken,
                 result.refreshToken || refreshToken,
-                result.expiresIn
+                result.expiresIn,
+                accountEmail
             );
             
             return result.accessToken;
@@ -578,15 +603,16 @@ class CalendarSyncService {
     }
     
     /**
-     * Fetch events from Google Calendar
+     * Fetch events from Google Calendar (multi-account support)
      */
     async fetchGoogleCalendarEvents(
         calendarIds: string[],
         startDate: Date,
-        endDate: Date
+        endDate: Date,
+        accountEmail?: string
     ): Promise<ExternalEvent[]> {
         try {
-            const accessToken = await this.getGoogleAccessToken();
+            const accessToken = await this.getGoogleAccessToken(accountEmail);
             if (!accessToken) return [];
             
             const allEvents: ExternalEvent[] = [];
@@ -620,6 +646,8 @@ class CalendarSyncService {
                     location: event.location,
                     notes: event.description,
                     recurrence: event.recurrence?.join('\n'),
+                    accountId: accountEmail,
+                    accountEmail,
                 }));
                 
                 allEvents.push(...events);
@@ -633,26 +661,35 @@ class CalendarSyncService {
     }
     
     /**
-     * Disconnect Google Calendar
+     * Disconnect Google Calendar (multi-account support)
      */
-    async disconnectGoogleCalendar(): Promise<void> {
+    async disconnectGoogleCalendar(accountEmail?: string): Promise<void> {
         try {
             await this.init();
             if (!SecureStore) return;
-            const accessToken = await SecureStore.getItemAsync(SECURE_STORE_KEYS.GOOGLE_ACCESS_TOKEN);
+            
+            const accessKey = getSecureStoreKey(SECURE_STORE_KEYS.GOOGLE_ACCESS_TOKEN, accountEmail);
+            const refreshKey = getSecureStoreKey(SECURE_STORE_KEYS.GOOGLE_REFRESH_TOKEN, accountEmail);
+            const expiryKey = getSecureStoreKey(SECURE_STORE_KEYS.GOOGLE_TOKEN_EXPIRY, accountEmail);
+            
+            const accessToken = await SecureStore.getItemAsync(accessKey);
             
             // Revoke token if exists
             if (accessToken && AuthSession) {
-                await AuthSession.revokeAsync(
-                    { token: accessToken },
-                    googleDiscovery
-                );
+                try {
+                    await AuthSession.revokeAsync(
+                        { token: accessToken },
+                        googleDiscovery
+                    );
+                } catch (e) {
+                    console.warn('Failed to revoke Google token:', e);
+                }
             }
             
             // Clear stored tokens
-            await SecureStore.deleteItemAsync(SECURE_STORE_KEYS.GOOGLE_ACCESS_TOKEN);
-            await SecureStore.deleteItemAsync(SECURE_STORE_KEYS.GOOGLE_REFRESH_TOKEN);
-            await SecureStore.deleteItemAsync(SECURE_STORE_KEYS.GOOGLE_TOKEN_EXPIRY);
+            await SecureStore.deleteItemAsync(accessKey);
+            await SecureStore.deleteItemAsync(refreshKey);
+            await SecureStore.deleteItemAsync(expiryKey);
         } catch (error) {
             console.error('Error disconnecting Google Calendar:', error);
         }
@@ -998,15 +1035,15 @@ class CalendarSyncService {
     }
     
     /**
-     * Disconnect from a calendar provider
+     * Disconnect from a calendar provider (multi-account support)
      */
-    async disconnectProvider(provider: CalendarProvider): Promise<void> {
+    async disconnectProvider(provider: CalendarProvider, accountEmail?: string): Promise<void> {
         switch (provider) {
             case 'apple':
                 // Apple Calendar doesn't need disconnection, just clear from store
                 break;
             case 'google':
-                await this.disconnectGoogleCalendar();
+                await this.disconnectGoogleCalendar(accountEmail);
                 break;
             case 'microsoft':
                 await this.disconnectMicrosoftCalendar();
@@ -1015,12 +1052,13 @@ class CalendarSyncService {
     }
     
     /**
-     * Sync events from a provider
+     * Sync events from a provider (multi-account support)
      */
     async syncProviderEvents(
         provider: CalendarProvider,
         calendarIds: string[],
-        syncRangeDays: number = 30
+        syncRangeDays: number = 30,
+        accountEmail?: string
     ): Promise<ExternalEvent[]> {
         const startDate = new Date();
         startDate.setHours(0, 0, 0, 0);
@@ -1033,7 +1071,7 @@ class CalendarSyncService {
             case 'apple':
                 return this.fetchAppleCalendarEvents(calendarIds, startDate, endDate);
             case 'google':
-                return this.fetchGoogleCalendarEvents(calendarIds, startDate, endDate);
+                return this.fetchGoogleCalendarEvents(calendarIds, startDate, endDate, accountEmail);
             case 'microsoft':
                 return this.fetchMicrosoftCalendarEvents(calendarIds, startDate, endDate);
             default:

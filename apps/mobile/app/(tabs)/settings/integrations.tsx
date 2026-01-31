@@ -45,6 +45,7 @@ import {
     getSyncFrequencyLabel,
     type CalendarProvider,
     type ExternalCalendar,
+    type ProviderAccount,
 } from '../../../store/calendarSyncStore';
 
 // Services
@@ -110,7 +111,7 @@ function DevBuildRequiredBanner() {
 }
 
 /**
- * Provider connection card
+ * Provider connection card - Multi-account version
  */
 function ProviderCard({
     provider,
@@ -120,20 +121,28 @@ function ProviderCard({
     onSync,
 }: {
     provider: CalendarProvider;
-    onConnect: () => void;
-    onDisconnect: () => void;
-    onManageCalendars: () => void;
-    onSync: () => void;
+    onConnect: (accountId?: string) => void;
+    onDisconnect: (accountId?: string) => void;
+    onManageCalendars: (accountId?: string) => void;
+    onSync: (accountId?: string) => void;
 }) {
     const config = CALENDAR_PROVIDERS[provider];
+    const accounts = useCalendarSyncStore((s) => s.getAccountsForProvider(provider));
     const connection = useCalendarSyncStore((s) => s.connections[provider]);
-    const isConnected = connection.status === 'connected';
-    const isConnecting = connection.status === 'connecting';
-    const isSyncing = connection.syncStatus === 'syncing';
-    const hasError = connection.status === 'error';
     
-    const selectedCount = connection.calendars.filter((c) => c.isSelected).length;
-    const totalCount = connection.calendars.length;
+    // Check if any account is connected or connecting
+    const connectedAccounts = accounts.filter(a => a.status === 'connected');
+    const connectingAccounts = accounts.filter(a => a.status === 'connecting');
+    const hasError = accounts.some(a => a.status === 'error');
+    const isConnected = connectedAccounts.length > 0;
+    const isConnecting = connectingAccounts.length > 0;
+    const isSyncing = accounts.some(a => a.syncStatus === 'syncing');
+    
+    // Total calendars across all accounts
+    const totalCalendars = accounts.reduce((sum, a) => sum + a.calendars.length, 0);
+    const selectedCalendars = accounts.reduce(
+        (sum, a) => sum + a.calendars.filter(c => c.isSelected).length, 0
+    );
     
     return (
         <View className="bg-white rounded-2xl mb-3 overflow-hidden border border-gray-100 shadow-sm">
@@ -161,7 +170,9 @@ function ProviderCard({
                 {isConnected ? (
                     <View className="bg-green-50 px-3 py-1.5 rounded-full flex-row items-center">
                         <View className="w-2 h-2 rounded-full bg-green-500 mr-1.5" />
-                        <Text className="text-green-700 text-xs font-medium">Connected</Text>
+                        <Text className="text-green-700 text-xs font-medium">
+                            {connectedAccounts.length} {connectedAccounts.length === 1 ? 'account' : 'accounts'}
+                        </Text>
                     </View>
                 ) : isConnecting ? (
                     <View className="bg-blue-50 px-3 py-1.5 rounded-full flex-row items-center">
@@ -170,14 +181,14 @@ function ProviderCard({
                     </View>
                 ) : hasError ? (
                     <TouchableOpacity
-                        onPress={onConnect}
+                        onPress={() => onConnect()}
                         className="bg-red-50 px-3 py-1.5 rounded-full"
                     >
                         <Text className="text-red-700 text-xs font-medium">Retry</Text>
                     </TouchableOpacity>
                 ) : (
                     <TouchableOpacity
-                        onPress={onConnect}
+                        onPress={() => onConnect()}
                         className="bg-blue-500 px-4 py-2 rounded-full"
                         activeOpacity={0.8}
                     >
@@ -186,77 +197,90 @@ function ProviderCard({
                 )}
             </View>
             
-            {/* Error Message */}
-            {hasError && connection.errorMessage && (
+            {/* Error Message from any account */}
+            {hasError && accounts.find(a => a.errorMessage)?.errorMessage && (
                 <View className="px-4 py-3 bg-red-50">
-                    <Text className="text-red-600 text-sm">{connection.errorMessage}</Text>
+                    <Text className="text-red-600 text-sm">
+                        {accounts.find(a => a.errorMessage)?.errorMessage}
+                    </Text>
                 </View>
             )}
             
-            {/* Connected State - Account & Calendars */}
+            {/* Connected Accounts List */}
             {isConnected && (
                 <>
-                    {/* Account Info */}
-                    {connection.accountEmail && (
-                        <View className="px-4 py-3 flex-row items-center border-b border-gray-50">
-                            <MaterialCommunityIcons name="account-circle-outline" size={18} color="#6B7280" />
-                            <Text className="ml-2 text-sm text-gray-600 flex-1" numberOfLines={1}>
-                                {connection.accountEmail}
-                            </Text>
-                        </View>
-                    )}
-                    
-                    {/* Calendars Row */}
-                    <TouchableOpacity
-                        onPress={onManageCalendars}
-                        className="px-4 py-3 flex-row items-center justify-between border-b border-gray-50"
-                        activeOpacity={0.7}
-                    >
-                        <View className="flex-row items-center">
-                            <MaterialCommunityIcons name="calendar-multiple" size={18} color="#6B7280" />
-                            <Text className="ml-2 text-sm text-gray-700">Calendars</Text>
-                        </View>
-                        <View className="flex-row items-center">
-                            <Text className="text-sm text-gray-500 mr-2">
-                                {selectedCount} of {totalCount} selected
-                            </Text>
-                            <MaterialCommunityIcons name="chevron-right" size={20} color="#C7C7CC" />
-                        </View>
-                    </TouchableOpacity>
-                    
-                    {/* Last Sync & Actions Row */}
-                    <View className="px-4 py-3 flex-row items-center justify-between">
-                        <View className="flex-row items-center">
-                            <MaterialCommunityIcons name="sync" size={16} color="#9CA3AF" />
-                            <Text className="ml-1.5 text-xs text-gray-500">
-                                Last sync: {formatLastSyncTime(connection.lastSyncAt)}
-                            </Text>
-                        </View>
-                        
-                        <View className="flex-row items-center">
-                            {/* Sync Button */}
+                    {/* Account List */}
+                    {connectedAccounts.map((account, index) => (
+                        <View key={account.id} className={index > 0 ? 'border-t border-gray-100' : ''}>
+                            {/* Account Email */}
+                            <View className="px-4 py-3 flex-row items-center border-b border-gray-50 bg-gray-50/50">
+                                <MaterialCommunityIcons name="account-circle-outline" size={18} color="#6B7280" />
+                                <Text className="ml-2 text-sm text-gray-700 flex-1 font-medium" numberOfLines={1}>
+                                    {account.accountEmail || account.accountName || 'Connected Account'}
+                                </Text>
+                                <TouchableOpacity 
+                                    onPress={() => onDisconnect(account.id)} 
+                                    activeOpacity={0.7}
+                                    className="px-2 py-1"
+                                >
+                                    <Text className="text-xs text-red-500">Remove</Text>
+                                </TouchableOpacity>
+                            </View>
+                            
+                            {/* Calendars for this account */}
                             <TouchableOpacity
-                                onPress={onSync}
-                                disabled={isSyncing}
-                                className="mr-3 flex-row items-center"
+                                onPress={() => onManageCalendars(account.id)}
+                                className="px-4 py-3 flex-row items-center justify-between border-b border-gray-50"
                                 activeOpacity={0.7}
                             >
-                                {isSyncing ? (
-                                    <ActivityIndicator size="small" color="#3B82F6" />
-                                ) : (
-                                    <>
-                                        <MaterialCommunityIcons name="refresh" size={16} color="#3B82F6" />
-                                        <Text className="ml-1 text-sm text-blue-500 font-medium">Sync</Text>
-                                    </>
-                                )}
+                                <View className="flex-row items-center pl-6">
+                                    <MaterialCommunityIcons name="calendar-multiple" size={16} color="#9CA3AF" />
+                                    <Text className="ml-2 text-sm text-gray-600">Calendars</Text>
+                                </View>
+                                <View className="flex-row items-center">
+                                    <Text className="text-sm text-gray-500 mr-2">
+                                        {account.calendars.filter(c => c.isSelected).length} of {account.calendars.length}
+                                    </Text>
+                                    <MaterialCommunityIcons name="chevron-right" size={20} color="#C7C7CC" />
+                                </View>
                             </TouchableOpacity>
                             
-                            {/* Disconnect Button */}
-                            <TouchableOpacity onPress={onDisconnect} activeOpacity={0.7}>
-                                <Text className="text-sm text-red-500 font-medium">Disconnect</Text>
-                            </TouchableOpacity>
+                            {/* Last Sync for this account */}
+                            <View className="px-4 py-2 flex-row items-center justify-between">
+                                <View className="flex-row items-center pl-6">
+                                    <MaterialCommunityIcons name="sync" size={14} color="#9CA3AF" />
+                                    <Text className="ml-1.5 text-xs text-gray-500">
+                                        Synced: {formatLastSyncTime(account.lastSyncAt)}
+                                    </Text>
+                                </View>
+                                <TouchableOpacity
+                                    onPress={() => onSync(account.id)}
+                                    disabled={account.syncStatus === 'syncing'}
+                                    className="flex-row items-center px-2 py-1"
+                                    activeOpacity={0.7}
+                                >
+                                    {account.syncStatus === 'syncing' ? (
+                                        <ActivityIndicator size="small" color="#3B82F6" />
+                                    ) : (
+                                        <>
+                                            <MaterialCommunityIcons name="refresh" size={14} color="#3B82F6" />
+                                            <Text className="ml-1 text-xs text-blue-500 font-medium">Sync</Text>
+                                        </>
+                                    )}
+                                </TouchableOpacity>
+                            </View>
                         </View>
-                    </View>
+                    ))}
+                    
+                    {/* Add Another Account Button */}
+                    <TouchableOpacity
+                        onPress={() => onConnect()}
+                        className="px-4 py-3 flex-row items-center justify-center border-t border-gray-100"
+                        activeOpacity={0.7}
+                    >
+                        <MaterialCommunityIcons name="plus-circle-outline" size={18} color="#3B82F6" />
+                        <Text className="ml-2 text-sm text-blue-500 font-medium">Add Another Account</Text>
+                    </TouchableOpacity>
                 </>
             )}
         </View>
@@ -264,38 +288,48 @@ function ProviderCard({
 }
 
 /**
- * Calendar selection modal with Life Context settings
+ * Calendar selection modal with Life Context settings (multi-account support)
  */
 function CalendarSelectionModal({
     visible,
     onClose,
     provider,
+    accountId,
 }: {
     visible: boolean;
     onClose: () => void;
     provider: CalendarProvider | null;
+    accountId?: string;
 }) {
-    const connection = useCalendarSyncStore((s) =>
-        provider ? s.connections[provider] : null
+    const accounts = useCalendarSyncStore((s) =>
+        provider ? s.getAccountsForProvider(provider) : []
     );
     const toggleCalendarSelection = useCalendarSyncStore((s) => s.toggleCalendarSelection);
     const selectAllCalendars = useCalendarSyncStore((s) => s.selectAllCalendars);
     
+    // If accountId is provided, show only that account's calendars
+    // Otherwise show all accounts' calendars grouped
+    const targetAccounts = accountId 
+        ? accounts.filter(a => a.id === accountId)
+        : accounts.filter(a => a.status === 'connected');
+    
     // State for alias modal
     const [aliasModalVisible, setAliasModalVisible] = useState(false);
     const [selectedCalendar, setSelectedCalendar] = useState<ExternalCalendar | null>(null);
+    const [selectedCalendarAccountId, setSelectedCalendarAccountId] = useState<string | undefined>(undefined);
     
-    const handleOpenAliasModal = (calendar: ExternalCalendar) => {
+    const handleOpenAliasModal = (calendar: ExternalCalendar, calAccountId?: string) => {
         setSelectedCalendar(calendar);
+        setSelectedCalendarAccountId(calAccountId);
         setAliasModalVisible(true);
     };
     
-    if (!provider || !connection) return null;
+    if (!provider || targetAccounts.length === 0) return null;
     
     const config = CALENDAR_PROVIDERS[provider];
-    const calendars = connection.calendars;
-    const allSelected = calendars.every((c) => c.isSelected);
-    const someSelected = calendars.some((c) => c.isSelected);
+    const allCalendars = targetAccounts.flatMap(a => a.calendars);
+    const allSelected = allCalendars.every((c) => c.isSelected);
+    const someSelected = allCalendars.some((c) => c.isSelected);
     
     return (
         <>
@@ -351,75 +385,99 @@ function CalendarSelectionModal({
                             </Text>
                         </View>
                         
-                        {/* Select All */}
-                        <TouchableOpacity
-                            onPress={() => selectAllCalendars(provider, !allSelected)}
-                            className="flex-row items-center px-5 py-4 border-b border-gray-100"
-                            activeOpacity={0.7}
-                        >
-                            <MaterialCommunityIcons
-                                name={allSelected ? 'checkbox-marked' : someSelected ? 'minus-box' : 'checkbox-blank-outline'}
-                                size={24}
-                                color={allSelected || someSelected ? '#3B82F6' : '#9CA3AF'}
-                            />
-                            <Text className="ml-3 text-base font-semibold text-gray-900">Select All</Text>
-                        </TouchableOpacity>
-                        
-                        {/* Calendar List */}
                         <ScrollView className="px-5" bounces={false}>
-                            {calendars.map((calendar, index) => (
-                                <View
-                                    key={calendar.id}
-                                    className={`flex-row items-center py-3 ${
-                                        index < calendars.length - 1 ? 'border-b border-gray-100' : ''
-                                    }`}
-                                >
-                                    {/* Checkbox */}
-                                    <TouchableOpacity
-                                        onPress={() => toggleCalendarSelection(provider, calendar.id)}
-                                        className="flex-row items-center flex-1"
-                                        activeOpacity={0.7}
-                                    >
-                                        <MaterialCommunityIcons
-                                            name={calendar.isSelected ? 'checkbox-marked' : 'checkbox-blank-outline'}
-                                            size={24}
-                                            color={calendar.isSelected ? '#3B82F6' : '#9CA3AF'}
-                                        />
-                                        <View
-                                            className="w-4 h-4 rounded-full mx-3"
-                                            style={{ backgroundColor: calendar.contextColor || calendar.color }}
-                                        />
-                                        <View className="flex-1">
-                                            <View className="flex-row items-center">
-                                                <Text className="text-base text-gray-900">
-                                                    {calendar.alias || calendar.name}
-                                                </Text>
-                                            </View>
-                                            {calendar.alias && calendar.alias !== calendar.name && (
-                                                <Text className="text-xs text-gray-400">was: {calendar.name}</Text>
-                                            )}
-                                            {!calendar.alias && calendar.isPrimary && (
-                                                <Text className="text-xs text-gray-500">Primary</Text>
-                                            )}
+                            {targetAccounts.map((account) => (
+                                <View key={account.id}>
+                                    {/* Account Header (if multiple accounts) */}
+                                    {targetAccounts.length > 1 && (
+                                        <View className="flex-row items-center py-3 mt-2 border-b border-gray-200">
+                                            <MaterialCommunityIcons name="account-circle" size={20} color="#6B7280" />
+                                            <Text className="ml-2 text-sm font-semibold text-gray-700">
+                                                {account.accountEmail || 'Account'}
+                                            </Text>
                                         </View>
-                                    </TouchableOpacity>
+                                    )}
                                     
-                                    {/* Settings button for Life Context - with hitSlop for better tapping */}
+                                    {/* Select All for this account */}
                                     <TouchableOpacity
                                         onPress={() => {
-                                            console.log('[Integrations] Gear tapped for:', calendar.name);
-                                            handleOpenAliasModal(calendar);
+                                            const accountCalendars = account.calendars;
+                                            const allAccountSelected = accountCalendars.every((c) => c.isSelected);
+                                            selectAllCalendars(provider, !allAccountSelected, account.id);
                                         }}
-                                        hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-                                        className="p-3 -mr-2"
-                                        activeOpacity={0.5}
+                                        className="flex-row items-center py-4 border-b border-gray-100"
+                                        activeOpacity={0.7}
                                     >
-                                        <MaterialCommunityIcons
-                                            name="cog"
-                                            size={22}
-                                            color={calendar.alias ? (calendar.contextColor || '#6366F1') : '#6B7280'}
-                                        />
+                                        {(() => {
+                                            const accountCalendars = account.calendars;
+                                            const allAccountSelected = accountCalendars.every((c) => c.isSelected);
+                                            const someAccountSelected = accountCalendars.some((c) => c.isSelected);
+                                            return (
+                                                <MaterialCommunityIcons
+                                                    name={allAccountSelected ? 'checkbox-marked' : someAccountSelected ? 'minus-box' : 'checkbox-blank-outline'}
+                                                    size={24}
+                                                    color={allAccountSelected || someAccountSelected ? '#3B82F6' : '#9CA3AF'}
+                                                />
+                                            );
+                                        })()}
+                                        <Text className="ml-3 text-base font-semibold text-gray-900">
+                                            {targetAccounts.length > 1 ? 'Select All' : 'Select All Calendars'}
+                                        </Text>
                                     </TouchableOpacity>
+                                    
+                                    {/* Calendar List for this account */}
+                                    {account.calendars.map((calendar, index) => (
+                                        <View
+                                            key={calendar.id}
+                                            className={`flex-row items-center py-3 ${
+                                                index < account.calendars.length - 1 ? 'border-b border-gray-100' : ''
+                                            }`}
+                                        >
+                                            {/* Checkbox */}
+                                            <TouchableOpacity
+                                                onPress={() => toggleCalendarSelection(provider, calendar.id, account.id)}
+                                                className="flex-row items-center flex-1"
+                                                activeOpacity={0.7}
+                                            >
+                                                <MaterialCommunityIcons
+                                                    name={calendar.isSelected ? 'checkbox-marked' : 'checkbox-blank-outline'}
+                                                    size={24}
+                                                    color={calendar.isSelected ? '#3B82F6' : '#9CA3AF'}
+                                                />
+                                                <View
+                                                    className="w-4 h-4 rounded-full mx-3"
+                                                    style={{ backgroundColor: calendar.contextColor || calendar.color }}
+                                                />
+                                                <View className="flex-1">
+                                                    <View className="flex-row items-center">
+                                                        <Text className="text-base text-gray-900">
+                                                            {calendar.alias || calendar.name}
+                                                        </Text>
+                                                    </View>
+                                                    {calendar.alias && calendar.alias !== calendar.name && (
+                                                        <Text className="text-xs text-gray-400">was: {calendar.name}</Text>
+                                                    )}
+                                                    {!calendar.alias && calendar.isPrimary && (
+                                                        <Text className="text-xs text-gray-500">Primary</Text>
+                                                    )}
+                                                </View>
+                                            </TouchableOpacity>
+                                            
+                                            {/* Settings button for Life Context */}
+                                            <TouchableOpacity
+                                                onPress={() => handleOpenAliasModal(calendar, account.id)}
+                                                hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+                                                className="p-3 -mr-2"
+                                                activeOpacity={0.5}
+                                            >
+                                                <MaterialCommunityIcons
+                                                    name="cog"
+                                                    size={22}
+                                                    color={calendar.alias ? (calendar.contextColor || '#6366F1') : '#6B7280'}
+                                                />
+                                            </TouchableOpacity>
+                                        </View>
+                                    ))}
                                 </View>
                             ))}
                         </ScrollView>
@@ -447,9 +505,11 @@ function CalendarSelectionModal({
                 onClose={() => {
                     setAliasModalVisible(false);
                     setSelectedCalendar(null);
+                    setSelectedCalendarAccountId(undefined);
                 }}
                 calendar={selectedCalendar}
                 provider={provider}
+                accountId={selectedCalendarAccountId}
             />
         </>
     );
@@ -661,6 +721,7 @@ export default function IntegrationsScreen() {
     // Local state
     const [refreshing, setRefreshing] = useState(false);
     const [selectedProvider, setSelectedProvider] = useState<CalendarProvider | null>(null);
+    const [selectedAccountId, setSelectedAccountId] = useState<string | undefined>(undefined);
     const [showCalendarModal, setShowCalendarModal] = useState(false);
     const [nativeAvailable, setNativeAvailable] = useState<boolean | null>(null);
     
@@ -684,8 +745,8 @@ export default function IntegrationsScreen() {
     // Handlers
     // ========================================================================
     
-    const handleConnect = useCallback(async (provider: CalendarProvider) => {
-        initiateConnection(provider);
+    const handleConnect = useCallback(async (provider: CalendarProvider, accountId?: string) => {
+        initiateConnection(provider, accountId);
         
         try {
             const result = await calendarSyncService.connectProvider(provider);
@@ -695,84 +756,104 @@ export default function IntegrationsScreen() {
                     accountEmail: result.accountEmail,
                     accountName: result.accountName,
                     calendars: result.calendars || [],
-                });
+                }, result.accountEmail); // Use email as account ID
                 
                 // Auto-sync after connection
                 if (result.calendars && result.calendars.length > 0) {
-                    handleSyncProvider(provider);
+                    handleSyncProvider(provider, result.accountEmail);
                 }
             } else {
-                setConnectionError(provider, result.error || 'Connection failed');
+                setConnectionError(provider, result.error || 'Connection failed', accountId);
             }
         } catch (error) {
             setConnectionError(
                 provider,
-                error instanceof Error ? error.message : 'Unknown error'
+                error instanceof Error ? error.message : 'Unknown error',
+                accountId
             );
         }
     }, [initiateConnection, completeConnection, setConnectionError]);
     
-    const handleDisconnect = useCallback((provider: CalendarProvider) => {
+    const handleDisconnect = useCallback((provider: CalendarProvider, accountId?: string) => {
         const config = CALENDAR_PROVIDERS[provider];
+        const accounts = useCalendarSyncStore.getState().getAccountsForProvider(provider);
+        const account = accountId ? accounts.find(a => a.id === accountId) : accounts[0];
+        const accountLabel = account?.accountEmail || config.name;
         
         Alert.alert(
-            `Disconnect ${config.name}?`,
-            'Your calendar events will no longer be synced. You can reconnect anytime.',
+            `Disconnect ${accountLabel}?`,
+            'Your calendar events from this account will no longer be synced. You can reconnect anytime.',
             [
                 { text: 'Cancel', style: 'cancel' },
                 {
                     text: 'Disconnect',
                     style: 'destructive',
                     onPress: async () => {
-                        await calendarSyncService.disconnectProvider(provider);
-                        disconnectProvider(provider);
+                        await calendarSyncService.disconnectProvider(provider, accountId);
+                        disconnectProvider(provider, accountId);
                     },
                 },
             ]
         );
     }, [disconnectProvider]);
     
-    const handleManageCalendars = useCallback((provider: CalendarProvider) => {
+    const handleManageCalendars = useCallback((provider: CalendarProvider, accountId?: string) => {
         setSelectedProvider(provider);
+        setSelectedAccountId(accountId);
         setShowCalendarModal(true);
     }, []);
     
-    const handleSyncProvider = useCallback(async (provider: CalendarProvider) => {
-        const connection = connections[provider];
-        if (connection.status !== 'connected') return;
+    const handleSyncProvider = useCallback(async (provider: CalendarProvider, accountId?: string) => {
+        const accounts = useCalendarSyncStore.getState().getAccountsForProvider(provider);
+        const accountsToSync = accountId 
+            ? accounts.filter(a => a.id === accountId)
+            : accounts.filter(a => a.status === 'connected');
         
-        startSync(provider);
+        if (accountsToSync.length === 0) return;
         
-        try {
-            const selectedCalendarIds = connection.calendars
-                .filter((c) => c.isSelected)
-                .map((c) => c.id);
+        for (const account of accountsToSync) {
+            startSync(provider, account.id);
             
-            if (selectedCalendarIds.length === 0) {
-                completeSync(provider, true);
-                return;
+            try {
+                const selectedCalendarIds = account.calendars
+                    .filter((c) => c.isSelected)
+                    .map((c) => c.id);
+                
+                if (selectedCalendarIds.length === 0) {
+                    completeSync(provider, true, undefined, account.id);
+                    continue;
+                }
+                
+                // Clear old events from this account
+                clearProviderEvents(provider, account.id);
+                
+                // Fetch new events
+                const events = await calendarSyncService.syncProviderEvents(
+                    provider,
+                    selectedCalendarIds,
+                    syncSettings.syncRangeDays,
+                    account.accountEmail
+                );
+                
+                // Tag events with account info
+                const taggedEvents = events.map(e => ({
+                    ...e,
+                    accountId: account.id,
+                    accountEmail: account.accountEmail,
+                }));
+                
+                addEvents(taggedEvents);
+                completeSync(provider, true, undefined, account.id);
+            } catch (error) {
+                completeSync(
+                    provider,
+                    false,
+                    error instanceof Error ? error.message : 'Sync failed',
+                    account.id
+                );
             }
-            
-            // Clear old events from this provider
-            clearProviderEvents(provider);
-            
-            // Fetch new events
-            const events = await calendarSyncService.syncProviderEvents(
-                provider,
-                selectedCalendarIds,
-                syncSettings.syncRangeDays
-            );
-            
-            addEvents(events);
-            completeSync(provider, true);
-        } catch (error) {
-            completeSync(
-                provider,
-                false,
-                error instanceof Error ? error.message : 'Sync failed'
-            );
         }
-    }, [connections, syncSettings, startSync, completeSync, clearProviderEvents, addEvents]);
+    }, [syncSettings, startSync, completeSync, clearProviderEvents, addEvents]);
     
     const handleSyncAll = useCallback(async () => {
         setRefreshing(true);
@@ -876,29 +957,29 @@ export default function IntegrationsScreen() {
                     {Platform.OS === 'ios' && (
                         <ProviderCard
                             provider="apple"
-                            onConnect={() => handleConnect('apple')}
-                            onDisconnect={() => handleDisconnect('apple')}
-                            onManageCalendars={() => handleManageCalendars('apple')}
-                            onSync={() => handleSyncProvider('apple')}
+                            onConnect={(accountId) => handleConnect('apple', accountId)}
+                            onDisconnect={(accountId) => handleDisconnect('apple', accountId)}
+                            onManageCalendars={(accountId) => handleManageCalendars('apple', accountId)}
+                            onSync={(accountId) => handleSyncProvider('apple', accountId)}
                         />
                     )}
                     
                     {/* Google Calendar */}
                     <ProviderCard
                         provider="google"
-                        onConnect={() => handleConnect('google')}
-                        onDisconnect={() => handleDisconnect('google')}
-                        onManageCalendars={() => handleManageCalendars('google')}
-                        onSync={() => handleSyncProvider('google')}
+                        onConnect={(accountId) => handleConnect('google', accountId)}
+                        onDisconnect={(accountId) => handleDisconnect('google', accountId)}
+                        onManageCalendars={(accountId) => handleManageCalendars('google', accountId)}
+                        onSync={(accountId) => handleSyncProvider('google', accountId)}
                     />
                     
                     {/* Microsoft Outlook */}
                     <ProviderCard
                         provider="microsoft"
-                        onConnect={() => handleConnect('microsoft')}
-                        onDisconnect={() => handleDisconnect('microsoft')}
-                        onManageCalendars={() => handleManageCalendars('microsoft')}
-                        onSync={() => handleSyncProvider('microsoft')}
+                        onConnect={(accountId) => handleConnect('microsoft', accountId)}
+                        onDisconnect={(accountId) => handleDisconnect('microsoft', accountId)}
+                        onManageCalendars={(accountId) => handleManageCalendars('microsoft', accountId)}
+                        onSync={(accountId) => handleSyncProvider('microsoft', accountId)}
                     />
                 </View>
                 
@@ -932,10 +1013,12 @@ export default function IntegrationsScreen() {
                     setShowCalendarModal(false);
                     // Trigger sync after calendar selection changes
                     if (selectedProvider) {
-                        handleSyncProvider(selectedProvider);
+                        handleSyncProvider(selectedProvider, selectedAccountId);
                     }
+                    setSelectedAccountId(undefined);
                 }}
                 provider={selectedProvider}
+                accountId={selectedAccountId}
             />
         </View>
     );

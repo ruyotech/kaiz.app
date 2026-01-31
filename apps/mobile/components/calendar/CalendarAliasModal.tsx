@@ -35,6 +35,7 @@ interface CalendarAliasModalProps {
     onClose: () => void;
     calendar: ExternalCalendar | null;
     provider: CalendarProvider;
+    accountId?: string; // Multi-account support
 }
 
 // ============================================================================
@@ -46,6 +47,7 @@ export const CalendarAliasModal: React.FC<CalendarAliasModalProps> = ({
     onClose,
     calendar,
     provider,
+    accountId,
 }) => {
     const { setCalendarAlias } = useCalendarSyncStore();
     
@@ -79,7 +81,7 @@ export const CalendarAliasModal: React.FC<CalendarAliasModalProps> = ({
     
     const handleSave = () => {
         if (calendar && alias.trim()) {
-            setCalendarAlias(provider, calendar.id, alias.trim(), selectedColor);
+            setCalendarAlias(provider, calendar.id, alias.trim(), selectedColor, accountId);
             onClose();
         }
     };

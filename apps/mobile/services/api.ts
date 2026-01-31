@@ -256,7 +256,8 @@ async function request<T>(
 
         return data.data as T;
     } catch (error) {
-        if (error instanceof ApiError) {
+        // Re-throw auth and API errors as-is
+        if (error instanceof AuthExpiredError || error instanceof ApiError) {
             throw error;
         }
         
@@ -345,7 +346,8 @@ async function requestRaw<T>(
         // Return raw data directly (not wrapped)
         return data as T;
     } catch (error) {
-        if (error instanceof ApiError) {
+        // Re-throw auth and API errors as-is
+        if (error instanceof AuthExpiredError || error instanceof ApiError) {
             throw error;
         }
         
