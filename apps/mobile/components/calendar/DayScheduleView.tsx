@@ -1,0 +1,525 @@
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { format } from 'date-fns';
+import { Task } from '../../types/models';
+import { useTranslation } from '../../hooks/useTranslation';
+
+// Helper to check if a string is an emoji (not a MaterialCommunityIcons name)
+const isEmoji = (str: string): boolean => {
+    if (!str) return false;
+    // MaterialCommunityIcons names are typically lowercase with dashes (e.g., "heart-pulse")
+    // Emojis are unicode characters that don't match this pattern
+    const emojiRegex = /^[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F000}-\u{1F02F}\u{1F0A0}-\u{1F0FF}\u{1F100}-\u{1F64F}\u{1F680}-\u{1F6FF}]/u;
+    return emojiRegex.test(str) || (str.length <= 2 && !/^[a-z-]+$/.test(str));
+};
+
+// Render icon as emoji text or MaterialCommunityIcons
+const renderIcon = (icon: string, size: number, color: string) => {
+    if (isEmoji(icon)) {
+        return <Text style={{ fontSize: size, lineHeight: size + 2 }}>{icon}</Text>;
+    }
+    return <MaterialCommunityIcons name={icon as any} size={size} color={color} />;
+};
+
+interface DayScheduleViewProps {
+    currentDate: Date;
+    tasks: Task[];
+    epics: any[];
+    lifeWheelAreas: any[];
+    onTaskPress: (taskId: string) => void;
+}
+
+// Generate 30-min time slots for 24 hours
+const generateTimeSlots = () => {
+    const slots: { time: string; hour: number; minute: number }[] = [];
+    for (let hour = 0; hour < 24; hour++) {
+        slots.push({ time: `${hour.toString().padStart(2, '0')}:00`, hour, minute: 0 });
+        slots.push({ time: `${hour.toString().padStart(2, '0')}:30`, hour, minute: 30 });
+    }
+    return slots;
+};
+
+const TIME_SLOTS = generateTimeSlots();
+const SLOT_HEIGHT = 60; // Height in pixels for each 30-min slot
+
+// Helper to parse time string "HH:mm:ss" or "HH:mm" to minutes from midnight
+const parseTimeToMinutes = (timeStr: string | null | undefined): number | null => {
+    if (!timeStr) return null;
+    const parts = timeStr.split(':');
+    if (parts.length < 2) return null;
+    const hours = parseInt(parts[0], 10);
+    const minutes = parseInt(parts[1], 10);
+    return hours * 60 + minutes;
+};
+
+// Get task position and height based on scheduled time
+const getTaskPosition = (task: Task) => {
+    const startTime = parseTimeToMinutes(task.recurrence?.scheduledTime);
+    const endTime = parseTimeToMinutes(task.recurrence?.scheduledEndTime);
+
+    if (startTime === null) {
+        return null; // No scheduled time, will show in "All Day" section
+    }
+
+    // Convert minutes to slot position
+    const startSlotIndex = Math.floor(startTime / 30);
+    const top = startSlotIndex * SLOT_HEIGHT;
+
+    // Default duration is 30 min if no end time
+    let height = SLOT_HEIGHT;
+    if (endTime !== null && endTime > startTime) {
+        const durationSlots = Math.ceil((endTime - startTime) / 30);
+        height = durationSlots * SLOT_HEIGHT;
+    }
+
+    return { top, height, startTime, endTime };
+};
+
+// Get wheel of life info
+const getWheelOfLifeInfo = (lifeWheelAreaId: string, lifeWheelAreas: any[]) => {
+    const area = lifeWheelAreas.find(a => a.id === lifeWheelAreaId || a.displayId === lifeWheelAreaId);
+    if (!area) return { name: 'Unknown', icon: 'help-circle', color: '#6B7280' };
+    return {
+        name: area.name,
+        icon: area.icon || 'help-circle',
+        color: area.color || '#6B7280'
+    };
+};
+
+// Get Eisenhower priority info
+const getEisenhowerInfo = (quadrantId: string): { label: string; shortLabel: string; color: string; bgColor: string; icon: string } => {
+    const quadrants: Record<string, { label: string; shortLabel: string; color: string; bgColor: string; icon: string }> = {
+        'eq-1': { label: 'Urgent & Important', shortLabel: 'P1', color: '#DC2626', bgColor: 'bg-red-100', icon: 'fire' },
+        'eq-2': { label: 'Not Urgent & Important', shortLabel: 'P2', color: '#2563EB', bgColor: 'bg-blue-100', icon: 'target' },
+        'eq-3': { label: 'Urgent & Not Important', shortLabel: 'P3', color: '#CA8A04', bgColor: 'bg-yellow-100', icon: 'clock-fast' },
+        'eq-4': { label: 'Not Urgent & Not Important', shortLabel: 'P4', color: '#6B7280', bgColor: 'bg-gray-100', icon: 'delete-outline' },
+    };
+    return quadrants[quadrantId] || quadrants['eq-4'];
+};
+
+// Get recurrence display label (for weekdaily tasks in day view, don't show tag since we're viewing specific day)
+const getRecurrenceDayLabel = (task: Task, currentDate: Date): string | null => {
+    if (!task.isRecurring || !task.recurrence) return null;
+    const freq = task.recurrence.frequency;
+    switch (freq) {
+        case 'DAILY': return null; // Daily tasks appear every day, no special label needed
+        case 'WEEKLY': {
+            const dayOfWeek = task.recurrence.dayOfWeek;
+            if (dayOfWeek !== null && dayOfWeek !== currentDate.getDay()) {
+                return null; // Not scheduled for this day
+            }
+            return null;
+        }
+        default: return null;
+    }
+};
+
+// Check if task should appear on this day
+const shouldShowOnDay = (task: Task, currentDate: Date): boolean => {
+    if (!task.isRecurring || !task.recurrence) {
+        // Non-recurring task - show if matches sprint (default behavior)
+        return true;
+    }
+
+    const freq = task.recurrence.frequency;
+    const dayOfWeek = currentDate.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+
+    switch (freq) {
+        case 'DAILY':
+            return true;
+        case 'WEEKLY':
+        case 'BIWEEKLY':
+            // Show on the specific day of week
+            return task.recurrence.dayOfWeek === dayOfWeek;
+        case 'MONTHLY':
+            // Show on specific day of month
+            return task.recurrence.dayOfMonth === currentDate.getDate();
+        default:
+            return true;
+    }
+};
+
+// Check if task is a weekday recurring task (Mon-Fri)
+const isWeekdayRecurring = (task: Task): boolean => {
+    // A "weekdays" task is stored as DAILY with startDate being a weekday
+    // or we check if it's daily and doesn't have weekend scheduling
+    // For now, we'll treat any DAILY recurring task as potentially weekday
+    // The backend should ideally store a `daysOfWeek` array
+    return task.isRecurring === true && task.recurrence?.frequency === 'DAILY';
+};
+
+export function DayScheduleView({
+    currentDate,
+    tasks,
+    epics,
+    lifeWheelAreas,
+    onTaskPress,
+}: DayScheduleViewProps) {
+    const { t } = useTranslation();
+
+    // Filter tasks for current day
+    const dayTasks = tasks.filter(task => shouldShowOnDay(task, currentDate));
+
+    // Separate tasks with scheduled times vs all-day tasks
+    const scheduledTasks = dayTasks.filter(task => {
+        const pos = getTaskPosition(task);
+        return pos !== null;
+    });
+
+    const allDayTasks = dayTasks.filter(task => {
+        const pos = getTaskPosition(task);
+        return pos === null;
+    });
+
+    // Format current date for display
+    const dayName = format(currentDate, 'EEEE');
+    const dateStr = format(currentDate, 'MMMM d, yyyy');
+
+    const renderScheduledTask = (task: Task) => {
+        const position = getTaskPosition(task);
+        if (!position) return null;
+
+        const taskEpic = epics.find(e => e.id === task.epicId);
+        const wheelInfo = getWheelOfLifeInfo(task.lifeWheelAreaId, lifeWheelAreas);
+        const eisenhowerInfo = getEisenhowerInfo(task.eisenhowerQuadrantId);
+        const startTimeStr = task.recurrence?.scheduledTime?.substring(0, 5) || '';
+        const endTimeStr = task.recurrence?.scheduledEndTime?.substring(0, 5) || '';
+
+        // Determine status color
+        const statusColors: Record<string, { bg: string; text: string }> = {
+            'todo': { bg: 'bg-gray-100', text: 'text-gray-700' },
+            'in_progress': { bg: 'bg-blue-100', text: 'text-blue-700' },
+            'done': { bg: 'bg-green-100', text: 'text-green-700' },
+            'blocked': { bg: 'bg-red-100', text: 'text-red-700' },
+            'draft': { bg: 'bg-yellow-100', text: 'text-yellow-700' },
+        };
+        const statusStyle = statusColors[task.status] || statusColors.todo;
+
+        return (
+            <TouchableOpacity
+                key={task.id}
+                onPress={() => onTaskPress(task.id)}
+                className="absolute left-16 right-2 bg-white rounded-xl border border-gray-200 overflow-hidden"
+                style={{
+                    top: position.top + 2,
+                    height: Math.max(position.height - 4, 40),
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 2,
+                    elevation: 2,
+                }}
+            >
+                {/* Left colored bar based on Eisenhower priority */}
+                <View 
+                    className="absolute left-0 top-0 bottom-0 w-1.5"
+                    style={{ backgroundColor: eisenhowerInfo.color }}
+                />
+                
+                <View className="flex-1 p-2 pl-3">
+                    {/* Header row: Eisenhower priority + title */}
+                    <View className="flex-row items-center mb-1">
+                        {/* Eisenhower Priority Tag */}
+                        <View 
+                            className={`px-1.5 py-0.5 rounded mr-2 flex-row items-center ${eisenhowerInfo.bgColor}`}
+                        >
+                            <MaterialCommunityIcons 
+                                name={eisenhowerInfo.icon as any} 
+                                size={10} 
+                                color={eisenhowerInfo.color} 
+                            />
+                            <Text 
+                                className="text-[10px] font-bold ml-0.5" 
+                                style={{ color: eisenhowerInfo.color }}
+                            >
+                                {eisenhowerInfo.shortLabel}
+                            </Text>
+                        </View>
+                        <Text className="font-semibold text-gray-900 flex-1 mr-2" numberOfLines={1}>
+                            {task.title}
+                        </Text>
+                    </View>
+
+                    {/* Time + Epic row */}
+                    <View className="flex-row items-center justify-between mb-1">
+                        {(startTimeStr || endTimeStr) && (
+                            <View className="flex-row items-center">
+                                <MaterialCommunityIcons name="clock-outline" size={10} color="#6B7280" />
+                                <Text className="text-xs text-gray-500 ml-1">
+                                    {startTimeStr}{endTimeStr ? ` - ${endTimeStr}` : ''}
+                                </Text>
+                            </View>
+                        )}
+                        {taskEpic && (
+                            <View 
+                                className="px-2 py-0.5 rounded-full flex-row items-center"
+                                style={{ backgroundColor: taskEpic.color + '20' }}
+                            >
+                                <MaterialCommunityIcons 
+                                    name={taskEpic.icon as any} 
+                                    size={10} 
+                                    color={taskEpic.color} 
+                                />
+                                <Text 
+                                    className="text-[10px] font-bold ml-0.5" 
+                                    style={{ color: taskEpic.color }}
+                                    numberOfLines={1}
+                                >
+                                    {taskEpic.title}
+                                </Text>
+                            </View>
+                        )}
+                    </View>
+
+                    {/* Bottom row: wheel of life, status, points */}
+                    <View className="flex-row items-center flex-wrap gap-1">
+                        {/* Wheel of Life */}
+                        <View 
+                            className="flex-row items-center px-1.5 py-0.5 rounded"
+                            style={{ backgroundColor: wheelInfo.color + '15' }}
+                        >
+                            {renderIcon(wheelInfo.icon, 10, wheelInfo.color)}
+                            <Text 
+                                className="text-[10px] font-medium ml-0.5" 
+                                style={{ color: wheelInfo.color }}
+                            >
+                                {wheelInfo.name}
+                            </Text>
+                        </View>
+
+                        {/* Status */}
+                        <View className={`px-1.5 py-0.5 rounded ${statusStyle.bg}`}>
+                            <Text className={`text-[10px] font-medium capitalize ${statusStyle.text}`}>
+                                {task.status.replace('_', ' ')}
+                            </Text>
+                        </View>
+
+                        {/* Story Points */}
+                        <View className="bg-gray-100 px-1.5 py-0.5 rounded">
+                            <Text className="text-[10px] font-bold text-gray-600">
+                                {task.storyPoints || 0}pt
+                            </Text>
+                        </View>
+                    </View>
+                </View>
+            </TouchableOpacity>
+        );
+    };
+
+    const renderAllDayTask = (task: Task) => {
+        const taskEpic = epics.find(e => e.id === task.epicId);
+        const wheelInfo = getWheelOfLifeInfo(task.lifeWheelAreaId, lifeWheelAreas);
+        const eisenhowerInfo = getEisenhowerInfo(task.eisenhowerQuadrantId);
+
+        // Get recurrence label
+        const getRecurrenceLabel = () => {
+            if (!task.isRecurring || !task.recurrence) return null;
+            const freq = task.recurrence.frequency;
+            switch (freq) {
+                case 'DAILY': return '📅';
+                case 'WEEKLY': return '🔄';
+                case 'BIWEEKLY': return '📆';
+                case 'MONTHLY': return '🗓️';
+                default: return '🔁';
+            }
+        };
+
+        const statusColors: Record<string, { bg: string; text: string; border: string }> = {
+            'todo': { bg: 'bg-gray-50', text: 'text-gray-700', border: 'border-gray-200' },
+            'in_progress': { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
+            'done': { bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-200' },
+            'blocked': { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
+            'draft': { bg: 'bg-yellow-50', text: 'text-yellow-700', border: 'border-yellow-200' },
+        };
+        const statusStyle = statusColors[task.status] || statusColors.todo;
+
+        return (
+            <TouchableOpacity
+                key={task.id}
+                onPress={() => onTaskPress(task.id)}
+                className={`bg-white rounded-xl p-3 mb-2 border ${statusStyle.border}`}
+                style={{
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.05,
+                    shadowRadius: 2,
+                    elevation: 1,
+                }}
+            >
+                {/* Left colored bar based on Eisenhower priority */}
+                <View 
+                    className="absolute left-0 top-2 bottom-2 w-1.5 rounded-full"
+                    style={{ backgroundColor: eisenhowerInfo.color }}
+                />
+
+                <View className="pl-2">
+                    {/* Priority + Title row */}
+                    <View className="flex-row items-center mb-2">
+                        {/* Eisenhower Priority Tag */}
+                        <View 
+                            className={`px-2 py-1 rounded mr-2 flex-row items-center ${eisenhowerInfo.bgColor}`}
+                        >
+                            <MaterialCommunityIcons 
+                                name={eisenhowerInfo.icon as any} 
+                                size={12} 
+                                color={eisenhowerInfo.color} 
+                            />
+                            <Text 
+                                className="text-xs font-bold ml-1" 
+                                style={{ color: eisenhowerInfo.color }}
+                            >
+                                {eisenhowerInfo.shortLabel}
+                            </Text>
+                        </View>
+                        <View className="flex-row items-center flex-1">
+                            {getRecurrenceLabel() && (
+                                <Text className="mr-1">{getRecurrenceLabel()}</Text>
+                            )}
+                            <Text className="font-semibold text-gray-900 flex-1" numberOfLines={1}>
+                                {task.title}
+                            </Text>
+                        </View>
+                    </View>
+
+                    {/* Epic row */}
+                    {taskEpic && (
+                        <View className="mb-2">
+                            <View 
+                                className="px-2 py-0.5 rounded-full flex-row items-center self-start"
+                                style={{ backgroundColor: taskEpic.color + '20' }}
+                            >
+                                <MaterialCommunityIcons 
+                                    name={taskEpic.icon as any} 
+                                    size={12} 
+                                    color={taskEpic.color} 
+                                />
+                                <Text 
+                                    className="text-xs font-bold ml-1" 
+                                    style={{ color: taskEpic.color }}
+                                    numberOfLines={1}
+                                >
+                                    {taskEpic.title}
+                                </Text>
+                            </View>
+                        </View>
+                    )}
+
+                    {/* Description if exists */}
+                    {task.description && (
+                        <Text className="text-xs text-gray-500 mb-2" numberOfLines={2}>
+                            {task.description}
+                        </Text>
+                    )}
+
+                    {/* Bottom metadata row */}
+                    <View className="flex-row items-center flex-wrap gap-2">
+                        {/* Wheel of Life */}
+                        <View 
+                            className="flex-row items-center px-2 py-1 rounded-full"
+                            style={{ backgroundColor: wheelInfo.color + '15' }}
+                        >
+                            {renderIcon(wheelInfo.icon, 12, wheelInfo.color)}
+                            <Text 
+                                className="text-xs font-medium ml-1" 
+                                style={{ color: wheelInfo.color }}
+                            >
+                                {wheelInfo.name}
+                            </Text>
+                        </View>
+
+                        {/* Status Badge */}
+                        <View className={`px-2 py-1 rounded-full ${statusStyle.bg}`}>
+                            <Text className={`text-xs font-semibold capitalize ${statusStyle.text}`}>
+                                {task.status.replace('_', ' ')}
+                            </Text>
+                        </View>
+
+                        {/* Story Points */}
+                        <View className="bg-gray-100 px-2 py-1 rounded-full">
+                            <Text className="text-xs font-bold text-gray-700">
+                                {task.storyPoints || 0} pts
+                            </Text>
+                        </View>
+                    </View>
+                </View>
+            </TouchableOpacity>
+        );
+    };
+
+    return (
+        <View className="flex-1">
+            {/* Day Header */}
+            <View className="px-4 py-3 bg-white border-b border-gray-100">
+                <Text className="text-lg font-bold text-gray-900">{dayName}</Text>
+                <Text className="text-sm text-gray-500">{dateStr}</Text>
+            </View>
+
+            {/* All Day Tasks Section */}
+            {allDayTasks.length > 0 && (
+                <View className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                    <View className="flex-row items-center mb-2">
+                        <MaterialCommunityIcons name="calendar-today" size={16} color="#6B7280" />
+                        <Text className="text-sm font-semibold text-gray-600 ml-2">
+                            All Day ({allDayTasks.length})
+                        </Text>
+                    </View>
+                    {allDayTasks.map(renderAllDayTask)}
+                </View>
+            )}
+
+            {/* Schedule Timeline */}
+            <ScrollView className="flex-1 bg-white">
+                <View className="relative" style={{ height: TIME_SLOTS.length * SLOT_HEIGHT }}>
+                    {/* Time labels and grid lines */}
+                    {TIME_SLOTS.map((slot, index) => (
+                        <View
+                            key={slot.time}
+                            className="absolute left-0 right-0 flex-row"
+                            style={{ top: index * SLOT_HEIGHT }}
+                        >
+                            {/* Time label (only show for full hours) */}
+                            <View className="w-14 items-end pr-2 pt-0">
+                                {slot.minute === 0 && (
+                                    <Text className="text-xs text-gray-400 font-medium">
+                                        {slot.time}
+                                    </Text>
+                                )}
+                            </View>
+
+                            {/* Grid line */}
+                            <View 
+                                className={`flex-1 border-t ${slot.minute === 0 ? 'border-gray-200' : 'border-gray-100 border-dashed'}`}
+                            />
+                        </View>
+                    ))}
+
+                    {/* Scheduled Tasks (positioned absolutely) */}
+                    {scheduledTasks.map(renderScheduledTask)}
+
+                    {/* Current time indicator */}
+                    {format(currentDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd') && (
+                        <View
+                            className="absolute left-14 right-0 flex-row items-center"
+                            style={{
+                                top: (new Date().getHours() * 60 + new Date().getMinutes()) / 30 * SLOT_HEIGHT - 1,
+                            }}
+                        >
+                            <View className="w-2 h-2 bg-red-500 rounded-full" />
+                            <View className="flex-1 h-0.5 bg-red-500" />
+                        </View>
+                    )}
+                </View>
+            </ScrollView>
+
+            {/* Empty state */}
+            {dayTasks.length === 0 && (
+                <View className="absolute inset-0 items-center justify-center">
+                    <MaterialCommunityIcons name="calendar-blank-outline" size={64} color="#D1D5DB" />
+                    <Text className="text-gray-400 mt-4 text-center">
+                        {t('calendar.noTasksDay')}
+                    </Text>
+                </View>
+            )}
+        </View>
+    );
+}

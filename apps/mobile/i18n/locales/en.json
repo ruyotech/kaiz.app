@@ -616,6 +616,8 @@
     "addEvent": "Add Event",
     "noTasksDay": "No tasks for this day",
     "noTasksSprint": "No tasks for this sprint",
+    "noTasksInQuadrant": "No tasks in this quadrant",
+    "allDay": "All Day",
     "urgentImportant": "Urgent & Important",
     "notUrgentImportant": "Not Urgent & Important",
     "urgentNotImportant": "Urgent & Not Important",

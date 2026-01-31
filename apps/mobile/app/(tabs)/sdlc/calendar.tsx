@@ -8,11 +8,21 @@ import { getMonthShort, formatLocalized } from '../../../utils/localizedDate';
 import { WeekHeader } from '../../../components/calendar/WeekHeader';
 import { MonthSelector } from '../../../components/calendar/MonthSelector';
 import { ViewOptionsMenu } from '../../../components/calendar/ViewOptionsMenu';
-import { taskApi, sprintApi, epicApi } from '../../../services/api';
+import { DayScheduleView } from '../../../components/calendar/DayScheduleView';
+import { EnhancedTaskCard } from '../../../components/calendar/EnhancedTaskCard';
+import { taskApi, sprintApi, epicApi, lifeWheelApi } from '../../../services/api';
 import { Task } from '../../../types/models';
 import { useTranslation } from '../../../hooks/useTranslation';
 
 type ViewMode = 'eisenhower' | 'status' | 'size';
+
+interface LifeWheelArea {
+    id: string;
+    displayId: string;
+    name: string;
+    icon: string;
+    color: string;
+}
 
 export default function SprintCalendar() {
     const router = useRouter();
@@ -27,6 +37,7 @@ export default function SprintCalendar() {
     const [currentSprint, setCurrentSprint] = useState<any>(null); // Store current sprint data
     const [viewMenuVisible, setViewMenuVisible] = useState(false); // View options menu
     const [epics, setEpics] = useState<any[]>([]); // Store epics for epic info display
+    const [lifeWheelAreas, setLifeWheelAreas] = useState<LifeWheelArea[]>([]); // Life wheel areas for task display
 
     // Touch tracking for horizontal swipe
     const touchStart = useRef({ x: 0, y: 0, time: 0 });
@@ -64,6 +75,10 @@ export default function SprintCalendar() {
                 const sprint = sprints.find((s: any) => s.weekNumber === currentWeek);
                 const epicsData = await epicApi.getEpics();
                 setEpics(epicsData);
+                
+                // Load life wheel areas
+                const areasData = await lifeWheelApi.getLifeWheelAreas();
+                setLifeWheelAreas(areasData);
 
                 if (sprint) {
                     setCurrentSprint(sprint); // Store sprint data for color coding
@@ -82,13 +97,41 @@ export default function SprintCalendar() {
         loadTasks();
     }, [currentDate, currentWeek, currentYear]);
 
-    // Filter tasks by selected date if in day view
-    const displayedTasks = viewType === 'day'
-        ? weekTasks.filter(task => {
-            // For now, show all tasks assigned to sprint on any day
-            // In production, you'd check task.scheduledDate === currentDate
+    // Helper: Check if a recurring task should appear on a specific day
+    const shouldShowTaskOnDay = (task: Task, date: Date): boolean => {
+        if (!task.isRecurring || !task.recurrence) {
+            // Non-recurring task - always show in sprint
             return true;
-        })
+        }
+
+        const freq = task.recurrence.frequency;
+        const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+
+        switch (freq) {
+            case 'DAILY':
+                // For "weekdays" tasks, show only Mon-Fri
+                // Assuming DAILY means weekdays (Mon-Fri) for most work tasks
+                return dayOfWeek >= 1 && dayOfWeek <= 5;
+            case 'WEEKLY':
+            case 'BIWEEKLY':
+                return task.recurrence.dayOfWeek === dayOfWeek;
+            case 'MONTHLY':
+                return task.recurrence.dayOfMonth === date.getDate();
+            default:
+                return true;
+        }
+    };
+
+    // Helper: Get life wheel area for a task
+    const getLifeWheelArea = (lifeWheelAreaId: string) => {
+        return lifeWheelAreas.find(a => a.id === lifeWheelAreaId || a.displayId === lifeWheelAreaId);
+    };
+
+    // Filter tasks based on view type
+    // In week view: show all tasks (recurring once with "weekdaily" tag)
+    // In day view: filter to only tasks scheduled for that day
+    const displayedTasks = viewType === 'day'
+        ? weekTasks.filter(task => shouldShowTaskOnDay(task, currentDate))
         : weekTasks;
 
     const handleDatePress = (date: Date) => {
@@ -165,30 +208,60 @@ export default function SprintCalendar() {
 
     const renderEisenhowerView = () => {
         const quadrants = [
-            { id: 'eq-1', title: t('calendar.urgentImportant'), color: 'bg-red-100', borderColor: 'border-red-400', iconColor: '#DC2626' },
-            { id: 'eq-2', title: t('calendar.notUrgentImportant'), color: 'bg-blue-100', borderColor: 'border-blue-400', iconColor: '#2563EB' },
-            { id: 'eq-3', title: t('calendar.urgentNotImportant'), color: 'bg-yellow-100', borderColor: 'border-yellow-400', iconColor: '#CA8A04' },
-            { id: 'eq-4', title: t('calendar.notUrgentNotImportant'), color: 'bg-gray-100', borderColor: 'border-gray-400', iconColor: '#6B7280' },
+            { id: 'eq-1', title: t('calendar.urgentImportant'), color: 'bg-red-100', borderColor: 'border-red-400', iconColor: '#DC2626', icon: 'fire' },
+            { id: 'eq-2', title: t('calendar.notUrgentImportant'), color: 'bg-blue-100', borderColor: 'border-blue-400', iconColor: '#2563EB', icon: 'target' },
+            { id: 'eq-3', title: t('calendar.urgentNotImportant'), color: 'bg-yellow-100', borderColor: 'border-yellow-400', iconColor: '#CA8A04', icon: 'clock-fast' },
+            { id: 'eq-4', title: t('calendar.notUrgentNotImportant'), color: 'bg-gray-100', borderColor: 'border-gray-400', iconColor: '#6B7280', icon: 'delete-outline' },
         ];
+
+        // Calculate total story points for each quadrant
+        const getQuadrantStats = (tasks: Task[]) => {
+            const total = tasks.reduce((sum, t) => sum + (t.storyPoints || 0), 0);
+            const done = tasks.filter(t => t.status === 'done').reduce((sum, t) => sum + (t.storyPoints || 0), 0);
+            return { total, done, count: tasks.length };
+        };
 
         return (
             <View className="px-4 pt-4">
                 {quadrants.map((quadrant) => {
                     const quadrantTasks = displayedTasks.filter(t => t.eisenhowerQuadrantId === quadrant.id);
                     const isExpanded = expandedSections.has(quadrant.id);
+                    const stats = getQuadrantStats(quadrantTasks);
 
                     return (
-                        <View key={quadrant.id} className="mb-3">
+                        <View key={quadrant.id} className="mb-4">
+                            {/* Quadrant Header - Accordion */}
                             <TouchableOpacity
                                 onPress={() => toggleSection(quadrant.id)}
-                                className={'flex-row items-center justify-between p-4 rounded-lg border-2 ' + quadrant.color + ' ' + quadrant.borderColor}
+                                className={'flex-row items-center justify-between p-4 rounded-xl border-2 ' + quadrant.color + ' ' + quadrant.borderColor}
+                                style={{
+                                    shadowColor: '#000',
+                                    shadowOffset: { width: 0, height: 1 },
+                                    shadowOpacity: 0.05,
+                                    shadowRadius: 2,
+                                    elevation: 1,
+                                }}
                             >
                                 <View className="flex-row items-center flex-1">
-                                    <Text className="text-base font-semibold mr-2">{quadrant.title}</Text>
-                                    <View className="bg-white px-2 py-0.5 rounded-full">
-                                        <Text className="text-xs font-bold">{quadrantTasks.length}</Text>
+                                    <MaterialCommunityIcons 
+                                        name={quadrant.icon as any} 
+                                        size={20} 
+                                        color={quadrant.iconColor} 
+                                    />
+                                    <Text className="text-base font-bold ml-2 mr-2">{quadrant.title}</Text>
+                                    {/* Task count badge */}
+                                    <View className="bg-white px-2 py-0.5 rounded-full border border-gray-200">
+                                        <Text className="text-xs font-bold text-gray-700">{stats.count}</Text>
                                     </View>
                                 </View>
+                                
+                                {/* Points progress */}
+                                <View className="flex-row items-center mr-2">
+                                    <Text className="text-xs font-semibold text-gray-600">
+                                        {stats.done}/{stats.total} pts
+                                    </Text>
+                                </View>
+
                                 <MaterialCommunityIcons
                                     name={isExpanded ? 'chevron-up' : 'chevron-down'}
                                     size={24}
@@ -196,99 +269,33 @@ export default function SprintCalendar() {
                                 />
                             </TouchableOpacity>
 
+                            {/* Expanded Task List - Using Enhanced Task Cards */}
                             {isExpanded && quadrantTasks.length > 0 && (
-                                <View className="mt-2 ml-2">
+                                <View className="mt-3 ml-1">
                                     {quadrantTasks.map((task) => {
                                         const taskEpic = epics.find(e => e.id === task.epicId);
-                                        const getRecurrenceLabel = () => {
-                                            if (!task.isRecurring || !task.recurrence) return null;
-                                            const freq = task.recurrence.frequency;
-                                            switch (freq) {
-                                                case 'DAILY': return '📅 Daily';
-                                                case 'WEEKLY': return '🔄 Weekly';
-                                                case 'BIWEEKLY': return '📆 Bi-weekly';
-                                                case 'MONTHLY': return '🗓️ Monthly';
-                                                case 'YEARLY': return '🎂 Yearly';
-                                                default: return '🔁 Recurring';
-                                            }
-                                        };
-                                        const recurrenceLabel = getRecurrenceLabel();
-                                        const hasTimeRange = task.recurrence?.scheduledTime && task.recurrence?.scheduledEndTime;
-                                        const timeRangeLabel = hasTimeRange 
-                                            ? `${task.recurrence.scheduledTime?.substring(0, 5)} - ${task.recurrence.scheduledEndTime?.substring(0, 5)}`
-                                            : task.recurrence?.scheduledTime 
-                                                ? `At ${task.recurrence.scheduledTime.substring(0, 5)}`
-                                                : null;
+                                        const lifeWheelArea = getLifeWheelArea(task.lifeWheelAreaId);
+                                        
                                         return (
-                                            <TouchableOpacity
+                                            <EnhancedTaskCard
                                                 key={task.id}
-                                                className="bg-white rounded-xl p-4 mb-2 border border-gray-200"
+                                                task={task}
+                                                epic={taskEpic}
+                                                lifeWheelArea={lifeWheelArea}
                                                 onPress={() => router.push(`/(tabs)/sdlc/task/${task.id}`)}
-                                            >
-                                                <View className="flex-row items-center justify-between mb-1">
-                                                    <Text className="font-semibold text-gray-900 flex-1 mr-2" numberOfLines={1}>
-                                                        {task.title}
-                                                    </Text>
-                                                    {recurrenceLabel && (
-                                                        <View className="bg-purple-100 px-2 py-0.5 rounded-full">
-                                                            <Text className="text-xs font-bold text-purple-700">
-                                                                {recurrenceLabel}
-                                                            </Text>
-                                                        </View>
-                                                    )}
-                                                </View>
-                                                {timeRangeLabel && (
-                                                    <View className="flex-row items-center mb-2">
-                                                        <MaterialCommunityIcons name="clock-outline" size={12} color="#9333ea" />
-                                                        <Text className="text-xs text-purple-600 ml-1 font-medium">
-                                                            {timeRangeLabel}
-                                                        </Text>
-                                                    </View>
-                                                )}
-                                                <View className="flex-row items-center justify-between">
-                                                    <View className="flex-row items-center gap-2">
-                                                        <View className="bg-gray-100 px-2 py-1 rounded">
-                                                            <Text className="text-xs font-bold text-gray-700">
-                                                                {task.storyPoints || 0} {t('tasks.pts')}
-                                                            </Text>
-                                                        </View>
-                                                        <View className={`px-2 py-1 rounded ${
-                                                            task.status === 'done' ? 'bg-green-100' :
-                                                            task.status === 'in_progress' ? 'bg-blue-100' :
-                                                            'bg-gray-100'
-                                                        }`}>
-                                                            <Text className={`text-xs font-semibold capitalize ${
-                                                                task.status === 'done' ? 'text-green-700' :
-                                                                task.status === 'in_progress' ? 'text-blue-700' :
-                                                                'text-gray-600'
-                                                            }`}>
-                                                                {task.status.replace('_', ' ')}
-                                                            </Text>
-                                                        </View>
-                                                    </View>
-                                                    {taskEpic && (
-                                                        <View 
-                                                            className="px-3 py-1 rounded-full flex-row items-center"
-                                                            style={{ backgroundColor: taskEpic.color + '20' }}
-                                                        >
-                                                            <MaterialCommunityIcons 
-                                                                name={taskEpic.icon as any} 
-                                                                size={12} 
-                                                                color={taskEpic.color} 
-                                                            />
-                                                            <Text 
-                                                                className="text-xs font-bold ml-1" 
-                                                                style={{ color: taskEpic.color }}
-                                                                numberOfLines={1}
-                                                            >
-                                                                {taskEpic.title}
-                                                            </Text>
-                                                        </View>
-                                                    )}
-                                                </View>
-                                            </TouchableOpacity>
+                                                viewType={viewType}
+                                            />
                                         );
                                     })}
+                                </View>
+                            )}
+
+                            {/* Empty state for quadrant */}
+                            {isExpanded && quadrantTasks.length === 0 && (
+                                <View className="mt-2 ml-2 p-4 bg-gray-50 rounded-lg border border-dashed border-gray-200">
+                                    <Text className="text-sm text-gray-400 text-center">
+                                        {t('calendar.noTasksInQuadrant')}
+                                    </Text>
                                 </View>
                             )}
                         </View>
@@ -305,14 +312,21 @@ export default function SprintCalendar() {
             { value: 'done', label: t('tasks.statusDone'), color: 'bg-green-100', borderColor: 'border-green-400', iconColor: '#16A34A', icon: 'check-circle' },
         ];
 
+        // Calculate stats for each status
+        const getStatusStats = (tasks: Task[]) => {
+            const total = tasks.reduce((sum, t) => sum + (t.storyPoints || 0), 0);
+            return { total, count: tasks.length };
+        };
+
         return (
             <View className="px-4 pt-4">
                 {statuses.map((status) => {
                     const statusTasks = displayedTasks.filter(t => t.status === status.value);
                     const isExpanded = expandedSections.has(status.value);
+                    const stats = getStatusStats(statusTasks);
 
                     return (
-                        <View key={status.value} className="mb-3">
+                        <View key={status.value} className="mb-4">
                             <TouchableOpacity
                                 onPress={() => toggleSection(status.value)}
                                 className={'flex-row items-center justify-between p-4 rounded-lg border-2 ' + status.color + ' ' + status.borderColor}
@@ -324,6 +338,14 @@ export default function SprintCalendar() {
                                         <Text className="text-xs font-bold">{statusTasks.length}</Text>
                                     </View>
                                 </View>
+                                
+                                {/* Points total */}
+                                <View className="flex-row items-center mr-2">
+                                    <Text className="text-xs font-semibold text-gray-600">
+                                        {stats.total} pts
+                                    </Text>
+                                </View>
+
                                 <MaterialCommunityIcons
                                     name={isExpanded ? 'chevron-up' : 'chevron-down'}
                                     size={24}
@@ -332,81 +354,20 @@ export default function SprintCalendar() {
                             </TouchableOpacity>
 
                             {isExpanded && statusTasks.length > 0 && (
-                                <View className="mt-2 ml-2">
+                                <View className="mt-3 ml-1">
                                     {statusTasks.map((task) => {
                                         const taskEpic = epics.find(e => e.id === task.epicId);
-                                        const getRecurrenceLabel = () => {
-                                            if (!task.isRecurring || !task.recurrence) return null;
-                                            const freq = task.recurrence.frequency;
-                                            switch (freq) {
-                                                case 'DAILY': return '📅 Daily';
-                                                case 'WEEKLY': return '🔄 Weekly';
-                                                case 'BIWEEKLY': return '📆 Bi-weekly';
-                                                case 'MONTHLY': return '🗓️ Monthly';
-                                                case 'YEARLY': return '🎂 Yearly';
-                                                default: return '🔁 Recurring';
-                                            }
-                                        };
-                                        const recurrenceLabel = getRecurrenceLabel();
-                                        const hasTimeRange = task.recurrence?.scheduledTime && task.recurrence?.scheduledEndTime;
-                                        const timeRangeLabel = hasTimeRange 
-                                            ? `${task.recurrence.scheduledTime?.substring(0, 5)} - ${task.recurrence.scheduledEndTime?.substring(0, 5)}`
-                                            : task.recurrence?.scheduledTime 
-                                                ? `At ${task.recurrence.scheduledTime.substring(0, 5)}`
-                                                : null;
+                                        const lifeWheelArea = getLifeWheelArea(task.lifeWheelAreaId);
+                                        
                                         return (
-                                            <TouchableOpacity
+                                            <EnhancedTaskCard
                                                 key={task.id}
-                                                className="bg-white rounded-xl p-4 mb-2 border border-gray-200"
+                                                task={task}
+                                                epic={taskEpic}
+                                                lifeWheelArea={lifeWheelArea}
                                                 onPress={() => router.push(`/(tabs)/sdlc/task/${task.id}`)}
-                                            >
-                                                <View className="flex-row items-center justify-between mb-1">
-                                                    <Text className="font-semibold text-gray-900 flex-1 mr-2" numberOfLines={1}>
-                                                        {task.title}
-                                                    </Text>
-                                                    {recurrenceLabel && (
-                                                        <View className="bg-purple-100 px-2 py-0.5 rounded-full">
-                                                            <Text className="text-xs font-bold text-purple-700">
-                                                                {recurrenceLabel}
-                                                            </Text>
-                                                        </View>
-                                                    )}
-                                                </View>
-                                                {timeRangeLabel && (
-                                                    <View className="flex-row items-center mb-2">
-                                                        <MaterialCommunityIcons name="clock-outline" size={12} color="#9333ea" />
-                                                        <Text className="text-xs text-purple-600 ml-1 font-medium">
-                                                            {timeRangeLabel}
-                                                        </Text>
-                                                    </View>
-                                                )}
-                                                <View className="flex-row items-center justify-between">
-                                                    <View className="bg-gray-100 px-2 py-1 rounded">
-                                                        <Text className="text-xs font-bold text-gray-700">
-                                                            {task.storyPoints || 0} {t('tasks.pts')}
-                                                        </Text>
-                                                    </View>
-                                                    {taskEpic && (
-                                                        <View 
-                                                            className="px-3 py-1 rounded-full flex-row items-center"
-                                                            style={{ backgroundColor: taskEpic.color + '20' }}
-                                                        >
-                                                            <MaterialCommunityIcons 
-                                                                name={taskEpic.icon as any} 
-                                                                size={12} 
-                                                                color={taskEpic.color} 
-                                                            />
-                                                            <Text 
-                                                                className="text-xs font-bold ml-1" 
-                                                                style={{ color: taskEpic.color }}
-                                                                numberOfLines={1}
-                                                            >
-                                                                {taskEpic.title}
-                                                            </Text>
-                                                        </View>
-                                                    )}
-                                                </View>
-                                            </TouchableOpacity>
+                                                viewType={viewType}
+                                            />
                                         );
                                     })}
                                 </View>
@@ -420,10 +381,16 @@ export default function SprintCalendar() {
 
     const renderSizeView = () => {
         const sizes = [
-            { value: 'small', label: t('tasks.sizeSmall'), color: 'bg-green-100', borderColor: 'border-green-400', iconColor: '#16A34A', range: [1, 3] },
-            { value: 'medium', label: t('tasks.sizeMedium'), color: 'bg-yellow-100', borderColor: 'border-yellow-400', iconColor: '#CA8A04', range: [5, 8] },
-            { value: 'large', label: t('tasks.sizeLarge'), color: 'bg-red-100', borderColor: 'border-red-400', iconColor: '#DC2626', range: [13, 100] },
+            { value: 'small', label: t('tasks.sizeSmall'), color: 'bg-green-100', borderColor: 'border-green-400', iconColor: '#16A34A', range: [1, 3], icon: 'size-s' },
+            { value: 'medium', label: t('tasks.sizeMedium'), color: 'bg-yellow-100', borderColor: 'border-yellow-400', iconColor: '#CA8A04', range: [5, 8], icon: 'size-m' },
+            { value: 'large', label: t('tasks.sizeLarge'), color: 'bg-red-100', borderColor: 'border-red-400', iconColor: '#DC2626', range: [13, 100], icon: 'size-l' },
         ];
+
+        // Calculate stats for each size
+        const getSizeStats = (tasks: Task[]) => {
+            const total = tasks.reduce((sum, t) => sum + (t.storyPoints || 0), 0);
+            return { total, count: tasks.length };
+        };
 
         return (
             <View className="px-4 pt-4">
@@ -432,20 +399,29 @@ export default function SprintCalendar() {
                         t.storyPoints && t.storyPoints >= size.range[0] && t.storyPoints <= size.range[1]
                     );
                     const isExpanded = expandedSections.has(size.value);
+                    const stats = getSizeStats(sizeTasks);
 
                     return (
-                        <View key={size.value} className="mb-3">
+                        <View key={size.value} className="mb-4">
                             <TouchableOpacity
                                 onPress={() => toggleSection(size.value)}
-                                className={'flex-row items-center justify-between p-4 rounded-lg border-2 ' + size.color + ' ' + size.borderColor}
+                                className={'flex-row items-center justify-between p-4 rounded-xl border-2 ' + size.color + ' ' + size.borderColor}
                             >
                                 <View className="flex-row items-center flex-1">
                                     <MaterialCommunityIcons name="ruler" size={20} color={size.iconColor} />
-                                    <Text className="ml-2 text-base font-semibold mr-2">{size.label}</Text>
-                                    <View className="bg-white px-2 py-0.5 rounded-full">
-                                        <Text className="text-xs font-bold">{sizeTasks.length}</Text>
+                                    <Text className="ml-2 text-base font-bold mr-2">{size.label}</Text>
+                                    <View className="bg-white px-2 py-0.5 rounded-full border border-gray-200">
+                                        <Text className="text-xs font-bold text-gray-700">{sizeTasks.length}</Text>
                                     </View>
                                 </View>
+                                
+                                {/* Points total */}
+                                <View className="flex-row items-center mr-2">
+                                    <Text className="text-xs font-semibold text-gray-600">
+                                        {stats.total} pts
+                                    </Text>
+                                </View>
+
                                 <MaterialCommunityIcons
                                     name={isExpanded ? 'chevron-up' : 'chevron-down'}
                                     size={24}
@@ -454,96 +430,20 @@ export default function SprintCalendar() {
                             </TouchableOpacity>
 
                             {isExpanded && sizeTasks.length > 0 && (
-                                <View className="mt-2 ml-2">
+                                <View className="mt-3 ml-1">
                                     {sizeTasks.map((task) => {
                                         const taskEpic = epics.find(e => e.id === task.epicId);
-                                        const getRecurrenceLabel = () => {
-                                            if (!task.isRecurring || !task.recurrence) return null;
-                                            const freq = task.recurrence.frequency;
-                                            switch (freq) {
-                                                case 'DAILY': return '📅 Daily';
-                                                case 'WEEKLY': return '🔄 Weekly';
-                                                case 'BIWEEKLY': return '📆 Bi-weekly';
-                                                case 'MONTHLY': return '🗓️ Monthly';
-                                                case 'YEARLY': return '🎂 Yearly';
-                                                default: return '🔁 Recurring';
-                                            }
-                                        };
-                                        const recurrenceLabel = getRecurrenceLabel();
-                                        const hasTimeRange = task.recurrence?.scheduledTime && task.recurrence?.scheduledEndTime;
-                                        const timeRangeLabel = hasTimeRange 
-                                            ? `${task.recurrence.scheduledTime?.substring(0, 5)} - ${task.recurrence.scheduledEndTime?.substring(0, 5)}`
-                                            : task.recurrence?.scheduledTime 
-                                                ? `At ${task.recurrence.scheduledTime.substring(0, 5)}`
-                                                : null;
+                                        const lifeWheelArea = getLifeWheelArea(task.lifeWheelAreaId);
+                                        
                                         return (
-                                            <TouchableOpacity
+                                            <EnhancedTaskCard
                                                 key={task.id}
-                                                className="bg-white rounded-xl p-4 mb-2 border border-gray-200"
+                                                task={task}
+                                                epic={taskEpic}
+                                                lifeWheelArea={lifeWheelArea}
                                                 onPress={() => router.push(`/(tabs)/sdlc/task/${task.id}`)}
-                                            >
-                                                <View className="flex-row items-center justify-between mb-1">
-                                                    <Text className="font-semibold text-gray-900 flex-1 mr-2" numberOfLines={1}>
-                                                        {task.title}
-                                                    </Text>
-                                                    {recurrenceLabel && (
-                                                        <View className="bg-purple-100 px-2 py-0.5 rounded-full">
-                                                            <Text className="text-xs font-bold text-purple-700">
-                                                                {recurrenceLabel}
-                                                            </Text>
-                                                        </View>
-                                                    )}
-                                                </View>
-                                                {timeRangeLabel && (
-                                                    <View className="flex-row items-center mb-2">
-                                                        <MaterialCommunityIcons name="clock-outline" size={12} color="#9333ea" />
-                                                        <Text className="text-xs text-purple-600 ml-1 font-medium">
-                                                            {timeRangeLabel}
-                                                        </Text>
-                                                    </View>
-                                                )}
-                                                <View className="flex-row items-center justify-between">
-                                                    <View className="flex-row items-center gap-2">
-                                                        <View className="bg-gray-100 px-2 py-1 rounded">
-                                                            <Text className="text-xs font-bold text-gray-700">
-                                                                {task.storyPoints || 0} {t('tasks.pts')}
-                                                            </Text>
-                                                        </View>
-                                                        <View className={`px-2 py-1 rounded ${
-                                                            task.status === 'done' ? 'bg-green-100' :
-                                                            task.status === 'in_progress' ? 'bg-blue-100' :
-                                                            'bg-gray-100'
-                                                        }`}>
-                                                            <Text className={`text-xs font-semibold capitalize ${
-                                                                task.status === 'done' ? 'text-green-700' :
-                                                                task.status === 'in_progress' ? 'text-blue-700' :
-                                                                'text-gray-600'
-                                                            }`}>
-                                                                {task.status.replace('_', ' ')}
-                                                            </Text>
-                                                        </View>
-                                                    </View>
-                                                    {taskEpic && (
-                                                        <View 
-                                                            className="px-3 py-1 rounded-full flex-row items-center"
-                                                            style={{ backgroundColor: taskEpic.color + '20' }}
-                                                        >
-                                                            <MaterialCommunityIcons 
-                                                                name={taskEpic.icon as any} 
-                                                                size={12} 
-                                                                color={taskEpic.color} 
-                                                            />
-                                                            <Text 
-                                                                className="text-xs font-bold ml-1" 
-                                                                style={{ color: taskEpic.color }}
-                                                                numberOfLines={1}
-                                                            >
-                                                                {taskEpic.title}
-                                                            </Text>
-                                                        </View>
-                                                    )}
-                                                </View>
-                                            </TouchableOpacity>
+                                                viewType={viewType}
+                                            />
                                         );
                                     })}
                                 </View>
@@ -615,20 +515,31 @@ export default function SprintCalendar() {
 
             {/* Content Layer - Low Z-Index */}
             <View className="flex-1" style={{ zIndex: 1 }}>
-                <ScrollView className="flex-1">
-                    {viewMode === 'eisenhower' && renderEisenhowerView()}
-                    {viewMode === 'status' && renderStatusView()}
-                    {viewMode === 'size' && renderSizeView()}
+                {/* Day Schedule View - Outlook-like 24-hour view */}
+                {viewType === 'day' ? (
+                    <DayScheduleView
+                        currentDate={currentDate}
+                        tasks={weekTasks}
+                        epics={epics}
+                        lifeWheelAreas={lifeWheelAreas}
+                        onTaskPress={(taskId) => router.push(`/(tabs)/sdlc/task/${taskId}`)}
+                    />
+                ) : (
+                    <ScrollView className="flex-1">
+                        {viewMode === 'eisenhower' && renderEisenhowerView()}
+                        {viewMode === 'status' && renderStatusView()}
+                        {viewMode === 'size' && renderSizeView()}
 
-                    {displayedTasks.length === 0 && (
-                        <View className="items-center justify-center py-12">
-                            <MaterialCommunityIcons name="calendar-blank" size={64} color="#ccc" />
-                            <Text className="text-gray-500 mt-4">
-                                {viewType === 'day' ? t('calendar.noTasksDay') : t('calendar.noTasksSprint')}
-                            </Text>
-                        </View>
-                    )}
-                </ScrollView>
+                        {displayedTasks.length === 0 && (
+                            <View className="items-center justify-center py-12">
+                                <MaterialCommunityIcons name="calendar-blank" size={64} color="#ccc" />
+                                <Text className="text-gray-500 mt-4">
+                                    {t('calendar.noTasksSprint')}
+                                </Text>
+                            </View>
+                        )}
+                    </ScrollView>
+                )}
             </View>
         </View>
     );

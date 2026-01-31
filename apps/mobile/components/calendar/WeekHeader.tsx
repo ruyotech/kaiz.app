@@ -129,6 +129,32 @@ export function WeekHeader({
         );
     };
 
+    // Get week status color (yellow=current, green=future, red=past)
+    const getWeekStatusColor = (weekDays: Date[]): string => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const weekStart = weekDays[0];
+        const weekEnd = weekDays[6];
+        
+        const startNorm = new Date(weekStart);
+        startNorm.setHours(0, 0, 0, 0);
+        
+        const endNorm = new Date(weekEnd);
+        endNorm.setHours(23, 59, 59, 999);
+
+        if (endNorm < today) {
+            // Week is in the past
+            return 'bg-red-500/20';
+        } else if (startNorm <= today && endNorm >= today) {
+            // Current week
+            return 'bg-yellow-500/30';
+        } else {
+            // Future week
+            return 'bg-green-500/20';
+        }
+    };
+
     const renderMonthView = () => {
         const calendarDays = getMonthCalendarDays(monthViewDate);
         const monthName = format(monthViewDate, 'MMMM yyyy');
@@ -154,43 +180,66 @@ export function WeekHeader({
                     ))}
                 </View>
 
-                {/* Calendar grid */}
-                {weeks.map((week, weekIndex) => (
-                    <View key={weekIndex} className="flex-row justify-around mb-1">
-                        {week.map((day, dayIndex) => {
-                            const isToday = format(day, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd');
-                            const isCurrentMonth = isSameMonth(day, monthViewDate);
-                            const isSelected = format(day, 'yyyy-MM-dd') === format(currentDate, 'yyyy-MM-dd');
+                {/* Calendar grid with week-level color coding */}
+                {weeks.map((week, weekIndex) => {
+                    const weekStatusColor = getWeekStatusColor(week);
+                    
+                    return (
+                        <View 
+                            key={weekIndex} 
+                            className={`flex-row justify-around mb-1 mx-1 rounded-lg ${weekStatusColor}`}
+                        >
+                            {week.map((day, dayIndex) => {
+                                const isToday = format(day, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd');
+                                const isCurrentMonth = isSameMonth(day, monthViewDate);
+                                const isSelected = format(day, 'yyyy-MM-dd') === format(currentDate, 'yyyy-MM-dd');
 
-                            return (
-                                <TouchableOpacity
-                                    key={dayIndex}
-                                    className="w-10 h-10 items-center justify-center"
-                                    onPress={() => {
-                                        setMonthViewDate(day);
-                                        onDatePress?.(day);
-                                    }}
-                                >
-                                    <View
-                                        className={`w-8 h-8 rounded-full items-center justify-center ${isToday ? 'bg-white' : isSelected ? 'bg-white/40' : ''
-                                            }`}
+                                return (
+                                    <TouchableOpacity
+                                        key={dayIndex}
+                                        className="w-10 h-10 items-center justify-center"
+                                        onPress={() => {
+                                            setMonthViewDate(day);
+                                            onDatePress?.(day);
+                                        }}
                                     >
-                                        <Text
-                                            className={`text-sm ${isToday
-                                                ? 'text-gray-900 font-bold'
-                                                : isCurrentMonth
-                                                    ? 'text-white font-medium'
-                                                    : 'text-white/40'
+                                        <View
+                                            className={`w-8 h-8 rounded-full items-center justify-center ${isToday ? 'bg-white' : isSelected ? 'bg-white/40' : ''
                                                 }`}
                                         >
-                                            {format(day, 'd')}
-                                        </Text>
-                                    </View>
-                                </TouchableOpacity>
-                            );
-                        })}
+                                            <Text
+                                                className={`text-sm ${isToday
+                                                    ? 'text-gray-900 font-bold'
+                                                    : isCurrentMonth
+                                                        ? 'text-white font-medium'
+                                                        : 'text-white/40'
+                                                    }`}
+                                            >
+                                                {format(day, 'd')}
+                                            </Text>
+                                        </View>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+                    );
+                })}
+
+                {/* Week Color Legend */}
+                <View className="flex-row justify-center items-center mt-2 gap-3">
+                    <View className="flex-row items-center">
+                        <View className="w-3 h-3 rounded bg-red-500/60 mr-1" />
+                        <Text className="text-white/80 text-[10px]">Past</Text>
                     </View>
-                ))}
+                    <View className="flex-row items-center">
+                        <View className="w-3 h-3 rounded bg-yellow-500/60 mr-1" />
+                        <Text className="text-white/80 text-[10px]">Current</Text>
+                    </View>
+                    <View className="flex-row items-center">
+                        <View className="w-3 h-3 rounded bg-green-500/60 mr-1" />
+                        <Text className="text-white/80 text-[10px]">Future</Text>
+                    </View>
+                </View>
 
                 {/* Month Selector - Right under the calendar */}
                 <MonthSelector
