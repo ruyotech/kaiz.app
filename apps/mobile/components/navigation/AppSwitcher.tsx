@@ -1,8 +1,8 @@
 import { View, Text, TouchableOpacity, Modal, Animated, Dimensions, ScrollView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useNavigationStore } from '../../store/navigationStore';
+import { useNavigationStore, AppContext } from '../../store/navigationStore';
 import { useNotificationStore } from '../../store/notificationStore';
-import { APPS } from '../../utils/navigationConfig';
+import { APPS, NAV_CONFIGS } from '../../utils/navigationConfig';
 import { useRouter } from 'expo-router';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -101,7 +101,7 @@ export function AppSwitcher() {
     };
 
     const handleSettings = () => {
-        setCurrentApp('settings');
+        // Don't change currentApp - keep 2nd and 3rd navbar icons as they were
         router.push('/(tabs)/settings' as any);
         toggleAppSwitcher();
     };
@@ -129,17 +129,9 @@ export function AppSwitcher() {
                 
                 {/* Header */}
                 <View 
-                    className="flex-row justify-between items-center px-5"
+                    className="flex-row justify-end items-center px-5"
                     style={{ paddingTop: insets.top + 8 }}
                 >
-                    {/* Close button */}
-                    <TouchableOpacity 
-                        onPress={toggleAppSwitcher}
-                        className="w-11 h-11 rounded-full bg-white/5 border border-white/10 items-center justify-center"
-                    >
-                        <MaterialCommunityIcons name="close" size={22} color="#9CA3AF" />
-                    </TouchableOpacity>
-                    
                     {/* Notification Button */}
                     <TouchableOpacity 
                         onPress={handleNotifications}
@@ -153,13 +145,13 @@ export function AppSwitcher() {
                             className="relative"
                         >
                             <View 
-                                className={`w-11 h-11 rounded-full items-center justify-center border ${
+                                className={`w-10 h-10 rounded-full items-center justify-center border ${
                                     unreadCount > 0 ? 'bg-orange-500/15 border-orange-500/30' : 'bg-white/5 border-white/10'
                                 }`}
                             >
                                 <MaterialCommunityIcons 
                                     name={unreadCount > 0 ? "bell-ring" : "bell-outline"} 
-                                    size={22} 
+                                    size={20} 
                                     color={unreadCount > 0 ? "#F97316" : "#9CA3AF"} 
                                 />
                             </View>
@@ -173,18 +165,6 @@ export function AppSwitcher() {
                         </Animated.View>
                     </TouchableOpacity>
                 </View>
-
-                {/* Title */}
-                <Animated.View 
-                    style={{ 
-                        opacity: fadeAnim,
-                        transform: [{ translateY: slideAnim }]
-                    }}
-                    className="px-5 pt-4 pb-3"
-                >
-                    <Text className="text-white/50 text-sm font-medium">{t('navigation.appSwitcher.subtitle')}</Text>
-                    <Text className="text-white text-2xl font-bold mt-0.5">{t('navigation.appSwitcher.title')}</Text>
-                </Animated.View>
 
                 {/* Scrollable Apps Content */}
                 <ScrollView 
@@ -303,14 +283,8 @@ export function AppSwitcher() {
                     </Animated.View>
                 </ScrollView>
 
-                {/* Footer Actions */}
-                <Animated.View 
-                    style={{ 
-                        opacity: fadeAnim,
-                        paddingBottom: insets.bottom + 12
-                    }}
-                    className="px-4 pt-3 border-t border-white/5"
-                >
+                {/* Settings & Help Footer */}
+                <View className="px-4 pt-3 border-t border-white/5">
                     <View className="flex-row gap-3">
                         <TouchableOpacity 
                             onPress={handleSettings}
@@ -327,7 +301,95 @@ export function AppSwitcher() {
                             <Text className="text-white/70 font-medium text-sm ml-2">{t('navigation.appSwitcher.help')}</Text>
                         </TouchableOpacity>
                     </View>
-                </Animated.View>
+                </View>
+
+                {/* Bottom Navigation Bar - Same as CustomTabBar */}
+                {(() => {
+                    const icons = NAV_CONFIGS[currentApp as AppContext] || NAV_CONFIGS['sdlc'];
+                    const mainIcon = icons[0];
+                    const moreIcon = icons[icons.length - 1];
+                    
+                    return (
+                        <View 
+                            className="bg-[#0A0A0F] border-t border-white/10"
+                            style={{ paddingBottom: insets.bottom }}
+                        >
+                            <View className="flex-row items-center justify-between px-6 py-2">
+                                {/* 1. Apps Icon - Active state */}
+                                <TouchableOpacity
+                                    className="items-center"
+                                    onPress={toggleAppSwitcher}
+                                >
+                                    <View className="w-12 h-12 rounded-2xl items-center justify-center bg-amber-500/20 border border-amber-500/40">
+                                        <MaterialCommunityIcons
+                                            name="view-grid"
+                                            size={28}
+                                            color="#F59E0B"
+                                        />
+                                    </View>
+                                    <Text className="text-[10px] font-medium mt-0.5 text-amber-500">{t('navigation.appSwitcher.title')}</Text>
+                                </TouchableOpacity>
+
+                                {/* 2. Main App Icon */}
+                                <TouchableOpacity
+                                    className="items-center"
+                                    onPress={() => {
+                                        router.push(mainIcon.route as any);
+                                        toggleAppSwitcher();
+                                    }}
+                                >
+                                    <View className="w-12 h-12 rounded-2xl items-center justify-center" style={{ backgroundColor: '#EFF6FF' }}>
+                                        <MaterialCommunityIcons
+                                            name={mainIcon.icon as any}
+                                            size={28}
+                                            color="#3B82F6"
+                                        />
+                                    </View>
+                                    <Text className="text-[10px] font-semibold mt-0.5" style={{ color: '#3B82F6' }}>
+                                        {t(mainIcon.nameKey)}
+                                    </Text>
+                                </TouchableOpacity>
+
+                                {/* 3. More Icon */}
+                                <TouchableOpacity
+                                    className="items-center"
+                                    onPress={() => {
+                                        toggleAppSwitcher();
+                                    }}
+                                >
+                                    <View className="w-12 h-12 rounded-2xl items-center justify-center" style={{ backgroundColor: '#F3E8FF' }}>
+                                        <MaterialCommunityIcons
+                                            name={moreIcon.icon as any}
+                                            size={28}
+                                            color="#8B5CF6"
+                                        />
+                                    </View>
+                                    <Text className="text-[10px] font-semibold mt-0.5" style={{ color: '#8B5CF6' }}>
+                                        {t(moreIcon.nameKey)}
+                                    </Text>
+                                </TouchableOpacity>
+
+                                {/* 4. Create Icon */}
+                                <TouchableOpacity
+                                    className="items-center"
+                                    onPress={() => {
+                                        toggleAppSwitcher();
+                                        router.push('/(tabs)/command-center' as any);
+                                    }}
+                                >
+                                    <View className="w-12 h-12 rounded-2xl items-center justify-center" style={{ backgroundColor: '#ECFDF5' }}>
+                                        <MaterialCommunityIcons
+                                            name="plus-circle"
+                                            size={28}
+                                            color="#10B981"
+                                        />
+                                    </View>
+                                    <Text className="text-[10px] font-medium mt-0.5 text-emerald-500">{t('common.create')}</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    );
+                })()}
             </View>
         </Modal>
     );
