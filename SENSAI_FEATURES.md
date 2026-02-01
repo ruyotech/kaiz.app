@@ -252,7 +252,7 @@ const sensaiApi = {
 ### Package Structure
 
 ```
-com.kaiz.lifeos.sensai/
+com.kaiz..sensai/
 ├── api/
 │   └── SensAIController.java        # REST endpoints
 ├── application/

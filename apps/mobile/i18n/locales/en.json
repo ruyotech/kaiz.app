@@ -163,7 +163,7 @@
       "getStarted": "Get Started",
       "slides": {
         "slide1": {
-          "title": "Welcome to Kaiz LifeOS",
+          "title": "Welcome to Kaiz ",
           "subtitle": "Your Life, Engineered",
           "description": "Transform your life into an agile sprint system. Balance work, health, relationships, and personal growth—all in one place."
         },
@@ -1278,7 +1278,7 @@
     },
     "footer": {
       "madeWith": "Made with ❤️ by Kaiz Team",
-      "copyright": "© 2026 Kaiz LifeOS"
+      "copyright": "© 2026 Kaiz "
     },
     "modals": {
       "chooseTheme": "Choose Theme",

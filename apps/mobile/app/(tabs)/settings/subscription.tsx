@@ -1,5 +1,5 @@
 /**
- * SubscriptionScreen.tsx - Subscription Settings for Kaiz LifeOS
+ * SubscriptionScreen.tsx - Subscription Settings for Kaiz 
  * 
  * Features:
  * - Current plan display with tier badge

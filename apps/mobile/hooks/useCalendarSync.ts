@@ -1,5 +1,5 @@
 /**
- * useCalendarSync.ts - Calendar Sync Custom Hook for Kaiz LifeOS
+ * useCalendarSync.ts - Calendar Sync Custom Hook for Kaiz 
  * 
  * Provides a clean interface for calendar sync operations including:
  * - Connect/disconnect providers

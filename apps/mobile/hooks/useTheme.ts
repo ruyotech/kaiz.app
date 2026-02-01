@@ -1,5 +1,5 @@
 /**
- * useTheme.ts - Theme Management Hook for Kaiz LifeOS
+ * useTheme.ts - Theme Management Hook for Kaiz 
  * 
  * Re-exports from ThemeProvider for backward compatibility.
  * For new code, prefer importing directly from '../providers/ThemeProvider'.

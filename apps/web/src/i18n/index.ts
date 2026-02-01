@@ -1,5 +1,5 @@
 /**
- * i18n/index.ts - Internationalization for Kaiz LifeOS Web
+ * i18n/index.ts - Internationalization for Kaiz Web
  * 
  * Lightweight i18n implementation for Next.js that:
  * - Detects browser locale

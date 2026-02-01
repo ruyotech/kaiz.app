@@ -3,7 +3,7 @@ import { Navbar } from '@/components/marketing/navbar';
 import { Footer } from '@/components/marketing/footer';
 
 export const metadata: Metadata = {
-  title: 'Community - Kaiz LifeOS',
+  title: 'Community - Kaiz ',
   description: 'Join the most supportive community of achievers. Find accountability partners, join challenges, and celebrate wins together.',
 };
 

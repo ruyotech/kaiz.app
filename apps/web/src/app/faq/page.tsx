@@ -27,12 +27,12 @@ const faqCategories = [
 const faqs = [
   {
     category: 'general',
-    question: 'What is Kaiz LifeOS?',
-    answer: 'Kaiz LifeOS is a comprehensive life operating system that combines task management, habit tracking, goal setting, and personal development tools into one seamless experience. It\'s designed to help you balance all areas of your life while making meaningful progress toward your goals. Think of it as your personal command center for life.',
+    question: 'What is Kaiz ?',
+    answer: 'Kaiz is a comprehensive life operating system that combines task management, habit tracking, goal setting, and personal development tools into one seamless experience. It\'s designed to help you balance all areas of your life while making meaningful progress toward your goals. Think of it as your personal command center for life.',
   },
   {
     category: 'general',
-    question: 'Who is Kaiz LifeOS for?',
+    question: 'Who is Kaiz for?',
     answer: 'Kaiz is for anyone who wants to be more intentional about their life—whether you\'re a busy professional juggling career and family, a student managing studies and personal growth, an entrepreneur building a business, or simply someone who wants to live more deliberately. Our Family plan also makes it perfect for households who want to coordinate and grow together.',
   },
   {
@@ -183,7 +183,7 @@ export default function FAQPage() {
             </h1>
 
             <p className="text-xl text-slate-400 max-w-2xl mx-auto mb-8">
-              Everything you need to know about Kaiz LifeOS. Can't find what you're 
+              Everything you need to know about Kaiz . Can't find what you're 
               looking for? Reach out to our support team.
             </p>
 
@@ -331,10 +331,10 @@ export default function FAQPage() {
                 Send us a detailed message. We'll get back to you within 24 hours.
               </p>
               <a
-                href="mailto:support@kaizlifeos.com"
+                href="mailto:support@kaiz.com"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-slate-700 text-white font-medium rounded-xl hover:bg-slate-600 transition-colors"
               >
-                support@kaizlifeos.com
+                support@kaiz.com
                 <ArrowRight className="w-4 h-4" />
               </a>
             </motion.div>
@@ -356,7 +356,7 @@ export default function FAQPage() {
               Ready to start your journey?
             </h2>
             <p className="text-slate-400 mb-8 max-w-xl mx-auto">
-              Join thousands of people transforming their lives with Kaiz LifeOS.
+              Join thousands of people transforming their lives with Kaiz .
               Start free, upgrade when you're ready.
             </p>
             <Link

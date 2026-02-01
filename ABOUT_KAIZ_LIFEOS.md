@@ -1,4 +1,4 @@
-# Kaiz LifeOS
+# Kaiz 
 
 **Run your life like a product team — with reality, metrics, and compounding improvements.**
 
@@ -324,4 +324,4 @@ Not "more hustle."
 
 ---
 
-*Kaiz LifeOS: Your life, engineered.*
+*Kaiz : Your life, engineered.*

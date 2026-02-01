@@ -15,7 +15,7 @@ import org.springframework.web.servlet.i18n.AcceptHeaderLocaleResolver;
 import org.springframework.web.servlet.i18n.LocaleChangeInterceptor;
 
 /**
- * Internationalization (i18n) Configuration for Kaiz LifeOS
+ * Internationalization (i18n) Configuration for Kaiz 
  *
  * <p>Configures: - Message source for loading translations from properties files - Locale resolver
  * using Accept-Language header - Locale change interceptor for URL parameter switching

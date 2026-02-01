@@ -379,7 +379,7 @@ export default function PricingPage() {
               Frequently Asked Questions
             </h2>
             <p className="text-slate-400">
-              Everything you need to know about Kaiz LifeOS pricing
+              Everything you need to know about Kaiz pricing
             </p>
           </motion.div>
 
@@ -429,7 +429,7 @@ export default function PricingPage() {
             </h2>
             <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
               Join thousands of people who've taken control of their time, 
-              goals, and personal growth with Kaiz LifeOS.
+              goals, and personal growth with Kaiz .
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link

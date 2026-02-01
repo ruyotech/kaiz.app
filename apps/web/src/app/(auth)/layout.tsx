@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Sign In - Kaiz LifeOS',
-  description: 'Sign in to your Kaiz LifeOS account',
+  title: 'Sign In - Kaiz ',
+  description: 'Sign in to your Kaiz account',
 };
 
 export default function AuthLayout({

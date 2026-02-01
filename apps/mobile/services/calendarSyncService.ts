@@ -1,5 +1,5 @@
 /**
- * calendarSyncService.ts - External Calendar Sync Service for Kaiz LifeOS
+ * calendarSyncService.ts - External Calendar Sync Service for Kaiz 
  * 
  * Handles read-only calendar synchronization with Apple, Google, and Microsoft.
  * This service NEVER writes to user calendars - it only reads event data.
@@ -69,7 +69,7 @@ const GOOGLE_CLIENT_ID_ANDROID = '213334506754-vu4rs22355b10v3j6gp2ogu4qfhhfbhi.
 const GOOGLE_CLIENT_ID_WEB = '213334506754-5aiv5miv5nm3gm321d9im7d8201f5038.apps.googleusercontent.com';
 
 // Microsoft Calendar OAuth credentials
-// Azure Portal App Registration: Kaiz LifeOS
+// Azure Portal App Registration: Kaiz 
 // Tenant: ruyotech.com (Directory ID: 39ea8666-ccb0-480d-b319-70005a9b1dd6)
 const MICROSOFT_CLIENT_ID = '4bce3d72-b5b4-4d33-bb4f-a16eb0dd8f3e';
 

@@ -1,5 +1,5 @@
 /**
- * settingsStore.ts - Centralized Settings Store for Kaiz LifeOS
+ * settingsStore.ts - Centralized Settings Store for Kaiz 
  * 
  * This store manages all app settings with persistence using Zustand + AsyncStorage.
  * Implements tri-state theme mode (Light/Dark/System) and comprehensive settings

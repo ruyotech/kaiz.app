@@ -1,5 +1,5 @@
 /**
- * IntegrationsScreen.tsx - External Calendar Integrations for Kaiz LifeOS
+ * IntegrationsScreen.tsx - External Calendar Integrations for Kaiz 
  * 
  * A modern, user-friendly screen for managing read-only calendar integrations.
  * Supports Apple Calendar, Google Calendar, and Microsoft Outlook.

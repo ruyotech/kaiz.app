@@ -1,5 +1,5 @@
 /**
- * calendarSyncStore.ts - External Calendar Sync Store for Kaiz LifeOS
+ * calendarSyncStore.ts - External Calendar Sync Store for Kaiz 
  * 
  * Manages external calendar integrations (Apple, Google, Microsoft) with
  * read-only sync capabilities. Never writes to user calendars.

@@ -1,5 +1,5 @@
 /**
- * ThemeProvider.tsx - Global Theme Context Provider for Kaiz LifeOS
+ * ThemeProvider.tsx - Global Theme Context Provider for Kaiz 
  * 
  * Provides theme context throughout the entire app with support for:
  * - Light / Dark / System (auto) theme modes

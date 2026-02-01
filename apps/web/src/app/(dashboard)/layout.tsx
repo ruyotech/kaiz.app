@@ -40,7 +40,7 @@ export default function DashboardLayout({
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-purple-600 flex items-center justify-center font-bold text-xl">
               K
             </div>
-            {sidebarOpen && <span className="font-bold text-lg">Kaiz LifeOS</span>}
+            {sidebarOpen && <span className="font-bold text-lg">Kaiz </span>}
           </Link>
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}

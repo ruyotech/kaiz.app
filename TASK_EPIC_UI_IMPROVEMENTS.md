@@ -324,4 +324,4 @@ The create task screen now matches the modern, engaging design of the epic creat
 - ✨ Professional, modern appearance
 - 🚀 Foundation for advanced epic features
 
-Users now have a constant visual reminder of how their daily tasks contribute to larger strategic goals - exactly what Kaiz LifeOS is all about: running your life like a product team with measurable progress toward meaningful outcomes.
+Users now have a constant visual reminder of how their daily tasks contribute to larger strategic goals - exactly what Kaiz is all about: running your life like a product team with measurable progress toward meaningful outcomes.

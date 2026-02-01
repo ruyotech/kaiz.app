@@ -244,7 +244,7 @@ export default function AdminContentPage() {
                 <label className="block text-sm font-medium text-slate-300 mb-2">Site Name</label>
                 <input
                   type="text"
-                  defaultValue="Kaiz LifeOS"
+                  defaultValue="Kaiz "
                   className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:border-primary-500 focus:outline-none"
                 />
               </div>
@@ -252,7 +252,7 @@ export default function AdminContentPage() {
                 <label className="block text-sm font-medium text-slate-300 mb-2">Site URL</label>
                 <input
                   type="text"
-                  defaultValue="https://kaizlifeos.app"
+                  defaultValue="https://kaiz.app"
                   className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:border-primary-500 focus:outline-none"
                 />
               </div>

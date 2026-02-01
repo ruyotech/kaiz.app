@@ -157,7 +157,7 @@
       "privacy": "Gizlilik",
       "terms": "Şartlar"
     },
-    "copyright": "© {{year}} Kaiz LifeOS. Tüm hakları saklıdır.",
+    "copyright": "© {{year}} Kaiz . Tüm hakları saklıdır.",
     "madeWith": "Sevgiyle yapıldı",
     "byTeam": "Kaiz Ekibi tarafından"
   },
@@ -213,11 +213,11 @@
   },
   "faq": {
     "title": "Sıkça Sorulan Sorular",
-    "subtitle": "Kaiz LifeOS hakkında bilmeniz gereken her şey",
+    "subtitle": "Kaiz hakkında bilmeniz gereken her şey",
     "questions": {
       "whatIs": {
-        "question": "Kaiz LifeOS nedir?",
-        "answer": "Kaiz LifeOS, Agile metodolojisini kullanarak hayatınızı yönetmenize yardımcı olan bir verimlilik platformudur. Bunu kişisel hedeflerinize sprint planlama, story puanları ve retrospektifler uygulamak olarak düşünün."
+        "question": "Kaiz nedir?",
+        "answer": "Kaiz , Agile metodolojisini kullanarak hayatınızı yönetmenize yardımcı olan bir verimlilik platformudur. Bunu kişisel hedeflerinize sprint planlama, story puanları ve retrospektifler uygulamak olarak düşünün."
       },
       "howDifferent": {
         "question": "Diğer verimlilik uygulamalarından farkı nedir?",
@@ -234,7 +234,7 @@
     }
   },
   "about": {
-    "title": "Kaiz LifeOS Hakkında",
+    "title": "Kaiz Hakkında",
     "subtitle": "Herkesin en iyi hayatını kurma araçlarını hak ettiğine inanıyoruz.",
     "mission": {
       "title": "Misyonumuz",

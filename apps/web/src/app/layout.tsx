@@ -5,11 +5,11 @@ import '@/styles/globals.css';
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
-  title: 'Kaiz LifeOS - Run Your Life Like a Product Team',
+  title: 'Kaiz - Run Your Life Like a Product Team',
   description: 'Transform your life with Agile methodology. Track goals, build habits, join challenges, and connect with a community of achievers.',
   keywords: ['productivity', 'goal tracking', 'habits', 'agile', 'life management', 'challenges'],
   openGraph: {
-    title: 'Kaiz LifeOS - Run Your Life Like a Product Team',
+    title: 'Kaiz - Run Your Life Like a Product Team',
     description: 'Transform your life with Agile methodology.',
     type: 'website',
   },

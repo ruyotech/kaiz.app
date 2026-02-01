@@ -1,5 +1,5 @@
 /**
- * Enhanced Notification Types for Kaiz LifeOS
+ * Enhanced Notification Types for Kaiz 
  * 
  * Comprehensive notification system supporting all app features:
  * - Tasks & Sprints

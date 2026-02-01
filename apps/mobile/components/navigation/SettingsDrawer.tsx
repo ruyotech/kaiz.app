@@ -1,5 +1,5 @@
 /**
- * SettingsDrawer.tsx - Modern Settings Drawer for Kaiz LifeOS
+ * SettingsDrawer.tsx - Modern Settings Drawer for Kaiz 
  * 
  * A beautifully designed settings drawer with:
  * - Inset grouped card layout
@@ -695,22 +695,22 @@ export function SettingsDrawer({ visible, onClose }: SettingsDrawerProps) {
                                 iconColor="#3B82F6"
                                 iconBgColor="#DBEAFE"
                                 label={t('settings.about.website')}
-                                sublabel="kaizlifeos.com"
-                                onPress={() => Linking.openURL('https://kaizlifeos.com')}
+                                sublabel="kaiz.com"
+                                onPress={() => Linking.openURL('https://kaiz.com')}
                             />
                             <SettingItem
                                 icon="file-document-outline"
                                 iconColor="#6B7280"
                                 iconBgColor="#F3F4F6"
                                 label={t('settings.about.privacyPolicy')}
-                                onPress={() => Linking.openURL('https://kaizlifeos.com/privacy')}
+                                onPress={() => Linking.openURL('https://kaiz.com/privacy')}
                             />
                             <SettingItem
                                 icon="text-box-outline"
                                 iconColor="#6B7280"
                                 iconBgColor="#F3F4F6"
                                 label={t('settings.about.termsOfService')}
-                                onPress={() => Linking.openURL('https://kaizlifeos.com/terms')}
+                                onPress={() => Linking.openURL('https://kaiz.com/terms')}
                                 isLast
                             />
                         </SettingSection>

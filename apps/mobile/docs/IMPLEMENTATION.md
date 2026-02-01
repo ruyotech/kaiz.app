@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the implementation of two major features in the Kaiz LifeOS mobile app:
+This document describes the implementation of two major features in the Kaiz mobile app:
 1. **Media Attachments in Command Center** - Camera, gallery, file picker, and voice recording
 2. **Face ID / Biometric Login** - Quick login with Face ID (iOS) or Fingerprint (Android)
 

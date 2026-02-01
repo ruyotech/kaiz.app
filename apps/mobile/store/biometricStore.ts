@@ -543,7 +543,7 @@ export const useBiometricStore = create<BiometricState>()(
                     
                     // Perform authentication
                     const result = await LocalAuthentication.authenticateAsync({
-                        promptMessage: `Login to Kaiz LifeOS`,
+                        promptMessage: `Login to Kaiz `,
                         fallbackLabel: 'Use Password',
                         disableDeviceFallback: false,
                         cancelLabel: 'Cancel',

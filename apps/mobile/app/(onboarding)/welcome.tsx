@@ -18,7 +18,7 @@ const WELCOME_SLIDES = [
     {
         id: 1,
         emoji: '🎯',
-        title: 'Welcome to Kaiz LifeOS',
+        title: 'Welcome to Kaiz ',
         subtitle: 'Your Life, Engineered',
         description: 'Transform your life into an agile sprint system. Balance work, health, relationships, and personal growth—all in one place.',
         color: 'bg-blue-500',

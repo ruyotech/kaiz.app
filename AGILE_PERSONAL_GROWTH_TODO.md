@@ -1,4 +1,4 @@
-# Kaiz LifeOS - Agile Personal Growth Enhancement TODO
+# Kaiz - Agile Personal Growth Enhancement TODO
 
 > Brainstormed: January 30, 2026  
 > Sprint: Weekly (Sunday–Saturday, non-negotiable)

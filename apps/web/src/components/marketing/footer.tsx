@@ -38,7 +38,7 @@ export function Footer() {
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-purple-600 flex items-center justify-center font-bold text-xl">
                 K
               </div>
-              <span className="text-xl font-bold">Kaiz LifeOS</span>
+              <span className="text-xl font-bold">Kaiz </span>
             </Link>
             <p className="text-slate-400 mb-4">
               Run your life like a product team. Weekly sprints, story points, 
@@ -76,7 +76,7 @@ export function Footer() {
 
         <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-sm text-slate-400">
-            © {new Date().getFullYear()} Kaiz LifeOS. All rights reserved.
+            © {new Date().getFullYear()} Kaiz . All rights reserved.
           </p>
           <div className="flex items-center gap-2">
             <span className="text-sm text-slate-400">Made with</span>

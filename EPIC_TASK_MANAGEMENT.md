@@ -418,4 +418,4 @@ The Epic-Task Management system transforms epics from static containers into dyn
 4. **View task context** (which epic they belong to)
 5. **Organize work** into meaningful strategic goals
 
-This foundation enables future enhancements like AI planning, templates, social sharing, and financial tracking - all aligned with the Kaiz LifeOS vision of treating life like an Agile product.
+This foundation enables future enhancements like AI planning, templates, social sharing, and financial tracking - all aligned with the Kaiz vision of treating life like an Agile product.

@@ -119,7 +119,7 @@ export interface SiteSettings {
 export const DEFAULT_ABOUT_CONTENT: AboutPageContent = {
   hero: {
     tagline: "Run your life like a product team",
-    headline: "Kaiz LifeOS",
+    headline: "Kaiz ",
     subheadline: "Turning \"I should\" into \"it shipped\" — with reality, metrics, and compounding improvements.",
     manifesto: "Not by storing tasks, but by running your life with the same system that ships world-class software: Agile."
   },

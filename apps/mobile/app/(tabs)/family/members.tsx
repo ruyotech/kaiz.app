@@ -76,7 +76,7 @@ export default function FamilyMembersScreen() {
         try {
             const code = await generateInviteCode();
             await Share.share({
-                message: `Join our family workspace "${currentFamily?.name}" on Kaiz LifeOS!\n\nUse invite code: ${code}\n\nDownload the app and enter this code to join.`,
+                message: `Join our family workspace "${currentFamily?.name}" on Kaiz !\n\nUse invite code: ${code}\n\nDownload the app and enter this code to join.`,
                 title: 'Join Our Family',
             });
         } catch (error) {

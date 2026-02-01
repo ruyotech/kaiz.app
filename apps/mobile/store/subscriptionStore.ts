@@ -1,5 +1,5 @@
 /**
- * subscriptionStore.ts - Subscription Management Store for Kaiz LifeOS
+ * subscriptionStore.ts - Subscription Management Store for Kaiz 
  * 
  * Manages subscription tiers, sprint tracking within billing periods,
  * grace periods, and feature access control.

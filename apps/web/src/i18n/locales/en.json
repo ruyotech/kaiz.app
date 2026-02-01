@@ -157,7 +157,7 @@
       "privacy": "Privacy",
       "terms": "Terms"
     },
-    "copyright": "© {{year}} Kaiz LifeOS. All rights reserved.",
+    "copyright": "© {{year}} Kaiz . All rights reserved.",
     "madeWith": "Made with",
     "byTeam": "by the Kaiz Team"
   },
@@ -213,11 +213,11 @@
   },
   "faq": {
     "title": "Frequently Asked Questions",
-    "subtitle": "Everything you need to know about Kaiz LifeOS",
+    "subtitle": "Everything you need to know about Kaiz ",
     "questions": {
       "whatIs": {
-        "question": "What is Kaiz LifeOS?",
-        "answer": "Kaiz LifeOS is a productivity platform that helps you manage your life using Agile methodology. Think of it as applying sprint planning, story points, and retrospectives to your personal goals."
+        "question": "What is Kaiz ?",
+        "answer": "Kaiz is a productivity platform that helps you manage your life using Agile methodology. Think of it as applying sprint planning, story points, and retrospectives to your personal goals."
       },
       "howDifferent": {
         "question": "How is it different from other productivity apps?",
@@ -234,7 +234,7 @@
     }
   },
   "about": {
-    "title": "About Kaiz LifeOS",
+    "title": "About Kaiz ",
     "subtitle": "We believe everyone deserves the tools to build their best life.",
     "mission": {
       "title": "Our Mission",

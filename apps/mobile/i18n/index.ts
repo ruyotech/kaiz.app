@@ -1,5 +1,5 @@
 /**
- * i18n/index.ts - Internationalization Configuration for Kaiz LifeOS
+ * i18n/index.ts - Internationalization Configuration for Kaiz 
  * 
  * Uses i18n-js with expo-localization for:
  * - Device locale detection

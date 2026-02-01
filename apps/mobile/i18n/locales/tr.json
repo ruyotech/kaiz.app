@@ -163,7 +163,7 @@
       "getStarted": "Başla",
       "slides": {
         "slide1": {
-          "title": "Kaiz LifeOS'a Hoş Geldin",
+          "title": "Kaiz 'a Hoş Geldin",
           "subtitle": "Hayatın, Mühendisliğin",
           "description": "Hayatını çevik bir sprint sistemine dönüştür. İş, sağlık, ilişkiler ve kişisel gelişimi tek bir yerde dengele."
         },
@@ -1098,7 +1098,7 @@
     },
     "footer": {
       "madeWith": "Kaiz Ekibi tarafından ❤️ ile yapıldı",
-      "copyright": "© 2026 Kaiz LifeOS"
+      "copyright": "© 2026 Kaiz "
     },
     "modals": {
       "chooseTheme": "Tema Seçin",

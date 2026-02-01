@@ -133,7 +133,7 @@ export default function FamilyDashboardScreen() {
         try {
             const code = await generateInviteCode();
             await Share.share({
-                message: `Join our family workspace on Kaiz LifeOS! Use invite code: ${code}`,
+                message: `Join our family workspace on Kaiz ! Use invite code: ${code}`,
                 title: 'Join Our Family',
             });
         } catch (error) {

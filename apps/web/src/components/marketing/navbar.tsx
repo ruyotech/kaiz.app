@@ -26,7 +26,7 @@ export function Navbar() {
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-purple-600 flex items-center justify-center font-bold text-xl">
             K
           </div>
-          <span className="text-xl font-bold">Kaiz LifeOS</span>
+          <span className="text-xl font-bold">Kaiz </span>
         </Link>
 
         <div className="hidden md:flex items-center gap-8">

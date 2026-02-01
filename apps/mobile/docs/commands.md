@@ -1,6 +1,6 @@
 # Development Commands Reference
 
-Quick reference for building, testing, and troubleshooting the Kaiz LifeOS mobile app.
+Quick reference for building, testing, and troubleshooting the Kaiz mobile app.
 
 ---
 
@@ -265,7 +265,7 @@ adb logcat
 Create `.env` file in `apps/mobile/`:
 ```bash
 # API Configuration
-API_URL=https://api.kaizlifeos.com
+API_URL=https://api.kaiz.com
 API_URL_DEV=http://localhost:8080
 
 # Feature Flags

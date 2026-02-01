@@ -1,4 +1,4 @@
-# Kaiz LifeOS
+# Kaiz 
 
 Personal SDLC Super-App monorepo with mobile app and Spring Boot backend.
 
@@ -64,7 +64,7 @@ apps/mobile/
 
 ```
 apps/backend/
-├── src/main/java/com/kaiz/lifeos/
+├── src/main/java/com/kaiz//
 │   ├── identity/      # Auth & user management
 │   ├── lifewheel/     # Life wheel areas
 │   └── shared/        # Common utilities
