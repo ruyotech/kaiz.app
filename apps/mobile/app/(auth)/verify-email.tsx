@@ -6,12 +6,14 @@ import { Container } from '../../components/layout/Container';
 import { Button } from '../../components/ui/Button';
 import { TextInput } from 'react-native';
 import { useAuthStore } from '../../store/authStore';
+import { useThemeContext } from '../../providers/ThemeProvider';
 
 const CODE_LENGTH = 6;
 
 export default function VerifyEmailScreen() {
     const router = useRouter();
     const { verifyEmail, sendVerificationCode, error: authError } = useAuthStore();
+    const { colors } = useThemeContext();
     const [code, setCode] = useState(['', '', '', '', '', '']);
     const [loading, setLoading] = useState(false);
     const [resendCooldown, setResendCooldown] = useState(0);
@@ -125,15 +127,24 @@ export default function VerifyEmailScreen() {
                     entering={FadeInDown.delay(100).springify()}
                     className="items-center mb-12"
                 >
-                    <View className="w-24 h-24 rounded-full bg-blue-100 items-center justify-center mb-6">
+                    <View 
+                        className="w-24 h-24 rounded-full items-center justify-center mb-6"
+                        style={{ backgroundColor: colors.primary + '20' }}
+                    >
                         <Text className="text-6xl">📬</Text>
                     </View>
 
-                    <Text className="text-3xl font-bold text-center mb-3">
+                    <Text 
+                        className="text-3xl font-bold text-center mb-3"
+                        style={{ color: colors.text }}
+                    >
                         Verify Your Email
                     </Text>
                     
-                    <Text className="text-base text-gray-600 text-center px-8">
+                    <Text 
+                        className="text-base text-center px-8"
+                        style={{ color: colors.textSecondary }}
+                    >
                         We've sent a 6-digit verification code to your email address. Please
                         enter it below.
                     </Text>
@@ -157,10 +168,13 @@ export default function VerifyEmailScreen() {
                                 keyboardType="number-pad"
                                 maxLength={1}
                                 selectTextOnFocus
-                                className={`
-                                    w-12 h-14 text-center text-2xl font-bold rounded-lg border-2
-                                    ${digit ? 'border-blue-600 bg-blue-50' : 'border-gray-300 bg-white'}
-                                `}
+                                className="w-12 h-14 text-center text-2xl font-bold rounded-lg"
+                                style={{
+                                    borderWidth: 2,
+                                    borderColor: digit ? colors.primary : colors.border,
+                                    backgroundColor: digit ? colors.primary + '15' : colors.card,
+                                    color: colors.text
+                                }}
                             />
                         ))}
                     </View>
@@ -181,15 +195,23 @@ export default function VerifyEmailScreen() {
                     entering={FadeInDown.delay(300).springify()}
                     className="items-center"
                 >
-                    <Text className="text-gray-600 mb-3">Didn't receive the code?</Text>
+                    <Text 
+                        className="mb-3"
+                        style={{ color: colors.textSecondary }}
+                    >
+                        Didn't receive the code?
+                    </Text>
                     
                     {resendCooldown > 0 ? (
-                        <Text className="text-gray-500">
+                        <Text style={{ color: colors.textMuted }}>
                             Resend available in {resendCooldown}s
                         </Text>
                     ) : (
                         <Pressable onPress={handleResend} disabled={loading}>
-                            <Text className="text-blue-600 font-semibold">
+                            <Text 
+                                className="font-semibold"
+                                style={{ color: colors.primary }}
+                            >
                                 Resend Code
                             </Text>
                         </Pressable>
@@ -201,8 +223,14 @@ export default function VerifyEmailScreen() {
                     entering={FadeInDown.delay(400).springify()}
                     className="mt-12"
                 >
-                    <View className="bg-yellow-50 p-4 rounded-lg">
-                        <Text className="text-sm text-yellow-900 text-center mb-2">
+                    <View 
+                        className="p-4 rounded-lg"
+                        style={{ backgroundColor: colors.warning + '20' }}
+                    >
+                        <Text 
+                            className="text-sm text-center mb-2"
+                            style={{ color: colors.text }}
+                        >
                             💡 <Text className="font-semibold">Tip:</Text> Check your spam folder
                             if you don't see the email
                         </Text>
@@ -212,7 +240,10 @@ export default function VerifyEmailScreen() {
                         onPress={() => router.back()}
                         className="mt-6"
                     >
-                        <Text className="text-blue-600 font-semibold text-center">
+                        <Text 
+                            className="font-semibold text-center"
+                            style={{ color: colors.primary }}
+                        >
                             ← Change Email Address
                         </Text>
                     </Pressable>

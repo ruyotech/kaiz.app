@@ -7,11 +7,13 @@ import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { useAuthStore } from '../../store/authStore';
 import { useTranslation } from '../../hooks';
+import { useThemeContext } from '../../providers/ThemeProvider';
 
 export default function ForgotPasswordScreen() {
     const router = useRouter();
     const { t } = useTranslation();
     const { resetPassword, error: authError } = useAuthStore();
+    const { colors } = useThemeContext();
     const [email, setEmail] = useState('');
     const [emailError, setEmailError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -71,24 +73,42 @@ export default function ForgotPasswordScreen() {
                         className="items-center"
                     >
                         {/* Success Icon */}
-                        <View className="w-24 h-24 rounded-full bg-green-100 items-center justify-center mb-6">
+                        <View 
+                            className="w-24 h-24 rounded-full items-center justify-center mb-6"
+                            style={{ backgroundColor: colors.success + '20' }}
+                        >
                             <Text className="text-6xl">📧</Text>
                         </View>
 
-                        <Text className="text-3xl font-bold text-center mb-3">
+                        <Text 
+                            className="text-3xl font-bold text-center mb-3"
+                            style={{ color: colors.text }}
+                        >
                             {t('auth.forgotPassword.checkEmail')}
                         </Text>
                         
-                        <Text className="text-base text-gray-600 text-center mb-2 px-4">
+                        <Text 
+                            className="text-base text-center mb-2 px-4"
+                            style={{ color: colors.textSecondary }}
+                        >
                             {t('auth.forgotPassword.sentTo')}
                         </Text>
                         
-                        <Text className="text-base font-semibold text-blue-600 mb-8">
+                        <Text 
+                            className="text-base font-semibold mb-8"
+                            style={{ color: colors.primary }}
+                        >
                             {email}
                         </Text>
 
-                        <View className="bg-blue-50 p-4 rounded-lg mb-6 w-full">
-                            <Text className="text-sm text-blue-900 text-center">
+                        <View 
+                            className="p-4 rounded-lg mb-6 w-full"
+                            style={{ backgroundColor: colors.primary + '15' }}
+                        >
+                            <Text 
+                                className="text-sm text-center"
+                                style={{ color: colors.text }}
+                            >
                                 💡 {t('auth.forgotPassword.linkExpiry')}
                             </Text>
                         </View>
@@ -101,7 +121,10 @@ export default function ForgotPasswordScreen() {
                             onPress={() => router.back()}
                             className="mt-6"
                         >
-                            <Text className="text-blue-600 font-semibold text-center">
+                            <Text 
+                                className="font-semibold text-center"
+                                style={{ color: colors.primary }}
+                            >
                                 ← {t('auth.forgotPassword.backToLogin')}
                             </Text>
                         </Pressable>
@@ -125,19 +148,31 @@ export default function ForgotPasswordScreen() {
                         className="mb-8"
                     >
                         <Pressable onPress={() => router.back()} className="mb-4">
-                            <Text className="text-blue-600 font-semibold text-lg">
+                            <Text 
+                                className="font-semibold text-lg"
+                                style={{ color: colors.primary }}
+                            >
                                 ← {t('common.back')}
                             </Text>
                         </Pressable>
 
-                        <View className="w-20 h-20 rounded-full bg-yellow-100 items-center justify-center mb-6">
+                        <View 
+                            className="w-20 h-20 rounded-full items-center justify-center mb-6"
+                            style={{ backgroundColor: colors.warning + '20' }}
+                        >
                             <Text className="text-5xl">🔑</Text>
                         </View>
 
-                        <Text className="text-4xl font-bold text-gray-900 mb-3">
+                        <Text 
+                            className="text-4xl font-bold mb-3"
+                            style={{ color: colors.text }}
+                        >
                             {t('auth.forgotPassword.title')}
                         </Text>
-                        <Text className="text-base text-gray-600">
+                        <Text 
+                            className="text-base"
+                            style={{ color: colors.textSecondary }}
+                        >
                             {t('auth.forgotPassword.description')}
                         </Text>
                     </Animated.View>
@@ -171,12 +206,21 @@ export default function ForgotPasswordScreen() {
                         entering={FadeInDown.delay(300).springify()}
                         className="mt-8"
                     >
-                        <View className="bg-gray-50 p-4 rounded-lg">
-                            <Text className="text-sm text-gray-700 font-semibold mb-2">
+                        <View 
+                            className="p-4 rounded-lg"
+                            style={{ backgroundColor: colors.card }}
+                        >
+                            <Text 
+                                className="text-sm font-semibold mb-2"
+                                style={{ color: colors.text }}
+                            >
                                 {t('auth.forgotPassword.rememberPassword')}
                             </Text>
                             <Pressable onPress={() => router.back()}>
-                                <Text className="text-blue-600 font-semibold">
+                                <Text 
+                                    className="font-semibold"
+                                    style={{ color: colors.primary }}
+                                >
                                     {t('auth.forgotPassword.returnToLogin')} →
                                 </Text>
                             </Pressable>

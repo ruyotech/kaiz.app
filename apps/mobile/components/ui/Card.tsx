@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, ViewStyle } from 'react-native';
+import { useThemeContext } from '../../providers/ThemeProvider';
 
 interface CardProps {
     children: React.ReactNode;
@@ -8,8 +9,19 @@ interface CardProps {
 }
 
 export function Card({ children, className = '', style }: CardProps) {
+    const { colors, isDark } = useThemeContext();
+    
     return (
-        <View className={`bg-white rounded-lg shadow-md p-4 ${className}`} style={style}>
+        <View 
+            className={`rounded-lg shadow-md p-4 ${className}`} 
+            style={[
+                { 
+                    backgroundColor: colors.card,
+                    shadowColor: colors.shadow,
+                },
+                style
+            ]}
+        >
             {children}
         </View>
     );

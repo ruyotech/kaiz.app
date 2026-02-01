@@ -1,12 +1,13 @@
 import { Stack } from 'expo-router';
 import { View } from 'react-native';
 import { CustomTabBar } from '../../components/navigation/CustomTabBar';
+import { useThemeContext } from '../../providers/ThemeProvider';
 
 export default function TabsLayout() {
+    const { colors } = useThemeContext();
+    
     return (
-        <View className="flex-1">
-
-
+        <View className="flex-1" style={{ backgroundColor: colors.background }}>
             <Stack screenOptions={{ headerShown: false }}>
                 <Stack.Screen name="index" />
                 <Stack.Screen name="sdlc" />

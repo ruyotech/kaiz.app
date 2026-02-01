@@ -12,6 +12,7 @@ import { EnhancedTaskCard } from '../../../components/calendar/EnhancedTaskCard'
 import { taskApi, sprintApi, epicApi, lifeWheelApi, AuthExpiredError } from '../../../services/api';
 import { Task } from '../../../types/models';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { useThemeContext } from '../../../providers/ThemeProvider';
 
 type ViewMode = 'eisenhower' | 'status' | 'size';
 
@@ -26,6 +27,7 @@ interface LifeWheelArea {
 export default function SprintCalendar() {
     const router = useRouter();
     const { t } = useTranslation();
+    const { colors, isDark } = useThemeContext();
     const [currentDate, setCurrentDate] = useState(new Date());
     const [viewMode, setViewMode] = useState<ViewMode>('eisenhower');
     const [weekTasks, setWeekTasks] = useState<Task[]>([]);
@@ -208,11 +210,12 @@ export default function SprintCalendar() {
     };
 
     const renderEisenhowerView = () => {
+        // Theme-aware quadrant colors with semantic accent colors
         const quadrants = [
-            { id: 'eq-1', title: t('calendar.urgentImportant'), color: 'bg-red-100', borderColor: 'border-red-400', iconColor: '#DC2626', icon: 'fire' },
-            { id: 'eq-2', title: t('calendar.notUrgentImportant'), color: 'bg-blue-100', borderColor: 'border-blue-400', iconColor: '#2563EB', icon: 'target' },
-            { id: 'eq-3', title: t('calendar.urgentNotImportant'), color: 'bg-yellow-100', borderColor: 'border-yellow-400', iconColor: '#CA8A04', icon: 'clock-fast' },
-            { id: 'eq-4', title: t('calendar.notUrgentNotImportant'), color: 'bg-gray-100', borderColor: 'border-gray-400', iconColor: '#6B7280', icon: 'delete-outline' },
+            { id: 'eq-1', title: t('calendar.urgentImportant'), accentColor: isDark ? '#FCA5A5' : '#DC2626', bgAccent: isDark ? 'rgba(220, 38, 38, 0.15)' : 'rgba(220, 38, 38, 0.1)', borderAccent: isDark ? '#DC2626' : '#F87171', icon: 'fire' },
+            { id: 'eq-2', title: t('calendar.notUrgentImportant'), accentColor: isDark ? '#93C5FD' : '#2563EB', bgAccent: isDark ? 'rgba(37, 99, 235, 0.15)' : 'rgba(37, 99, 235, 0.1)', borderAccent: isDark ? '#2563EB' : '#60A5FA', icon: 'target' },
+            { id: 'eq-3', title: t('calendar.urgentNotImportant'), accentColor: isDark ? '#FCD34D' : '#CA8A04', bgAccent: isDark ? 'rgba(202, 138, 4, 0.15)' : 'rgba(202, 138, 4, 0.1)', borderAccent: isDark ? '#CA8A04' : '#FBBF24', icon: 'clock-fast' },
+            { id: 'eq-4', title: t('calendar.notUrgentNotImportant'), accentColor: isDark ? '#9CA3AF' : '#6B7280', bgAccent: isDark ? 'rgba(107, 114, 128, 0.15)' : 'rgba(107, 114, 128, 0.1)', borderAccent: isDark ? '#6B7280' : '#9CA3AF', icon: 'delete-outline' },
         ];
 
         // Calculate total story points for each quadrant
@@ -234,8 +237,11 @@ export default function SprintCalendar() {
                             {/* Quadrant Header - Accordion */}
                             <TouchableOpacity
                                 onPress={() => toggleSection(quadrant.id)}
-                                className={'flex-row items-center justify-between p-4 rounded-xl border-2 ' + quadrant.color + ' ' + quadrant.borderColor}
+                                className="flex-row items-center justify-between p-4 rounded-xl"
                                 style={{
+                                    backgroundColor: quadrant.bgAccent,
+                                    borderWidth: 2,
+                                    borderColor: quadrant.borderAccent,
                                     shadowColor: '#000',
                                     shadowOffset: { width: 0, height: 1 },
                                     shadowOpacity: 0.05,
@@ -247,18 +253,34 @@ export default function SprintCalendar() {
                                     <MaterialCommunityIcons 
                                         name={quadrant.icon as any} 
                                         size={20} 
-                                        color={quadrant.iconColor} 
+                                        color={quadrant.accentColor} 
                                     />
-                                    <Text className="text-base font-bold ml-2 mr-2">{quadrant.title}</Text>
+                                    <Text 
+                                        className="text-base font-bold ml-2 mr-2"
+                                        style={{ color: colors.text }}
+                                    >
+                                        {quadrant.title}
+                                    </Text>
                                     {/* Task count badge */}
-                                    <View className="bg-white px-2 py-0.5 rounded-full border border-gray-200">
-                                        <Text className="text-xs font-bold text-gray-700">{stats.count}</Text>
+                                    <View 
+                                        className="px-2 py-0.5 rounded-full"
+                                        style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
+                                    >
+                                        <Text 
+                                            className="text-xs font-bold"
+                                            style={{ color: colors.text }}
+                                        >
+                                            {stats.count}
+                                        </Text>
                                     </View>
                                 </View>
                                 
                                 {/* Points progress */}
                                 <View className="flex-row items-center mr-2">
-                                    <Text className="text-xs font-semibold text-gray-600">
+                                    <Text 
+                                        className="text-xs font-semibold"
+                                        style={{ color: colors.textSecondary }}
+                                    >
                                         {stats.done}/{stats.total} pts
                                     </Text>
                                 </View>
@@ -266,7 +288,7 @@ export default function SprintCalendar() {
                                 <MaterialCommunityIcons
                                     name={isExpanded ? 'chevron-up' : 'chevron-down'}
                                     size={24}
-                                    color={quadrant.iconColor}
+                                    color={quadrant.accentColor}
                                 />
                             </TouchableOpacity>
 
@@ -293,8 +315,19 @@ export default function SprintCalendar() {
 
                             {/* Empty state for quadrant */}
                             {isExpanded && quadrantTasks.length === 0 && (
-                                <View className="mt-2 ml-2 p-4 bg-gray-50 rounded-lg border border-dashed border-gray-200">
-                                    <Text className="text-sm text-gray-400 text-center">
+                                <View 
+                                    className="mt-2 ml-2 p-4 rounded-lg"
+                                    style={{ 
+                                        backgroundColor: colors.card,
+                                        borderWidth: 1,
+                                        borderStyle: 'dashed',
+                                        borderColor: colors.border
+                                    }}
+                                >
+                                    <Text 
+                                        className="text-sm text-center"
+                                        style={{ color: colors.textTertiary }}
+                                    >
                                         {t('calendar.noTasksInQuadrant')}
                                     </Text>
                                 </View>
@@ -307,10 +340,11 @@ export default function SprintCalendar() {
     };
 
     const renderStatusView = () => {
+        // Theme-aware status colors
         const statuses = [
-            { value: 'todo', label: t('tasks.statusTodo'), color: 'bg-gray-100', borderColor: 'border-gray-400', iconColor: '#6B7280', icon: 'checkbox-blank-circle-outline' },
-            { value: 'in_progress', label: t('tasks.statusInProgress'), color: 'bg-blue-100', borderColor: 'border-blue-400', iconColor: '#2563EB', icon: 'progress-clock' },
-            { value: 'done', label: t('tasks.statusDone'), color: 'bg-green-100', borderColor: 'border-green-400', iconColor: '#16A34A', icon: 'check-circle' },
+            { value: 'todo', label: t('tasks.statusTodo'), accentColor: isDark ? '#9CA3AF' : '#6B7280', bgAccent: isDark ? 'rgba(107, 114, 128, 0.15)' : 'rgba(107, 114, 128, 0.1)', borderAccent: isDark ? '#6B7280' : '#9CA3AF', icon: 'checkbox-blank-circle-outline' },
+            { value: 'in_progress', label: t('tasks.statusInProgress'), accentColor: isDark ? '#93C5FD' : '#2563EB', bgAccent: isDark ? 'rgba(37, 99, 235, 0.15)' : 'rgba(37, 99, 235, 0.1)', borderAccent: isDark ? '#2563EB' : '#60A5FA', icon: 'progress-clock' },
+            { value: 'done', label: t('tasks.statusDone'), accentColor: isDark ? '#86EFAC' : '#16A34A', bgAccent: isDark ? 'rgba(22, 163, 74, 0.15)' : 'rgba(22, 163, 74, 0.1)', borderAccent: isDark ? '#16A34A' : '#4ADE80', icon: 'check-circle' },
         ];
 
         // Calculate stats for each status
@@ -330,19 +364,40 @@ export default function SprintCalendar() {
                         <View key={status.value} className="mb-4">
                             <TouchableOpacity
                                 onPress={() => toggleSection(status.value)}
-                                className={'flex-row items-center justify-between p-4 rounded-lg border-2 ' + status.color + ' ' + status.borderColor}
+                                className="flex-row items-center justify-between p-4 rounded-lg"
+                                style={{
+                                    backgroundColor: status.bgAccent,
+                                    borderWidth: 2,
+                                    borderColor: status.borderAccent,
+                                }}
                             >
                                 <View className="flex-row items-center flex-1">
-                                    <MaterialCommunityIcons name={status.icon as any} size={20} color={status.iconColor} />
-                                    <Text className="ml-2 text-base font-semibold mr-2">{status.label}</Text>
-                                    <View className="bg-white px-2 py-0.5 rounded-full">
-                                        <Text className="text-xs font-bold">{statusTasks.length}</Text>
+                                    <MaterialCommunityIcons name={status.icon as any} size={20} color={status.accentColor} />
+                                    <Text 
+                                        className="ml-2 text-base font-semibold mr-2"
+                                        style={{ color: colors.text }}
+                                    >
+                                        {status.label}
+                                    </Text>
+                                    <View 
+                                        className="px-2 py-0.5 rounded-full"
+                                        style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
+                                    >
+                                        <Text 
+                                            className="text-xs font-bold"
+                                            style={{ color: colors.text }}
+                                        >
+                                            {statusTasks.length}
+                                        </Text>
                                     </View>
                                 </View>
                                 
                                 {/* Points total */}
                                 <View className="flex-row items-center mr-2">
-                                    <Text className="text-xs font-semibold text-gray-600">
+                                    <Text 
+                                        className="text-xs font-semibold"
+                                        style={{ color: colors.textSecondary }}
+                                    >
                                         {stats.total} pts
                                     </Text>
                                 </View>
@@ -350,7 +405,7 @@ export default function SprintCalendar() {
                                 <MaterialCommunityIcons
                                     name={isExpanded ? 'chevron-up' : 'chevron-down'}
                                     size={24}
-                                    color={status.iconColor}
+                                    color={status.accentColor}
                                 />
                             </TouchableOpacity>
 
@@ -381,10 +436,11 @@ export default function SprintCalendar() {
     };
 
     const renderSizeView = () => {
+        // Theme-aware size colors
         const sizes = [
-            { value: 'small', label: t('tasks.sizeSmall'), color: 'bg-green-100', borderColor: 'border-green-400', iconColor: '#16A34A', range: [1, 3], icon: 'size-s' },
-            { value: 'medium', label: t('tasks.sizeMedium'), color: 'bg-yellow-100', borderColor: 'border-yellow-400', iconColor: '#CA8A04', range: [5, 8], icon: 'size-m' },
-            { value: 'large', label: t('tasks.sizeLarge'), color: 'bg-red-100', borderColor: 'border-red-400', iconColor: '#DC2626', range: [13, 100], icon: 'size-l' },
+            { value: 'small', label: t('tasks.sizeSmall'), accentColor: isDark ? '#86EFAC' : '#16A34A', bgAccent: isDark ? 'rgba(22, 163, 74, 0.15)' : 'rgba(22, 163, 74, 0.1)', borderAccent: isDark ? '#16A34A' : '#4ADE80', range: [1, 3], icon: 'size-s' },
+            { value: 'medium', label: t('tasks.sizeMedium'), accentColor: isDark ? '#FCD34D' : '#CA8A04', bgAccent: isDark ? 'rgba(202, 138, 4, 0.15)' : 'rgba(202, 138, 4, 0.1)', borderAccent: isDark ? '#CA8A04' : '#FBBF24', range: [5, 8], icon: 'size-m' },
+            { value: 'large', label: t('tasks.sizeLarge'), accentColor: isDark ? '#FCA5A5' : '#DC2626', bgAccent: isDark ? 'rgba(220, 38, 38, 0.15)' : 'rgba(220, 38, 38, 0.1)', borderAccent: isDark ? '#DC2626' : '#F87171', range: [13, 100], icon: 'size-l' },
         ];
 
         // Calculate stats for each size
@@ -406,19 +462,39 @@ export default function SprintCalendar() {
                         <View key={size.value} className="mb-4">
                             <TouchableOpacity
                                 onPress={() => toggleSection(size.value)}
-                                className={'flex-row items-center justify-between p-4 rounded-xl border-2 ' + size.color + ' ' + size.borderColor}
+                                className="flex-row items-center justify-between p-4 rounded-xl"
+                                style={{
+                                    backgroundColor: size.bgAccent,
+                                    borderWidth: 2,
+                                    borderColor: size.borderAccent,
+                                }}
                             >
                                 <View className="flex-row items-center flex-1">
-                                    <MaterialCommunityIcons name="ruler" size={20} color={size.iconColor} />
-                                    <Text className="ml-2 text-base font-bold mr-2">{size.label}</Text>
-                                    <View className="bg-white px-2 py-0.5 rounded-full border border-gray-200">
-                                        <Text className="text-xs font-bold text-gray-700">{sizeTasks.length}</Text>
+                                    <MaterialCommunityIcons name="ruler" size={20} color={size.accentColor} />
+                                    <Text 
+                                        className="ml-2 text-base font-bold mr-2"
+                                        style={{ color: colors.text }}
+                                    >
+                                        {size.label}
+                                    </Text>
+                                    <View 
+                                        className="px-2 py-0.5 rounded-full"
+                                        style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
+                                    >
+                                        <Text 
+                                            className="text-xs font-bold"
+                                            style={{ color: colors.text }}
+                                        >
+                                            {sizeTasks.length}</Text>
                                     </View>
                                 </View>
                                 
                                 {/* Points total */}
                                 <View className="flex-row items-center mr-2">
-                                    <Text className="text-xs font-semibold text-gray-600">
+                                    <Text 
+                                        className="text-xs font-semibold"
+                                        style={{ color: colors.textSecondary }}
+                                    >
                                         {stats.total} pts
                                     </Text>
                                 </View>
@@ -426,7 +502,7 @@ export default function SprintCalendar() {
                                 <MaterialCommunityIcons
                                     name={isExpanded ? 'chevron-up' : 'chevron-down'}
                                     size={24}
-                                    color={size.iconColor}
+                                    color={size.accentColor}
                                 />
                             </TouchableOpacity>
 
@@ -458,7 +534,8 @@ export default function SprintCalendar() {
 
     return (
         <View
-            className="flex-1 bg-gray-50"
+            className="flex-1"
+            style={{ backgroundColor: colors.background }}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
@@ -479,7 +556,12 @@ export default function SprintCalendar() {
                         <View className="flex-row items-center">
                             <TouchableOpacity
                                 onPress={() => setViewType(viewType === 'week' ? 'day' : 'week')}
-                                className="bg-white/20 px-3 py-1 rounded border border-white/40"
+                                className="px-3 py-1 rounded"
+                                style={{ 
+                                    backgroundColor: 'rgba(255,255,255,0.2)',
+                                    borderWidth: 1,
+                                    borderColor: 'rgba(255,255,255,0.4)'
+                                }}
                             >
                                 <Text className="text-white text-xs font-semibold">
                                     {viewType === 'week' ? t('calendar.weekly') : t('calendar.daily')}
@@ -495,8 +577,8 @@ export default function SprintCalendar() {
                 <TouchableOpacity
                     activeOpacity={1}
                     onPress={() => setIsMonthExpanded(false)}
-                    className="absolute inset-0 bg-black/20"
-                    style={{ zIndex: 10 }}
+                    className="absolute inset-0"
+                    style={{ zIndex: 10, backgroundColor: colors.overlay }}
                 />
             )}
 
@@ -519,8 +601,8 @@ export default function SprintCalendar() {
 
                         {displayedTasks.length === 0 && (
                             <View className="items-center justify-center py-12">
-                                <MaterialCommunityIcons name="calendar-blank" size={64} color="#ccc" />
-                                <Text className="text-gray-500 mt-4">
+                                <MaterialCommunityIcons name="calendar-blank" size={64} color={colors.textTertiary} />
+                                <Text style={{ color: colors.textTertiary, marginTop: 16 }}>
                                     {t('calendar.noTasksSprint')}
                                 </Text>
                             </View>

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Pressable, Text, View, ActivityIndicator } from 'react-native';
+import { Pressable, Text, View, ActivityIndicator, StyleSheet } from 'react-native';
+import { useThemeContext } from '../../providers/ThemeProvider';
 
 interface ButtonProps {
     children: React.ReactNode;
@@ -22,18 +23,24 @@ export function Button({
     fullWidth = false,
     className = '',
 }: ButtonProps) {
+    const { colors, isDark } = useThemeContext();
+
     const getVariantStyles = () => {
         switch (variant) {
             case 'primary':
-                return 'bg-blue-600 active:bg-blue-700';
+                return { backgroundColor: colors.primary };
             case 'secondary':
-                return 'bg-gray-600 active:bg-gray-700';
+                return { backgroundColor: isDark ? '#4B5563' : '#4B5563' };
             case 'outline':
-                return 'bg-transparent border-2 border-blue-600 active:bg-blue-50';
+                return { 
+                    backgroundColor: 'transparent', 
+                    borderWidth: 2, 
+                    borderColor: colors.primary 
+                };
             case 'ghost':
-                return 'bg-transparent active:bg-gray-100';
+                return { backgroundColor: 'transparent' };
             default:
-                return 'bg-blue-600 active:bg-blue-700';
+                return { backgroundColor: colors.primary };
         }
     };
 
@@ -52,9 +59,9 @@ export function Button({
 
     const getTextColor = () => {
         if (variant === 'outline' || variant === 'ghost') {
-            return 'text-blue-600';
+            return colors.primary;
         }
-        return 'text-white';
+        return colors.textInverse;
     };
 
     const getTextSize = () => {
@@ -75,23 +82,26 @@ export function Button({
             onPress={onPress}
             disabled={disabled || loading}
             className={`
-        ${getVariantStyles()}
         ${getSizeStyles()}
         rounded-lg
         ${fullWidth ? 'w-full' : ''}
         ${disabled ? 'opacity-50' : ''}
         ${className}
       `}
+            style={getVariantStyles()}
         >
             <View className="flex-row items-center justify-center">
                 {loading && (
                     <ActivityIndicator
                         size="small"
-                        color={variant === 'outline' || variant === 'ghost' ? '#2563EB' : '#FFFFFF'}
+                        color={variant === 'outline' || variant === 'ghost' ? colors.primary : colors.textInverse}
                         className="mr-2"
                     />
                 )}
-                <Text className={`${getTextColor()} ${getTextSize()} font-semibold text-center`}>
+                <Text 
+                    className={`${getTextSize()} font-semibold text-center`}
+                    style={{ color: getTextColor() }}
+                >
                     {children}
                 </Text>
             </View>

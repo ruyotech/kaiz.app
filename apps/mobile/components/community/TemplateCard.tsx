@@ -1,6 +1,7 @@
 import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { CommunityTemplate } from '../../types/models';
+import { useThemeContext } from '../../providers/ThemeProvider';
 
 interface TemplateCardProps {
     template: CommunityTemplate;
@@ -20,6 +21,7 @@ const TYPE_CONFIG: Record<string, { label: string; icon: string; color: string }
 };
 
 export function TemplateCard({ template, onPress, onDownload, onBookmark, compact = false }: TemplateCardProps) {
+    const { colors } = useThemeContext();
     const config = TYPE_CONFIG[template.type] || TYPE_CONFIG.process;
     
     const renderStars = (rating: number) => {
@@ -38,7 +40,7 @@ export function TemplateCard({ template, onPress, onDownload, onBookmark, compac
                 );
             } else {
                 stars.push(
-                    <MaterialCommunityIcons key={i} name="star-outline" size={12} color="#D1D5DB" />
+                    <MaterialCommunityIcons key={i} name="star-outline" size={12} color={colors.border} />
                 );
             }
         }
@@ -48,8 +50,8 @@ export function TemplateCard({ template, onPress, onDownload, onBookmark, compac
     if (compact) {
         return (
             <TouchableOpacity 
-                className="bg-white rounded-xl p-3 mr-3 shadow-sm border border-gray-100"
-                style={{ width: 200 }}
+                className="rounded-xl p-3 mr-3 shadow-sm"
+                style={{ width: 200, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
                 onPress={onPress}
                 activeOpacity={0.8}
             >
@@ -64,16 +66,16 @@ export function TemplateCard({ template, onPress, onDownload, onBookmark, compac
                             color={config.color} 
                         />
                     </View>
-                    <Text className="text-xs text-gray-500">{config.label}</Text>
+                    <Text className="text-xs" style={{ color: colors.textSecondary }}>{config.label}</Text>
                 </View>
                 
-                <Text className="text-sm font-semibold text-gray-900 mb-1" numberOfLines={2}>
+                <Text className="text-sm font-semibold mb-1" style={{ color: colors.text }} numberOfLines={2}>
                     {template.name}
                 </Text>
                 
                 <View className="flex-row items-center">
                     <View className="flex-row">{renderStars(template.rating)}</View>
-                    <Text className="text-xs text-gray-400 ml-1">
+                    <Text className="text-xs ml-1" style={{ color: colors.textTertiary }}>
                         ({template.ratingCount})
                     </Text>
                 </View>
@@ -83,7 +85,8 @@ export function TemplateCard({ template, onPress, onDownload, onBookmark, compac
 
     return (
         <TouchableOpacity 
-            className="bg-white rounded-2xl p-4 mb-3 shadow-sm border border-gray-100"
+            className="rounded-2xl p-4 mb-3 shadow-sm"
+            style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
             onPress={onPress}
             activeOpacity={0.8}
         >
@@ -109,16 +112,16 @@ export function TemplateCard({ template, onPress, onDownload, onBookmark, compac
                         >
                             {config.label}
                         </Text>
-                        <Text className="text-xs text-gray-400">
+                        <Text className="text-xs" style={{ color: colors.textTertiary }}>
                             by {template.authorName}
                         </Text>
                     </View>
                     
-                    <Text className="text-base font-semibold text-gray-900 mb-1">
+                    <Text className="text-base font-semibold mb-1" style={{ color: colors.text }}>
                         {template.name}
                     </Text>
                     
-                    <Text className="text-sm text-gray-500" numberOfLines={2}>
+                    <Text className="text-sm" style={{ color: colors.textSecondary }} numberOfLines={2}>
                         {template.description}
                     </Text>
                 </View>
@@ -127,24 +130,24 @@ export function TemplateCard({ template, onPress, onDownload, onBookmark, compac
             {/* Tags */}
             <View className="flex-row flex-wrap mt-3">
                 {template.tags.slice(0, 3).map((tag, index) => (
-                    <View key={index} className="bg-gray-100 rounded-full px-2.5 py-1 mr-2 mb-1">
-                        <Text className="text-xs text-gray-600">{tag}</Text>
+                    <View key={index} className="rounded-full px-2.5 py-1 mr-2 mb-1" style={{ backgroundColor: colors.backgroundSecondary }}>
+                        <Text className="text-xs" style={{ color: colors.textSecondary }}>{tag}</Text>
                     </View>
                 ))}
             </View>
             
             {/* Footer */}
-            <View className="flex-row items-center mt-3 pt-3 border-t border-gray-100">
+            <View className="flex-row items-center mt-3 pt-3" style={{ borderTopWidth: 1, borderTopColor: colors.border }}>
                 <View className="flex-row items-center">
                     <View className="flex-row">{renderStars(template.rating)}</View>
-                    <Text className="text-xs text-gray-500 ml-1">
+                    <Text className="text-xs ml-1" style={{ color: colors.textSecondary }}>
                         {template.rating.toFixed(1)} ({template.ratingCount})
                     </Text>
                 </View>
                 
                 <View className="flex-row items-center ml-4">
-                    <MaterialCommunityIcons name="download" size={14} color="#6B7280" />
-                    <Text className="text-xs text-gray-500 ml-1">
+                    <MaterialCommunityIcons name="download" size={14} color={colors.textSecondary} />
+                    <Text className="text-xs ml-1" style={{ color: colors.textSecondary }}>
                         {template.downloadCount.toLocaleString()}
                     </Text>
                 </View>
@@ -158,15 +161,16 @@ export function TemplateCard({ template, onPress, onDownload, onBookmark, compac
                     <MaterialCommunityIcons 
                         name={template.isBookmarked ? 'bookmark' : 'bookmark-outline'} 
                         size={20} 
-                        color={template.isBookmarked ? '#9333EA' : '#6B7280'} 
+                        color={template.isBookmarked ? colors.primary : colors.textSecondary} 
                     />
                 </TouchableOpacity>
                 
                 <TouchableOpacity 
-                    className="bg-purple-600 px-4 py-1.5 rounded-full"
+                    className="px-4 py-1.5 rounded-full"
+                    style={{ backgroundColor: colors.primary }}
                     onPress={onDownload}
                 >
-                    <Text className="text-white text-xs font-semibold">Use</Text>
+                    <Text className="text-xs font-semibold" style={{ color: colors.textInverse }}>Use</Text>
                 </TouchableOpacity>
             </View>
         </TouchableOpacity>

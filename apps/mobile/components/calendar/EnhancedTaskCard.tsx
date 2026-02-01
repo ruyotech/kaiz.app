@@ -2,6 +2,7 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Task } from '../../types/models';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useThemeContext } from '../../providers/ThemeProvider';
 
 // Helper to check if a string is an emoji (not a MaterialCommunityIcons name)
 const isEmoji = (str: string): boolean => {
@@ -90,6 +91,7 @@ export function EnhancedTaskCard({
     commentsCount = 0,
 }: EnhancedTaskCardProps) {
     const { t } = useTranslation();
+    const { colors } = useThemeContext();
     const statusConfig = STATUS_CONFIG[task.status] || STATUS_CONFIG.todo;
     const recurrenceInfo = getRecurrenceLabel(task, viewType);
 
@@ -112,9 +114,12 @@ export function EnhancedTaskCard({
     return (
         <TouchableOpacity
             onPress={onPress}
-            className="bg-white rounded-xl mb-3 border border-gray-200 overflow-hidden"
+            className="rounded-xl mb-3 overflow-hidden"
             style={{
-                shadowColor: '#000',
+                backgroundColor: colors.card,
+                borderWidth: 1,
+                borderColor: colors.border,
+                shadowColor: colors.shadow,
                 shadowOffset: { width: 0, height: 2 },
                 shadowOpacity: 0.08,
                 shadowRadius: 4,
@@ -131,14 +136,14 @@ export function EnhancedTaskCard({
                 {/* Header Row: Title + Recurrence Badge */}
                 <View className="flex-row items-start justify-between mb-2">
                     <View className="flex-1 mr-2">
-                        <Text className="font-bold text-base text-gray-900" numberOfLines={2}>
+                        <Text className="font-bold text-base" style={{ color: colors.text }} numberOfLines={2}>
                             {task.title}
                         </Text>
                     </View>
                     {recurrenceInfo && (
-                        <View className="bg-purple-100 px-2.5 py-1 rounded-full flex-row items-center">
+                        <View style={{ backgroundColor: colors.primaryLight }} className="px-2.5 py-1 rounded-full flex-row items-center">
                             <Text className="text-sm mr-1">{recurrenceInfo.emoji}</Text>
-                            <Text className="text-xs font-bold text-purple-700">
+                            <Text className="text-xs font-bold" style={{ color: colors.primary }}>
                                 {recurrenceInfo.label}
                             </Text>
                         </View>
@@ -148,8 +153,8 @@ export function EnhancedTaskCard({
                 {/* Time Range */}
                 {timeRangeLabel && (
                     <View className="flex-row items-center mb-2">
-                        <MaterialCommunityIcons name="clock-outline" size={14} color="#9333EA" />
-                        <Text className="text-sm text-purple-600 ml-1.5 font-medium">
+                        <MaterialCommunityIcons name="clock-outline" size={14} color={colors.primary} />
+                        <Text className="text-sm ml-1.5 font-medium" style={{ color: colors.primary }}>
                             {timeRangeLabel}
                         </Text>
                     </View>
@@ -157,7 +162,7 @@ export function EnhancedTaskCard({
 
                 {/* Description preview */}
                 {task.description && (
-                    <Text className="text-sm text-gray-500 mb-3" numberOfLines={2}>
+                    <Text className="text-sm mb-3" style={{ color: colors.textSecondary }} numberOfLines={2}>
                         {task.description}
                     </Text>
                 )}
@@ -179,16 +184,27 @@ export function EnhancedTaskCard({
                     </View>
 
                     {/* Status Badge with Icon */}
-                    <View className={`flex-row items-center px-2.5 py-1.5 rounded-lg ${statusConfig.bg}`}>
+                    <View 
+                        className="flex-row items-center px-2.5 py-1.5 rounded-lg"
+                        style={{ backgroundColor: colors.backgroundSecondary }}
+                    >
                         <MaterialCommunityIcons 
                             name={statusConfig.icon as any} 
                             size={14} 
-                            color={statusConfig.text.includes('blue') ? '#2563EB' : 
-                                   statusConfig.text.includes('green') ? '#16A34A' :
-                                   statusConfig.text.includes('red') ? '#DC2626' :
-                                   statusConfig.text.includes('slate') ? '#475569' : '#6B7280'} 
+                            color={statusConfig.text.includes('blue') ? colors.info : 
+                                   statusConfig.text.includes('green') ? colors.success :
+                                   statusConfig.text.includes('red') ? colors.error :
+                                   colors.textSecondary} 
                         />
-                        <Text className={`text-xs font-semibold ml-1 ${statusConfig.text}`}>
+                        <Text 
+                            className="text-xs font-semibold ml-1"
+                            style={{ 
+                                color: statusConfig.text.includes('blue') ? colors.info : 
+                                       statusConfig.text.includes('green') ? colors.success :
+                                       statusConfig.text.includes('red') ? colors.error :
+                                       colors.textSecondary 
+                            }}
+                        >
                             {statusConfig.label}
                         </Text>
                     </View>
@@ -198,9 +214,12 @@ export function EnhancedTaskCard({
                 <View className="flex-row items-center justify-between">
                     <View className="flex-row items-center gap-3">
                         {/* Story Points */}
-                        <View className="flex-row items-center bg-gray-100 px-2.5 py-1 rounded-lg">
-                            <MaterialCommunityIcons name="star-four-points" size={12} color="#6B7280" />
-                            <Text className="text-xs font-bold text-gray-700 ml-1">
+                        <View 
+                            className="flex-row items-center px-2.5 py-1 rounded-lg"
+                            style={{ backgroundColor: colors.backgroundSecondary }}
+                        >
+                            <MaterialCommunityIcons name="star-four-points" size={12} color={colors.textSecondary} />
+                            <Text className="text-xs font-bold ml-1" style={{ color: colors.textSecondary }}>
                                 {task.storyPoints || 0} {t('tasks.pts')}
                             </Text>
                         </View>
@@ -208,8 +227,8 @@ export function EnhancedTaskCard({
                         {/* Comments Count */}
                         {commentsCount > 0 && (
                             <View className="flex-row items-center">
-                                <MaterialCommunityIcons name="comment-outline" size={14} color="#6B7280" />
-                                <Text className="text-xs text-gray-500 ml-1">
+                                <MaterialCommunityIcons name="comment-outline" size={14} color={colors.textSecondary} />
+                                <Text className="text-xs ml-1" style={{ color: colors.textSecondary }}>
                                     {commentsCount}
                                 </Text>
                             </View>
@@ -249,15 +268,19 @@ export function CompactTaskCard({
     lifeWheelArea,
     onPress,
 }: Omit<EnhancedTaskCardProps, 'viewType' | 'commentsCount'>) {
+    const { colors } = useThemeContext();
     const statusConfig = STATUS_CONFIG[task.status] || STATUS_CONFIG.todo;
     const wheelArea = lifeWheelArea || { name: 'General', icon: 'help-circle', color: '#6B7280' };
 
     return (
         <TouchableOpacity
             onPress={onPress}
-            className="bg-white rounded-lg p-3 mb-2 border border-gray-200"
+            className="rounded-lg p-3 mb-2"
             style={{
-                shadowColor: '#000',
+                backgroundColor: colors.card,
+                borderWidth: 1,
+                borderColor: colors.border,
+                shadowColor: colors.shadow,
                 shadowOffset: { width: 0, height: 1 },
                 shadowOpacity: 0.05,
                 shadowRadius: 2,
@@ -272,13 +295,24 @@ export function CompactTaskCard({
                 />
 
                 {/* Title */}
-                <Text className="font-medium text-gray-900 flex-1" numberOfLines={1}>
+                <Text className="font-medium flex-1" style={{ color: colors.text }} numberOfLines={1}>
                     {task.title}
                 </Text>
 
                 {/* Status indicator */}
-                <View className={`px-2 py-0.5 rounded ${statusConfig.bg}`}>
-                    <Text className={`text-[10px] font-semibold ${statusConfig.text}`}>
+                <View 
+                    className="px-2 py-0.5 rounded"
+                    style={{ backgroundColor: colors.backgroundSecondary }}
+                >
+                    <Text 
+                        className="text-[10px] font-semibold"
+                        style={{ 
+                            color: statusConfig.text.includes('blue') ? colors.info : 
+                                   statusConfig.text.includes('green') ? colors.success :
+                                   statusConfig.text.includes('red') ? colors.error :
+                                   colors.textSecondary 
+                        }}
+                    >
                         {statusConfig.label}
                     </Text>
                 </View>

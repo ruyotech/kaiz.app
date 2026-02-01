@@ -1,5 +1,6 @@
 import React from 'react';
 import { TextInput, Text, View, TextInputProps } from 'react-native';
+import { useThemeContext } from '../../providers/ThemeProvider';
 
 interface InputProps {
     value: string;
@@ -26,10 +27,15 @@ export function Input({
     keyboardType = 'default',
     autoCapitalize,
 }: InputProps) {
+    const { colors } = useThemeContext();
+    
     return (
         <View className="mb-4">
             {label && (
-                <Text className="text-sm font-medium text-gray-700 mb-1">
+                <Text 
+                    className="text-sm font-medium mb-1"
+                    style={{ color: colors.textSecondary }}
+                >
                     {label}
                 </Text>
             )}
@@ -42,15 +48,20 @@ export function Input({
                 secureTextEntry={secureTextEntry}
                 keyboardType={keyboardType}
                 autoCapitalize={autoCapitalize}
-                className={`
-          border rounded-lg px-4 py-3 text-base
-          ${error ? 'border-red-500' : 'border-gray-300'}
-          ${multiline ? 'min-h-[100px]' : ''}
-        `}
-                placeholderTextColor="#9CA3AF"
+                className={`rounded-lg px-4 py-3 text-base ${multiline ? 'min-h-[100px]' : ''}`}
+                style={{
+                    borderWidth: 1,
+                    borderColor: error ? colors.error : colors.border,
+                    backgroundColor: colors.backgroundSecondary,
+                    color: colors.text,
+                }}
+                placeholderTextColor={colors.textTertiary}
             />
             {error && (
-                <Text className="text-sm text-red-500 mt-1">
+                <Text 
+                    className="text-sm mt-1"
+                    style={{ color: colors.error }}
+                >
                     {error}
                 </Text>
             )}

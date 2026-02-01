@@ -1,6 +1,7 @@
 import { View, Text, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SuccessStory } from '../../types/models';
+import { useThemeContext } from '../../providers/ThemeProvider';
 
 interface StoryCardProps {
     story: SuccessStory;
@@ -19,6 +20,7 @@ const CATEGORY_CONFIG: Record<string, { label: string; icon: string; color: stri
 };
 
 export function StoryCard({ story, onPress, onLike, onCelebrate }: StoryCardProps) {
+    const { colors } = useThemeContext();
     const config = CATEGORY_CONFIG[story.category] || CATEGORY_CONFIG.other;
     
     const getTimeAgo = (timestamp: string) => {
@@ -35,7 +37,8 @@ export function StoryCard({ story, onPress, onLike, onCelebrate }: StoryCardProp
 
     return (
         <TouchableOpacity 
-            className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100"
+            className="rounded-2xl p-4 mb-4 shadow-sm"
+            style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
             onPress={onPress}
             activeOpacity={0.8}
         >
@@ -43,10 +46,10 @@ export function StoryCard({ story, onPress, onLike, onCelebrate }: StoryCardProp
             <View className="flex-row items-center mb-3">
                 <Text className="text-3xl">{story.authorAvatar}</Text>
                 <View className="ml-3 flex-1">
-                    <Text className="text-sm font-semibold text-gray-900">
+                    <Text className="text-sm font-semibold" style={{ color: colors.text }}>
                         {story.authorName}
                     </Text>
-                    <Text className="text-xs text-gray-500">
+                    <Text className="text-xs" style={{ color: colors.textSecondary }}>
                         {getTimeAgo(story.createdAt)}
                     </Text>
                 </View>
@@ -69,10 +72,10 @@ export function StoryCard({ story, onPress, onLike, onCelebrate }: StoryCardProp
             </View>
             
             {/* Title & Story */}
-            <Text className="text-base font-bold text-gray-900 mb-2">
+            <Text className="text-base font-bold mb-2" style={{ color: colors.text }}>
                 {story.title}
             </Text>
-            <Text className="text-sm text-gray-600 leading-5" numberOfLines={3}>
+            <Text className="text-sm leading-5" style={{ color: colors.textSecondary }} numberOfLines={3}>
                 {story.story}
             </Text>
             
@@ -82,10 +85,11 @@ export function StoryCard({ story, onPress, onLike, onCelebrate }: StoryCardProp
                     {story.metrics.map((metric, index) => (
                         <View 
                             key={index}
-                            className="bg-purple-50 rounded-lg px-3 py-2 m-1"
+                            className="rounded-lg px-3 py-2 m-1"
+                            style={{ backgroundColor: colors.primaryLight }}
                         >
-                            <Text className="text-xs text-gray-500">{metric.label}</Text>
-                            <Text className="text-sm font-bold text-purple-700">
+                            <Text className="text-xs" style={{ color: colors.textSecondary }}>{metric.label}</Text>
+                            <Text className="text-sm font-bold" style={{ color: colors.primary }}>
                                 {metric.value}
                             </Text>
                         </View>
@@ -94,7 +98,7 @@ export function StoryCard({ story, onPress, onLike, onCelebrate }: StoryCardProp
             )}
             
             {/* Actions */}
-            <View className="flex-row items-center mt-4 pt-3 border-t border-gray-100">
+            <View className="flex-row items-center mt-4 pt-3" style={{ borderTopWidth: 1, borderTopColor: colors.border }}>
                 <TouchableOpacity 
                     className={`flex-row items-center mr-4 ${story.isLikedByUser ? 'opacity-100' : 'opacity-70'}`}
                     onPress={onLike}
@@ -102,9 +106,9 @@ export function StoryCard({ story, onPress, onLike, onCelebrate }: StoryCardProp
                     <MaterialCommunityIcons 
                         name={story.isLikedByUser ? 'heart' : 'heart-outline'} 
                         size={20} 
-                        color={story.isLikedByUser ? '#EF4444' : '#6B7280'} 
+                        color={story.isLikedByUser ? '#EF4444' : colors.textSecondary} 
                     />
-                    <Text className="text-sm text-gray-600 ml-1">{story.likeCount}</Text>
+                    <Text className="text-sm ml-1" style={{ color: colors.textSecondary }}>{story.likeCount}</Text>
                 </TouchableOpacity>
                 
                 <TouchableOpacity 
@@ -112,18 +116,18 @@ export function StoryCard({ story, onPress, onLike, onCelebrate }: StoryCardProp
                     onPress={onCelebrate}
                 >
                     <Text className="text-lg">🎉</Text>
-                    <Text className="text-sm text-gray-600 ml-1">{story.celebrateCount}</Text>
+                    <Text className="text-sm ml-1" style={{ color: colors.textSecondary }}>{story.celebrateCount}</Text>
                 </TouchableOpacity>
                 
                 <TouchableOpacity className="flex-row items-center">
-                    <MaterialCommunityIcons name="comment-outline" size={20} color="#6B7280" />
-                    <Text className="text-sm text-gray-600 ml-1">{story.commentCount}</Text>
+                    <MaterialCommunityIcons name="comment-outline" size={20} color={colors.textSecondary} />
+                    <Text className="text-sm ml-1" style={{ color: colors.textSecondary }}>{story.commentCount}</Text>
                 </TouchableOpacity>
                 
                 <View className="flex-1" />
                 
                 <TouchableOpacity>
-                    <MaterialCommunityIcons name="share-variant" size={20} color="#6B7280" />
+                    <MaterialCommunityIcons name="share-variant" size={20} color={colors.textSecondary} />
                 </TouchableOpacity>
             </View>
         </TouchableOpacity>

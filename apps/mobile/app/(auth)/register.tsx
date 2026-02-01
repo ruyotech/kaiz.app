@@ -16,12 +16,14 @@ import { Button } from '../../components/ui/Button';
 import { useAuthStore } from '../../store/authStore';
 import { usePreferencesStore } from '../../store/preferencesStore';
 import { useTranslation } from '../../hooks';
+import { useThemeContext } from '../../providers/ThemeProvider';
 
 export default function RegisterScreen() {
     const router = useRouter();
     const { t } = useTranslation();
     const { register, error: authError } = useAuthStore();
     const { timezone } = usePreferencesStore();
+    const { colors } = useThemeContext();
     const [loading, setLoading] = useState(false);
 
     // Form state
@@ -132,14 +134,23 @@ export default function RegisterScreen() {
                             className="mb-8"
                         >
                             <Pressable onPress={() => router.back()} className="mb-4">
-                                <Text className="text-blue-600 font-semibold text-lg">
+                                <Text 
+                                    className="font-semibold text-lg"
+                                    style={{ color: colors.primary }}
+                                >
                                     ← {t('common.back')}
                                 </Text>
                             </Pressable>
-                            <Text className="text-4xl font-bold text-gray-900">
+                            <Text 
+                                className="text-4xl font-bold"
+                                style={{ color: colors.text }}
+                            >
                                 {t('auth.register.title')}
                             </Text>
-                            <Text className="text-base text-gray-600 mt-2">
+                            <Text 
+                                className="text-base mt-2"
+                                style={{ color: colors.textSecondary }}
+                            >
                                 {t('auth.register.subtitle')}
                             </Text>
                         </Animated.View>
@@ -186,7 +197,10 @@ export default function RegisterScreen() {
                                     onPress={() => setShowPassword(!showPassword)}
                                     className="absolute right-4 top-11"
                                 >
-                                    <Text className="text-blue-600 font-semibold">
+                                    <Text 
+                                        className="font-semibold"
+                                        style={{ color: colors.primary }}
+                                    >
                                         {showPassword ? t('common.hide') : t('common.show')}
                                     </Text>
                                 </Pressable>
@@ -198,17 +212,21 @@ export default function RegisterScreen() {
                                 className="flex-row items-start mb-6"
                             >
                                 <View
-                                    className={`w-6 h-6 rounded-md border-2 items-center justify-center mr-3 mt-0.5 ${
-                                        agreeToTerms
-                                            ? 'bg-blue-600 border-blue-600'
-                                            : 'border-gray-300'
-                                    }`}
+                                    className="w-6 h-6 rounded-md items-center justify-center mr-3 mt-0.5"
+                                    style={{
+                                        borderWidth: 2,
+                                        backgroundColor: agreeToTerms ? colors.primary : 'transparent',
+                                        borderColor: agreeToTerms ? colors.primary : colors.border
+                                    }}
                                 >
                                     {agreeToTerms && (
-                                        <Text className="text-white text-sm font-bold">✓</Text>
+                                        <Text style={{ color: colors.textInverse }} className="text-sm font-bold">✓</Text>
                                     )}
                                 </View>
-                                <Text className="flex-1 text-sm text-gray-600 leading-6">
+                                <Text 
+                                    className="flex-1 text-sm leading-6"
+                                    style={{ color: colors.textSecondary }}
+                                >
                                     {t('auth.register.agreeToTerms')}
                                 </Text>
                             </Pressable>
@@ -228,9 +246,14 @@ export default function RegisterScreen() {
                             entering={FadeInUp.delay(300).springify()}
                             className="flex-row justify-center mt-8"
                         >
-                            <Text className="text-gray-600">Already have an account? </Text>
+                            <Text style={{ color: colors.textSecondary }}>Already have an account? </Text>
                             <Pressable onPress={() => router.push('/(auth)/login')}>
-                                <Text className="text-blue-600 font-semibold">Sign In</Text>
+                                <Text 
+                                    className="font-semibold"
+                                    style={{ color: colors.primary }}
+                                >
+                                    Sign In
+                                </Text>
                             </Pressable>
                         </Animated.View>
                     </View>

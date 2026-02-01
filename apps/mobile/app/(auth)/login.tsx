@@ -38,11 +38,13 @@ import { Button } from '../../components/ui/Button';
 import { useAuthStore } from '../../store/authStore';
 import { useBiometricStore } from '../../store/biometricStore';
 import { useTranslation } from '../../hooks';
+import { useThemeContext } from '../../providers/ThemeProvider';
 
 export default function LoginScreen() {
     const router = useRouter();
     const { t } = useTranslation();
     const { login, loading, error: authError } = useAuthStore();
+    const { colors } = useThemeContext();
     const {
         isBiometricEnabled,
         enrolledEmail,
@@ -204,13 +206,22 @@ export default function LoginScreen() {
                             entering={FadeInDown.delay(100).springify()}
                             className="items-center mb-12"
                         >
-                            <View className="w-20 h-20 rounded-full bg-blue-600 items-center justify-center mb-4">
+                            <View 
+                                className="w-20 h-20 rounded-full items-center justify-center mb-4"
+                                style={{ backgroundColor: colors.primary }}
+                            >
                                 <Text className="text-5xl">🚀</Text>
                             </View>
-                            <Text className="text-4xl font-bold text-gray-900">
+                            <Text 
+                                className="text-4xl font-bold"
+                                style={{ color: colors.text }}
+                            >
                                 {t('auth.login.welcomeBack')}
                             </Text>
-                            <Text className="text-base text-gray-600 mt-2">
+                            <Text 
+                                className="text-base mt-2"
+                                style={{ color: colors.textSecondary }}
+                            >
                                 {t('auth.login.subtitle')}
                             </Text>
                         </Animated.View>
@@ -224,23 +235,34 @@ export default function LoginScreen() {
                                 <TouchableOpacity
                                     onPress={handleBiometricLogin}
                                     disabled={isBiometricLoggingIn || isBiometricChecking}
-                                    className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-4 flex-row items-center justify-center"
+                                    className="rounded-2xl p-4 flex-row items-center justify-center"
+                                    style={{ 
+                                        backgroundColor: colors.primaryLight + '20',
+                                        borderWidth: 2,
+                                        borderColor: colors.primary + '40'
+                                    }}
                                     activeOpacity={0.7}
                                 >
                                     {isBiometricLoggingIn ? (
-                                        <ActivityIndicator size="small" color="#3B82F6" />
+                                        <ActivityIndicator size="small" color={colors.primary} />
                                     ) : (
                                         <MaterialCommunityIcons
                                             name={biometricCapability?.iconName as any || 'face-recognition'}
                                             size={32}
-                                            color="#3B82F6"
+                                            color={colors.primary}
                                         />
                                     )}
                                     <View className="ml-3">
-                                        <Text className="text-blue-600 font-semibold text-base">
+                                        <Text 
+                                            className="font-semibold text-base"
+                                            style={{ color: colors.primary }}
+                                        >
                                             {t('auth.login.loginWith')} {biometricCapability?.displayName || 'Face ID'}
                                         </Text>
-                                        <Text className="text-blue-400 text-xs mt-0.5">
+                                        <Text 
+                                            className="text-xs mt-0.5"
+                                            style={{ color: colors.primary + '99' }}
+                                        >
                                             {enrolledEmail}
                                         </Text>
                                     </View>
@@ -248,9 +270,20 @@ export default function LoginScreen() {
 
                                 {/* Divider */}
                                 <View className="flex-row items-center my-6">
-                                    <View className="flex-1 h-px bg-gray-200" />
-                                    <Text className="text-gray-400 text-sm mx-4">{t('auth.login.orSignInWithEmail')}</Text>
-                                    <View className="flex-1 h-px bg-gray-200" />
+                                    <View 
+                                        className="flex-1 h-px"
+                                        style={{ backgroundColor: colors.border }}
+                                    />
+                                    <Text 
+                                        className="text-sm mx-4"
+                                        style={{ color: colors.textMuted }}
+                                    >
+                                        {t('auth.login.orSignInWithEmail')}
+                                    </Text>
+                                    <View 
+                                        className="flex-1 h-px"
+                                        style={{ backgroundColor: colors.border }}
+                                    />
                                 </View>
                             </Animated.View>
                         )}
@@ -285,7 +318,10 @@ export default function LoginScreen() {
                                     onPress={() => setShowPassword(!showPassword)}
                                     className="absolute right-4 top-11"
                                 >
-                                    <Text className="text-blue-600 font-semibold">
+                                    <Text 
+                                        className="font-semibold"
+                                        style={{ color: colors.primary }}
+                                    >
                                         {showPassword ? t('common.hide') : t('common.show')}
                                     </Text>
                                 </Pressable>
@@ -295,7 +331,10 @@ export default function LoginScreen() {
                                 onPress={() => router.push('/(auth)/forgot-password')}
                                 className="mb-6"
                             >
-                                <Text className="text-blue-600 font-semibold text-right">
+                                <Text 
+                                    className="font-semibold text-right"
+                                    style={{ color: colors.primary }}
+                                >
                                     {t('auth.login.forgotPassword')}
                                 </Text>
                             </Pressable>
@@ -315,9 +354,14 @@ export default function LoginScreen() {
                             entering={FadeInUp.delay(300).springify()}
                             className="flex-row justify-center mt-8"
                         >
-                            <Text className="text-gray-600">{t('auth.login.noAccount')} </Text>
+                            <Text style={{ color: colors.textSecondary }}>{t('auth.login.noAccount')} </Text>
                             <Pressable onPress={() => router.push('/(auth)/register')}>
-                                <Text className="text-blue-600 font-semibold">{t('auth.login.signUp')}</Text>
+                                <Text 
+                                    className="font-semibold"
+                                    style={{ color: colors.primary }}
+                                >
+                                    {t('auth.login.signUp')}
+                                </Text>
                             </Pressable>
                         </Animated.View>
                     </View>

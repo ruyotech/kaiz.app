@@ -1,6 +1,7 @@
 import { View, Text, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { CommunityActivity, ActivityType } from '../../types/models';
+import { useThemeContext } from '../../providers/ThemeProvider';
 
 interface ActivityCardProps {
     activity: CommunityActivity;
@@ -20,6 +21,7 @@ const ACTIVITY_ICONS: Record<ActivityType, { icon: string; color: string }> = {
 };
 
 export function ActivityCard({ activity, onCelebrate }: ActivityCardProps) {
+    const { colors } = useThemeContext();
     const config = ACTIVITY_ICONS[activity.type];
     
     const getTimeAgo = (timestamp: string) => {
@@ -36,7 +38,10 @@ export function ActivityCard({ activity, onCelebrate }: ActivityCardProps) {
     };
 
     return (
-        <View className="bg-white rounded-2xl p-4 mb-3 shadow-sm border border-gray-100">
+        <View 
+            className="rounded-2xl p-4 mb-3 shadow-sm"
+            style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
+        >
             <View className="flex-row items-start">
                 {/* Avatar with activity icon */}
                 <View className="relative">
@@ -55,27 +60,28 @@ export function ActivityCard({ activity, onCelebrate }: ActivityCardProps) {
                 
                 {/* Content */}
                 <View className="ml-3 flex-1">
-                    <Text className="text-sm text-gray-900">
+                    <Text className="text-sm" style={{ color: colors.text }}>
                         <Text className="font-semibold">{activity.userName}</Text>
                         {' '}{activity.title}
                     </Text>
                     {activity.description && (
-                        <Text className="text-xs text-gray-500 mt-0.5">
+                        <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
                             {activity.description}
                         </Text>
                     )}
-                    <Text className="text-xs text-gray-400 mt-1">
+                    <Text className="text-xs mt-1" style={{ color: colors.textTertiary }}>
                         {getTimeAgo(activity.timestamp)}
                     </Text>
                 </View>
                 
                 {/* Celebrate button */}
                 <TouchableOpacity 
-                    className="flex-row items-center px-3 py-1.5 bg-gray-50 rounded-full"
+                    className="flex-row items-center px-3 py-1.5 rounded-full"
+                    style={{ backgroundColor: colors.backgroundSecondary }}
                     onPress={onCelebrate}
                 >
                     <Text className="text-sm mr-1">🎉</Text>
-                    <Text className="text-xs text-gray-600 font-medium">
+                    <Text className="text-xs font-medium" style={{ color: colors.textSecondary }}>
                         {activity.celebrateCount}
                     </Text>
                 </TouchableOpacity>

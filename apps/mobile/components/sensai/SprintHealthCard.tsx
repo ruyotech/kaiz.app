@@ -10,6 +10,7 @@ import { View, Text } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SprintHealth } from '../../types/sensai.types';
 import { useTranslation } from '../../hooks';
+import { useThemeContext } from '../../providers/ThemeProvider';
 
 interface SprintHealthCardProps {
     health: SprintHealth;
@@ -18,6 +19,7 @@ interface SprintHealthCardProps {
 
 export function SprintHealthCard({ health, compact = false }: SprintHealthCardProps) {
     const { t } = useTranslation();
+    const { colors } = useThemeContext();
     
     const STATUS_STYLES = {
         on_track: {
@@ -62,24 +64,31 @@ export function SprintHealthCard({ health, compact = false }: SprintHealthCardPr
 
     if (compact) {
         return (
-            <View className={`${style.bg} ${style.border} border rounded-xl p-3 flex-row items-center`}>
+            <View 
+                className="rounded-xl p-3 flex-row items-center"
+                style={{ 
+                    backgroundColor: `${style.iconColor}10`,
+                    borderWidth: 1,
+                    borderColor: `${style.iconColor}30`
+                }}
+            >
                 <MaterialCommunityIcons 
                     name={style.icon as any} 
                     size={20} 
                     color={style.iconColor} 
                 />
-                <Text className={`ml-2 font-semibold ${style.labelColor}`}>
+                <Text className="ml-2 font-semibold" style={{ color: style.iconColor }}>
                     {style.label}
                 </Text>
                 <View className="flex-1 mx-3">
-                    <View className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <View className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: colors.backgroundSecondary }}>
                         <View 
-                            className={`h-full ${style.progressBg} rounded-full`}
-                            style={{ width: `${Math.min(health.completionPercentage, 100)}%` }}
+                            className="h-full rounded-full"
+                            style={{ width: `${Math.min(health.completionPercentage, 100)}%`, backgroundColor: style.iconColor }}
                         />
                     </View>
                 </View>
-                <Text className="text-sm font-bold text-gray-900">
+                <Text className="text-sm font-bold" style={{ color: colors.text }}>
                     {health.completionPercentage}%
                 </Text>
             </View>
@@ -87,11 +96,18 @@ export function SprintHealthCard({ health, compact = false }: SprintHealthCardPr
     }
 
     return (
-        <View className={`${style.bg} ${style.border} border rounded-2xl p-4`}>
+        <View 
+            className="rounded-2xl p-4"
+            style={{ 
+                backgroundColor: `${style.iconColor}10`,
+                borderWidth: 1,
+                borderColor: `${style.iconColor}30`
+            }}
+        >
             {/* Header */}
             <View className="flex-row items-center justify-between mb-4">
                 <View className="flex-row items-center">
-                    <View className={`w-10 h-10 rounded-full items-center justify-center`} 
+                    <View className="w-10 h-10 rounded-full items-center justify-center" 
                           style={{ backgroundColor: `${style.iconColor}20` }}>
                         <MaterialCommunityIcons 
                             name={style.icon as any} 
@@ -100,48 +116,48 @@ export function SprintHealthCard({ health, compact = false }: SprintHealthCardPr
                         />
                     </View>
                     <View className="ml-3">
-                        <Text className="text-lg font-bold text-gray-900">{t('sensai.sprintHealth.title')}</Text>
-                        <Text className={`text-sm font-medium ${style.labelColor}`}>{style.label}</Text>
+                        <Text className="text-lg font-bold" style={{ color: colors.text }}>{t('sensai.sprintHealth.title')}</Text>
+                        <Text className="text-sm font-medium" style={{ color: style.iconColor }}>{style.label}</Text>
                     </View>
                 </View>
                 <View className="items-end">
-                    <Text className="text-2xl font-bold text-gray-900">{health.completionPercentage}%</Text>
-                    <Text className="text-xs text-gray-500">{t('common.complete')}</Text>
+                    <Text className="text-2xl font-bold" style={{ color: colors.text }}>{health.completionPercentage}%</Text>
+                    <Text className="text-xs" style={{ color: colors.textSecondary }}>{t('common.complete')}</Text>
                 </View>
             </View>
 
             {/* Progress Bar */}
             <View className="mb-4">
-                <View className="h-3 bg-gray-200 rounded-full overflow-hidden">
+                <View className="h-3 rounded-full overflow-hidden" style={{ backgroundColor: colors.backgroundSecondary }}>
                     <View 
-                        className={`h-full ${style.progressBg} rounded-full`}
-                        style={{ width: `${Math.min(health.completionPercentage, 100)}%` }}
+                        className="h-full rounded-full"
+                        style={{ width: `${Math.min(health.completionPercentage, 100)}%`, backgroundColor: style.iconColor }}
                     />
                 </View>
                 {/* Expected Progress Marker */}
                 <View 
-                    className="absolute h-3 w-0.5 bg-gray-400"
-                    style={{ left: `${health.expectedPercentage}%`, top: 0 }}
+                    className="absolute h-3 w-0.5"
+                    style={{ left: `${health.expectedPercentage}%`, top: 0, backgroundColor: colors.textTertiary }}
                 />
             </View>
 
             {/* Stats Grid */}
             <View className="flex-row">
-                <View className="flex-1 items-center border-r border-gray-200">
-                    <Text className="text-xs text-gray-500">{t('common.day')}</Text>
-                    <Text className="text-lg font-bold text-gray-900">
+                <View className="flex-1 items-center" style={{ borderRightWidth: 1, borderRightColor: colors.border }}>
+                    <Text className="text-xs" style={{ color: colors.textSecondary }}>{t('common.day')}</Text>
+                    <Text className="text-lg font-bold" style={{ color: colors.text }}>
                         {health.dayOfSprint}/{health.totalDays}
                     </Text>
                 </View>
-                <View className="flex-1 items-center border-r border-gray-200">
-                    <Text className="text-xs text-gray-500">{t('common.completed')}</Text>
-                    <Text className="text-lg font-bold text-gray-900">
+                <View className="flex-1 items-center" style={{ borderRightWidth: 1, borderRightColor: colors.border }}>
+                    <Text className="text-xs" style={{ color: colors.textSecondary }}>{t('common.completed')}</Text>
+                    <Text className="text-lg font-bold" style={{ color: colors.text }}>
                         {health.completedPoints} {t('common.pts')}
                     </Text>
                 </View>
                 <View className="flex-1 items-center">
-                    <Text className="text-xs text-gray-500">{t('common.remaining')}</Text>
-                    <Text className="text-lg font-bold text-gray-900">
+                    <Text className="text-xs" style={{ color: colors.textSecondary }}>{t('common.remaining')}</Text>
+                    <Text className="text-lg font-bold" style={{ color: colors.text }}>
                         {health.remainingPoints} {t('common.pts')}
                     </Text>
                 </View>
@@ -149,18 +165,20 @@ export function SprintHealthCard({ health, compact = false }: SprintHealthCardPr
 
             {/* Trend Indicator */}
             {health.burndownTrend !== 'healthy' && (
-                <View className={`mt-3 p-2 rounded-lg ${
-                    health.burndownTrend === 'concerning' ? 'bg-amber-100' : 'bg-red-100'
-                }`}>
+                <View 
+                    className="mt-3 p-2 rounded-lg"
+                    style={{ backgroundColor: health.burndownTrend === 'concerning' ? '#FEF3C7' : '#FEE2E2' }}
+                >
                     <View className="flex-row items-center">
                         <MaterialCommunityIcons 
                             name="trending-down" 
                             size={16} 
                             color={health.burndownTrend === 'concerning' ? '#F59E0B' : '#EF4444'} 
                         />
-                        <Text className={`ml-2 text-xs ${
-                            health.burndownTrend === 'concerning' ? 'text-amber-700' : 'text-red-700'
-                        }`}>
+                        <Text 
+                            className="ml-2 text-xs"
+                            style={{ color: health.burndownTrend === 'concerning' ? '#92400E' : '#991B1B' }}
+                        >
                             {health.burndownTrend === 'concerning' 
                                 ? t('sensai.sprintHealth.burndownConcerning')
                                 : t('sensai.sprintHealth.burndownCritical')}

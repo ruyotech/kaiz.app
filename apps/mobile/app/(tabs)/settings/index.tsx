@@ -41,6 +41,7 @@ import { useBiometricStore } from '../../../store/biometricStore';
 
 // Hooks
 import { useTranslation } from '../../../hooks/useTranslation';
+import { useThemeContext } from '../../../providers/ThemeProvider';
 
 // Constants
 import { SUPPORTED_LANGUAGES } from '../../../utils/constants';
@@ -62,12 +63,14 @@ interface SettingItemProps {
     rightElement?: React.ReactNode;
     showChevron?: boolean;
     isLast?: boolean;
+    colors?: any;
 }
 
 interface SettingSectionProps {
     title: string;
     titleIcon?: string;
     children: React.ReactNode;
+    colors?: any;
 }
 
 interface ToggleSettingProps {
@@ -79,6 +82,7 @@ interface ToggleSettingProps {
     value: boolean;
     onValueChange: (value: boolean) => void;
     isLast?: boolean;
+    colors?: any;
 }
 
 // ============================================================================
@@ -88,18 +92,31 @@ interface ToggleSettingProps {
 /**
  * Modern inset grouped section container
  */
-function SettingSection({ title, titleIcon, children }: SettingSectionProps) {
+function SettingSection({ title, titleIcon, children, colors }: SettingSectionProps) {
+    const { colors: themeColors } = useThemeContext();
+    const c = colors || themeColors;
+    
     return (
         <View className="mb-6">
             <View className="flex-row items-center mb-2.5 px-1">
                 {titleIcon && (
                     <Text className="text-base mr-1.5">{titleIcon}</Text>
                 )}
-                <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <Text 
+                    className="text-xs font-semibold uppercase tracking-wider"
+                    style={{ color: c.textSecondary }}
+                >
                     {title}
                 </Text>
             </View>
-            <View className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100">
+            <View 
+                className="rounded-2xl overflow-hidden shadow-sm"
+                style={{ 
+                    backgroundColor: c.card,
+                    borderWidth: 1,
+                    borderColor: c.border,
+                }}
+            >
                 {children}
             </View>
         </View>
@@ -120,13 +137,18 @@ function SettingItem({
     rightElement,
     showChevron = true,
     isLast = false,
+    colors,
 }: SettingItemProps) {
+    const { colors: themeColors } = useThemeContext();
+    const c = colors || themeColors;
+    
     return (
         <TouchableOpacity
             onPress={onPress}
             disabled={!onPress}
             activeOpacity={onPress ? 0.6 : 1}
-            className={`flex-row items-center px-4 py-3.5 ${!isLast ? 'border-b border-gray-100' : ''}`}
+            className="flex-row items-center px-4 py-3.5"
+            style={{ borderBottomWidth: isLast ? 0 : 1, borderBottomColor: c.border }}
         >
             {/* Icon */}
             <View
@@ -138,9 +160,9 @@ function SettingItem({
             
             {/* Labels */}
             <View className="flex-1">
-                <Text className="text-[15px] font-medium text-gray-900">{label}</Text>
+                <Text className="text-[15px] font-medium" style={{ color: c.text }}>{label}</Text>
                 {sublabel && (
-                    <Text className="text-xs text-gray-500 mt-0.5">{sublabel}</Text>
+                    <Text className="text-xs mt-0.5" style={{ color: c.textSecondary }}>{sublabel}</Text>
                 )}
             </View>
             
@@ -150,10 +172,10 @@ function SettingItem({
             ) : (
                 <View className="flex-row items-center">
                     {value && (
-                        <Text className="text-sm text-gray-500 mr-2">{value}</Text>
+                        <Text className="text-sm mr-2" style={{ color: c.textSecondary }}>{value}</Text>
                     )}
                     {showChevron && onPress && (
-                        <MaterialCommunityIcons name="chevron-right" size={20} color="#C7C7CC" />
+                        <MaterialCommunityIcons name="chevron-right" size={20} color={c.textTertiary} />
                     )}
                 </View>
             )}
@@ -173,10 +195,15 @@ function ToggleSetting({
     value,
     onValueChange,
     isLast = false,
+    colors,
 }: ToggleSettingProps) {
+    const { colors: themeColors } = useThemeContext();
+    const c = colors || themeColors;
+    
     return (
         <View
-            className={`flex-row items-center px-4 py-3.5 ${!isLast ? 'border-b border-gray-100' : ''}`}
+            className="flex-row items-center px-4 py-3.5"
+            style={{ borderBottomWidth: isLast ? 0 : 1, borderBottomColor: c.border }}
         >
             {/* Icon */}
             <View
@@ -188,9 +215,9 @@ function ToggleSetting({
             
             {/* Labels */}
             <View className="flex-1">
-                <Text className="text-[15px] font-medium text-gray-900">{label}</Text>
+                <Text className="text-[15px] font-medium" style={{ color: c.text }}>{label}</Text>
                 {sublabel && (
-                    <Text className="text-xs text-gray-500 mt-0.5">{sublabel}</Text>
+                    <Text className="text-xs mt-0.5" style={{ color: c.textSecondary }}>{sublabel}</Text>
                 )}
             </View>
             
@@ -198,9 +225,9 @@ function ToggleSetting({
             <Switch
                 value={value}
                 onValueChange={onValueChange}
-                trackColor={{ false: '#E5E5EA', true: '#34C759' }}
+                trackColor={{ false: c.backgroundTertiary, true: '#34C759' }}
                 thumbColor="#FFFFFF"
-                ios_backgroundColor="#E5E5EA"
+                ios_backgroundColor={c.backgroundTertiary}
             />
         </View>
     );
@@ -227,6 +254,8 @@ function SelectionModal<T extends string>({
     selectedValue,
     onSelect,
 }: SelectionModalProps<T>) {
+    const { colors } = useThemeContext();
+    
     return (
         <Modal
             visible={visible}
@@ -235,25 +264,30 @@ function SelectionModal<T extends string>({
             onRequestClose={onClose}
         >
             <TouchableOpacity
-                className="flex-1 bg-black/50 justify-end"
+                className="flex-1 justify-end"
+                style={{ backgroundColor: colors.overlay }}
                 activeOpacity={1}
                 onPress={onClose}
             >
                 <TouchableOpacity
                     activeOpacity={1}
                     onPress={(e) => e.stopPropagation()}
-                    className="bg-white rounded-t-3xl max-h-[70%]"
+                    className="rounded-t-3xl max-h-[70%]"
+                    style={{ backgroundColor: colors.card }}
                 >
                     {/* Handle */}
                     <View className="items-center pt-3 pb-2">
-                        <View className="w-10 h-1 bg-gray-300 rounded-full" />
+                        <View className="w-10 h-1 rounded-full" style={{ backgroundColor: colors.border }} />
                     </View>
                     
                     {/* Header */}
-                    <View className="flex-row justify-between items-center px-5 pb-4 border-b border-gray-100">
-                        <Text className="text-xl font-bold text-gray-900">{title}</Text>
+                    <View 
+                        className="flex-row justify-between items-center px-5 pb-4"
+                        style={{ borderBottomWidth: 1, borderBottomColor: colors.border }}
+                    >
+                        <Text className="text-xl font-bold" style={{ color: colors.text }}>{title}</Text>
                         <TouchableOpacity onPress={onClose} className="p-1">
-                            <MaterialCommunityIcons name="close" size={24} color="#8E8E93" />
+                            <MaterialCommunityIcons name="close" size={24} color={colors.textSecondary} />
                         </TouchableOpacity>
                     </View>
                     
@@ -266,25 +300,27 @@ function SelectionModal<T extends string>({
                                     onSelect(option.value);
                                     onClose();
                                 }}
-                                className={`flex-row items-center py-4 ${
-                                    index < options.length - 1 ? 'border-b border-gray-100' : ''
-                                }`}
+                                className="flex-row items-center py-4"
+                                style={{ 
+                                    borderBottomWidth: index < options.length - 1 ? 1 : 0, 
+                                    borderBottomColor: colors.border 
+                                }}
                             >
                                 {option.icon && (
                                     <Text className="text-2xl mr-3">{option.icon}</Text>
                                 )}
                                 <View className="flex-1">
-                                    <Text className="text-[16px] font-medium text-gray-900">
+                                    <Text className="text-[16px] font-medium" style={{ color: colors.text }}>
                                         {option.label}
                                     </Text>
                                     {option.sublabel && (
-                                        <Text className="text-sm text-gray-500 mt-0.5">
+                                        <Text className="text-sm mt-0.5" style={{ color: colors.textSecondary }}>
                                             {option.sublabel}
                                         </Text>
                                     )}
                                 </View>
                                 {selectedValue === option.value && (
-                                    <MaterialCommunityIcons name="check" size={22} color="#007AFF" />
+                                    <MaterialCommunityIcons name="check" size={22} color={colors.primary} />
                                 )}
                             </TouchableOpacity>
                         ))}
@@ -507,26 +543,30 @@ export default function SettingsScreen() {
         sublabel: lang.name,
         icon: lang.flag,
     }));
+
+    // Get theme context
+    const { colors, isDark } = useThemeContext();
     
     return (
-        <View className="flex-1 bg-gray-50" style={{ paddingTop: insets.top }}>
+        <View className="flex-1" style={{ paddingTop: insets.top, backgroundColor: colors.background }}>
             {/* Header */}
-            <View className="px-5 pt-2 pb-4 bg-gray-50">
+            <View className="px-5 pt-2 pb-4" style={{ backgroundColor: colors.background }}>
                 <View className="flex-row items-center justify-between">
                     <View className="flex-row items-center">
-                        <View className="w-11 h-11 bg-blue-500 rounded-2xl items-center justify-center mr-3 shadow-sm">
+                        <View className="w-11 h-11 rounded-2xl items-center justify-center mr-3 shadow-sm" style={{ backgroundColor: colors.primary }}>
                             <MaterialCommunityIcons name="cog" size={24} color="white" />
                         </View>
                         <View>
-                            <Text className="text-2xl font-bold text-gray-900">{t('settings.title')}</Text>
-                            <Text className="text-sm text-gray-500">{t('settings.subtitle')}</Text>
+                            <Text className="text-2xl font-bold" style={{ color: colors.text }}>{t('settings.title')}</Text>
+                            <Text className="text-sm" style={{ color: colors.textSecondary }}>{t('settings.subtitle')}</Text>
                         </View>
                     </View>
                     <TouchableOpacity
                         onPress={() => router.back()}
-                        className="w-10 h-10 bg-gray-100 rounded-full items-center justify-center"
+                        className="w-10 h-10 rounded-full items-center justify-center"
+                        style={{ backgroundColor: colors.backgroundTertiary }}
                     >
-                        <MaterialCommunityIcons name="close" size={22} color="#6B7280" />
+                        <MaterialCommunityIcons name="close" size={22} color={colors.textSecondary} />
                     </TouchableOpacity>
                 </View>
             </View>

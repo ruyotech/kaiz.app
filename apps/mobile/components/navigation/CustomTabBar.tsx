@@ -15,6 +15,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { Audio } from 'expo-av';
 import { aiApi, commandCenterApi } from '../../services/api';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useThemeContext } from '../../providers/ThemeProvider';
 
 const CREATE_OPTIONS = [
     { id: 'task', icon: 'checkbox-marked-circle-outline', label: 'Task', color: '#3B82F6', route: '/(tabs)/sdlc/create-task' },
@@ -46,6 +47,7 @@ export function CustomTabBar() {
     const pathname = usePathname();
     const insets = useSafeAreaInsets();
     const { t } = useTranslation();
+    const { colors, isDark } = useThemeContext();
     const [input, setInput] = useState('');
     const [showCreateMenu, setShowCreateMenu] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
@@ -774,11 +776,26 @@ export function CustomTabBar() {
                         ) : (
                             // Normal Input Interface Container
                             <View className="flex-row items-center">
-                                <View className="flex-1 bg-gray-50 rounded-3xl border border-gray-200 px-2 py-1.5">
+                                <View 
+                                    className="flex-1 rounded-3xl px-2 py-1.5"
+                                    style={{ 
+                                        backgroundColor: colors.inputBackground,
+                                        borderWidth: 1,
+                                        borderColor: colors.border
+                                    }}
+                                >
                                     {/* Attachment Chip - Small inline preview like AI chats */}
                                     {attachment && (
                                         <View className="flex-row items-center mb-1.5">
-                                            <View className="flex-row items-center bg-white rounded-xl px-2 py-1.5 border border-gray-200 shadow-sm">
+                                            <View 
+                                                className="flex-row items-center rounded-xl px-2 py-1.5"
+                                                style={{ 
+                                                    backgroundColor: colors.card,
+                                                    borderWidth: 1,
+                                                    borderColor: colors.border,
+                                                    shadowColor: colors.shadow
+                                                }}
+                                            >
                                                 {attachment.type === 'image' ? (
                                                     <Image 
                                                         source={{ uri: attachment.uri }} 
@@ -797,7 +814,11 @@ export function CustomTabBar() {
                                                         />
                                                     </View>
                                                 )}
-                                                <Text className="ml-2 text-xs text-gray-600 max-w-[120px]" numberOfLines={1}>
+                                                <Text 
+                                                    className="ml-2 text-xs max-w-[120px]" 
+                                                    numberOfLines={1}
+                                                    style={{ color: colors.textSecondary }}
+                                                >
                                                     {attachment.type === 'image' 
                                                         ? `Photo` 
                                                         : attachment.name || 'File'}
@@ -806,7 +827,7 @@ export function CustomTabBar() {
                                                     onPress={clearAttachment}
                                                     className="ml-1 w-5 h-5 items-center justify-center"
                                                 >
-                                                    <MaterialCommunityIcons name="close-circle" size={16} color="#9CA3AF" />
+                                                    <MaterialCommunityIcons name="close-circle" size={16} color={colors.textMuted} />
                                                 </TouchableOpacity>
                                             </View>
                                         </View>
@@ -819,7 +840,7 @@ export function CustomTabBar() {
                                             onPress={() => setShowCreateMenu(true)}
                                             className="w-8 h-8 items-center justify-center"
                                         >
-                                            <MaterialCommunityIcons name="plus-circle" size={24} color="#6B7280" />
+                                            <MaterialCommunityIcons name="plus-circle" size={24} color={colors.textMuted} />
                                         </TouchableOpacity>
 
                                         {/* Text Input */}
@@ -827,8 +848,9 @@ export function CustomTabBar() {
                                             value={input}
                                             onChangeText={setInput}
                                             placeholder={attachment ? "Add a message..." : "Type a message..."}
-                                            placeholderTextColor="#9CA3AF"
-                                            className="flex-1 px-2 py-1 text-base text-gray-800"
+                                            placeholderTextColor={colors.placeholder}
+                                            className="flex-1 px-2 py-1"
+                                            style={{ color: colors.text, fontSize: 16 }}
                                             maxLength={500}
                                         />
 
@@ -836,9 +858,10 @@ export function CustomTabBar() {
                                         <TouchableOpacity
                                             onPress={handleQuickCreate}
                                             disabled={(!input.trim() && !attachment) || isProcessing}
-                                            className={`w-9 h-9 rounded-full items-center justify-center ${
-                                                (input.trim() || attachment) ? 'bg-blue-600' : 'bg-gray-300'
-                                            }`}
+                                            className="w-9 h-9 rounded-full items-center justify-center"
+                                            style={{ 
+                                                backgroundColor: (input.trim() || attachment) ? colors.primary : colors.border 
+                                            }}
                                         >
                                             {isProcessing ? (
                                                 <ActivityIndicator color="white" size="small" />
@@ -955,26 +978,34 @@ export function CustomTabBar() {
             {/* Create & Attachment Options Modal */}
             <Modal visible={showCreateMenu} transparent animationType="slide">
                 <Pressable
-                    className="flex-1 bg-black/50 justify-end"
+                    className="flex-1 justify-end"
+                    style={{ backgroundColor: colors.overlay }}
                     onPress={() => setShowCreateMenu(false)}
                 >
                     <Pressable>
-                        <View className="bg-white rounded-t-3xl pt-4 pb-8 px-4">
+                        <View 
+                            className="rounded-t-3xl pt-4 pb-8 px-4"
+                            style={{ backgroundColor: colors.card }}
+                        >
                             <View className="flex-row justify-between items-center mb-4">
-                                <Text className="text-lg font-bold">{t('navigation.createMenu.title')}</Text>
+                                <Text className="text-lg font-bold" style={{ color: colors.text }}>{t('navigation.createMenu.title')}</Text>
                                 <TouchableOpacity onPress={() => setShowCreateMenu(false)}>
-                                    <MaterialCommunityIcons name="close" size={24} color="#000" />
+                                    <MaterialCommunityIcons name="close" size={24} color={colors.text} />
                                 </TouchableOpacity>
                             </View>
 
                             {/* Create Options */}
-                            <Text className="text-sm font-semibold text-gray-700 mb-3">Create New</Text>
-                            <View className="flex-row gap-3 mb-6 pb-4 border-b border-gray-200">
+                            <Text className="text-sm font-semibold mb-3" style={{ color: colors.textSecondary }}>Create New</Text>
+                            <View 
+                                className="flex-row gap-3 mb-6 pb-4"
+                                style={{ borderBottomWidth: 1, borderBottomColor: colors.border }}
+                            >
                                 {CREATE_OPTIONS.map((option) => (
                                     <TouchableOpacity
                                         key={option.id}
                                         onPress={() => handleCreateOption(option)}
-                                        className="flex-1 items-center py-4 bg-gray-50 rounded-xl"
+                                        className="flex-1 items-center py-4 rounded-xl"
+                                        style={{ backgroundColor: colors.backgroundTertiary }}
                                     >
                                         <View
                                             className="w-12 h-12 rounded-2xl items-center justify-center mb-2"
@@ -992,7 +1023,7 @@ export function CustomTabBar() {
                             </View>
 
                             {/* Smart Input Options Row */}
-                            <Text className="text-sm font-semibold text-gray-700 mb-3">Smart Input</Text>
+                            <Text className="text-sm font-semibold mb-3" style={{ color: colors.textSecondary }}>Smart Input</Text>
                             <View className="flex-row gap-3">
                                 {INPUT_OPTIONS.map((option) => (
                                     <TouchableOpacity
@@ -1004,9 +1035,12 @@ export function CustomTabBar() {
                                             else if (option.id === 'voice') handleVoiceInput();
                                         }}
                                         disabled={isProcessing}
-                                        className={`flex-1 items-center py-4 rounded-xl ${
-                                            option.id === 'voice' && isRecording ? 'bg-red-50' : 'bg-gray-50'
-                                        }`}
+                                        className="flex-1 items-center py-4 rounded-xl"
+                                        style={{ 
+                                            backgroundColor: option.id === 'voice' && isRecording 
+                                                ? colors.errorLight 
+                                                : colors.backgroundTertiary 
+                                        }}
                                     >
                                         <View
                                             className="w-12 h-12 rounded-full items-center justify-center mb-2"

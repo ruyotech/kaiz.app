@@ -6,6 +6,7 @@ import { APPS, NAV_CONFIGS } from '../../utils/navigationConfig';
 import { useRouter } from 'expo-router';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useThemeContext } from '../../providers/ThemeProvider';
 
 // App groupings
 const SPRINT_APP = APPS.find(app => app.id === 'sdlc')!;
@@ -20,6 +21,7 @@ export function AppSwitcher() {
     const router = useRouter();
     const { t } = useTranslation();
     const insets = useSafeAreaInsets();
+    const { colors } = useThemeContext();
 
     const handleAppSelect = (app: typeof APPS[0]) => {
         // Don't change currentApp for overlays - they're not a context switch
@@ -57,13 +59,19 @@ export function AppSwitcher() {
             onRequestClose={toggleAppSwitcher}
             statusBarTranslucent
         >
-            <View className="flex-1 bg-gray-50">
+            <View className="flex-1" style={{ backgroundColor: colors.background }}>
                 {/* Header */}
                 <View 
-                    className="flex-row justify-between items-center px-5 bg-white border-b border-gray-100"
-                    style={{ paddingTop: insets.top + 12, paddingBottom: 12 }}
+                    className="flex-row justify-between items-center px-5"
+                    style={{ 
+                        paddingTop: insets.top + 12, 
+                        paddingBottom: 12,
+                        backgroundColor: colors.card,
+                        borderBottomWidth: 1,
+                        borderBottomColor: colors.border
+                    }}
                 >
-                    <Text className="text-xl font-bold text-gray-900">{t('navigation.appSwitcher.title')}</Text>
+                    <Text className="text-xl font-bold" style={{ color: colors.text }}>{t('navigation.appSwitcher.title')}</Text>
                     
                     {/* Notification Button - More Visible */}
                     <TouchableOpacity 
@@ -72,19 +80,21 @@ export function AppSwitcher() {
                     >
                         <View className="relative">
                             <View 
-                                className={`w-11 h-11 rounded-xl items-center justify-center ${
-                                    unreadCount > 0 ? 'bg-orange-500' : 'bg-gray-100'
-                                }`}
+                                className="w-11 h-11 rounded-xl items-center justify-center"
+                                style={{ backgroundColor: unreadCount > 0 ? colors.warning : colors.backgroundSecondary }}
                             >
                                 <MaterialCommunityIcons 
                                     name={unreadCount > 0 ? "bell-ring" : "bell-outline"} 
                                     size={24} 
-                                    color={unreadCount > 0 ? "#FFFFFF" : "#6B7280"} 
+                                    color={unreadCount > 0 ? colors.textInverse : colors.textSecondary} 
                                 />
                             </View>
                             {unreadCount > 0 && (
-                                <View className="absolute -top-1 -right-1 min-w-[20px] h-[20px] bg-red-500 rounded-full items-center justify-center px-1 border-2 border-white">
-                                    <Text className="text-white text-[11px] font-bold">
+                                <View 
+                                    className="absolute -top-1 -right-1 min-w-[20px] h-[20px] rounded-full items-center justify-center px-1 border-2"
+                                    style={{ backgroundColor: colors.error, borderColor: colors.card }}
+                                >
+                                    <Text style={{ color: colors.textInverse }} className="text-[11px] font-bold">
                                         {unreadCount > 99 ? '99+' : unreadCount}
                                     </Text>
                                 </View>
@@ -103,16 +113,17 @@ export function AppSwitcher() {
                     <View className="mb-5">
                         <View className="flex-row items-center mb-3 px-1">
                             <MaterialCommunityIcons name="lightning-bolt" size={16} color="#3B82F6" />
-                            <Text className="text-gray-500 text-xs font-semibold uppercase tracking-wider ml-1.5">Sprint</Text>
+                            <Text className="text-xs font-semibold uppercase tracking-wider ml-1.5" style={{ color: colors.textSecondary }}>Sprint</Text>
                         </View>
                         
                         {/* Main Sprint App */}
                         <TouchableOpacity
                             onPress={() => handleAppSelect(SPRINT_APP)}
                             activeOpacity={0.7}
-                            className="bg-white rounded-2xl p-4 mb-3 border border-gray-100"
+                            className="rounded-2xl p-4 mb-3"
                             style={{ 
-                                borderColor: currentApp === 'sdlc' ? '#3B82F6' : '#F3F4F6',
+                                backgroundColor: colors.card,
+                                borderColor: currentApp === 'sdlc' ? '#3B82F6' : colors.border,
                                 borderWidth: currentApp === 'sdlc' ? 2 : 1,
                             }}
                         >
@@ -124,18 +135,21 @@ export function AppSwitcher() {
                                     <MaterialCommunityIcons name="view-dashboard-outline" size={26} color="#3B82F6" />
                                 </View>
                                 <View className="ml-3 flex-1">
-                                    <Text className="text-gray-900 font-semibold text-base">{t(SPRINT_APP.nameKey)}</Text>
-                                    <Text className="text-gray-400 text-xs mt-0.5">Plan & track your sprints</Text>
+                                    <Text className="font-semibold text-base" style={{ color: colors.text }}>{t(SPRINT_APP.nameKey)}</Text>
+                                    <Text className="text-xs mt-0.5" style={{ color: colors.textTertiary }}>Plan & track your sprints</Text>
                                 </View>
                                 {currentApp === 'sdlc' && (
-                                    <View className="w-2 h-2 rounded-full bg-green-500 mr-2" />
+                                    <View className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: colors.success }} />
                                 )}
-                                <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
+                                <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
                             </View>
                         </TouchableOpacity>
                         
                         {/* Sprint Sub-apps Grid */}
-                        <View className="flex-row flex-wrap bg-white rounded-2xl p-3 border border-gray-100" style={{ marginHorizontal: -4 }}>
+                        <View 
+                            className="flex-row flex-wrap rounded-2xl p-3" 
+                            style={{ marginHorizontal: -4, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
+                        >
                             {SPRINT_SUB_APPS.map((app) => (
                                 <View key={app.id} style={{ width: '25%', paddingHorizontal: 4 }}>
                                     <TouchableOpacity
@@ -146,14 +160,14 @@ export function AppSwitcher() {
                                         <View 
                                             className="w-11 h-11 rounded-xl items-center justify-center mb-1.5"
                                             style={{ 
-                                                backgroundColor: currentApp === app.id ? app.color + '25' : '#F3F4F6',
+                                                backgroundColor: currentApp === app.id ? app.color + '25' : colors.backgroundSecondary,
                                                 borderWidth: currentApp === app.id ? 1.5 : 0,
                                                 borderColor: app.color,
                                             }}
                                         >
                                             <MaterialCommunityIcons name={app.icon as any} size={22} color={app.color} />
                                         </View>
-                                        <Text className="text-[10px] font-medium text-center text-gray-600" numberOfLines={1}>
+                                        <Text className="text-[10px] font-medium text-center" style={{ color: colors.textSecondary }} numberOfLines={1}>
                                             {t(app.nameKey)}
                                         </Text>
                                     </TouchableOpacity>
@@ -166,7 +180,7 @@ export function AppSwitcher() {
                     <View className="mb-5">
                         <View className="flex-row items-center mb-3 px-1">
                             <MaterialCommunityIcons name="rocket-launch" size={16} color="#10B981" />
-                            <Text className="text-gray-500 text-xs font-semibold uppercase tracking-wider ml-1.5">Productivity</Text>
+                            <Text className="text-xs font-semibold uppercase tracking-wider ml-1.5" style={{ color: colors.textSecondary }}>Productivity</Text>
                         </View>
                         
                         <View className="flex-row" style={{ marginHorizontal: -6 }}>
@@ -175,9 +189,10 @@ export function AppSwitcher() {
                                     <TouchableOpacity
                                         onPress={() => handleAppSelect(app)}
                                         activeOpacity={0.7}
-                                        className="bg-white rounded-2xl p-3 items-center border border-gray-100"
+                                        className="rounded-2xl p-3 items-center"
                                         style={{ 
-                                            borderColor: currentApp === app.id ? app.color : '#F3F4F6',
+                                            backgroundColor: colors.card,
+                                            borderColor: currentApp === app.id ? app.color : colors.border,
                                             borderWidth: currentApp === app.id ? 2 : 1,
                                         }}
                                     >
@@ -187,11 +202,11 @@ export function AppSwitcher() {
                                         >
                                             <MaterialCommunityIcons name={app.icon as any} size={26} color={app.color} />
                                         </View>
-                                        <Text className="text-xs font-medium text-center text-gray-700" numberOfLines={1}>
+                                        <Text className="text-xs font-medium text-center" style={{ color: colors.textSecondary }} numberOfLines={1}>
                                             {t(app.nameKey)}
                                         </Text>
                                         {currentApp === app.id && (
-                                            <View className="w-1.5 h-1.5 rounded-full bg-green-500 mt-1.5" />
+                                            <View className="w-1.5 h-1.5 rounded-full mt-1.5" style={{ backgroundColor: colors.success }} />
                                         )}
                                     </TouchableOpacity>
                                 </View>
@@ -203,7 +218,7 @@ export function AppSwitcher() {
                     <View className="mb-5">
                         <View className="flex-row items-center mb-3 px-1">
                             <MaterialCommunityIcons name="trending-up" size={16} color="#8B5CF6" />
-                            <Text className="text-gray-500 text-xs font-semibold uppercase tracking-wider ml-1.5">Growth & Inspiration</Text>
+                            <Text className="text-xs font-semibold uppercase tracking-wider ml-1.5" style={{ color: colors.textSecondary }}>Growth & Inspiration</Text>
                         </View>
                         
                         <View className="flex-row" style={{ marginHorizontal: -6 }}>
@@ -212,9 +227,10 @@ export function AppSwitcher() {
                                     <TouchableOpacity
                                         onPress={() => handleAppSelect(app)}
                                         activeOpacity={0.7}
-                                        className="bg-white rounded-2xl p-4 flex-row items-center border border-gray-100"
+                                        className="rounded-2xl p-4 flex-row items-center"
                                         style={{ 
-                                            borderColor: currentApp === app.id ? app.color : '#F3F4F6',
+                                            backgroundColor: colors.card,
+                                            borderColor: currentApp === app.id ? app.color : colors.border,
                                             borderWidth: currentApp === app.id ? 2 : 1,
                                         }}
                                     >
@@ -225,15 +241,15 @@ export function AppSwitcher() {
                                             <MaterialCommunityIcons name={app.icon as any} size={22} color={app.color} />
                                         </View>
                                         <View className="ml-2.5 flex-1">
-                                            <Text className="text-sm font-medium text-gray-700" numberOfLines={1}>
+                                            <Text className="text-sm font-medium" style={{ color: colors.textSecondary }} numberOfLines={1}>
                                                 {t(app.nameKey)}
                                             </Text>
-                                            <Text className="text-[10px] text-gray-400" numberOfLines={1}>
+                                            <Text className="text-[10px]" style={{ color: colors.textTertiary }} numberOfLines={1}>
                                                 {app.id === 'mindset' ? 'Quotes' : 'Books'}
                                             </Text>
                                         </View>
                                         {currentApp === app.id && (
-                                            <View className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                                            <View className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: colors.success }} />
                                         )}
                                     </TouchableOpacity>
                                 </View>
@@ -245,15 +261,16 @@ export function AppSwitcher() {
                     <View className="mb-3">
                         <View className="flex-row items-center mb-3 px-1">
                             <MaterialCommunityIcons name="account-group-outline" size={16} color="#06B6D4" />
-                            <Text className="text-gray-500 text-xs font-semibold uppercase tracking-wider ml-1.5">Social</Text>
+                            <Text className="text-xs font-semibold uppercase tracking-wider ml-1.5" style={{ color: colors.textSecondary }}>Social</Text>
                         </View>
                         
                         <TouchableOpacity
                             onPress={() => handleAppSelect(COMMUNITY_APP)}
                             activeOpacity={0.7}
-                            className="bg-white rounded-2xl p-4 flex-row items-center border border-gray-100"
+                            className="rounded-2xl p-4 flex-row items-center"
                             style={{ 
-                                borderColor: currentApp === 'community' ? '#06B6D4' : '#F3F4F6',
+                                backgroundColor: colors.card,
+                                borderColor: currentApp === 'community' ? '#06B6D4' : colors.border,
                                 borderWidth: currentApp === 'community' ? 2 : 1,
                             }}
                         >
@@ -264,25 +281,26 @@ export function AppSwitcher() {
                                 <MaterialCommunityIcons name="account-group" size={26} color="#06B6D4" />
                             </View>
                             <View className="ml-3 flex-1">
-                                <Text className="text-gray-900 font-semibold text-base">{t(COMMUNITY_APP.nameKey)}</Text>
-                                <Text className="text-gray-400 text-xs mt-0.5">Connect with others</Text>
+                                <Text className="font-semibold text-base" style={{ color: colors.text }}>{t(COMMUNITY_APP.nameKey)}</Text>
+                                <Text className="text-xs mt-0.5" style={{ color: colors.textTertiary }}>Connect with others</Text>
                             </View>
                             {currentApp === 'community' && (
-                                <View className="w-2 h-2 rounded-full bg-green-500 mr-2" />
+                                <View className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: colors.success }} />
                             )}
-                            <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
+                            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
                         </TouchableOpacity>
                     </View>
                 </ScrollView>
 
                 {/* Settings Button */}
-                <View className="px-4 py-3 bg-white border-t border-gray-100">
+                <View className="px-4 py-3" style={{ backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.border }}>
                     <TouchableOpacity 
                         onPress={handleSettings}
-                        className="flex-row items-center justify-center bg-gray-100 rounded-xl py-3"
+                        className="flex-row items-center justify-center rounded-xl py-3"
+                        style={{ backgroundColor: colors.backgroundSecondary }}
                     >
-                        <MaterialCommunityIcons name="cog-outline" size={20} color="#6B7280" />
-                        <Text className="text-gray-700 font-medium text-sm ml-2">{t('navigation.appSwitcher.settings')}</Text>
+                        <MaterialCommunityIcons name="cog-outline" size={20} color={colors.textSecondary} />
+                        <Text className="font-medium text-sm ml-2" style={{ color: colors.textSecondary }}>{t('navigation.appSwitcher.settings')}</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -294,8 +312,12 @@ export function AppSwitcher() {
                     
                     return (
                         <View 
-                            className="bg-white border-t border-gray-200"
-                            style={{ paddingBottom: insets.bottom }}
+                            style={{ 
+                                backgroundColor: colors.card, 
+                                borderTopWidth: 1, 
+                                borderTopColor: colors.border,
+                                paddingBottom: insets.bottom 
+                            }}
                         >
                             <View className="flex-row items-center justify-between px-6 py-2">
                                 {/* 1. Apps Icon - Active state */}
@@ -303,14 +325,14 @@ export function AppSwitcher() {
                                     className="items-center"
                                     onPress={toggleAppSwitcher}
                                 >
-                                    <View className="w-12 h-12 rounded-2xl items-center justify-center bg-amber-100 border-2 border-amber-400">
+                                    <View className="w-12 h-12 rounded-2xl items-center justify-center" style={{ backgroundColor: '#FEF3C7', borderWidth: 2, borderColor: '#F59E0B' }}>
                                         <MaterialCommunityIcons
                                             name="view-grid"
                                             size={26}
                                             color="#F59E0B"
                                         />
                                     </View>
-                                    <Text className="text-[10px] font-semibold mt-1 text-amber-600">{t('navigation.appSwitcher.title')}</Text>
+                                    <Text className="text-[10px] font-semibold mt-1" style={{ color: '#F59E0B' }}>{t('navigation.appSwitcher.title')}</Text>
                                 </TouchableOpacity>
 
                                 {/* 2. Main App Icon */}
@@ -321,14 +343,14 @@ export function AppSwitcher() {
                                         toggleAppSwitcher();
                                     }}
                                 >
-                                    <View className="w-12 h-12 rounded-2xl items-center justify-center bg-blue-50">
+                                    <View className="w-12 h-12 rounded-2xl items-center justify-center" style={{ backgroundColor: colors.primaryLight }}>
                                         <MaterialCommunityIcons
                                             name={mainIcon.icon as any}
                                             size={26}
-                                            color="#3B82F6"
+                                            color={colors.primary}
                                         />
                                     </View>
-                                    <Text className="text-[10px] font-medium mt-1 text-blue-600">
+                                    <Text className="text-[10px] font-medium mt-1" style={{ color: colors.primary }}>
                                         {t(mainIcon.nameKey)}
                                     </Text>
                                 </TouchableOpacity>
@@ -340,14 +362,14 @@ export function AppSwitcher() {
                                         toggleAppSwitcher();
                                     }}
                                 >
-                                    <View className="w-12 h-12 rounded-2xl items-center justify-center bg-purple-50">
+                                    <View className="w-12 h-12 rounded-2xl items-center justify-center" style={{ backgroundColor: '#F3E8FF' }}>
                                         <MaterialCommunityIcons
                                             name={moreIcon.icon as any}
                                             size={26}
                                             color="#8B5CF6"
                                         />
                                     </View>
-                                    <Text className="text-[10px] font-medium mt-1 text-purple-600">
+                                    <Text className="text-[10px] font-medium mt-1" style={{ color: '#8B5CF6' }}>
                                         {t(moreIcon.nameKey)}
                                     </Text>
                                 </TouchableOpacity>
@@ -360,14 +382,14 @@ export function AppSwitcher() {
                                         router.push('/(tabs)/command-center' as any);
                                     }}
                                 >
-                                    <View className="w-12 h-12 rounded-2xl items-center justify-center bg-emerald-50">
+                                    <View className="w-12 h-12 rounded-2xl items-center justify-center" style={{ backgroundColor: '#D1FAE5' }}>
                                         <MaterialCommunityIcons
                                             name="plus-circle"
                                             size={26}
                                             color="#10B981"
                                         />
                                     </View>
-                                    <Text className="text-[10px] font-medium mt-1 text-emerald-600">{t('common.create')}</Text>
+                                    <Text className="text-[10px] font-medium mt-1" style={{ color: '#10B981' }}>{t('common.create')}</Text>
                                 </TouchableOpacity>
                             </View>
                         </View>

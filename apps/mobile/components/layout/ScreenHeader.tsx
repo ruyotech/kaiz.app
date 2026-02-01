@@ -3,6 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { NotificationBell } from '../notifications';
+import { useThemeContext } from '../../providers/ThemeProvider';
 
 interface ScreenHeaderProps {
     title: string;
@@ -24,6 +25,7 @@ export function ScreenHeader({
     showNotifications = true,
 }: ScreenHeaderProps) {
     const router = useRouter();
+    const { colors, isDark } = useThemeContext();
 
     const content = (
         <>
@@ -31,13 +33,23 @@ export function ScreenHeader({
                 <View className="flex-row items-center flex-1">
                     {showBack && (
                         <Pressable onPress={() => router.back()} className="mr-3">
-                            <MaterialCommunityIcons name="arrow-left" size={24} color="#2563EB" />
+                            <MaterialCommunityIcons name="arrow-left" size={24} color={colors.primary} />
                         </Pressable>
                     )}
                     <View className="flex-1">
-                        <Text className="text-xl font-bold text-gray-900">{title}</Text>
+                        <Text 
+                            className="text-xl font-bold"
+                            style={{ color: colors.text }}
+                        >
+                            {title}
+                        </Text>
                         {subtitle && (
-                            <Text className="text-sm text-gray-600 mt-0.5">{subtitle}</Text>
+                            <Text 
+                                className="text-sm mt-0.5"
+                                style={{ color: colors.textSecondary }}
+                            >
+                                {subtitle}
+                            </Text>
                         )}
                     </View>
                 </View>
@@ -60,7 +72,14 @@ export function ScreenHeader({
 
     if (useSafeArea) {
         return (
-            <SafeAreaView edges={['top']} className="bg-white border-b border-gray-200">
+            <SafeAreaView 
+                edges={['top']} 
+                style={{ 
+                    backgroundColor: colors.card,
+                    borderBottomWidth: 1,
+                    borderBottomColor: colors.border,
+                }}
+            >
                 <View className={`px-4 ${children ? 'pb-0' : 'pb-3'}`}>
                     {content}
                 </View>
@@ -69,7 +88,14 @@ export function ScreenHeader({
     }
 
     return (
-        <View className={`bg-white border-b border-gray-200 px-4 pt-12 ${children ? 'pb-0' : 'pb-3'}`}>
+        <View 
+            className={`px-4 pt-12 ${children ? 'pb-0' : 'pb-3'}`}
+            style={{ 
+                backgroundColor: colors.card,
+                borderBottomWidth: 1,
+                borderBottomColor: colors.border,
+            }}
+        >
             {content}
         </View>
     );
