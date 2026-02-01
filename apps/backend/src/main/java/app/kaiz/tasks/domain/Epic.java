@@ -1,5 +1,7 @@
 package app.kaiz.tasks.domain;
 
+import app.kaiz.family.domain.Family;
+import app.kaiz.family.domain.TaskVisibility;
 import app.kaiz.identity.domain.User;
 import app.kaiz.life_wheel.domain.LifeWheelArea;
 import app.kaiz.shared.persistence.BaseEntity;
@@ -66,4 +68,17 @@ public class Epic extends BaseEntity {
   @OneToMany(mappedBy = "epic", cascade = CascadeType.ALL)
   @Builder.Default
   private List<Task> tasks = new ArrayList<>();
+
+  // ==========================================
+  // Family Plan Fields
+  // ==========================================
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "family_id")
+  private Family family;
+
+  @Enumerated(EnumType.STRING)
+  @Column(name = "visibility", length = 20)
+  @Builder.Default
+  private TaskVisibility visibility = TaskVisibility.PRIVATE;
 }

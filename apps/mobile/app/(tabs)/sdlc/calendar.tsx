@@ -9,10 +9,13 @@ import { WeekHeader } from '../../../components/calendar/WeekHeader';
 import { MonthSelector } from '../../../components/calendar/MonthSelector';
 import { DayScheduleView } from '../../../components/calendar/DayScheduleView';
 import { EnhancedTaskCard } from '../../../components/calendar/EnhancedTaskCard';
+import { FamilyScopeSwitcher } from '../../../components/family/FamilyScopeSwitcher';
 import { taskApi, sprintApi, epicApi, lifeWheelApi, AuthExpiredError } from '../../../services/api';
 import { Task } from '../../../types/models';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useThemeContext } from '../../../providers/ThemeProvider';
+import { useFamilyStore } from '../../../store/familyStore';
+import { useTaskStore } from '../../../store/taskStore';
 
 type ViewMode = 'eisenhower' | 'status' | 'size';
 
@@ -39,6 +42,19 @@ export default function SprintCalendar() {
     // view options menu removed from header
     const [epics, setEpics] = useState<any[]>([]); // Store epics for epic info display
     const [lifeWheelAreas, setLifeWheelAreas] = useState<LifeWheelArea[]>([]); // Life wheel areas for task display
+
+    // Family state for scope filtering
+    const currentFamily = useFamilyStore((state) => state.currentFamily);
+    const fetchMyFamily = useFamilyStore((state) => state.fetchMyFamily);
+    const currentViewScope = useTaskStore((state) => state.currentViewScope);
+    const setViewScope = useTaskStore((state) => state.setViewScope);
+
+    // Fetch family data on mount to enable scope switcher
+    useEffect(() => {
+        if (!currentFamily) {
+            fetchMyFamily();
+        }
+    }, []);
 
     // Touch tracking for horizontal swipe
     const touchStart = useRef({ x: 0, y: 0, time: 0 });
@@ -130,12 +146,40 @@ export default function SprintCalendar() {
         return lifeWheelAreas.find(a => a.id === lifeWheelAreaId || a.displayId === lifeWheelAreaId);
     };
 
-    // Filter tasks based on view type
+    // Helper: Filter tasks by family view scope
+    const filterByViewScope = (tasks: Task[]): Task[] => {
+        // If no family or viewing own tasks, show personal tasks (no familyId or visibility === 'private')
+        if (!currentFamily || currentViewScope === 'mine') {
+            return tasks.filter(task => !task.familyId || task.visibility === 'private');
+        }
+        
+        // If viewing family tasks, show shared/assigned family tasks
+        if (currentViewScope === 'family') {
+            return tasks.filter(task => 
+                task.familyId === currentFamily.id && 
+                (task.visibility === 'shared' || task.visibility === 'assigned')
+            );
+        }
+        
+        // If viewing a specific child's tasks (child:userId format)
+        if (currentViewScope.startsWith('child:')) {
+            const childUserId = currentViewScope.replace('child:', '');
+            return tasks.filter(task => 
+                task.familyId === currentFamily.id && 
+                task.assignedToUserId === childUserId
+            );
+        }
+        
+        return tasks;
+    };
+
+    // Filter tasks based on view type and scope
     // In week view: show all tasks (recurring once with "weekdaily" tag)
     // In day view: filter to only tasks scheduled for that day
+    const scopeFilteredTasks = filterByViewScope(weekTasks);
     const displayedTasks = viewType === 'day'
-        ? weekTasks.filter(task => shouldShowTaskOnDay(task, currentDate))
-        : weekTasks;
+        ? scopeFilteredTasks.filter(task => shouldShowTaskOnDay(task, currentDate))
+        : scopeFilteredTasks;
 
     const handleDatePress = (date: Date) => {
         setCurrentDate(date);
@@ -553,7 +597,15 @@ export default function SprintCalendar() {
                     sprintStartDate={currentSprint?.startDate}
                     sprintEndDate={currentSprint?.endDate}
                     toggleElement={
-                        <View className="flex-row items-center">
+                        <View className="flex-row items-center gap-2">
+                            {/* Family Scope Switcher - Only show if user has family */}
+                            {currentFamily && (
+                                <FamilyScopeSwitcher
+                                    variant="compact"
+                                    value={currentViewScope}
+                                    onChange={setViewScope}
+                                />
+                            )}
                             <TouchableOpacity
                                 onPress={() => setViewType(viewType === 'week' ? 'day' : 'week')}
                                 className="px-3 py-1 rounded"

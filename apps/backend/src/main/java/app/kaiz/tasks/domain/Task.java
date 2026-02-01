@@ -1,5 +1,7 @@
 package app.kaiz.tasks.domain;
 
+import app.kaiz.family.domain.Family;
+import app.kaiz.family.domain.TaskVisibility;
 import app.kaiz.identity.domain.User;
 import app.kaiz.life_wheel.domain.EisenhowerQuadrant;
 import app.kaiz.life_wheel.domain.LifeWheelArea;
@@ -71,6 +73,34 @@ public class Task extends BaseEntity {
 
   @Column(name = "completed_at")
   private Instant completedAt;
+
+  // ==========================================
+  // Family Plan Fields
+  // ==========================================
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "family_id")
+  private Family family;
+
+  @Enumerated(EnumType.STRING)
+  @Column(name = "visibility", length = 20)
+  @Builder.Default
+  private TaskVisibility visibility = TaskVisibility.PRIVATE;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "assigned_to_user_id")
+  private User assignedToUser;
+
+  @Column(name = "requires_approval", nullable = false)
+  @Builder.Default
+  private boolean requiresApproval = false;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "approved_by_user_id")
+  private User approvedByUser;
+
+  @Column(name = "approved_at")
+  private Instant approvedAt;
 
   // Target date for non-recurring tasks (due date)
   @Column(name = "target_date")

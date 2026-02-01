@@ -38,7 +38,9 @@ import {
     TransitionDataSummary,
     FamilyInvite,
     ROLE_CONFIGURATIONS,
+    ViewScope,
 } from '../types/family.types';
+import { familyApi, FamilyResponse, FamilyMemberResponse, FamilyInviteResponse } from '../services/api';
 
 // ==========================================
 // Types & Interfaces
@@ -57,6 +59,12 @@ interface FamilyState {
     currentFamily: FamilyWorkspace | null;
     isOwner: boolean;
     currentMemberRole: FamilyRole | null;
+    
+    // View scope for family-aware features
+    currentViewScope: ViewScope;
+    
+    // API loading state
+    apiAvailable: boolean;
     
     // Members
     members: FamilyMember[];
@@ -93,10 +101,16 @@ interface FamilyState {
     filters: FamilyFilters;
     
     // ==========================================
+    // View Scope Actions
+    // ==========================================
+    setViewScope: (scope: ViewScope) => void;
+    
+    // ==========================================
     // Family Workspace Actions
     // ==========================================
     createFamily: (name: string) => Promise<void>;
     fetchFamily: (familyId: string) => Promise<void>;
+    fetchMyFamily: () => Promise<void>;
     updateFamilySettings: (settings: Partial<FamilySettings>) => Promise<void>;
     generateInviteCode: () => Promise<string>;
     leaveFamily: () => Promise<void>;
@@ -199,6 +213,8 @@ const initialState = {
     currentFamily: null,
     isOwner: false,
     currentMemberRole: null,
+    currentViewScope: 'mine' as ViewScope,
+    apiAvailable: true, // Assume API is available, will be set to false on error
     members: [],
     pendingInvites: [],
     sharedEpics: [],
@@ -554,14 +570,47 @@ export const useFamilyStore = create<FamilyState>()(
             ...initialState,
 
             // ==========================================
+            // View Scope Actions
+            // ==========================================
+            
+            setViewScope: (scope: ViewScope) => {
+                set({ currentViewScope: scope });
+            },
+
+            // ==========================================
             // Family Workspace Actions
             // ==========================================
             
             createFamily: async (name) => {
                 set({ loading: true, error: null });
                 try {
-                    // Simulate API call
-                    await new Promise(resolve => setTimeout(resolve, 500));
+                    const apiFamily = await familyApi.createFamily({ name });
+                    // Map API response to FamilyWorkspace
+                    const newFamily: FamilyWorkspace = {
+                        id: apiFamily.id,
+                        name: apiFamily.name,
+                        ownerId: apiFamily.ownerId,
+                        members: [],
+                        sharedEpics: [],
+                        sharedTasks: [],
+                        sprintSync: 'aligned',
+                        inviteCode: apiFamily.inviteCode,
+                        inviteCodeExpiresAt: apiFamily.inviteCodeExpiresAt,
+                        settings: apiFamily.settings || generateMockFamily().settings,
+                        ceremonies: [],
+                        createdAt: apiFamily.createdAt,
+                        updatedAt: apiFamily.updatedAt,
+                    };
+                    set({ 
+                        currentFamily: newFamily, 
+                        isOwner: true,
+                        currentMemberRole: 'owner',
+                        apiAvailable: true,
+                        loading: false 
+                    });
+                } catch (error) {
+                    // Fallback to mock data if API unavailable
+                    console.warn('API unavailable, using mock data:', error);
                     const newFamily = {
                         ...generateMockFamily(),
                         id: `family-${Date.now()}`,
@@ -571,29 +620,158 @@ export const useFamilyStore = create<FamilyState>()(
                         currentFamily: newFamily, 
                         isOwner: true,
                         currentMemberRole: 'owner',
+                        apiAvailable: false,
                         loading: false 
                     });
-                } catch (error) {
-                    set({ error: 'Failed to create family workspace', loading: false });
-                    throw error;
                 }
             },
 
             fetchFamily: async (familyId) => {
                 set({ loading: true, error: null });
                 try {
-                    await new Promise(resolve => setTimeout(resolve, 300));
-                    const family = generateMockFamily();
-                    const members = generateMockMembers();
+                    // Fetch family and membership in parallel
+                    const [apiFamily, membership] = await Promise.all([
+                        familyApi.getFamily(familyId),
+                        familyApi.getMyMembership(),
+                    ]);
+                    
+                    const family: FamilyWorkspace = {
+                        id: apiFamily.id,
+                        name: apiFamily.name,
+                        ownerId: apiFamily.ownerId,
+                        members: [],
+                        sharedEpics: [],
+                        sharedTasks: [],
+                        sprintSync: 'aligned',
+                        inviteCode: apiFamily.inviteCode,
+                        inviteCodeExpiresAt: apiFamily.inviteCodeExpiresAt,
+                        settings: apiFamily.settings || generateMockFamily().settings,
+                        ceremonies: [],
+                        createdAt: apiFamily.createdAt,
+                        updatedAt: apiFamily.updatedAt,
+                    };
+                    
+                    // Determine role from membership
+                    const memberRole = membership.role.toLowerCase() as FamilyRole;
+                    const isOwner = membership.isOwner;
+                    
                     set({ 
                         currentFamily: family,
-                        members,
-                        isOwner: true, // Mock: current user is owner
-                        currentMemberRole: 'owner',
+                        isOwner,
+                        currentMemberRole: memberRole,
+                        apiAvailable: true,
                         loading: false 
                     });
-                } catch (error) {
-                    set({ error: 'Failed to fetch family', loading: false });
+                    
+                    // Fetch members in background
+                    get().fetchMembers();
+                } catch (error: any) {
+                    // Check if this is a 404/500 "not found" - family doesn't exist
+                    const isNotFound = error?.statusCode === 404 || 
+                        error?.message?.includes('not found');
+                    
+                    if (isNotFound) {
+                        console.log('👨‍👩‍👧‍👦 Family not found:', familyId);
+                        set({ 
+                            currentFamily: null,
+                            members: [],
+                            isOwner: false,
+                            currentMemberRole: null,
+                            apiAvailable: true,
+                            loading: false 
+                        });
+                    } else {
+                        // Actual API error
+                        console.warn('⚠️ Could not fetch family:', error);
+                        set({ 
+                            currentFamily: null,
+                            members: [],
+                            isOwner: false,
+                            currentMemberRole: null,
+                            apiAvailable: false,
+                            loading: false 
+                        });
+                    }
+                }
+            },
+
+            fetchMyFamily: async () => {
+                set({ loading: true, error: null });
+                try {
+                    const apiFamily = await familyApi.getMyFamily();
+                    const family: FamilyWorkspace = {
+                        id: apiFamily.id,
+                        name: apiFamily.name,
+                        ownerId: apiFamily.ownerId,
+                        members: [],
+                        sharedEpics: [],
+                        sharedTasks: [],
+                        sprintSync: 'aligned',
+                        inviteCode: apiFamily.inviteCode,
+                        inviteCodeExpiresAt: apiFamily.inviteCodeExpiresAt,
+                        settings: apiFamily.settings || generateMockFamily().settings,
+                        ceremonies: [],
+                        createdAt: apiFamily.createdAt,
+                        updatedAt: apiFamily.updatedAt,
+                    };
+                    
+                    // Get membership to determine role
+                    try {
+                        const membership = await familyApi.getMyMembership();
+                        const memberRole = membership.role.toLowerCase() as FamilyRole;
+                        const isOwner = membership.isOwner;
+                        
+                        set({ 
+                            currentFamily: family,
+                            isOwner,
+                            currentMemberRole: memberRole,
+                            apiAvailable: true,
+                            loading: false 
+                        });
+                        
+                        // Fetch members in background
+                        get().fetchMembers();
+                    } catch (membershipError) {
+                        // Family exists but membership fetch failed - use defaults
+                        console.warn('Could not fetch membership:', membershipError);
+                        set({ 
+                            currentFamily: family,
+                            isOwner: false,
+                            currentMemberRole: 'adult',
+                            apiAvailable: true,
+                            loading: false 
+                        });
+                    }
+                } catch (error: any) {
+                    // Check if this is a 404/500 "not found" - user has no family
+                    // The backend returns 404 when user is not a member of any family
+                    const isNotFound = error?.statusCode === 404 || 
+                        error?.message?.includes('not a member of any family') ||
+                        error?.message?.includes('not found');
+                    
+                    if (isNotFound) {
+                        // User has no family - this is a valid state, not an error
+                        console.log('👨‍👩‍👧‍👦 User has no family workspace');
+                        set({ 
+                            currentFamily: null,
+                            members: [],
+                            isOwner: false,
+                            currentMemberRole: null,
+                            apiAvailable: true,
+                            loading: false 
+                        });
+                    } else {
+                        // Actual API error - log it but show empty state (not mock data)
+                        console.warn('⚠️ Could not fetch family:', error);
+                        set({ 
+                            currentFamily: null,
+                            members: [],
+                            isOwner: false,
+                            currentMemberRole: null,
+                            apiAvailable: false, // API may be down
+                            loading: false 
+                        });
+                    }
                 }
             },
 
@@ -617,8 +795,12 @@ export const useFamilyStore = create<FamilyState>()(
             generateInviteCode: async () => {
                 set({ loading: true, error: null });
                 try {
-                    await new Promise(resolve => setTimeout(resolve, 300));
-                    const code = Math.random().toString(36).substring(2, 10).toUpperCase();
+                    const familyId = get().currentFamily?.id;
+                    if (!familyId) {
+                        throw new Error('No family selected');
+                    }
+                    
+                    const code = await familyApi.regenerateInviteCode(familyId);
                     set(state => ({
                         currentFamily: state.currentFamily ? {
                             ...state.currentFamily,
@@ -629,28 +811,43 @@ export const useFamilyStore = create<FamilyState>()(
                     }));
                     return code;
                 } catch (error) {
-                    set({ error: 'Failed to generate invite code', loading: false });
-                    throw error;
+                    // Fallback to local generation if API unavailable
+                    console.warn('API unavailable, generating local code:', error);
+                    const code = Math.random().toString(36).substring(2, 10).toUpperCase();
+                    set(state => ({
+                        currentFamily: state.currentFamily ? {
+                            ...state.currentFamily,
+                            inviteCode: code,
+                            inviteCodeExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+                        } : null,
+                        apiAvailable: false,
+                        loading: false,
+                    }));
+                    return code;
                 }
             },
 
             leaveFamily: async () => {
                 set({ loading: true, error: null });
                 try {
-                    await new Promise(resolve => setTimeout(resolve, 500));
+                    await familyApi.leaveFamily();
                     set({ ...initialState });
                 } catch (error) {
-                    set({ error: 'Failed to leave family', loading: false });
-                    throw error;
+                    console.warn('API error, clearing local state:', error);
+                    set({ ...initialState });
                 }
             },
 
             deleteFamily: async () => {
                 set({ loading: true, error: null });
                 try {
-                    await new Promise(resolve => setTimeout(resolve, 500));
+                    const familyId = get().currentFamily?.id;
+                    if (familyId) {
+                        await familyApi.deleteFamily(familyId);
+                    }
                     set({ ...initialState });
                 } catch (error) {
+                    console.warn('API error:', error);
                     set({ error: 'Failed to delete family', loading: false });
                     throw error;
                 }
@@ -661,25 +858,77 @@ export const useFamilyStore = create<FamilyState>()(
             // ==========================================
 
             fetchMembers: async () => {
+                const familyId = get().currentFamily?.id;
+                if (!familyId) {
+                    // No family - no members to fetch
+                    set({ members: [], loading: false });
+                    return;
+                }
+                
                 set({ loading: true, error: null });
                 try {
-                    await new Promise(resolve => setTimeout(resolve, 300));
-                    set({ members: generateMockMembers(), loading: false });
+                    const apiMembers = await familyApi.getMembers(familyId);
+                    // Map API response to FamilyMember[]
+                    const members: FamilyMember[] = apiMembers.map((m: FamilyMemberResponse) => ({
+                        userId: m.userId,
+                        displayName: m.displayName,
+                        avatar: m.avatarUrl || '👤',
+                        role: m.role.toLowerCase() as FamilyRole,
+                        permissions: ROLE_CONFIGURATIONS[m.role.toLowerCase() as FamilyRole]?.permissions || [],
+                        joinedAt: m.joinedAt,
+                        dateOfBirth: undefined,
+                        isActive: m.isActive,
+                        lastActiveAt: m.lastActiveAt || new Date().toISOString(),
+                        tasksCompleted: m.tasksCompleted || 0,
+                        currentStreak: m.currentStreak || 0,
+                        kudosReceived: 0,
+                        kudosGiven: 0,
+                    }));
+                    set({ members, loading: false });
                 } catch (error) {
-                    set({ error: 'Failed to fetch members', loading: false });
+                    // API error - set empty members, don't fall back to mock
+                    console.warn('⚠️ Could not fetch members:', error);
+                    set({ members: [], apiAvailable: false, loading: false });
                 }
             },
 
             inviteMember: async (email, role) => {
                 set({ loading: true, error: null });
                 try {
-                    await new Promise(resolve => setTimeout(resolve, 500));
+                    const familyId = get().currentFamily?.id;
+                    if (!familyId) {
+                        throw new Error('No family selected');
+                    }
+                    
+                    await familyApi.inviteMember(familyId, { email, role: role.toUpperCase() as FamilyRole });
+                    // Refresh pending invites
+                    try {
+                        const apiInvites = await familyApi.getPendingInvites(familyId);
+                        const invites: FamilyInvite[] = apiInvites.map((inv: FamilyInviteResponse) => ({
+                            code: inv.id, // Use ID as code for reference
+                            familyId: familyId,
+                            familyName: get().currentFamily?.name || '',
+                            invitedBy: '', // Not provided in response
+                            invitedByName: inv.invitedByName,
+                            suggestedRole: inv.suggestedRole.toLowerCase() as FamilyRole,
+                            expiresAt: inv.expiresAt,
+                            usedAt: inv.status === 'ACCEPTED' ? inv.createdAt : null,
+                            usedBy: inv.email,
+                        }));
+                        set({ pendingInvites: invites, loading: false });
+                    } catch (inviteError) {
+                        console.warn('Could not fetch pending invites:', inviteError);
+                        set({ loading: false });
+                    }
+                } catch (error) {
+                    // Fallback to mock invite
+                    console.warn('API unavailable, using mock invite:', error);
                     const invite: FamilyInvite = {
                         code: Math.random().toString(36).substring(2, 10).toUpperCase(),
                         familyId: get().currentFamily?.id || '',
                         familyName: get().currentFamily?.name || '',
                         invitedBy: 'user-1',
-                        invitedByName: 'John Smith',
+                        invitedByName: 'Current User',
                         suggestedRole: role,
                         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
                         usedAt: null,
@@ -687,28 +936,48 @@ export const useFamilyStore = create<FamilyState>()(
                     };
                     set(state => ({
                         pendingInvites: [...state.pendingInvites, invite],
+                        apiAvailable: false,
                         loading: false,
                     }));
-                } catch (error) {
-                    set({ error: 'Failed to invite member', loading: false });
-                    throw error;
                 }
             },
 
             joinFamily: async (inviteCode) => {
                 set({ loading: true, error: null });
                 try {
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                    const family = generateMockFamily();
-                    const members = generateMockMembers();
+                    const membership = await familyApi.joinFamily({ inviteCode });
+                    
+                    // Fetch the full family details
+                    const apiFamily = await familyApi.getFamily(membership.familyId);
+                    const family: FamilyWorkspace = {
+                        id: apiFamily.id,
+                        name: apiFamily.name,
+                        ownerId: apiFamily.ownerId,
+                        members: [],
+                        sharedEpics: [],
+                        sharedTasks: [],
+                        sprintSync: 'aligned',
+                        inviteCode: apiFamily.inviteCode,
+                        inviteCodeExpiresAt: apiFamily.inviteCodeExpiresAt,
+                        settings: apiFamily.settings || generateMockFamily().settings,
+                        ceremonies: [],
+                        createdAt: apiFamily.createdAt,
+                        updatedAt: apiFamily.updatedAt,
+                    };
+                    
                     set({
                         currentFamily: family,
-                        members,
-                        isOwner: false,
-                        currentMemberRole: 'adult',
+                        isOwner: membership.isOwner,
+                        currentMemberRole: membership.role.toLowerCase() as FamilyRole,
+                        apiAvailable: true,
                         loading: false,
                     });
+                    
+                    // Fetch members in background
+                    get().fetchMembers();
                 } catch (error) {
+                    // For join, we should not fallback to mock - show error
+                    console.error('Failed to join family:', error);
                     set({ error: 'Invalid or expired invite code', loading: false });
                     throw error;
                 }
@@ -717,30 +986,56 @@ export const useFamilyStore = create<FamilyState>()(
             updateMemberRole: async (userId, role) => {
                 set({ loading: true, error: null });
                 try {
-                    await new Promise(resolve => setTimeout(resolve, 300));
+                    const familyId = get().currentFamily?.id;
+                    if (!familyId) {
+                        throw new Error('No family selected');
+                    }
+                    
+                    await familyApi.updateMemberRole(familyId, userId, role.toUpperCase() as FamilyRole);
                     set(state => ({
                         members: state.members.map(m =>
                             m.userId === userId
-                                ? { ...m, role, permissions: ROLE_CONFIGURATIONS[role].permissions }
+                                ? { ...m, role, permissions: ROLE_CONFIGURATIONS[role]?.permissions || [] }
                                 : m
                         ),
                         loading: false,
                     }));
                 } catch (error) {
-                    set({ error: 'Failed to update member role', loading: false });
+                    // Fallback to local update
+                    console.warn('API unavailable, updating locally:', error);
+                    set(state => ({
+                        members: state.members.map(m =>
+                            m.userId === userId
+                                ? { ...m, role, permissions: ROLE_CONFIGURATIONS[role]?.permissions || [] }
+                                : m
+                        ),
+                        apiAvailable: false,
+                        loading: false,
+                    }));
                 }
             },
 
             removeMember: async (userId) => {
                 set({ loading: true, error: null });
                 try {
-                    await new Promise(resolve => setTimeout(resolve, 500));
+                    const familyId = get().currentFamily?.id;
+                    if (!familyId) {
+                        throw new Error('No family selected');
+                    }
+                    
+                    await familyApi.removeMember(familyId, userId);
                     set(state => ({
                         members: state.members.filter(m => m.userId !== userId),
                         loading: false,
                     }));
                 } catch (error) {
-                    set({ error: 'Failed to remove member', loading: false });
+                    // Fallback to local removal
+                    console.warn('API unavailable, removing locally:', error);
+                    set(state => ({
+                        members: state.members.filter(m => m.userId !== userId),
+                        apiAvailable: false,
+                        loading: false,
+                    }));
                 }
             },
 

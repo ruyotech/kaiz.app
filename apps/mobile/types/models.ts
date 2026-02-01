@@ -67,6 +67,9 @@ export interface Epic {
     endDate: string;
     taskIds: string[];
     createdAt: string;
+    // Family Plan fields
+    familyId?: string | null;
+    visibility?: 'private' | 'shared';
 }
 
 // SDLC - Tasks
@@ -109,6 +112,13 @@ export interface Task {
         interval: number; // e.g., every 2 weeks
         endDate?: string | null; // when to stop recurring
     };
+    // Family Plan fields
+    familyId?: string | null;
+    visibility?: 'private' | 'shared' | 'assigned';
+    assignedToUserId?: string | null;
+    requiresApproval?: boolean;
+    approvedByUserId?: string | null;
+    approvedAt?: string | null;
 }
 
 export interface TaskHistory {

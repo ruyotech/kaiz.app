@@ -12,3 +12,4 @@ export { SharedEpicCard } from './SharedEpicCard';
 export { ActivityFeedItem } from './ActivityFeedItem';
 export { VelocityChart } from './VelocityChart';
 export { IndependenceWizard } from './IndependenceWizard';
+export { FamilyScopeSwitcher } from './FamilyScopeSwitcher';

@@ -2805,6 +2805,212 @@ export const communityApi = {
 };
 
 // ============================================================================
+// FAMILY API - Family Workspace Management
+// ============================================================================
+
+import type {
+    FamilyRole,
+    FamilySettings,
+    FamilyMember,
+    ViewScope,
+} from '../types/family.types';
+
+// Family API Response Types
+export interface FamilyResponse {
+    id: string;
+    name: string;
+    ownerId: string;
+    ownerName: string;
+    inviteCode: string;
+    inviteCodeExpiresAt: string;
+    settings: FamilySettings;
+    members: FamilyMemberResponse[];
+    memberCount: number;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface FamilyMemberResponse {
+    id: string;
+    userId: string;
+    displayName: string;
+    email: string;
+    avatarUrl: string | null;
+    role: FamilyRole;
+    joinedAt: string;
+    isActive: boolean;
+    lastActiveAt: string | null;
+    tasksCompleted: number;
+    currentStreak: number;
+}
+
+export interface FamilyMembershipResponse {
+    familyId: string;
+    familyName: string;
+    memberId: string;
+    role: FamilyRole;
+    isOwner: boolean;
+    joinedAt: string;
+    permissions: string[];
+}
+
+export interface FamilyInviteResponse {
+    id: string;
+    email: string;
+    suggestedRole: FamilyRole;
+    invitedByName: string;
+    status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED';
+    expiresAt: string;
+    createdAt: string;
+}
+
+// Family API Request Types
+export interface CreateFamilyRequest {
+    name: string;
+    settings?: Partial<FamilySettings>;
+}
+
+export interface UpdateFamilyRequest {
+    name?: string;
+    settings?: Partial<FamilySettings>;
+}
+
+export interface InviteMemberRequest {
+    email: string;
+    role: FamilyRole;
+}
+
+export interface JoinFamilyRequest {
+    inviteCode: string;
+}
+
+export const familyApi = {
+    // ========== Family CRUD ==========
+
+    /**
+     * Create a new family workspace
+     */
+    async createFamily(data: CreateFamilyRequest): Promise<FamilyResponse> {
+        return request<FamilyResponse>('/families', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }, true);
+    },
+
+    /**
+     * Get current user's family
+     */
+    async getMyFamily(): Promise<FamilyResponse> {
+        return request<FamilyResponse>('/families/me', { method: 'GET' }, true);
+    },
+
+    /**
+     * Get current user's membership info
+     */
+    async getMyMembership(): Promise<FamilyMembershipResponse> {
+        return request<FamilyMembershipResponse>('/families/me/membership', { method: 'GET' }, true);
+    },
+
+    /**
+     * Get family by ID
+     */
+    async getFamily(familyId: string): Promise<FamilyResponse> {
+        return request<FamilyResponse>(`/families/${familyId}`, { method: 'GET' }, true);
+    },
+
+    /**
+     * Update family settings
+     */
+    async updateFamily(familyId: string, data: UpdateFamilyRequest): Promise<FamilyResponse> {
+        return request<FamilyResponse>(`/families/${familyId}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        }, true);
+    },
+
+    /**
+     * Delete family (owner only)
+     */
+    async deleteFamily(familyId: string): Promise<void> {
+        await request<void>(`/families/${familyId}`, { method: 'DELETE' }, true);
+    },
+
+    /**
+     * Regenerate invite code
+     */
+    async regenerateInviteCode(familyId: string): Promise<string> {
+        return request<string>(`/families/${familyId}/invite-code/regenerate`, { method: 'POST' }, true);
+    },
+
+    /**
+     * Join a family using invite code
+     */
+    async joinFamily(data: JoinFamilyRequest): Promise<FamilyMembershipResponse> {
+        return request<FamilyMembershipResponse>('/families/join', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }, true);
+    },
+
+    /**
+     * Leave current family
+     */
+    async leaveFamily(): Promise<void> {
+        await request<void>('/families/leave', { method: 'POST' }, true);
+    },
+
+    // ========== Member Management ==========
+
+    /**
+     * Get all family members
+     */
+    async getMembers(familyId: string): Promise<FamilyMemberResponse[]> {
+        return request<FamilyMemberResponse[]>(`/families/${familyId}/members`, { method: 'GET' }, true);
+    },
+
+    /**
+     * Invite a new member
+     */
+    async inviteMember(familyId: string, data: InviteMemberRequest): Promise<FamilyInviteResponse> {
+        return request<FamilyInviteResponse>(`/families/${familyId}/members/invite`, {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }, true);
+    },
+
+    /**
+     * Update member role
+     */
+    async updateMemberRole(familyId: string, memberId: string, role: FamilyRole): Promise<FamilyMemberResponse> {
+        return request<FamilyMemberResponse>(`/families/${familyId}/members/${memberId}/role`, {
+            method: 'PUT',
+            body: JSON.stringify({ role }),
+        }, true);
+    },
+
+    /**
+     * Remove member from family
+     */
+    async removeMember(familyId: string, memberId: string): Promise<void> {
+        await request<void>(`/families/${familyId}/members/${memberId}`, { method: 'DELETE' }, true);
+    },
+
+    /**
+     * Get pending invites
+     */
+    async getPendingInvites(familyId: string): Promise<FamilyInviteResponse[]> {
+        return request<FamilyInviteResponse[]>(`/families/${familyId}/members/invites`, { method: 'GET' }, true);
+    },
+
+    /**
+     * Cancel a pending invite
+     */
+    async cancelInvite(familyId: string, inviteId: string): Promise<void> {
+        await request<void>(`/families/${familyId}/members/invites/${inviteId}`, { method: 'DELETE' }, true);
+    },
+};
+
+// ============================================================================
 // SENSAI API - AI Scrum Master & Life Coach
 // ============================================================================
 

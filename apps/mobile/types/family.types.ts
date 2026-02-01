@@ -6,6 +6,30 @@
  */
 
 // ==========================================
+// View Scope Types
+// ==========================================
+
+/**
+ * View scope for filtering tasks/epics by family context.
+ * - 'mine': Show only the current user's tasks
+ * - 'family': Show all family-visible tasks
+ * - 'child:{userId}': Parent viewing a specific child's tasks
+ */
+export type ViewScope = 'mine' | 'family' | `child:${string}`;
+
+/**
+ * Parse view scope to extract child user ID if applicable.
+ */
+export function parseViewScope(scope: ViewScope): { type: 'mine' | 'family' | 'child'; childUserId?: string } {
+    if (scope === 'mine') return { type: 'mine' };
+    if (scope === 'family') return { type: 'family' };
+    if (scope.startsWith('child:')) {
+        return { type: 'child', childUserId: scope.replace('child:', '') };
+    }
+    return { type: 'mine' };
+}
+
+// ==========================================
 // Permission Types
 // ==========================================
 

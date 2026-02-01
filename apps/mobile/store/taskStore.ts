@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { Task } from '../types/models';
 import { taskApi } from '../services/api';
+import { ViewScope } from '../types/family.types';
 
 export interface TaskHistoryEntry {
     id: string;
@@ -16,10 +17,15 @@ interface TaskState {
     loading: boolean;
     error: string | null;
     taskHistory: Record<string, TaskHistoryEntry[]>;
+    
+    // Family view scope
+    currentViewScope: ViewScope;
+    setViewScope: (scope: ViewScope) => void;
 
     fetchTasks: (filters?: any) => Promise<void>;
     getTaskById: (id: string) => Task | undefined;
     getTasksByEpicId: (epicId: string) => Task[];
+    getFilteredTasks: () => Task[];
     addTask: (task: Partial<Task>) => Promise<Task>;
     updateTask: (id: string, updates: Partial<Task>) => Promise<void>;
     deleteTask: (id: string) => Promise<void>;
@@ -34,6 +40,50 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     loading: false,
     error: null,
     taskHistory: {},
+    currentViewScope: 'mine',
+
+    setViewScope: (scope) => {
+        set({ currentViewScope: scope });
+    },
+
+    /**
+     * Get tasks filtered by current view scope.
+     * - 'mine': Only personal tasks (no familyId or user's own tasks)
+     * - 'family': All family visible tasks (shared + assigned to user)
+     * - 'child:{id}': All tasks for a specific child (parent view)
+     */
+    getFilteredTasks: () => {
+        const { tasks, currentViewScope } = get();
+        
+        if (currentViewScope === 'mine') {
+            // Personal view: show tasks without family assignment or private to user
+            return tasks.filter(task => 
+                !task.familyId || 
+                task.visibility === 'private'
+            );
+        }
+        
+        if (currentViewScope === 'family') {
+            // Family view: show shared and assigned tasks
+            return tasks.filter(task =>
+                task.familyId && (
+                    task.visibility === 'shared' ||
+                    task.visibility === 'assigned'
+                )
+            );
+        }
+        
+        if (currentViewScope.startsWith('child:')) {
+            const childUserId = currentViewScope.replace('child:', '');
+            // Parent viewing child: show all of child's tasks
+            return tasks.filter(task =>
+                task.userId === childUserId ||
+                task.assignedToUserId === childUserId
+            );
+        }
+        
+        return tasks;
+    },
 
     fetchTasks: async (filters) => {
         set({ loading: true, error: null });

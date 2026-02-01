@@ -7,11 +7,13 @@ import { Badge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { Loading } from '../../../components/ui/Loading';
+import { FamilyScopeSwitcher } from '../../../components/family/FamilyScopeSwitcher';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Task, LifeWheelArea, EisenhowerQuadrant, Sprint } from '../../../types/models';
 import { useTaskStore } from '../../../store/taskStore';
 import { useEpicStore } from '../../../store/epicStore';
+import { useFamilyStore } from '../../../store/familyStore';
 import { lifeWheelApi, sprintApi } from '../../../services/api';
 import { toLocaleDateStringLocalized } from '../../../utils/localizedDate';
 import { useThemeContext } from '../../../providers/ThemeProvider';
@@ -19,7 +21,9 @@ import { useThemeContext } from '../../../providers/ThemeProvider';
 export default function BacklogScreen() {
     const router = useRouter();
     const { colors, isDark } = useThemeContext();
-    const { tasks, loading, fetchTasks, updateTask } = useTaskStore();
+    const { tasks, loading, fetchTasks, updateTask, currentViewScope, setViewScope } = useTaskStore();
+    const currentFamily = useFamilyStore((state) => state.currentFamily);
+    const fetchMyFamily = useFamilyStore((state) => state.fetchMyFamily);
     const [lifeWheelAreas, setLifeWheelAreas] = useState<LifeWheelArea[]>([]);
     const [eisenhowerQuadrants, setEisenhowerQuadrants] = useState<EisenhowerQuadrant[]>([]);
     const [sprints, setSprints] = useState<Sprint[]>([]);
@@ -29,6 +33,13 @@ export default function BacklogScreen() {
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
     const [showSprintPicker, setShowSprintPicker] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+
+    // Fetch family data on mount to enable scope switcher
+    useEffect(() => {
+        if (!currentFamily) {
+            fetchMyFamily();
+        }
+    }, []);
 
     useEffect(() => {
         loadData();
@@ -49,6 +60,25 @@ export default function BacklogScreen() {
 
     const filteredTasks = useMemo(() => {
         let filtered = tasks;
+        
+        // Family scope filter
+        if (!currentFamily || currentViewScope === 'mine') {
+            // Show personal tasks (no familyId or private)
+            filtered = filtered.filter(task => !task.familyId || task.visibility === 'private');
+        } else if (currentViewScope === 'family') {
+            // Show shared family tasks
+            filtered = filtered.filter(task => 
+                task.familyId === currentFamily.id && 
+                (task.visibility === 'shared' || task.visibility === 'assigned')
+            );
+        } else if (currentViewScope.startsWith('child:')) {
+            // Show specific child's tasks
+            const childUserId = currentViewScope.replace('child:', '');
+            filtered = filtered.filter(task => 
+                task.familyId === currentFamily.id && 
+                task.assignedToUserId === childUserId
+            );
+        }
         
         // Search filter
         if (searchQuery.trim()) {
@@ -76,7 +106,7 @@ export default function BacklogScreen() {
             return (qOrder[a.eisenhowerQuadrantId as keyof typeof qOrder] || 4) - 
                    (qOrder[b.eisenhowerQuadrantId as keyof typeof qOrder] || 4);
         });
-    }, [tasks, selectedLifeWheel, selectedQuadrant, searchQuery]);
+    }, [tasks, selectedLifeWheel, selectedQuadrant, searchQuery, currentFamily, currentViewScope]);
 
     const getLifeWheelInfo = (id: string) => lifeWheelAreas.find(a => a.id === id);
     const getQuadrantInfo = (id: string) => eisenhowerQuadrants.find(q => q.id === id);
@@ -419,12 +449,22 @@ export default function BacklogScreen() {
                 useSafeArea={false}
                 showNotifications={false}
                 rightAction={
-                    <Button
-                        onPress={() => router.push('/(tabs)/sdlc/create-task' as any)}
-                        size="sm"
-                    >
-                        + Add
-                    </Button>
+                    <View className="flex-row items-center gap-2">
+                        {/* Family Scope Switcher */}
+                        {currentFamily && (
+                            <FamilyScopeSwitcher
+                                variant="compact"
+                                value={currentViewScope}
+                                onChange={setViewScope}
+                            />
+                        )}
+                        <Button
+                            onPress={() => router.push('/(tabs)/sdlc/create-task' as any)}
+                            size="sm"
+                        >
+                            + Add
+                        </Button>
+                    </View>
                 }
             />
             

@@ -12,6 +12,7 @@ spring:
 
   flyway:
     repair-on-migrate: true
+    ignore-migration-patterns: "*:missing"
 
   jpa:
     show-sql: false

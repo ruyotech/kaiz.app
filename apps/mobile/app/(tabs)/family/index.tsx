@@ -24,6 +24,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useThemeContext } from '../../../providers/ThemeProvider';
 import { useFamilyStore } from '../../../store/familyStore';
+import { useTaskStore } from '../../../store/taskStore';
 import { useAuthStore } from '../../../store/authStore';
 import { useSubscriptionStore, SUBSCRIPTION_TIERS } from '../../../store/subscriptionStore';
 import { MemberCard } from '../../../components/family/MemberCard';
@@ -39,6 +40,7 @@ export default function FamilyDashboardScreen() {
     const { colors, isDark } = useThemeContext();
     const { user } = useAuthStore();
     const { canAccessFeature, subscription, setSubscription } = useSubscriptionStore();
+    const { setViewScope } = useTaskStore();
     const {
         currentFamily,
         members,
@@ -52,6 +54,7 @@ export default function FamilyDashboardScreen() {
         loading,
         hasPermission,
         fetchFamily,
+        fetchMyFamily,
         fetchMembers,
         fetchSharedEpics,
         fetchSharedTasks,
@@ -111,8 +114,11 @@ export default function FamilyDashboardScreen() {
     }, []);
     
     const loadData = async () => {
+        // First fetch user's family (will use mock if API unavailable)
+        await fetchMyFamily();
+        
+        // Then load family-related data
         await Promise.all([
-            fetchFamily('family-1'),
             fetchMembers(),
             fetchSharedEpics(),
             fetchSharedTasks(),
@@ -603,7 +609,11 @@ export default function FamilyDashboardScreen() {
                     </Text>
                     <View className="flex-row gap-3">
                         <TouchableOpacity
-                            onPress={() => router.push('/family/shared-tasks' as any)}
+                            onPress={() => {
+                                // Set view scope to family and navigate to backlog
+                                setViewScope('family');
+                                router.push('/(tabs)/sdlc/backlog' as any);
+                            }}
                             className="flex-1 p-4 rounded-2xl items-center"
                             style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
                         >
@@ -616,7 +626,11 @@ export default function FamilyDashboardScreen() {
                             </Text>
                         </TouchableOpacity>
                         <TouchableOpacity
-                            onPress={() => router.push('/family/shared-calendar' as any)}
+                            onPress={() => {
+                                // Set view scope to family and navigate to calendar
+                                setViewScope('family');
+                                router.push('/(tabs)/sdlc/calendar' as any);
+                            }}
                             className="flex-1 p-4 rounded-2xl items-center"
                             style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
                         >
