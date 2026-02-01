@@ -239,6 +239,7 @@ export default function SubscriptionScreen() {
         getSprintPeriodLabel,
         getTierConfig,
         openManageSubscription,
+        setSubscription,
     } = useSubscriptionStore();
     
     const [showUpgradeOptions, setShowUpgradeOptions] = useState(false);
@@ -275,17 +276,42 @@ export default function SubscriptionScreen() {
     };
     
     const handleUpgrade = (tier: TierConfig) => {
-        // In production, this would initiate IAP flow
+        // TEST MODE: Direct subscription change with confirmation
+        // In production, this would initiate IAP flow via App Store/Play Store
         Alert.alert(
             `Upgrade to ${tier.name}`,
-            `Would you like to upgrade to ${tier.name} for ${tier.price}?`,
+            `Are you sure you want to upgrade to ${tier.name} for ${tier.price}?\n\n(Test mode: This will activate immediately)`,
             [
                 { text: 'Cancel', style: 'cancel' },
                 {
-                    text: 'Continue',
+                    text: 'Upgrade Now',
                     onPress: () => {
-                        // Open App Store/Play Store subscription
-                        openManageSubscription();
+                        // Calculate subscription dates (1 month or 1 year from now)
+                        const now = new Date();
+                        const endDate = new Date(now);
+                        if (tier.billingPeriod === 'annual') {
+                            endDate.setFullYear(endDate.getFullYear() + 1);
+                        } else {
+                            endDate.setMonth(endDate.getMonth() + 1);
+                        }
+                        
+                        // Update subscription directly
+                        setSubscription({
+                            tier: tier.id,
+                            startDate: now.toISOString(),
+                            endDate: endDate.toISOString(),
+                            renewalDate: endDate.toISOString(),
+                            billingPeriod: tier.billingPeriod === 'annual' ? 'annual' : 'monthly',
+                            isInGracePeriod: false,
+                            gracePeriodEndDate: null,
+                            autoRenew: true,
+                        });
+                        
+                        Alert.alert(
+                            '🎉 Upgrade Successful!',
+                            `You are now on the ${tier.name} plan. Enjoy your new features!`,
+                            [{ text: 'Great!' }]
+                        );
                     },
                 },
             ]

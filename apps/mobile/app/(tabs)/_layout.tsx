@@ -17,6 +17,7 @@ export default function TabsLayout() {
                 <Stack.Screen name="motivation" />
                 <Stack.Screen name="command-center" />
                 <Stack.Screen name="community" />
+                <Stack.Screen name="family" />
                 <Stack.Screen name="settings" />
                 <Stack.Screen name="notifications" />
             </Stack>

@@ -45,6 +45,10 @@ export const NAV_CONFIGS: Record<AppContext, NavIcon[]> = {
         { nameKey: 'navigation.tabs.hub', icon: 'account-group', route: '/(tabs)/community' },
         { nameKey: 'navigation.tabs.more', icon: 'dots-horizontal', route: 'more' },
     ],
+    family: [
+        { nameKey: 'navigation.tabs.family', icon: 'account-heart', route: '/(tabs)/family' },
+        { nameKey: 'navigation.tabs.more', icon: 'dots-horizontal', route: 'more' },
+    ],
     settings: [
         { nameKey: 'navigation.tabs.settings', icon: 'cog', route: '/(tabs)/settings' },
         { nameKey: 'navigation.tabs.more', icon: 'dots-horizontal', route: 'more' },
@@ -133,6 +137,13 @@ export const MORE_MENUS: Record<AppContext, MoreMenuItem[]> = {
         { nameKey: 'navigation.moreMenu.supportCircle', icon: 'account-heart', route: '/(tabs)/community/support' },
         { nameKey: 'navigation.moreMenu.myProfile', icon: 'account-circle', route: '/(tabs)/community/profile' },
     ],
+    family: [
+        { nameKey: 'navigation.moreMenu.members', icon: 'account-group', route: '/(tabs)/family/members' },
+        { nameKey: 'navigation.moreMenu.sharedTasks', icon: 'clipboard-list', route: '/(tabs)/family/shared-tasks' },
+        { nameKey: 'navigation.moreMenu.sharedCalendar', icon: 'calendar-account', route: '/(tabs)/family/shared-calendar' },
+        { nameKey: 'navigation.moreMenu.familyStandup', icon: 'account-voice', route: '/(tabs)/family/family-standup' },
+        { nameKey: 'settings.title', icon: 'cog', route: '/(tabs)/settings' },
+    ],
     settings: [
         { nameKey: 'navigation.moreMenu.themeDisplay', icon: 'palette', route: '/(tabs)/settings/appearance' },
         { nameKey: 'navigation.moreMenu.language', icon: 'translate', route: '/(tabs)/settings/language' },
@@ -188,6 +199,7 @@ export const APPS: App[] = [
     { id: 'essentia', nameKey: 'navigation.tabs.essentia', icon: 'brain', color: '#8B5CF6', route: '/(tabs)/essentia' },
     { id: 'mindset', nameKey: 'navigation.tabs.mindset', icon: 'creation', color: '#EC4899', route: '/(tabs)/motivation' },
     { id: 'community', nameKey: 'navigation.tabs.community', icon: 'account-group', color: '#06B6D4', route: '/(tabs)/community' },
+    { id: 'family', nameKey: 'navigation.tabs.family', icon: 'account-heart', color: '#EC4899', route: '/(tabs)/family' },
     { id: 'notifications', nameKey: 'navigation.tabs.notifications', icon: 'bell', color: '#F97316', route: '/(tabs)/notifications' },
     { id: 'settings', nameKey: 'navigation.tabs.settings', icon: 'cog', color: '#6B7280', route: '/(tabs)/settings' },
 ];

@@ -2,6 +2,7 @@ import { View, Text, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigationStore, AppContext } from '../../store/navigationStore';
 import { useNotificationStore } from '../../store/notificationStore';
+import { useSubscriptionStore } from '../../store/subscriptionStore';
 import { APPS, NAV_CONFIGS } from '../../utils/navigationConfig';
 import { useRouter } from 'expo-router';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -14,14 +15,18 @@ const SPRINT_SUB_APPS = APPS.filter(app => ['backlog', 'epics', 'taskSearch', 't
 const PRODUCTIVITY_APPS = APPS.filter(app => ['sensai', 'pomodoro', 'challenges'].includes(app.id));
 const GROWTH_APPS = APPS.filter(app => ['mindset', 'essentia'].includes(app.id));
 const COMMUNITY_APP = APPS.find(app => app.id === 'community')!;
+const FAMILY_APP = APPS.find(app => app.id === 'family');
 
 export function AppSwitcher() {
     const { isAppSwitcherOpen, toggleAppSwitcher, setCurrentApp, currentApp } = useNavigationStore();
     const { unreadCount } = useNotificationStore();
+    const { canAccessFeature } = useSubscriptionStore();
     const router = useRouter();
     const { t } = useTranslation();
     const insets = useSafeAreaInsets();
     const { colors } = useThemeContext();
+    
+    const hasFamilyAccess = canAccessFeature('sharedWorkspace');
 
     const handleAppSelect = (app: typeof APPS[0]) => {
         // Don't change currentApp for overlays - they're not a context switch
@@ -258,7 +263,7 @@ export function AppSwitcher() {
                     </View>
 
                     {/* Community Section */}
-                    <View className="mb-3">
+                    <View className="mb-5">
                         <View className="flex-row items-center mb-3 px-1">
                             <MaterialCommunityIcons name="account-group-outline" size={16} color="#06B6D4" />
                             <Text className="text-xs font-semibold uppercase tracking-wider ml-1.5" style={{ color: colors.textSecondary }}>Social</Text>
@@ -290,6 +295,53 @@ export function AppSwitcher() {
                             <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
                         </TouchableOpacity>
                     </View>
+
+                    {/* Family Section - Premium Feature */}
+                    {FAMILY_APP && (
+                        <View className="mb-3">
+                            <View className="flex-row items-center mb-3 px-1">
+                                <MaterialCommunityIcons name="heart-outline" size={16} color="#EC4899" />
+                                <Text className="text-xs font-semibold uppercase tracking-wider ml-1.5" style={{ color: colors.textSecondary }}>Family</Text>
+                                {!hasFamilyAccess && (
+                                    <View className="ml-2 px-2 py-0.5 rounded-full" style={{ backgroundColor: '#F59E0B20' }}>
+                                        <Text className="text-[10px] font-bold" style={{ color: '#F59E0B' }}>PREMIUM</Text>
+                                    </View>
+                                )}
+                            </View>
+                            
+                            <TouchableOpacity
+                                onPress={() => handleAppSelect(FAMILY_APP)}
+                                activeOpacity={0.7}
+                                className="rounded-2xl p-4 flex-row items-center"
+                                style={{ 
+                                    backgroundColor: colors.card,
+                                    borderColor: currentApp === 'family' ? '#EC4899' : colors.border,
+                                    borderWidth: currentApp === 'family' ? 2 : 1,
+                                    opacity: hasFamilyAccess ? 1 : 0.85,
+                                }}
+                            >
+                                <View 
+                                    className="w-12 h-12 rounded-xl items-center justify-center"
+                                    style={{ backgroundColor: '#EC489920' }}
+                                >
+                                    <MaterialCommunityIcons name="account-heart" size={26} color="#EC4899" />
+                                </View>
+                                <View className="ml-3 flex-1">
+                                    <Text className="font-semibold text-base" style={{ color: colors.text }}>{t(FAMILY_APP.nameKey)}</Text>
+                                    <Text className="text-xs mt-0.5" style={{ color: colors.textTertiary }}>
+                                        {hasFamilyAccess ? 'Collaborate with family' : 'Upgrade to unlock'}
+                                    </Text>
+                                </View>
+                                {currentApp === 'family' && hasFamilyAccess && (
+                                    <View className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: colors.success }} />
+                                )}
+                                {!hasFamilyAccess && (
+                                    <MaterialCommunityIcons name="lock" size={18} color={colors.textTertiary} style={{ marginRight: 4 }} />
+                                )}
+                                <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
+                            </TouchableOpacity>
+                        </View>
+                    )}
                 </ScrollView>
 
                 {/* Settings Button */}

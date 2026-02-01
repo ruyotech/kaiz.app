@@ -224,6 +224,7 @@
       "bills": "Bills",
       "hub": "Hub",
       "inbox": "Inbox",
+      "family": "Family",
       "more": "More"
     },
     "sdlc": {
@@ -280,7 +281,12 @@
       "unread": "Unread",
       "mentions": "Mentions",
       "taskUpdates": "Task Updates",
-      "challengeAlerts": "Challenge Alerts"
+      "challengeAlerts": "Challenge Alerts",
+      "members": "Members",
+      "sharedTasks": "Shared Tasks",
+      "sharedCalendar": "Family Calendar",
+      "familyStandup": "Family Standup",
+      "createTemplate": "Create Template"
     },
     "appSwitcher": {
       "title": "Apps",
@@ -1300,5 +1306,139 @@
     "hoursAgo": "{{count}} hours ago",
     "minutesAgo": "{{count}} minutes ago",
     "justNow": "Just now"
+  },
+  "family": {
+    "title": "Family",
+    "dashboard": {
+      "title": "Family Dashboard",
+      "subtitle": "Your family workspace",
+      "noFamily": "No Family Yet",
+      "noFamilySubtitle": "Create or join a family workspace to collaborate",
+      "createFamily": "Create Family",
+      "joinFamily": "Join Family",
+      "quickStats": "Quick Stats",
+      "activeMembers": "Active Members",
+      "tasksThisWeek": "Tasks This Week",
+      "upcomingCeremonies": "Upcoming Ceremonies",
+      "kudosSent": "Kudos Sent"
+    },
+    "members": {
+      "title": "Family Members",
+      "subtitle": "Manage your family workspace",
+      "invite": "Invite",
+      "pending": "Pending Invitations",
+      "inviteMember": "Invite Member",
+      "changeRole": "Change Role",
+      "removeFromFamily": "Remove from Family",
+      "removeConfirm": "Are you sure you want to remove {{name}} from the family?",
+      "roles": {
+        "parent": "Parent",
+        "child": "Child",
+        "guardian": "Guardian",
+        "grandparent": "Grandparent",
+        "teen": "Teen"
+      }
+    },
+    "tasks": {
+      "title": "Family Backlog",
+      "subtitle": "Shared tasks and to-dos",
+      "newTask": "New Task",
+      "visibility": {
+        "private": "Private",
+        "shared": "Shared",
+        "assigned": "Assigned"
+      },
+      "filters": {
+        "all": "All",
+        "todo": "To Do",
+        "inProgress": "In Progress",
+        "done": "Done"
+      }
+    },
+    "calendar": {
+      "title": "Family Calendar",
+      "subtitle": "Events and deadlines",
+      "newEvent": "New Event",
+      "allDay": "All Day",
+      "legend": "Legend"
+    },
+    "standup": {
+      "title": "Family Standup",
+      "subtitle": "How's everyone doing?",
+      "checkIn": "Check In",
+      "mood": {
+        "great": "Great!",
+        "good": "Good",
+        "okay": "Okay",
+        "struggling": "Struggling",
+        "tough": "Tough day"
+      },
+      "highlight": "Highlight",
+      "highlightPlaceholder": "Something good happening...",
+      "challenge": "Challenge",
+      "challengePlaceholder": "Something that's tough right now...",
+      "helpNeeded": "Need Help?",
+      "helpPlaceholder": "How can family help you today?"
+    },
+    "kudos": {
+      "title": "Send Kudos",
+      "subtitle": "Celebrate a family member",
+      "types": {
+        "star": "You're a Star!",
+        "helper": "Super Helper",
+        "creative": "Creative Genius",
+        "brave": "So Brave!",
+        "kind": "Heart of Gold",
+        "determined": "Never Give Up",
+        "teamPlayer": "Team Player",
+        "growth": "Growing Strong"
+      },
+      "messagePlaceholder": "Add a personal message...",
+      "privateKudos": "Private kudos (only {{name}} will see)",
+      "send": "Send Kudos",
+      "sent": "Kudos Sent!"
+    },
+    "independence": {
+      "title": "Growing Up",
+      "subtitle": "Begin your independence journey",
+      "readyToFly": "Ready to fly solo?",
+      "description": "You've grown so much! It's time to start your own journey.",
+      "whatHappens": "What happens next?",
+      "yourOwnAccount": "Your own account",
+      "yourOwnAccountDesc": "Your own Kaiz account with full control",
+      "dataChoice": "Data choice",
+      "dataChoiceDesc": "Choose which data to bring or start fresh",
+      "familyConnection": "Family connection",
+      "familyConnectionDesc": "Option to stay connected as alumni",
+      "reviewData": "Review Your Data",
+      "selectData": "Select What to Bring",
+      "confirmation": "Confirmation",
+      "celebration": "Congratulations!",
+      "bringWith": "Bring with you",
+      "tasks": "Your tasks",
+      "habits": "Your habits",
+      "challenges": "Your challenges",
+      "achievements": "Your achievements",
+      "confirmTransition": "Confirm Transition",
+      "stayConnected": "Stay Connected",
+      "stayConnectedDesc": "Remain as family alumni",
+      "beginJourney": "Begin My Journey",
+      "successTitle": "You Did It!",
+      "successMessage": "Your independent account is ready. The adventure continues!"
+    },
+    "ceremonies": {
+      "standup": "Family Standup",
+      "planning": "Weekly Planning",
+      "review": "Week in Review",
+      "celebration": "Family Celebration"
+    },
+    "activity": {
+      "completedTask": "completed a task",
+      "assignedTask": "assigned a task to",
+      "sentKudos": "sent kudos to",
+      "joinedFamily": "joined the family",
+      "createdEpic": "created a shared epic",
+      "startedCeremony": "started a ceremony"
+    }
   }
 }
