@@ -1,5 +1,59 @@
 # KAIZ Project - GitHub Copilot Instructions
 
+## Admin Authentication (Testing)
+
+### Test Admin Credentials
+
+| Field | Value |
+|-------|-------|
+| Email | `admin@kaiz.app` |
+| Password | `Admin123!` |
+| Role | `SUPER_ADMIN` |
+| Setup Key | `KAIZ_ADMIN_SETUP_2026` |
+
+### Admin API Endpoints
+
+**Local:** `http://localhost:8080`
+**GCP:** `https://kaiz-api-213334506754.us-central1.run.app`
+
+```bash
+# Create first admin (one-time setup)
+curl -X POST {BASE_URL}/api/v1/admin/auth/setup \
+  -H "Content-Type: application/json" \
+  -H "X-Setup-Key: KAIZ_ADMIN_SETUP_2026" \
+  -d '{"email": "admin@kaiz.app", "password": "Admin123!", "fullName": "System Admin", "role": "SUPER_ADMIN"}'
+
+# Login
+curl -X POST {BASE_URL}/api/v1/admin/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "admin@kaiz.app", "password": "Admin123!"}'
+
+# Response includes: accessToken, refreshToken, admin info
+
+# Use admin token for protected endpoints
+curl {BASE_URL}/api/v1/admin/content/site \
+  -H "Authorization: Bearer {accessToken}"
+```
+
+### Admin Roles
+
+| Role | Description |
+|------|-------------|
+| `SUPER_ADMIN` | Full access to all admin features |
+| `ADMIN` | Standard admin access |
+| `SUPPORT` | Customer support access |
+| `MARKETING` | Marketing content access |
+
+### Web Admin Login Flow
+
+1. User enters email/password on `/admin/login`
+2. POST to `/api/v1/admin/auth/login`
+3. Store `accessToken` and `refreshToken` in localStorage
+4. Redirect to `/admin/dashboard`
+5. Include `Authorization: Bearer {token}` on all admin API calls
+
+---
+
 ## Flyway Database Migrations
 
 ### Critical Rules
@@ -273,3 +327,217 @@ cd apps/backend
 gcloud builds submit --tag us-central1-docker.pkg.dev/majestic-tape-485503-f9/kaiz-repo/kaiz-api
 gcloud run deploy kaiz-api --image us-central1-docker.pkg.dev/majestic-tape-485503-f9/kaiz-repo/kaiz-api:latest --region us-central1 --platform managed
 ```
+
+---
+
+## Docker Local Development Workflow (Java 21 Spring Boot)
+
+### Critical Rule: ALWAYS Test Locally Before GCP Deploy
+
+**On EVERY backend code change, follow this exact workflow:**
+
+1. **Rebuild Docker image locally (uses LOCAL PostgreSQL container)**
+2. **Check container logs - verify Flyway migrations succeed**
+3. **Verify health endpoint against LOCAL database**
+4. **Only then deploy to GCP (which runs against GCP Cloud SQL)**
+5. **Verify GCP deployment is healthy**
+
+### Local vs GCP Database
+
+| Environment | Database | Connection |
+|-------------|----------|------------|
+| **Local Docker** | `kaizapp-db` container (PostgreSQL 16) | `jdbc:postgresql://db:5432/kaizapp` |
+| **GCP Cloud Run** | Cloud SQL (`34.30.197.86`) | `jdbc:postgresql://34.30.197.86:5432/kaizapp` |
+
+**⚠️ IMPORTANT:** Local testing uses `docker-compose.yml` which spins up BOTH:
+- `kaizapp-api` - Spring Boot backend
+- `kaizapp-db` - Local PostgreSQL 16 database
+
+Flyway migrations run FIRST against local DB. Only after success do we deploy to GCP.
+
+### Step-by-Step Workflow
+
+#### Step 1: Navigate to Backend
+```bash
+cd apps/backend
+```
+
+#### Step 2: Stop Existing Containers & Rebuild
+```bash
+# Stop and remove old containers (keep volumes for DB data)
+docker-compose down
+
+# Rebuild and start fresh (use --build to force rebuild)
+# This starts BOTH app + local db containers
+docker-compose up --build -d
+```
+
+#### Step 3: Check Container Logs (Flyway + Startup)
+```bash
+# Wait for startup and check logs
+sleep 15 && docker-compose logs app
+
+# Look for these SUCCESS indicators:
+# ✅ "Started KaizappBackendApplication in X seconds"
+# ✅ "Tomcat started on port 8080"
+# ✅ "Successfully applied X migrations" (Flyway)
+# ✅ "Migrating schema 'public' to version X"
+
+# Watch for these FAILURE indicators:
+# ❌ "Exception", "Error", "failed"
+# ❌ "Bean creation exception"
+# ❌ "Flyway migration failed"
+# ❌ "Migration checksum mismatch"
+# ❌ Container exits/restarts
+```
+
+#### Step 4: Verify Health Endpoint (Against Local DB)
+```bash
+# Test actuator health - this confirms local DB connection works
+curl -s http://localhost:8080/actuator/health | jq .
+
+# Expected response (note db status UP):
+# {"status":"UP","components":{"db":{"status":"UP","details":{"database":"PostgreSQL"}},...}}
+
+# Check local DB directly (port 5433 maps to container's 5432)
+docker-compose exec db psql -U kaizapp -d kaizapp -c "\dt"
+
+# Verify Flyway history in local DB
+docker-compose exec db psql -U kaizapp -d kaizapp -c "SELECT version, description, success FROM flyway_schema_history ORDER BY installed_rank;"
+```
+
+#### Step 5: Deploy to GCP (Only After Local Success)
+```bash
+# Build and push to Artifact Registry
+gcloud builds submit --tag us-central1-docker.pkg.dev/majestic-tape-485503-f9/kaiz-repo/kaiz-api
+
+# Deploy to Cloud Run
+gcloud run deploy kaiz-api \
+  --image us-central1-docker.pkg.dev/majestic-tape-485503-f9/kaiz-repo/kaiz-api:latest \
+  --region us-central1 \
+  --platform managed
+```
+
+#### Step 6: Verify GCP Deployment
+```bash
+# Health check (now running against GCP Cloud SQL)
+curl -s https://kaiz-api-213334506754.us-central1.run.app/actuator/health
+
+# Check for errors in Cloud Run logs
+gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=kaiz-api AND severity>=ERROR" --limit=10 --format="table(timestamp,textPayload)"
+
+# Check Flyway ran successfully on GCP DB
+gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=kaiz-api" --limit=50 --format="value(textPayload)" | grep -E "Flyway|migration|Started|Error|Exception"
+```
+
+### Quick Commands Reference
+
+```bash
+# === LOCAL DOCKER (uses local PostgreSQL) ===
+# Full rebuild cycle (clean DB + fresh migrations)
+docker-compose down -v && docker-compose up --build -d && sleep 15 && docker-compose logs app
+
+# Quick rebuild (keep DB data)
+docker-compose down && docker-compose up --build -d && sleep 10 && docker-compose logs app
+
+# Watch logs in real-time
+docker-compose logs -f app
+
+# Check both containers are running
+docker-compose ps
+
+# Check local DB tables
+docker-compose exec db psql -U kaizapp -d kaizapp -c "\dt"
+
+# Check Flyway history locally
+docker-compose exec db psql -U kaizapp -d kaizapp -c "SELECT version, description FROM flyway_schema_history ORDER BY installed_rank;"
+
+# Enter backend container shell (for debugging)
+docker-compose exec app sh
+
+# === GCP DEPLOY (only after local success) ===
+# One-liner deploy (after local verification)
+cd apps/backend && gcloud builds submit --tag us-central1-docker.pkg.dev/majestic-tape-485503-f9/kaiz-repo/kaiz-api && gcloud run deploy kaiz-api --image us-central1-docker.pkg.dev/majestic-tape-485503-f9/kaiz-repo/kaiz-api:latest --region us-central1 --platform managed
+
+# === VERIFICATION ===
+# Local health (against local DB)
+curl -s http://localhost:8080/actuator/health | jq .
+
+# GCP health (against Cloud SQL)
+curl -s https://kaiz-api-213334506754.us-central1.run.app/actuator/health | jq .
+```
+
+### Dockerfile Best Practices (Java 21 Spring Boot)
+
+Our Dockerfile follows these production-ready patterns:
+
+1. **Multi-stage build** - Separates build and runtime for smaller images
+2. **Dependency caching** - `mvn dependency:go-offline` before copying source
+3. **Non-root user** - Runs as `kaiz` user for security
+4. **Alpine base** - Minimal image size with `eclipse-temurin:21-jre-alpine`
+5. **Health checks** - Built-in HEALTHCHECK for container orchestration
+6. **G1GC tuning** - Optimized for Cloud Run's containerized environment
+
+### Red Flags - DO NOT DEPLOY
+
+**Stop and fix locally if you see ANY of these:**
+
+1. ❌ `docker-compose logs` shows exceptions or errors
+2. ❌ Container keeps restarting (`docker-compose ps` shows restart loop)
+3. ❌ Health endpoint returns non-200 or `{"status":"DOWN"}`
+4. ❌ Flyway migration errors (checksum mismatch, SQL syntax)
+5. ❌ Bean creation/injection failures
+6. ❌ Port binding issues
+
+### Common Local Docker Issues
+
+**Container won't start:**
+```bash
+# Check what's wrong
+docker-compose logs backend
+
+# Common fixes:
+# 1. Port conflict - stop other services on 8080
+lsof -i :8080
+
+# 2. Stale build - force rebuild
+docker-compose build --no-cache backend
+
+# 3. Volume issues - reset
+docker-compose down -v
+```
+
+**Database connection issues:**
+```bash
+# Ensure DB is running
+docker-compose ps db
+
+# Check DB logs
+docker-compose logs db
+
+# Verify connection from backend container
+docker-compose exec backend sh -c "nc -zv db 5432"
+```
+
+**Flyway migration stuck:**
+```bash
+# Reset local DB completely
+docker-compose down -v && docker-compose up -d
+
+# Check flyway status in container
+docker-compose exec backend sh -c "cat /app/application.properties | grep flyway"
+```
+
+### AI Assistant Checklist
+
+When making backend changes, I (the AI) will:
+
+- [ ] Make the code change
+- [ ] Run `docker-compose down && docker-compose up --build -d`
+- [ ] Wait and check `docker-compose logs backend`
+- [ ] Verify `curl http://localhost:8080/actuator/health` returns UP
+- [ ] Only then proceed with GCP deployment
+- [ ] After GCP deploy, verify `curl https://kaiz-api-213334506754.us-central1.run.app/actuator/health`
+- [ ] Check GCP logs for any errors
+
+**NEVER skip local Docker testing before GCP deployment!**

@@ -5,6 +5,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -38,21 +39,46 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     try {
       String token = extractToken(request);
 
-      if (StringUtils.hasText(token)
-          && jwtTokenProvider.validateToken(token)
-          && jwtTokenProvider.isAccessToken(token)) {
+      if (StringUtils.hasText(token) && jwtTokenProvider.validateToken(token)) {
+        
+        // Check if it's an admin token
+        if (jwtTokenProvider.isAdminToken(token)) {
+          UUID adminId = jwtTokenProvider.getUserIdFromToken(token);
+          String email = jwtTokenProvider.getEmailFromToken(token);
+          String adminRole = jwtTokenProvider.getAdminRole(token);
+          
+          List<SimpleGrantedAuthority> authorities = new ArrayList<>();
+          authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
+          // Add specific admin role (SUPER_ADMIN, ADMIN, SUPPORT, MARKETING)
+          if (adminRole != null) {
+            authorities.add(new SimpleGrantedAuthority("ROLE_" + adminRole));
+          }
+          
+          UsernamePasswordAuthenticationToken authentication =
+              new UsernamePasswordAuthenticationToken(adminId.toString(), null, authorities);
+          
+          authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+          SecurityContextHolder.getContext().setAuthentication(authentication);
+          
+          // Set adminId as request attribute for controllers
+          request.setAttribute("adminId", adminId);
+          
+          log.debug("Authenticated admin: {} with role: {}", email, adminRole);
+        }
+        // Regular user access token
+        else if (jwtTokenProvider.isAccessToken(token)) {
+          UUID userId = jwtTokenProvider.getUserIdFromToken(token);
+          String email = jwtTokenProvider.getEmailFromToken(token);
 
-        UUID userId = jwtTokenProvider.getUserIdFromToken(token);
-        String email = jwtTokenProvider.getEmailFromToken(token);
+          UsernamePasswordAuthenticationToken authentication =
+              new UsernamePasswordAuthenticationToken(
+                  userId.toString(), null, List.of(new SimpleGrantedAuthority("ROLE_USER")));
 
-        UsernamePasswordAuthenticationToken authentication =
-            new UsernamePasswordAuthenticationToken(
-                userId.toString(), null, List.of(new SimpleGrantedAuthority("ROLE_USER")));
+          authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+          SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-
-        log.debug("Authenticated user: {}", email);
+          log.debug("Authenticated user: {}", email);
+        }
       }
     } catch (Exception e) {
       log.debug("Could not set user authentication: {}", e.getMessage());

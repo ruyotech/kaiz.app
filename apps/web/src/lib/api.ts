@@ -113,6 +113,9 @@ async function request<T>(
 ): Promise<T> {
   const url = `${API_V1}${endpoint}`;
 
+  // Check if this is a login endpoint (should not trigger auth expiration on 401)
+  const isLoginEndpoint = endpoint.includes('/auth/login');
+
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
     ...options.headers,
@@ -139,7 +142,8 @@ async function request<T>(
     };
 
     if (!response.ok) {
-      if (response.status === 401) {
+      // Only trigger auth expiration for non-login 401 errors
+      if (response.status === 401 && !isLoginEndpoint) {
         await triggerAuthExpiration();
         throw new AuthExpiredError();
       }
@@ -275,6 +279,112 @@ export const authApi = {
 
   hasValidSession(): boolean {
     return !!getAccessToken();
+  },
+};
+
+// ============================================================
+// ADMIN AUTH API (Separate from User Auth)
+// ============================================================
+const ADMIN_ACCESS_TOKEN_KEY = 'kaiz_admin_access_token';
+const ADMIN_REFRESH_TOKEN_KEY = 'kaiz_admin_refresh_token';
+
+export function getAdminAccessToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(ADMIN_ACCESS_TOKEN_KEY);
+}
+
+export function getAdminRefreshToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(ADMIN_REFRESH_TOKEN_KEY);
+}
+
+export function saveAdminTokens(accessToken: string, refreshToken: string): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(ADMIN_ACCESS_TOKEN_KEY, accessToken);
+  localStorage.setItem(ADMIN_REFRESH_TOKEN_KEY, refreshToken);
+}
+
+export function clearAdminTokens(): void {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(ADMIN_ACCESS_TOKEN_KEY);
+  localStorage.removeItem(ADMIN_REFRESH_TOKEN_KEY);
+}
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  fullName: string;
+  role: 'ADMIN' | 'SUPER_ADMIN' | 'SUPPORT' | 'MARKETING';
+  isActive: boolean;
+  lastLoginAt?: string;
+  createdAt?: string;
+}
+
+export interface AdminAuthResponse {
+  accessToken: string;
+  refreshToken: string;
+  admin: AdminUser;
+}
+
+export const adminAuthApi = {
+  async login(email: string, password: string) {
+    const response = await request<AdminAuthResponse>('/admin/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+    saveAdminTokens(response.accessToken, response.refreshToken);
+    return response;
+  },
+
+  async logout() {
+    const refreshToken = getAdminRefreshToken();
+    try {
+      if (refreshToken) {
+        await request<void>('/admin/auth/logout', {
+          method: 'POST',
+          body: JSON.stringify({ refreshToken }),
+        });
+      }
+    } catch {
+      // Clear tokens even if API call fails
+    }
+    clearAdminTokens();
+  },
+
+  async getCurrentAdmin(): Promise<AdminUser> {
+    const url = `${API_V1}/admin/auth/me`;
+    const token = getAdminAccessToken();
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token ? `Bearer ${token}` : '',
+      },
+    });
+    
+    const data = await response.json();
+    if (!response.ok || data.success === false) {
+      throw new ApiError(data.message || 'Failed to get admin', response.status);
+    }
+    return data.data;
+  },
+
+  async refreshToken() {
+    const refreshToken = getAdminRefreshToken();
+    if (!refreshToken) {
+      throw new ApiError('No refresh token', 401);
+    }
+    const response = await request<AdminAuthResponse>('/admin/auth/refresh', {
+      method: 'POST',
+      body: JSON.stringify({ refreshToken }),
+    });
+    saveAdminTokens(response.accessToken, response.refreshToken);
+    return response;
+  },
+
+  hasValidSession(): boolean {
+    return !!getAdminAccessToken();
   },
 };
 

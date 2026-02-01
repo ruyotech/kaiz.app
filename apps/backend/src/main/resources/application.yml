@@ -17,7 +17,7 @@ spring:
   jpa:
     open-in-view: false
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update  # Changed from validate - let Hibernate create missing tables
     properties:
       hibernate:
         format_sql: true

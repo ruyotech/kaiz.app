@@ -32,7 +32,7 @@ export const useAuthStore = create<AuthState>()(
       return {
         user: null,
         isAuthenticated: false,
-        isLoading: true,
+        isLoading: false,  // Start as false, set to true only during operations
         isAdmin: false,
 
         login: async (email: string, password: string) => {

@@ -110,4 +110,13 @@ public class JwtTokenProvider {
   public boolean isRefreshToken(String token) {
     return "refresh".equals(getTokenType(token));
   }
+
+  public boolean isAdminToken(String token) {
+    return "admin".equals(getTokenType(token));
+  }
+
+  public String getAdminRole(String token) {
+    Claims claims = getClaims(token);
+    return claims.get("role", String.class);
+  }
 }

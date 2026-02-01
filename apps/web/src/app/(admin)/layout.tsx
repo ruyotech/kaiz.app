@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useAuthStore } from '@/store/auth-store';
+import { useAdminAuthStore } from '@/store/admin-auth-store';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard,
@@ -20,7 +20,7 @@ import {
   BookOpen,
   MessageSquare,
   Bell,
-} from 'lucide-react';
+}from 'lucide-react';
 
 const navigation = [
   { name: 'Overview', href: '/admin', icon: LayoutDashboard },
@@ -38,25 +38,31 @@ export default function AdminLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, isAuthenticated, isLoading, logout } = useAuthStore();
+  const { admin, isAuthenticated, isLoading, logout } = useAdminAuthStore();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Redirect to login if not authenticated or not admin
+  // Skip auth check for admin login page
+  const isLoginPage = pathname === '/admin/login';
+
+  // Redirect to admin login if not authenticated
   useEffect(() => {
-    if (!isLoading) {
+    if (!isLoading && !isLoginPage) {
       if (!isAuthenticated) {
-        router.push('/login');
-      } else if (user?.role !== 'ADMIN') {
-        router.push('/dashboard');
+        router.push('/admin/login');
       }
     }
-  }, [isAuthenticated, isLoading, user, router]);
+  }, [isAuthenticated, isLoading, router, isLoginPage]);
 
   const handleLogout = async () => {
     await logout();
-    router.push('/login');
+    router.push('/admin/login');
   };
+
+  // Render login page without layout
+  if (isLoginPage) {
+    return <>{children}</>;
+  }
 
   // Show loading state while checking auth
   if (isLoading) {
@@ -72,8 +78,8 @@ export default function AdminLayout({
     );
   }
 
-  // Don't render anything if not authenticated or not admin
-  if (!isAuthenticated || user?.role !== 'ADMIN') {
+  // Don't render anything if not authenticated
+  if (!isAuthenticated) {
     return null;
   }
 
@@ -162,12 +168,12 @@ export default function AdminLayout({
         <div className="p-3 border-t border-white/10">
           <div className={cn('flex items-center gap-3', !sidebarOpen && 'justify-center')}>
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center font-semibold text-white flex-shrink-0">
-              {user?.fullName?.charAt(0) || 'A'}
+              {admin?.fullName?.charAt(0) || 'A'}
             </div>
             {sidebarOpen && (
               <div className="flex-1 min-w-0">
-                <div className="font-medium truncate text-sm">{user?.fullName || 'Admin'}</div>
-                <div className="text-xs text-slate-500 truncate">{user?.email}</div>
+                <div className="font-medium truncate text-sm">{admin?.fullName || 'Admin'}</div>
+                <div className="text-xs text-slate-500 truncate">{admin?.email}</div>
               </div>
             )}
           </div>

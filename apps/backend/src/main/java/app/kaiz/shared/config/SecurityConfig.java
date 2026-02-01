@@ -57,6 +57,13 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers("/api/v1/auth/refresh-token")
                     .permitAll()
+                    // Admin auth endpoints (login, refresh, setup) - Separate from user auth
+                    .requestMatchers("/api/v1/admin/auth/login")
+                    .permitAll()
+                    .requestMatchers("/api/v1/admin/auth/refresh")
+                    .permitAll()
+                    .requestMatchers("/api/v1/admin/auth/setup")
+                    .permitAll()
                     // Public content endpoints (website content, about features, etc.)
                     .requestMatchers("/api/v1/public/**")
                     .permitAll()
