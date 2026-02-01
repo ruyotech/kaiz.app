@@ -521,21 +521,13 @@ export function SettingsDrawer({ visible, onClose }: SettingsDrawerProps) {
                 >
                     {/* Header */}
                     <View className="px-5 pt-4 pb-3">
-                        <View className="flex-row items-center justify-between">
-                            <View className="flex-row items-center">
-                                <View className="w-10 h-10 bg-blue-500 rounded-xl items-center justify-center mr-3">
-                                    <MaterialCommunityIcons name="cog" size={22} color="white" />
-                                </View>
-                                <View>
-                                    <Text className="text-xl font-bold text-gray-900">Settings</Text>
-                                </View>
+                        <View className="flex-row items-center">
+                            <View className="w-10 h-10 bg-blue-500 rounded-xl items-center justify-center mr-3">
+                                <MaterialCommunityIcons name="cog" size={22} color="white" />
                             </View>
-                            <TouchableOpacity
-                                onPress={onClose}
-                                className="w-9 h-9 bg-gray-100 rounded-full items-center justify-center"
-                            >
-                                <MaterialCommunityIcons name="close" size={20} color="#6B7280" />
-                            </TouchableOpacity>
+                            <View>
+                                <Text className="text-xl font-bold text-gray-900">Settings</Text>
+                            </View>
                         </View>
                     </View>
                     

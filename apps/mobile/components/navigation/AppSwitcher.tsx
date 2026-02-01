@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, Modal, Animated, Dimensions, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigationStore, AppContext } from '../../store/navigationStore';
 import { useNotificationStore } from '../../store/notificationStore';
@@ -6,13 +6,13 @@ import { APPS, NAV_CONFIGS } from '../../utils/navigationConfig';
 import { useRouter } from 'expo-router';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRef, useEffect } from 'react';
-import { LinearGradient } from 'expo-linear-gradient';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
-// Filter out settings and notifications from main apps grid (they go to footer)
-const MAIN_APPS = APPS.filter(app => app.id !== 'settings' && app.id !== 'notifications');
+// App groupings
+const SPRINT_APP = APPS.find(app => app.id === 'sdlc')!;
+const SPRINT_SUB_APPS = APPS.filter(app => ['backlog', 'epics', 'taskSearch', 'templates'].includes(app.id));
+const PRODUCTIVITY_APPS = APPS.filter(app => ['sensai', 'pomodoro', 'challenges'].includes(app.id));
+const GROWTH_APPS = APPS.filter(app => ['mindset', 'essentia'].includes(app.id));
+const COMMUNITY_APP = APPS.find(app => app.id === 'community')!;
 
 export function AppSwitcher() {
     const { isAppSwitcherOpen, toggleAppSwitcher, setCurrentApp, currentApp } = useNavigationStore();
@@ -20,69 +20,6 @@ export function AppSwitcher() {
     const router = useRouter();
     const { t } = useTranslation();
     const insets = useSafeAreaInsets();
-    
-    // Animation values for staggered entrance
-    const fadeAnim = useRef(new Animated.Value(0)).current;
-    const slideAnim = useRef(new Animated.Value(50)).current;
-    
-    // Pulsing animation for notification badge
-    const pulseAnim = useRef(new Animated.Value(1)).current;
-    const glowAnim = useRef(new Animated.Value(0)).current;
-    
-    useEffect(() => {
-        if (isAppSwitcherOpen) {
-            Animated.parallel([
-                Animated.timing(fadeAnim, {
-                    toValue: 1,
-                    duration: 300,
-                    useNativeDriver: true,
-                }),
-                Animated.spring(slideAnim, {
-                    toValue: 0,
-                    tension: 65,
-                    friction: 10,
-                    useNativeDriver: true,
-                }),
-            ]).start();
-            
-            // Start pulsing animation for notification badge if there are unread notifications
-            if (unreadCount > 0) {
-                Animated.loop(
-                    Animated.sequence([
-                        Animated.parallel([
-                            Animated.timing(pulseAnim, {
-                                toValue: 1.2,
-                                duration: 800,
-                                useNativeDriver: true,
-                            }),
-                            Animated.timing(glowAnim, {
-                                toValue: 1,
-                                duration: 800,
-                                useNativeDriver: true,
-                            }),
-                        ]),
-                        Animated.parallel([
-                            Animated.timing(pulseAnim, {
-                                toValue: 1,
-                                duration: 800,
-                                useNativeDriver: true,
-                            }),
-                            Animated.timing(glowAnim, {
-                                toValue: 0,
-                                duration: 800,
-                                useNativeDriver: true,
-                            }),
-                        ]),
-                    ])
-                ).start();
-            }
-        } else {
-            fadeAnim.setValue(0);
-            slideAnim.setValue(50);
-            pulseAnim.setValue(1);
-            glowAnim.setValue(0);
-        }
-    }, [isAppSwitcherOpen, unreadCount]);
 
     const handleAppSelect = (app: typeof APPS[0]) => {
         // Don't change currentApp for overlays - they're not a context switch
@@ -120,49 +57,39 @@ export function AppSwitcher() {
             onRequestClose={toggleAppSwitcher}
             statusBarTranslucent
         >
-            <View className="flex-1 bg-[#0A0A0F]">
-                {/* Gradient Background Overlay */}
-                <LinearGradient
-                    colors={['#1a1a2e', '#0A0A0F', '#0A0A0F']}
-                    className="absolute inset-0"
-                />
-                
+            <View className="flex-1 bg-gray-50">
                 {/* Header */}
                 <View 
-                    className="flex-row justify-end items-center px-5"
-                    style={{ paddingTop: insets.top + 8 }}
+                    className="flex-row justify-between items-center px-5 bg-white border-b border-gray-100"
+                    style={{ paddingTop: insets.top + 12, paddingBottom: 12 }}
                 >
-                    {/* Notification Button */}
+                    <Text className="text-xl font-bold text-gray-900">{t('navigation.appSwitcher.title')}</Text>
+                    
+                    {/* Notification Button - More Visible */}
                     <TouchableOpacity 
                         onPress={handleNotifications}
-                        className="flex-row items-center"
                         activeOpacity={0.7}
                     >
-                        <Animated.View 
-                            style={{
-                                transform: [{ scale: unreadCount > 0 ? pulseAnim : 1 }],
-                            }}
-                            className="relative"
-                        >
+                        <View className="relative">
                             <View 
-                                className={`w-10 h-10 rounded-full items-center justify-center border ${
-                                    unreadCount > 0 ? 'bg-orange-500/15 border-orange-500/30' : 'bg-white/5 border-white/10'
+                                className={`w-11 h-11 rounded-xl items-center justify-center ${
+                                    unreadCount > 0 ? 'bg-orange-500' : 'bg-gray-100'
                                 }`}
                             >
                                 <MaterialCommunityIcons 
                                     name={unreadCount > 0 ? "bell-ring" : "bell-outline"} 
-                                    size={20} 
-                                    color={unreadCount > 0 ? "#F97316" : "#9CA3AF"} 
+                                    size={24} 
+                                    color={unreadCount > 0 ? "#FFFFFF" : "#6B7280"} 
                                 />
                             </View>
                             {unreadCount > 0 && (
-                                <View className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 rounded-full items-center justify-center px-1">
-                                    <Text className="text-white text-[10px] font-bold">
+                                <View className="absolute -top-1 -right-1 min-w-[20px] h-[20px] bg-red-500 rounded-full items-center justify-center px-1 border-2 border-white">
+                                    <Text className="text-white text-[11px] font-bold">
                                         {unreadCount > 99 ? '99+' : unreadCount}
                                     </Text>
                                 </View>
                             )}
-                        </Animated.View>
+                        </View>
                     </TouchableOpacity>
                 </View>
 
@@ -170,140 +97,196 @@ export function AppSwitcher() {
                 <ScrollView 
                     className="flex-1"
                     showsVerticalScrollIndicator={false}
-                    contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 20 }}
+                    contentContainerStyle={{ padding: 16, paddingBottom: 24 }}
                 >
-                    {/* Featured Apps - Sprints & SensAI */}
-                    <Animated.View 
-                        style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}
-                        className="flex-row gap-3 mb-4"
-                    >
-                        {MAIN_APPS.slice(0, 2).map((app, index) => (
-                            <FeaturedAppCard 
-                                key={app.id} 
-                                app={app} 
-                                isActive={currentApp === app.id}
-                                onPress={() => handleAppSelect(app)} 
-                                t={t}
-                                delay={index * 80}
-                            />
-                        ))}
-                    </Animated.View>
-                    
-                    {/* Sprint Tools Section */}
-                    <Animated.View 
-                        style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}
-                        className="mb-4"
-                    >
-                        <View className="bg-white/[0.03] rounded-2xl border border-white/[0.06] overflow-hidden">
-                            <View className="px-4 pt-3 pb-2 flex-row items-center">
-                                <View className="w-6 h-6 rounded-md bg-blue-500/20 items-center justify-center mr-2">
-                                    <MaterialCommunityIcons name="tools" size={14} color="#3B82F6" />
+                    {/* Sprint Section - Main app with sub-apps */}
+                    <View className="mb-5">
+                        <View className="flex-row items-center mb-3 px-1">
+                            <MaterialCommunityIcons name="lightning-bolt" size={16} color="#3B82F6" />
+                            <Text className="text-gray-500 text-xs font-semibold uppercase tracking-wider ml-1.5">Sprint</Text>
+                        </View>
+                        
+                        {/* Main Sprint App */}
+                        <TouchableOpacity
+                            onPress={() => handleAppSelect(SPRINT_APP)}
+                            activeOpacity={0.7}
+                            className="bg-white rounded-2xl p-4 mb-3 border border-gray-100"
+                            style={{ 
+                                borderColor: currentApp === 'sdlc' ? '#3B82F6' : '#F3F4F6',
+                                borderWidth: currentApp === 'sdlc' ? 2 : 1,
+                            }}
+                        >
+                            <View className="flex-row items-center">
+                                <View 
+                                    className="w-12 h-12 rounded-xl items-center justify-center"
+                                    style={{ backgroundColor: '#3B82F620' }}
+                                >
+                                    <MaterialCommunityIcons name="view-dashboard-outline" size={26} color="#3B82F6" />
                                 </View>
-                                <Text className="text-white/40 text-xs font-semibold uppercase tracking-wider">Sprint Tools</Text>
+                                <View className="ml-3 flex-1">
+                                    <Text className="text-gray-900 font-semibold text-base">{t(SPRINT_APP.nameKey)}</Text>
+                                    <Text className="text-gray-400 text-xs mt-0.5">Plan & track your sprints</Text>
+                                </View>
+                                {currentApp === 'sdlc' && (
+                                    <View className="w-2 h-2 rounded-full bg-green-500 mr-2" />
+                                )}
+                                <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
                             </View>
-                            <View className="flex-row px-2 pb-3">
-                                {MAIN_APPS.slice(2, 6).map((app, index) => (
-                                    <CompactAppItem 
-                                        key={app.id} 
-                                        app={app} 
-                                        isActive={currentApp === app.id}
-                                        onPress={() => handleAppSelect(app)} 
-                                        t={t}
-                                        delay={(index + 2) * 40}
-                                    />
-                                ))}
-                            </View>
-                        </View>
-                    </Animated.View>
-                    
-                    {/* Productivity Section */}
-                    <Animated.View 
-                        style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}
-                        className="mb-4"
-                    >
-                        <View className="flex-row items-center mb-2 px-1">
-                            <MaterialCommunityIcons name="lightning-bolt" size={16} color="#F59E0B" />
-                            <Text className="text-white/40 text-xs font-semibold uppercase tracking-wider ml-1.5">Productivity</Text>
-                        </View>
-                        <View className="flex-row gap-3">
-                            {MAIN_APPS.slice(6, 8).map((app, index) => (
-                                <StandardAppCard 
-                                    key={app.id} 
-                                    app={app}
-                                    isActive={currentApp === app.id}
-                                    onPress={() => handleAppSelect(app)} 
-                                    t={t}
-                                    delay={(index + 6) * 60}
-                                />
-                            ))}
-                        </View>
-                    </Animated.View>
-                    
-                    {/* Growth Section */}
-                    <Animated.View 
-                        style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}
-                        className="mb-4"
-                    >
-                        <View className="flex-row items-center mb-2 px-1">
-                            <MaterialCommunityIcons name="trending-up" size={16} color="#8B5CF6" />
-                            <Text className="text-white/40 text-xs font-semibold uppercase tracking-wider ml-1.5">Growth</Text>
-                        </View>
-                        <View className="flex-row gap-3">
-                            {MAIN_APPS.slice(8, 10).map((app, index) => (
-                                <StandardAppCard 
-                                    key={app.id} 
-                                    app={app}
-                                    isActive={currentApp === app.id}
-                                    onPress={() => handleAppSelect(app)} 
-                                    t={t}
-                                    delay={(index + 8) * 60}
-                                />
-                            ))}
-                        </View>
-                    </Animated.View>
-                    
-                    {/* Social Section */}
-                    <Animated.View 
-                        style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}
-                    >
-                        <View className="flex-row items-center mb-2 px-1">
-                            <MaterialCommunityIcons name="account-group-outline" size={16} color="#06B6D4" />
-                            <Text className="text-white/40 text-xs font-semibold uppercase tracking-wider ml-1.5">Social</Text>
-                        </View>
-                        {MAIN_APPS.slice(10, 11).map((app) => (
-                            <WideAppCard 
-                                key={app.id} 
-                                app={app}
-                                isActive={currentApp === app.id}
-                                onPress={() => handleAppSelect(app)} 
-                                t={t}
-                                delay={660}
-                            />
-                        ))}
-                    </Animated.View>
-                </ScrollView>
-
-                {/* Settings & Help Footer */}
-                <View className="px-4 pt-3 border-t border-white/5">
-                    <View className="flex-row gap-3">
-                        <TouchableOpacity 
-                            onPress={handleSettings}
-                            className="flex-1 flex-row items-center justify-center bg-white/[0.04] border border-white/[0.08] rounded-xl py-3"
-                        >
-                            <MaterialCommunityIcons name="cog-outline" size={20} color="#9CA3AF" />
-                            <Text className="text-white/70 font-medium text-sm ml-2">{t('navigation.appSwitcher.settings')}</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity 
-                            onPress={handleHelp}
-                            className="flex-1 flex-row items-center justify-center bg-white/[0.04] border border-white/[0.08] rounded-xl py-3"
+                        
+                        {/* Sprint Sub-apps Grid */}
+                        <View className="flex-row flex-wrap bg-white rounded-2xl p-3 border border-gray-100" style={{ marginHorizontal: -4 }}>
+                            {SPRINT_SUB_APPS.map((app) => (
+                                <View key={app.id} style={{ width: '25%', paddingHorizontal: 4 }}>
+                                    <TouchableOpacity
+                                        onPress={() => handleAppSelect(app)}
+                                        activeOpacity={0.7}
+                                        className="items-center py-2"
+                                    >
+                                        <View 
+                                            className="w-11 h-11 rounded-xl items-center justify-center mb-1.5"
+                                            style={{ 
+                                                backgroundColor: currentApp === app.id ? app.color + '25' : '#F3F4F6',
+                                                borderWidth: currentApp === app.id ? 1.5 : 0,
+                                                borderColor: app.color,
+                                            }}
+                                        >
+                                            <MaterialCommunityIcons name={app.icon as any} size={22} color={app.color} />
+                                        </View>
+                                        <Text className="text-[10px] font-medium text-center text-gray-600" numberOfLines={1}>
+                                            {t(app.nameKey)}
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
+                            ))}
+                        </View>
+                    </View>
+
+                    {/* Productivity Section - SensAI, Focus, Challenges */}
+                    <View className="mb-5">
+                        <View className="flex-row items-center mb-3 px-1">
+                            <MaterialCommunityIcons name="rocket-launch" size={16} color="#10B981" />
+                            <Text className="text-gray-500 text-xs font-semibold uppercase tracking-wider ml-1.5">Productivity</Text>
+                        </View>
+                        
+                        <View className="flex-row" style={{ marginHorizontal: -6 }}>
+                            {PRODUCTIVITY_APPS.map((app) => (
+                                <View key={app.id} style={{ flex: 1, paddingHorizontal: 6 }}>
+                                    <TouchableOpacity
+                                        onPress={() => handleAppSelect(app)}
+                                        activeOpacity={0.7}
+                                        className="bg-white rounded-2xl p-3 items-center border border-gray-100"
+                                        style={{ 
+                                            borderColor: currentApp === app.id ? app.color : '#F3F4F6',
+                                            borderWidth: currentApp === app.id ? 2 : 1,
+                                        }}
+                                    >
+                                        <View 
+                                            className="w-12 h-12 rounded-xl items-center justify-center mb-2"
+                                            style={{ backgroundColor: app.color + '20' }}
+                                        >
+                                            <MaterialCommunityIcons name={app.icon as any} size={26} color={app.color} />
+                                        </View>
+                                        <Text className="text-xs font-medium text-center text-gray-700" numberOfLines={1}>
+                                            {t(app.nameKey)}
+                                        </Text>
+                                        {currentApp === app.id && (
+                                            <View className="w-1.5 h-1.5 rounded-full bg-green-500 mt-1.5" />
+                                        )}
+                                    </TouchableOpacity>
+                                </View>
+                            ))}
+                        </View>
+                    </View>
+
+                    {/* Growth Section - Mindset & Essentia */}
+                    <View className="mb-5">
+                        <View className="flex-row items-center mb-3 px-1">
+                            <MaterialCommunityIcons name="trending-up" size={16} color="#8B5CF6" />
+                            <Text className="text-gray-500 text-xs font-semibold uppercase tracking-wider ml-1.5">Growth & Inspiration</Text>
+                        </View>
+                        
+                        <View className="flex-row" style={{ marginHorizontal: -6 }}>
+                            {GROWTH_APPS.map((app) => (
+                                <View key={app.id} style={{ flex: 1, paddingHorizontal: 6 }}>
+                                    <TouchableOpacity
+                                        onPress={() => handleAppSelect(app)}
+                                        activeOpacity={0.7}
+                                        className="bg-white rounded-2xl p-4 flex-row items-center border border-gray-100"
+                                        style={{ 
+                                            borderColor: currentApp === app.id ? app.color : '#F3F4F6',
+                                            borderWidth: currentApp === app.id ? 2 : 1,
+                                        }}
+                                    >
+                                        <View 
+                                            className="w-10 h-10 rounded-xl items-center justify-center"
+                                            style={{ backgroundColor: app.color + '20' }}
+                                        >
+                                            <MaterialCommunityIcons name={app.icon as any} size={22} color={app.color} />
+                                        </View>
+                                        <View className="ml-2.5 flex-1">
+                                            <Text className="text-sm font-medium text-gray-700" numberOfLines={1}>
+                                                {t(app.nameKey)}
+                                            </Text>
+                                            <Text className="text-[10px] text-gray-400" numberOfLines={1}>
+                                                {app.id === 'mindset' ? 'Quotes' : 'Books'}
+                                            </Text>
+                                        </View>
+                                        {currentApp === app.id && (
+                                            <View className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                                        )}
+                                    </TouchableOpacity>
+                                </View>
+                            ))}
+                        </View>
+                    </View>
+
+                    {/* Community Section */}
+                    <View className="mb-3">
+                        <View className="flex-row items-center mb-3 px-1">
+                            <MaterialCommunityIcons name="account-group-outline" size={16} color="#06B6D4" />
+                            <Text className="text-gray-500 text-xs font-semibold uppercase tracking-wider ml-1.5">Social</Text>
+                        </View>
+                        
+                        <TouchableOpacity
+                            onPress={() => handleAppSelect(COMMUNITY_APP)}
+                            activeOpacity={0.7}
+                            className="bg-white rounded-2xl p-4 flex-row items-center border border-gray-100"
+                            style={{ 
+                                borderColor: currentApp === 'community' ? '#06B6D4' : '#F3F4F6',
+                                borderWidth: currentApp === 'community' ? 2 : 1,
+                            }}
                         >
-                            <MaterialCommunityIcons name="help-circle-outline" size={20} color="#9CA3AF" />
-                            <Text className="text-white/70 font-medium text-sm ml-2">{t('navigation.appSwitcher.help')}</Text>
+                            <View 
+                                className="w-12 h-12 rounded-xl items-center justify-center"
+                                style={{ backgroundColor: '#06B6D420' }}
+                            >
+                                <MaterialCommunityIcons name="account-group" size={26} color="#06B6D4" />
+                            </View>
+                            <View className="ml-3 flex-1">
+                                <Text className="text-gray-900 font-semibold text-base">{t(COMMUNITY_APP.nameKey)}</Text>
+                                <Text className="text-gray-400 text-xs mt-0.5">Connect with others</Text>
+                            </View>
+                            {currentApp === 'community' && (
+                                <View className="w-2 h-2 rounded-full bg-green-500 mr-2" />
+                            )}
+                            <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
                         </TouchableOpacity>
                     </View>
+                </ScrollView>
+
+                {/* Settings Button */}
+                <View className="px-4 py-3 bg-white border-t border-gray-100">
+                    <TouchableOpacity 
+                        onPress={handleSettings}
+                        className="flex-row items-center justify-center bg-gray-100 rounded-xl py-3"
+                    >
+                        <MaterialCommunityIcons name="cog-outline" size={20} color="#6B7280" />
+                        <Text className="text-gray-700 font-medium text-sm ml-2">{t('navigation.appSwitcher.settings')}</Text>
+                    </TouchableOpacity>
                 </View>
 
-                {/* Bottom Navigation Bar - Same as CustomTabBar */}
+                {/* Bottom Navigation Bar */}
                 {(() => {
                     const icons = NAV_CONFIGS[currentApp as AppContext] || NAV_CONFIGS['sdlc'];
                     const mainIcon = icons[0];
@@ -311,7 +294,7 @@ export function AppSwitcher() {
                     
                     return (
                         <View 
-                            className="bg-[#0A0A0F] border-t border-white/10"
+                            className="bg-white border-t border-gray-200"
                             style={{ paddingBottom: insets.bottom }}
                         >
                             <View className="flex-row items-center justify-between px-6 py-2">
@@ -320,14 +303,14 @@ export function AppSwitcher() {
                                     className="items-center"
                                     onPress={toggleAppSwitcher}
                                 >
-                                    <View className="w-12 h-12 rounded-2xl items-center justify-center bg-amber-500/20 border border-amber-500/40">
+                                    <View className="w-12 h-12 rounded-2xl items-center justify-center bg-amber-100 border-2 border-amber-400">
                                         <MaterialCommunityIcons
                                             name="view-grid"
-                                            size={28}
+                                            size={26}
                                             color="#F59E0B"
                                         />
                                     </View>
-                                    <Text className="text-[10px] font-medium mt-0.5 text-amber-500">{t('navigation.appSwitcher.title')}</Text>
+                                    <Text className="text-[10px] font-semibold mt-1 text-amber-600">{t('navigation.appSwitcher.title')}</Text>
                                 </TouchableOpacity>
 
                                 {/* 2. Main App Icon */}
@@ -338,14 +321,14 @@ export function AppSwitcher() {
                                         toggleAppSwitcher();
                                     }}
                                 >
-                                    <View className="w-12 h-12 rounded-2xl items-center justify-center" style={{ backgroundColor: '#EFF6FF' }}>
+                                    <View className="w-12 h-12 rounded-2xl items-center justify-center bg-blue-50">
                                         <MaterialCommunityIcons
                                             name={mainIcon.icon as any}
-                                            size={28}
+                                            size={26}
                                             color="#3B82F6"
                                         />
                                     </View>
-                                    <Text className="text-[10px] font-semibold mt-0.5" style={{ color: '#3B82F6' }}>
+                                    <Text className="text-[10px] font-medium mt-1 text-blue-600">
                                         {t(mainIcon.nameKey)}
                                     </Text>
                                 </TouchableOpacity>
@@ -357,14 +340,14 @@ export function AppSwitcher() {
                                         toggleAppSwitcher();
                                     }}
                                 >
-                                    <View className="w-12 h-12 rounded-2xl items-center justify-center" style={{ backgroundColor: '#F3E8FF' }}>
+                                    <View className="w-12 h-12 rounded-2xl items-center justify-center bg-purple-50">
                                         <MaterialCommunityIcons
                                             name={moreIcon.icon as any}
-                                            size={28}
+                                            size={26}
                                             color="#8B5CF6"
                                         />
                                     </View>
-                                    <Text className="text-[10px] font-semibold mt-0.5" style={{ color: '#8B5CF6' }}>
+                                    <Text className="text-[10px] font-medium mt-1 text-purple-600">
                                         {t(moreIcon.nameKey)}
                                     </Text>
                                 </TouchableOpacity>
@@ -377,14 +360,14 @@ export function AppSwitcher() {
                                         router.push('/(tabs)/command-center' as any);
                                     }}
                                 >
-                                    <View className="w-12 h-12 rounded-2xl items-center justify-center" style={{ backgroundColor: '#ECFDF5' }}>
+                                    <View className="w-12 h-12 rounded-2xl items-center justify-center bg-emerald-50">
                                         <MaterialCommunityIcons
                                             name="plus-circle"
-                                            size={28}
+                                            size={26}
                                             color="#10B981"
                                         />
                                     </View>
-                                    <Text className="text-[10px] font-medium mt-0.5 text-emerald-500">{t('common.create')}</Text>
+                                    <Text className="text-[10px] font-medium mt-1 text-emerald-600">{t('common.create')}</Text>
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -392,333 +375,5 @@ export function AppSwitcher() {
                 })()}
             </View>
         </Modal>
-    );
-}
-
-// Featured App Card - Large prominent cards for main apps
-function FeaturedAppCard({ 
-    app, 
-    isActive,
-    onPress, 
-    t, 
-    delay = 0
-}: { 
-    app: typeof APPS[0]; 
-    isActive: boolean;
-    onPress: () => void; 
-    t: (key: string) => string;
-    delay?: number;
-}) {
-    const scaleAnim = useRef(new Animated.Value(0.9)).current;
-    const opacityAnim = useRef(new Animated.Value(0)).current;
-    
-    useEffect(() => {
-        Animated.sequence([
-            Animated.delay(delay),
-            Animated.parallel([
-                Animated.spring(scaleAnim, {
-                    toValue: 1,
-                    tension: 80,
-                    friction: 10,
-                    useNativeDriver: true,
-                }),
-                Animated.timing(opacityAnim, {
-                    toValue: 1,
-                    duration: 250,
-                    useNativeDriver: true,
-                }),
-            ]),
-        ]).start();
-    }, []);
-    
-    return (
-        <Animated.View
-            style={{
-                opacity: opacityAnim,
-                transform: [{ scale: scaleAnim }],
-                flex: 1,
-            }}
-        >
-            <TouchableOpacity
-                onPress={onPress}
-                activeOpacity={0.8}
-            >
-                <View 
-                    className="rounded-2xl p-4 overflow-hidden"
-                    style={{ 
-                        backgroundColor: isActive ? app.color + '20' : 'rgba(255,255,255,0.03)',
-                        borderWidth: isActive ? 1.5 : 1,
-                        borderColor: isActive ? app.color + '60' : 'rgba(255,255,255,0.06)',
-                    }}
-                >
-                    {/* Gradient accent */}
-                    <View 
-                        className="absolute top-0 right-0 w-24 h-24 rounded-full opacity-20"
-                        style={{ 
-                            backgroundColor: app.color,
-                            transform: [{ translateX: 30 }, { translateY: -30 }],
-                        }}
-                    />
-                    
-                    <View className="flex-row items-center">
-                        <View 
-                            className="w-12 h-12 rounded-xl items-center justify-center"
-                            style={{ backgroundColor: app.color + '20' }}
-                        >
-                            <MaterialCommunityIcons
-                                name={app.icon as any}
-                                size={26}
-                                color={app.color}
-                            />
-                        </View>
-                        <View className="ml-3 flex-1">
-                            <Text className="text-white font-semibold text-base" numberOfLines={1}>
-                                {t(app.nameKey)}
-                            </Text>
-                            {isActive && (
-                                <View className="flex-row items-center mt-0.5">
-                                    <View className="w-1.5 h-1.5 rounded-full bg-green-400 mr-1.5" />
-                                    <Text className="text-white/40 text-xs">Active</Text>
-                                </View>
-                            )}
-                        </View>
-                        <MaterialCommunityIcons name="chevron-right" size={20} color="rgba(255,255,255,0.3)" />
-                    </View>
-                </View>
-            </TouchableOpacity>
-        </Animated.View>
-    );
-}
-
-// Standard App Card - Medium sized cards
-function StandardAppCard({ 
-    app, 
-    isActive,
-    onPress, 
-    t, 
-    delay = 0
-}: { 
-    app: typeof APPS[0]; 
-    isActive: boolean;
-    onPress: () => void; 
-    t: (key: string) => string;
-    delay?: number;
-}) {
-    const scaleAnim = useRef(new Animated.Value(0.9)).current;
-    const opacityAnim = useRef(new Animated.Value(0)).current;
-    
-    useEffect(() => {
-        Animated.sequence([
-            Animated.delay(delay),
-            Animated.parallel([
-                Animated.spring(scaleAnim, {
-                    toValue: 1,
-                    tension: 80,
-                    friction: 10,
-                    useNativeDriver: true,
-                }),
-                Animated.timing(opacityAnim, {
-                    toValue: 1,
-                    duration: 200,
-                    useNativeDriver: true,
-                }),
-            ]),
-        ]).start();
-    }, []);
-    
-    return (
-        <Animated.View
-            style={{
-                opacity: opacityAnim,
-                transform: [{ scale: scaleAnim }],
-                flex: 1,
-            }}
-        >
-            <TouchableOpacity
-                onPress={onPress}
-                activeOpacity={0.8}
-            >
-                <View 
-                    className="rounded-2xl p-4 items-center"
-                    style={{ 
-                        backgroundColor: isActive ? app.color + '15' : 'rgba(255,255,255,0.03)',
-                        borderWidth: 1,
-                        borderColor: isActive ? app.color + '40' : 'rgba(255,255,255,0.06)',
-                    }}
-                >
-                    <View 
-                        className="w-14 h-14 rounded-2xl items-center justify-center mb-2"
-                        style={{ backgroundColor: app.color + '20' }}
-                    >
-                        <MaterialCommunityIcons
-                            name={app.icon as any}
-                            size={28}
-                            color={app.color}
-                        />
-                    </View>
-                    <Text className="text-white font-medium text-sm text-center" numberOfLines={1}>
-                        {t(app.nameKey)}
-                    </Text>
-                    {isActive && (
-                        <View className="w-1.5 h-1.5 rounded-full bg-green-400 mt-1.5" />
-                    )}
-                </View>
-            </TouchableOpacity>
-        </Animated.View>
-    );
-}
-
-// Wide App Card - Full width card for single items
-function WideAppCard({ 
-    app, 
-    isActive,
-    onPress, 
-    t, 
-    delay = 0
-}: { 
-    app: typeof APPS[0]; 
-    isActive: boolean;
-    onPress: () => void; 
-    t: (key: string) => string;
-    delay?: number;
-}) {
-    const scaleAnim = useRef(new Animated.Value(0.95)).current;
-    const opacityAnim = useRef(new Animated.Value(0)).current;
-    
-    useEffect(() => {
-        Animated.sequence([
-            Animated.delay(delay),
-            Animated.parallel([
-                Animated.spring(scaleAnim, {
-                    toValue: 1,
-                    tension: 80,
-                    friction: 10,
-                    useNativeDriver: true,
-                }),
-                Animated.timing(opacityAnim, {
-                    toValue: 1,
-                    duration: 200,
-                    useNativeDriver: true,
-                }),
-            ]),
-        ]).start();
-    }, []);
-    
-    return (
-        <Animated.View
-            style={{
-                opacity: opacityAnim,
-                transform: [{ scale: scaleAnim }],
-            }}
-        >
-            <TouchableOpacity
-                onPress={onPress}
-                activeOpacity={0.8}
-            >
-                <View 
-                    className="rounded-2xl p-4 flex-row items-center"
-                    style={{ 
-                        backgroundColor: isActive ? app.color + '15' : 'rgba(255,255,255,0.03)',
-                        borderWidth: 1,
-                        borderColor: isActive ? app.color + '40' : 'rgba(255,255,255,0.06)',
-                    }}
-                >
-                    <View 
-                        className="w-12 h-12 rounded-xl items-center justify-center"
-                        style={{ backgroundColor: app.color + '20' }}
-                    >
-                        <MaterialCommunityIcons
-                            name={app.icon as any}
-                            size={24}
-                            color={app.color}
-                        />
-                    </View>
-                    <View className="ml-3 flex-1">
-                        <Text className="text-white font-semibold text-base">
-                            {t(app.nameKey)}
-                        </Text>
-                        <Text className="text-white/40 text-xs mt-0.5">Connect with others</Text>
-                    </View>
-                    {isActive && (
-                        <View className="w-2 h-2 rounded-full bg-green-400 mr-2" />
-                    )}
-                    <MaterialCommunityIcons name="chevron-right" size={20} color="rgba(255,255,255,0.3)" />
-                </View>
-            </TouchableOpacity>
-        </Animated.View>
-    );
-}
-
-// Compact App Item for Sprint Tools section
-function CompactAppItem({ 
-    app, 
-    isActive,
-    onPress, 
-    t, 
-    delay = 0
-}: { 
-    app: typeof APPS[0]; 
-    isActive: boolean;
-    onPress: () => void; 
-    t: (key: string) => string;
-    delay?: number;
-}) {
-    const opacityAnim = useRef(new Animated.Value(0)).current;
-    const translateY = useRef(new Animated.Value(10)).current;
-    
-    useEffect(() => {
-        Animated.sequence([
-            Animated.delay(delay),
-            Animated.parallel([
-                Animated.timing(opacityAnim, {
-                    toValue: 1,
-                    duration: 200,
-                    useNativeDriver: true,
-                }),
-                Animated.spring(translateY, {
-                    toValue: 0,
-                    tension: 80,
-                    friction: 10,
-                    useNativeDriver: true,
-                }),
-            ]),
-        ]).start();
-    }, []);
-    
-    return (
-        <Animated.View
-            style={{ 
-                opacity: opacityAnim, 
-                flex: 1,
-                transform: [{ translateY }],
-            }}
-        >
-            <TouchableOpacity
-                onPress={onPress}
-                activeOpacity={0.7}
-                className="items-center px-1 py-2"
-            >
-                <View 
-                    className="w-11 h-11 rounded-xl items-center justify-center mb-1.5"
-                    style={{ 
-                        backgroundColor: isActive ? app.color + '25' : app.color + '12',
-                        borderWidth: isActive ? 1 : 0,
-                        borderColor: app.color + '50',
-                    }}
-                >
-                    <MaterialCommunityIcons
-                        name={app.icon as any}
-                        size={20}
-                        color={app.color}
-                    />
-                </View>
-                <Text 
-                    className={`text-[10px] font-medium text-center ${isActive ? 'text-white' : 'text-white/60'}`}
-                    numberOfLines={1}
-                >
-                    {t(app.nameKey)}
-                </Text>
-            </TouchableOpacity>
-        </Animated.View>
     );
 }
