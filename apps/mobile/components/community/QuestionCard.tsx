@@ -1,6 +1,7 @@
 import { View, Text, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { CommunityQuestion } from '../../types/models';
+import { useThemeContext } from '../../providers/ThemeProvider';
 
 interface QuestionCardProps {
     question: CommunityQuestion;
@@ -9,6 +10,8 @@ interface QuestionCardProps {
 }
 
 export function QuestionCard({ question, onPress, onUpvote }: QuestionCardProps) {
+    const { colors, isDark } = useThemeContext();
+    
     const getTimeAgo = (timestamp: string) => {
         const now = new Date();
         const then = new Date(timestamp);
@@ -23,7 +26,16 @@ export function QuestionCard({ question, onPress, onUpvote }: QuestionCardProps)
 
     return (
         <TouchableOpacity 
-            className="bg-white rounded-2xl p-4 mb-3 shadow-sm border border-gray-100"
+            className="rounded-2xl p-4 mb-3"
+            style={{ 
+                backgroundColor: colors.card,
+                borderWidth: 1,
+                borderColor: colors.border,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.05,
+                shadowRadius: 2,
+            }}
             onPress={onPress}
             activeOpacity={0.8}
         >
@@ -36,12 +48,13 @@ export function QuestionCard({ question, onPress, onUpvote }: QuestionCardProps)
                     <MaterialCommunityIcons 
                         name={question.isUpvotedByUser ? 'arrow-up-bold' : 'arrow-up-bold-outline'} 
                         size={24} 
-                        color={question.isUpvotedByUser ? '#9333EA' : '#9CA3AF'} 
+                        color={question.isUpvotedByUser ? '#9333EA' : colors.textTertiary} 
                     />
                     <Text 
-                        className={`text-sm font-bold ${
-                            question.isUpvotedByUser ? 'text-purple-600' : 'text-gray-500'
-                        }`}
+                        className="text-sm font-bold"
+                        style={{ 
+                            color: question.isUpvotedByUser ? '#9333EA' : colors.textSecondary 
+                        }}
                     >
                         {question.upvoteCount}
                     </Text>
@@ -52,34 +65,36 @@ export function QuestionCard({ question, onPress, onUpvote }: QuestionCardProps)
                     {/* Status badge */}
                     <View className="flex-row items-center mb-2">
                         <View 
-                            className={`px-2 py-0.5 rounded-full ${
-                                question.status === 'answered' 
-                                    ? 'bg-green-100' 
+                            className="px-2 py-0.5 rounded-full"
+                            style={{
+                                backgroundColor: question.status === 'answered' 
+                                    ? (isDark ? 'rgba(34, 197, 94, 0.2)' : '#DCFCE7') 
                                     : question.status === 'closed'
-                                    ? 'bg-gray-100'
-                                    : 'bg-blue-100'
-                            }`}
+                                    ? colors.backgroundSecondary
+                                    : (isDark ? 'rgba(59, 130, 246, 0.2)' : '#DBEAFE')
+                            }}
                         >
                             <Text 
-                                className={`text-xs font-medium ${
-                                    question.status === 'answered' 
-                                        ? 'text-green-700' 
+                                className="text-xs font-medium"
+                                style={{
+                                    color: question.status === 'answered' 
+                                        ? (isDark ? '#86EFAC' : '#15803D') 
                                         : question.status === 'closed'
-                                        ? 'text-gray-600'
-                                        : 'text-blue-700'
-                                }`}
+                                        ? colors.textSecondary
+                                        : (isDark ? '#93C5FD' : '#1D4ED8')
+                                }}
                             >
                                 {question.status === 'answered' ? '✓ Answered' : 
                                  question.status === 'closed' ? 'Closed' : 'Open'}
                             </Text>
                         </View>
-                        <Text className="text-xs text-gray-400 ml-2">
+                        <Text className="text-xs ml-2" style={{ color: colors.textTertiary }}>
                             {getTimeAgo(question.createdAt)}
                         </Text>
                     </View>
                     
                     {/* Title */}
-                    <Text className="text-base font-semibold text-gray-900 mb-2">
+                    <Text className="text-base font-semibold mb-2" style={{ color: colors.text }}>
                         {question.title}
                     </Text>
                     
@@ -88,9 +103,10 @@ export function QuestionCard({ question, onPress, onUpvote }: QuestionCardProps)
                         {question.tags.slice(0, 3).map((tag, index) => (
                             <View 
                                 key={index} 
-                                className="bg-purple-50 rounded-full px-2 py-0.5 mr-2 mb-1"
+                                className="rounded-full px-2 py-0.5 mr-2 mb-1"
+                                style={{ backgroundColor: isDark ? 'rgba(147, 51, 234, 0.2)' : '#FAF5FF' }}
                             >
-                                <Text className="text-xs text-purple-600">{tag}</Text>
+                                <Text className="text-xs" style={{ color: isDark ? '#C4B5FD' : '#9333EA' }}>{tag}</Text>
                             </View>
                         ))}
                     </View>
@@ -98,25 +114,29 @@ export function QuestionCard({ question, onPress, onUpvote }: QuestionCardProps)
                     {/* Footer */}
                     <View className="flex-row items-center">
                         <Text className="text-xl mr-2">{question.authorAvatar}</Text>
-                        <Text className="text-xs text-gray-600">{question.authorName}</Text>
+                        <Text className="text-xs" style={{ color: colors.textSecondary }}>{question.authorName}</Text>
                         
                         <View className="flex-1" />
                         
                         <View className="flex-row items-center mr-4">
-                            <MaterialCommunityIcons name="eye-outline" size={14} color="#9CA3AF" />
-                            <Text className="text-xs text-gray-500 ml-1">{question.viewCount}</Text>
+                            <MaterialCommunityIcons name="eye-outline" size={14} color={colors.textTertiary} />
+                            <Text className="text-xs ml-1" style={{ color: colors.textSecondary }}>{question.viewCount}</Text>
                         </View>
                         
                         <View className="flex-row items-center">
                             <MaterialCommunityIcons 
                                 name={question.answerCount > 0 ? 'message-reply' : 'message-reply-outline'} 
                                 size={14} 
-                                color={question.answerCount > 0 ? '#10B981' : '#9CA3AF'} 
+                                color={question.answerCount > 0 ? '#10B981' : colors.textTertiary} 
                             />
                             <Text 
-                                className={`text-xs ml-1 ${
-                                    question.answerCount > 0 ? 'text-green-600 font-medium' : 'text-gray-500'
-                                }`}
+                                className="text-xs ml-1"
+                                style={{
+                                    color: question.answerCount > 0 
+                                        ? (isDark ? '#86EFAC' : '#10B981') 
+                                        : colors.textSecondary,
+                                    fontWeight: question.answerCount > 0 ? '500' : 'normal'
+                                }}
                             >
                                 {question.answerCount}
                             </Text>

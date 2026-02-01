@@ -1,6 +1,7 @@
 import { View, Text, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LeaderboardEntry, CommunityBadgeType } from '../../types/models';
+import { useThemeContext } from '../../providers/ThemeProvider';
 
 interface LeaderboardRowProps {
     entry: LeaderboardEntry;
@@ -20,16 +21,18 @@ const BADGE_ICONS: Partial<Record<CommunityBadgeType, string>> = {
 };
 
 export function LeaderboardRow({ entry, isCurrentUser = false, onPress }: LeaderboardRowProps) {
+    const { colors, isDark } = useThemeContext();
+    
     const getRankStyle = (rank: number) => {
         switch (rank) {
             case 1:
-                return { bg: 'bg-yellow-100', text: 'text-yellow-700', icon: '🥇' };
+                return { bg: isDark ? 'rgba(250, 204, 21, 0.2)' : '#FEF9C3', text: isDark ? '#FACC15' : '#A16207', icon: '🥇' };
             case 2:
-                return { bg: 'bg-gray-100', text: 'text-gray-600', icon: '🥈' };
+                return { bg: isDark ? 'rgba(156, 163, 175, 0.2)' : '#F3F4F6', text: colors.textSecondary, icon: '🥈' };
             case 3:
-                return { bg: 'bg-orange-100', text: 'text-orange-600', icon: '🥉' };
+                return { bg: isDark ? 'rgba(251, 146, 60, 0.2)' : '#FFEDD5', text: isDark ? '#FB923C' : '#C2410C', icon: '🥉' };
             default:
-                return { bg: 'bg-gray-50', text: 'text-gray-500', icon: null };
+                return { bg: colors.backgroundSecondary, text: colors.textSecondary, icon: null };
         }
     };
 
@@ -37,20 +40,28 @@ export function LeaderboardRow({ entry, isCurrentUser = false, onPress }: Leader
 
     return (
         <TouchableOpacity 
-            className={`flex-row items-center p-4 rounded-2xl mb-2 ${
-                isCurrentUser ? 'bg-purple-50 border-2 border-purple-200' : 'bg-white border border-gray-100'
-            }`}
+            className="flex-row items-center p-4 rounded-2xl mb-2"
+            style={{
+                backgroundColor: isCurrentUser 
+                    ? (isDark ? 'rgba(147, 51, 234, 0.15)' : '#FAF5FF')
+                    : colors.card,
+                borderWidth: isCurrentUser ? 2 : 1,
+                borderColor: isCurrentUser 
+                    ? (isDark ? 'rgba(147, 51, 234, 0.3)' : '#E9D5FF')
+                    : colors.border
+            }}
             onPress={onPress}
             activeOpacity={0.8}
         >
             {/* Rank */}
             <View 
-                className={`w-10 h-10 rounded-full items-center justify-center mr-3 ${rankStyle.bg}`}
+                className="w-10 h-10 rounded-full items-center justify-center mr-3"
+                style={{ backgroundColor: rankStyle.bg }}
             >
                 {rankStyle.icon ? (
                     <Text className="text-lg">{rankStyle.icon}</Text>
                 ) : (
-                    <Text className={`text-sm font-bold ${rankStyle.text}`}>
+                    <Text className="text-sm font-bold" style={{ color: rankStyle.text }}>
                         {entry.rank}
                     </Text>
                 )}
@@ -60,7 +71,10 @@ export function LeaderboardRow({ entry, isCurrentUser = false, onPress }: Leader
             <Text className="text-3xl mr-3">{entry.avatar}</Text>
             <View className="flex-1">
                 <View className="flex-row items-center">
-                    <Text className={`text-sm font-semibold ${isCurrentUser ? 'text-purple-700' : 'text-gray-900'}`}>
+                    <Text 
+                        className="text-sm font-semibold"
+                        style={{ color: isCurrentUser ? (isDark ? '#C4B5FD' : '#7E22CE') : colors.text }}
+                    >
                         {entry.displayName}
                     </Text>
                     {isCurrentUser && (
@@ -72,7 +86,7 @@ export function LeaderboardRow({ entry, isCurrentUser = false, onPress }: Leader
                 
                 {/* Level & Badges */}
                 <View className="flex-row items-center mt-1">
-                    <Text className="text-xs text-gray-500">Lvl {entry.level}</Text>
+                    <Text className="text-xs" style={{ color: colors.textSecondary }}>Lvl {entry.level}</Text>
                     <View className="flex-row ml-2">
                         {entry.badges.slice(0, 3).map((badge, index) => (
                             <Text key={index} className="text-xs mr-0.5">
@@ -85,7 +99,10 @@ export function LeaderboardRow({ entry, isCurrentUser = false, onPress }: Leader
             
             {/* Points & Change */}
             <View className="items-end">
-                <Text className={`text-base font-bold ${isCurrentUser ? 'text-purple-600' : 'text-gray-900'}`}>
+                <Text 
+                    className="text-base font-bold"
+                    style={{ color: isCurrentUser ? (isDark ? '#C4B5FD' : '#9333EA') : colors.text }}
+                >
                     {entry.value.toLocaleString()}
                 </Text>
                 <View className="flex-row items-center mt-1">
@@ -97,16 +114,19 @@ export function LeaderboardRow({ entry, isCurrentUser = false, onPress }: Leader
                                 color={entry.change > 0 ? '#10B981' : '#EF4444'} 
                             />
                             <Text 
-                                className={`text-xs ml-0.5 ${
-                                    entry.change > 0 ? 'text-green-600' : 'text-red-500'
-                                }`}
+                                className="text-xs ml-0.5"
+                                style={{ 
+                                    color: entry.change > 0 
+                                        ? (isDark ? '#86EFAC' : '#10B981') 
+                                        : (isDark ? '#FCA5A5' : '#EF4444')
+                                }}
                             >
                                 {Math.abs(entry.change)}
                             </Text>
                         </>
                     )}
                     {entry.change === 0 && (
-                        <Text className="text-xs text-gray-400">—</Text>
+                        <Text className="text-xs" style={{ color: colors.textTertiary }}>—</Text>
                     )}
                 </View>
             </View>

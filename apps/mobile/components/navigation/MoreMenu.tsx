@@ -7,6 +7,7 @@ import { MORE_MENUS } from '../../utils/navigationConfig';
 import { useRouter } from 'expo-router';
 import { BlurView } from 'expo-blur';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useThemeContext } from '../../providers/ThemeProvider';
 
 export function MoreMenu() {
     const { isMoreMenuOpen, toggleMoreMenu, currentApp } = useNavigationStore();
@@ -14,6 +15,7 @@ export function MoreMenu() {
     const { logout } = useAuthStore();
     const router = useRouter();
     const { t } = useTranslation();
+    const { colors, isDark } = useThemeContext();
 
     // Fallback to sdlc menu items if current app doesn't have a menu defined
     const menuItems = MORE_MENUS[currentApp] || MORE_MENUS['sdlc'] || [];
@@ -71,14 +73,21 @@ export function MoreMenu() {
             onRequestClose={toggleMoreMenu}
         >
             <Pressable
-                className="flex-1 bg-black/50 justify-end"
+                className="flex-1 justify-end"
+                style={{ backgroundColor: colors.overlay }}
                 onPress={toggleMoreMenu}
             >
-                <Pressable className="bg-white rounded-t-3xl p-6">
+                <Pressable 
+                    className="rounded-t-3xl p-6"
+                    style={{ backgroundColor: colors.card }}
+                >
                     <View className="flex-row justify-between items-center mb-4">
-                        <Text className="text-2xl font-bold">{t('navigation.moreMenu.title')}</Text>
+                        <Text 
+                            className="text-2xl font-bold"
+                            style={{ color: colors.text }}
+                        >{t('navigation.moreMenu.title')}</Text>
                         <TouchableOpacity onPress={toggleMoreMenu}>
-                            <MaterialCommunityIcons name="close" size={24} color="#9CA3AF" />
+                            <MaterialCommunityIcons name="close" size={24} color={colors.textTertiary} />
                         </TouchableOpacity>
                     </View>
 
@@ -88,27 +97,28 @@ export function MoreMenu() {
                             return (
                                 <TouchableOpacity
                                     key={index}
-                                    className="flex-row items-center py-4 border-b border-gray-100"
+                                    className="flex-row items-center py-4"
+                                    style={{ borderBottomWidth: 1, borderBottomColor: colors.border }}
                                     onPress={() => handleItemPress(item.route)}
                                 >
                                     <View 
                                         className="w-10 h-10 rounded-full items-center justify-center mr-3"
-                                        style={{ backgroundColor: isDestructive ? '#FEE2E2' : '#EFF6FF' }}
+                                        style={{ backgroundColor: isDestructive ? (isDark ? 'rgba(239, 68, 68, 0.2)' : '#FEE2E2') : (isDark ? 'rgba(59, 130, 246, 0.2)' : '#EFF6FF') }}
                                     >
                                         <MaterialCommunityIcons
                                             name={item.icon as any}
                                             size={20}
-                                            color={isDestructive ? '#EF4444' : '#3B82F6'}
+                                            color={isDestructive ? '#EF4444' : colors.primary}
                                         />
                                     </View>
                                     <Text 
                                         className="text-base flex-1"
-                                        style={{ color: isDestructive ? '#EF4444' : '#111827' }}
+                                        style={{ color: isDestructive ? '#EF4444' : colors.text }}
                                     >
                                         {t(item.nameKey)}
                                     </Text>
                                     {!isDestructive && (
-                                        <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
+                                        <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
                                     )}
                                 </TouchableOpacity>
                             );

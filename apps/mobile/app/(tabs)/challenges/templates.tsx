@@ -8,6 +8,7 @@ import { Badge } from '../../../components/ui/Badge';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { useChallengeStore } from '../../../store/challengeStore';
 import { ChallengeTemplate } from '../../../types/models';
+import { useThemeContext } from '../../../providers/ThemeProvider';
 
 const LIFE_WHEEL_FILTERS = [
     { id: 'all', name: 'All', color: '#6b7280' },
@@ -24,6 +25,7 @@ const LIFE_WHEEL_FILTERS = [
 
 export default function TemplatesScreen() {
     const router = useRouter();
+    const { colors, isDark } = useThemeContext();
     const { templates, fetchTemplates, createChallengeFromTemplate, loading } = useChallengeStore();
     const [selectedFilter, setSelectedFilter] = useState('all');
     const [refreshing, setRefreshing] = useState(false);
@@ -53,12 +55,24 @@ export default function TemplatesScreen() {
         }
     };
     
-    const getDifficultyColor = (difficulty: string): string => {
+    const getDifficultyStyle = (difficulty: string) => {
         switch (difficulty) {
-            case 'easy': return 'bg-green-100 text-green-700';
-            case 'moderate': return 'bg-yellow-100 text-yellow-700';
-            case 'hard': return 'bg-red-100 text-red-700';
-            default: return 'bg-gray-100 text-gray-700';
+            case 'easy': return { 
+                bg: isDark ? 'rgba(16, 185, 129, 0.2)' : '#D1FAE5', 
+                text: isDark ? '#6EE7B7' : '#047857' 
+            };
+            case 'moderate': return { 
+                bg: isDark ? 'rgba(245, 158, 11, 0.2)' : '#FEF3C7', 
+                text: isDark ? '#FCD34D' : '#B45309' 
+            };
+            case 'hard': return { 
+                bg: isDark ? 'rgba(239, 68, 68, 0.2)' : '#FEE2E2', 
+                text: isDark ? '#FCA5A5' : '#B91C1C' 
+            };
+            default: return { 
+                bg: colors.backgroundSecondary, 
+                text: colors.textSecondary 
+            };
         }
     };
     
@@ -81,20 +95,17 @@ export default function TemplatesScreen() {
                         <TouchableOpacity
                             key={filter.id}
                             onPress={() => setSelectedFilter(filter.id)}
-                            className={`px-3 py-1.5 rounded-full ${
-                                selectedFilter === filter.id
-                                    ? 'border-2'
-                                    : 'bg-gray-100 border border-gray-300'
-                            }`}
+                            className="px-3 py-1.5 rounded-full"
                             style={{
-                                borderColor: selectedFilter === filter.id ? filter.color : undefined,
-                                backgroundColor: selectedFilter === filter.id ? `${filter.color}20` : undefined,
+                                borderWidth: selectedFilter === filter.id ? 2 : 1,
+                                borderColor: selectedFilter === filter.id ? filter.color : colors.border,
+                                backgroundColor: selectedFilter === filter.id ? `${filter.color}20` : colors.backgroundSecondary,
                             }}
                         >
                             <Text
                                 className="font-medium text-sm"
                                 style={{
-                                    color: selectedFilter === filter.id ? filter.color : '#6b7280',
+                                    color: selectedFilter === filter.id ? filter.color : colors.textSecondary,
                                 }}
                             >
                                 {filter.name}
@@ -123,15 +134,18 @@ export default function TemplatesScreen() {
                             <View className="flex-row items-start mb-3">
                                 <Text className="text-3xl mr-3">{template.icon}</Text>
                                 <View className="flex-1">
-                                    <Text className="text-lg font-bold mb-1">{template.name}</Text>
-                                    <Text className="text-gray-600 text-sm mb-2">
+                                    <Text className="text-lg font-bold mb-1" style={{ color: colors.text }}>{template.name}</Text>
+                                    <Text className="text-sm mb-2" style={{ color: colors.textSecondary }}>
                                         {template.description}
                                     </Text>
                                     
                                     {/* Badges */}
                                     <View className="flex-row flex-wrap gap-2">
-                                        <View className={`px-2 py-1 rounded-full ${getDifficultyColor(template.difficulty)}`}>
-                                            <Text className="text-xs font-semibold">
+                                        <View 
+                                            className="px-2 py-1 rounded-full"
+                                            style={{ backgroundColor: getDifficultyStyle(template.difficulty).bg }}
+                                        >
+                                            <Text className="text-xs font-semibold" style={{ color: getDifficultyStyle(template.difficulty).text }}>
                                                 {template.difficulty}
                                             </Text>
                                         </View>
@@ -146,9 +160,12 @@ export default function TemplatesScreen() {
                             </View>
                             
                             {/* Details */}
-                            <View className="bg-gray-50 rounded-lg p-3 mb-3">
+                            <View 
+                                className="rounded-lg p-3 mb-3"
+                                style={{ backgroundColor: colors.backgroundSecondary }}
+                            >
                                 <View className="flex-row items-center mb-1">
-                                    <Text className="text-sm text-gray-600">
+                                    <Text className="text-sm" style={{ color: colors.textSecondary }}>
                                         📊 {template.metricType === 'count' && `${template.targetValue} ${template.unit}`}
                                         {template.metricType === 'time' && `${template.targetValue} ${template.unit}`}
                                         {template.metricType === 'yesno' && 'Yes/No tracking'}
@@ -156,7 +173,7 @@ export default function TemplatesScreen() {
                                         {template.metricType === 'completion' && 'Completion milestones'}
                                     </Text>
                                 </View>
-                                <Text className="text-sm text-gray-600">
+                                <Text className="text-sm" style={{ color: colors.textSecondary }}>
                                     🔁 {template.recurrence.charAt(0).toUpperCase() + template.recurrence.slice(1)}
                                 </Text>
                             </View>
@@ -165,7 +182,7 @@ export default function TemplatesScreen() {
                             {template.tags.length > 0 && (
                                 <View className="flex-row flex-wrap gap-2 mb-3">
                                     {template.tags.map((tag, index) => (
-                                        <Text key={index} className="text-xs text-gray-500">
+                                        <Text key={index} className="text-xs" style={{ color: colors.textTertiary }}>
                                             #{tag}
                                         </Text>
                                     ))}
@@ -176,7 +193,8 @@ export default function TemplatesScreen() {
                             <View className="flex-row gap-2">
                                 <TouchableOpacity
                                     onPress={() => handleStartChallenge(template)}
-                                    className="flex-1 bg-blue-600 rounded-lg py-3"
+                                    className="flex-1 rounded-lg py-3"
+                                    style={{ backgroundColor: colors.primary }}
                                     disabled={loading}
                                 >
                                     <Text className="text-white text-center font-semibold">
@@ -188,9 +206,10 @@ export default function TemplatesScreen() {
                                         pathname: '/(tabs)/challenges/create',
                                         params: { templateId: template.id }
                                     })}
-                                    className="bg-gray-200 rounded-lg py-3 px-4"
+                                    className="rounded-lg py-3 px-4"
+                                    style={{ backgroundColor: colors.backgroundSecondary }}
                                 >
-                                    <Text className="text-gray-700 text-center font-semibold">
+                                    <Text className="text-center font-semibold" style={{ color: colors.textSecondary }}>
                                         Customize
                                     </Text>
                                 </TouchableOpacity>

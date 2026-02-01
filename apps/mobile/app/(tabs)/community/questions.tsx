@@ -4,12 +4,12 @@ import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCommunityStore } from '../../../store/communityStore';
-import { QuestionCard } from '../../../components/community/QuestionCard';
-
+import { QuestionCard } from '../../../components/community/QuestionCard';import { useThemeContext } from '../../../providers/ThemeProvider';
 const POPULAR_TAGS = ['sprints', 'planning', 'velocity', 'focus', 'challenges', 'habits', 'life-wheel'];
 
 export default function QuestionsScreen() {
     const router = useRouter();
+    const { colors, isDark } = useThemeContext();
     const [refreshing, setRefreshing] = useState(false);
     const [selectedStatus, setSelectedStatus] = useState<string>('all');
     const [selectedTag, setSelectedTag] = useState<string | null>(null);
@@ -111,24 +111,31 @@ export default function QuestionsScreen() {
             <ScrollView 
                 horizontal 
                 showsHorizontalScrollIndicator={false}
-                className="bg-gray-50"
-                style={{ flexGrow: 0 }}
+                style={{ backgroundColor: colors.backgroundSecondary, flexGrow: 0 }}
                 contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 12, alignItems: 'center' }}
             >
                 {POPULAR_TAGS.map((tag) => (
                     <TouchableOpacity
                         key={tag}
-                        className={`px-3 py-1.5 rounded-lg mr-2 border ${
-                            selectedTag === tag 
-                                ? 'bg-purple-50 border-purple-300' 
-                                : 'bg-white border-gray-200'
-                        }`}
+                        className="px-3 py-1.5 rounded-lg mr-2"
+                        style={{
+                            borderWidth: 1,
+                            borderColor: selectedTag === tag 
+                                ? (isDark ? 'rgba(147, 51, 234, 0.5)' : '#D8B4FE')
+                                : colors.border,
+                            backgroundColor: selectedTag === tag 
+                                ? (isDark ? 'rgba(147, 51, 234, 0.15)' : '#FAF5FF')
+                                : colors.card
+                        }}
                         onPress={() => setSelectedTag(selectedTag === tag ? null : tag)}
                     >
                         <Text 
-                            className={`text-sm ${
-                                selectedTag === tag ? 'text-purple-600' : 'text-gray-600'
-                            }`}
+                            className="text-sm"
+                            style={{
+                                color: selectedTag === tag 
+                                    ? (isDark ? '#C4B5FD' : '#9333EA')
+                                    : colors.textSecondary
+                            }}
                         >
                             #{tag}
                         </Text>
@@ -146,8 +153,8 @@ export default function QuestionsScreen() {
             >
                 {questions.length === 0 ? (
                     <View className="items-center justify-center py-12">
-                        <MaterialCommunityIcons name="help-circle-outline" size={48} color="#D1D5DB" />
-                        <Text className="text-gray-400 text-base mt-3">No questions found</Text>
+                        <MaterialCommunityIcons name="help-circle-outline" size={48} color={colors.textTertiary} />
+                        <Text className="text-base mt-3" style={{ color: colors.textTertiary }}>No questions found</Text>
                         <TouchableOpacity 
                             className="mt-4 bg-purple-600 px-6 py-2 rounded-full"
                             onPress={() => setShowAskModal(true)}
@@ -177,23 +184,27 @@ export default function QuestionsScreen() {
                 presentationStyle="pageSheet"
                 onRequestClose={() => setShowAskModal(false)}
             >
-                <SafeAreaView className="flex-1 bg-white">
+                <SafeAreaView className="flex-1" style={{ backgroundColor: colors.background }}>
                     {/* Modal Header */}
-                    <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-200">
+                    <View 
+                        className="flex-row items-center justify-between px-4 py-3"
+                        style={{ borderBottomWidth: 1, borderBottomColor: colors.border }}
+                    >
                         <TouchableOpacity onPress={() => setShowAskModal(false)}>
-                            <Text className="text-gray-500 text-base">Cancel</Text>
+                            <Text className="text-base" style={{ color: colors.textSecondary }}>Cancel</Text>
                         </TouchableOpacity>
-                        <Text className="text-lg font-bold">Ask a Question</Text>
+                        <Text className="text-lg font-bold" style={{ color: colors.text }}>Ask a Question</Text>
                         <TouchableOpacity 
                             onPress={handleSubmitQuestion}
                             disabled={!newQuestion.title.trim() || !newQuestion.body.trim()}
                         >
                             <Text 
-                                className={`text-base font-semibold ${
-                                    newQuestion.title.trim() && newQuestion.body.trim()
-                                        ? 'text-purple-600'
-                                        : 'text-gray-300'
-                                }`}
+                                className="text-base font-semibold"
+                                style={{ 
+                                    color: newQuestion.title.trim() && newQuestion.body.trim()
+                                        ? '#9333EA'
+                                        : colors.textTertiary
+                                }}
                             >
                                 Post
                             </Text>
@@ -202,20 +213,34 @@ export default function QuestionsScreen() {
 
                     <ScrollView className="flex-1 px-4 py-4">
                         {/* Title Input */}
-                        <Text className="text-sm font-medium text-gray-700 mb-2">Question Title</Text>
+                        <Text className="text-sm font-medium mb-2" style={{ color: colors.textSecondary }}>Question Title</Text>
                         <TextInput
-                            className="bg-gray-50 rounded-xl px-4 py-3 text-base mb-4 border border-gray-200"
+                            className="rounded-xl px-4 py-3 text-base mb-4"
+                            style={{ 
+                                backgroundColor: colors.inputBackground,
+                                borderWidth: 1,
+                                borderColor: colors.border,
+                                color: colors.text
+                            }}
                             placeholder="What's your question?"
+                            placeholderTextColor={colors.placeholder}
                             value={newQuestion.title}
                             onChangeText={(text) => setNewQuestion({ ...newQuestion, title: text })}
                             multiline
                         />
 
                         {/* Body Input */}
-                        <Text className="text-sm font-medium text-gray-700 mb-2">Details</Text>
+                        <Text className="text-sm font-medium mb-2" style={{ color: colors.textSecondary }}>Details</Text>
                         <TextInput
-                            className="bg-gray-50 rounded-xl px-4 py-3 text-base mb-4 border border-gray-200 min-h-[120px]"
+                            className="rounded-xl px-4 py-3 text-base mb-4 min-h-[120px]"
+                            style={{ 
+                                backgroundColor: colors.inputBackground,
+                                borderWidth: 1,
+                                borderColor: colors.border,
+                                color: colors.text
+                            }}
                             placeholder="Provide more context about your question..."
+                            placeholderTextColor={colors.placeholder}
                             value={newQuestion.body}
                             onChangeText={(text) => setNewQuestion({ ...newQuestion, body: text })}
                             multiline
@@ -223,42 +248,51 @@ export default function QuestionsScreen() {
                         />
 
                         {/* Tags */}
-                        <Text className="text-sm font-medium text-gray-700 mb-2">
+                        <Text className="text-sm font-medium mb-2" style={{ color: colors.textSecondary }}>
                             Tags (select up to 3)
                         </Text>
                         <View className="flex-row flex-wrap">
                             {POPULAR_TAGS.map((tag) => (
                                 <TouchableOpacity
                                     key={tag}
-                                    className={`px-3 py-1.5 rounded-lg mr-2 mb-2 border ${
-                                        newQuestion.tags.includes(tag) 
-                                            ? 'bg-purple-50 border-purple-300' 
-                                            : 'bg-gray-50 border-gray-200'
-                                    }`}
+                                    className="px-3 py-1.5 rounded-lg mr-2 mb-2"
+                                    style={{
+                                        borderWidth: 1,
+                                        borderColor: newQuestion.tags.includes(tag) 
+                                            ? (isDark ? 'rgba(147, 51, 234, 0.5)' : '#D8B4FE')
+                                            : colors.border,
+                                        backgroundColor: newQuestion.tags.includes(tag) 
+                                            ? (isDark ? 'rgba(147, 51, 234, 0.15)' : '#FAF5FF')
+                                            : colors.backgroundSecondary
+                                    }}
                                     onPress={() => toggleTag(tag)}
                                 >
                                     <Text 
-                                        className={`text-sm ${
-                                            newQuestion.tags.includes(tag) 
-                                                ? 'text-purple-600' 
-                                                : 'text-gray-600'
-                                        }`}
+                                        className="text-sm"
+                                        style={{
+                                            color: newQuestion.tags.includes(tag) 
+                                                ? (isDark ? '#C4B5FD' : '#9333EA')
+                                                : colors.textSecondary
+                                        }}
                                     >
                                         #{tag}
                                     </Text>
                                 </TouchableOpacity>
-                            ))}
+                            ))}  
                         </View>
 
                         {/* Tips */}
-                        <View className="bg-blue-50 rounded-xl p-4 mt-6">
+                        <View 
+                            className="rounded-xl p-4 mt-6"
+                            style={{ backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : '#EFF6FF' }}
+                        >
                             <View className="flex-row items-center mb-2">
                                 <MaterialCommunityIcons name="lightbulb" size={18} color="#3B82F6" />
-                                <Text className="text-blue-700 font-semibold ml-2">Tips for a great question</Text>
+                                <Text className="font-semibold ml-2" style={{ color: isDark ? '#93C5FD' : '#1D4ED8' }}>Tips for a great question</Text>
                             </View>
-                            <Text className="text-blue-600 text-sm leading-5">
-                                • Be specific about what you're trying to achieve{'\n'}
-                                • Include what you've already tried{'\n'}
+                            <Text className="text-sm leading-5" style={{ color: isDark ? '#60A5FA' : '#2563EB' }}>
+                                • Be specific about what you're trying to achieve{`\n`}
+                                • Include what you've already tried{`\n`}
                                 • Add relevant tags to help others find your question
                             </Text>
                         </View>

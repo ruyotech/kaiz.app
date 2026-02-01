@@ -13,11 +13,13 @@ import { useRouter } from 'expo-router';
 import { useSensAIStore } from '../../../store/sensaiStore';
 import { SprintHealthCard, CoachMessage } from '../../../components/sensai';
 import { StandupTask, StandupBlocker } from '../../../types/sensai.types';
+import { useThemeContext } from '../../../providers/ThemeProvider';
 
 type StandupStep = 'yesterday' | 'today' | 'blockers' | 'summary';
 
 export default function StandupScreen() {
     const router = useRouter();
+    const { colors, isDark } = useThemeContext();
     const {
         todayStandup,
         currentSprintHealth,
@@ -61,17 +63,20 @@ export default function StandupScreen() {
         <View className="flex-row items-center justify-center py-4">
             {['yesterday', 'today', 'blockers', 'summary'].map((s, i) => (
                 <View key={s} className="flex-row items-center">
-                    <View className={`w-8 h-8 rounded-full items-center justify-center ${
-                        step === s ? 'bg-blue-600' : 
-                        ['yesterday', 'today', 'blockers', 'summary'].indexOf(step) > i ? 'bg-green-500' : 'bg-gray-200'
-                    }`}>
+                    <View 
+                        className="w-8 h-8 rounded-full items-center justify-center"
+                        style={{ 
+                            backgroundColor: step === s ? colors.primary : 
+                                ['yesterday', 'today', 'blockers', 'summary'].indexOf(step) > i ? colors.success : colors.backgroundSecondary
+                        }}
+                    >
                         {['yesterday', 'today', 'blockers', 'summary'].indexOf(step) > i ? (
                             <MaterialCommunityIcons name="check" size={18} color="white" />
                         ) : (
-                            <Text className={step === s ? 'text-white font-bold' : 'text-gray-500'}>{i + 1}</Text>
+                            <Text style={{ color: step === s ? '#FFFFFF' : colors.textSecondary, fontWeight: step === s ? 'bold' : 'normal' }}>{i + 1}</Text>
                         )}
                     </View>
-                    {i < 3 && <View className="w-8 h-0.5 bg-gray-200" />}
+                    {i < 3 && <View className="w-8 h-0.5" style={{ backgroundColor: colors.backgroundSecondary }} />}
                 </View>
             ))}
         </View>
@@ -80,28 +85,36 @@ export default function StandupScreen() {
     const renderYesterdayStep = () => (
         <View className="flex-1">
             <View className="px-4 mb-4">
-                <Text className="text-xl font-bold text-gray-900 mb-2">What shipped yesterday?</Text>
-                <Text className="text-sm text-gray-500">Review your completed tasks</Text>
+                <Text className="text-xl font-bold mb-2" style={{ color: colors.text }}>What shipped yesterday?</Text>
+                <Text className="text-sm" style={{ color: colors.textSecondary }}>Review your completed tasks</Text>
             </View>
 
             <ScrollView className="flex-1 px-4">
                 {completedYesterday.length > 0 ? (
                     completedYesterday.map((task: StandupTask) => (
-                        <View key={task.taskId} className="bg-green-50 border border-green-200 rounded-xl p-4 mb-3">
+                        <View 
+                            key={task.taskId} 
+                            className="rounded-xl p-4 mb-3"
+                            style={{ 
+                                backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5',
+                                borderWidth: 1,
+                                borderColor: isDark ? '#10B981' : '#A7F3D0'
+                            }}
+                        >
                             <View className="flex-row items-center">
                                 <MaterialCommunityIcons name="check-circle" size={24} color="#10B981" />
                                 <View className="flex-1 ml-3">
-                                    <Text className="text-base font-medium text-gray-900">{task.title}</Text>
-                                    <Text className="text-sm text-gray-500">{task.points} points</Text>
+                                    <Text className="text-base font-medium" style={{ color: colors.text }}>{task.title}</Text>
+                                    <Text className="text-sm" style={{ color: colors.textSecondary }}>{task.points} points</Text>
                                 </View>
                             </View>
                         </View>
                     ))
                 ) : (
-                    <View className="bg-gray-50 rounded-xl p-6 items-center">
-                        <MaterialCommunityIcons name="checkbox-blank-circle-outline" size={40} color="#9CA3AF" />
-                        <Text className="text-gray-500 mt-2">No tasks completed yesterday</Text>
-                        <Text className="text-sm text-gray-400 mt-1">That's okay, let's focus on today</Text>
+                    <View className="rounded-xl p-6 items-center" style={{ backgroundColor: colors.backgroundSecondary }}>
+                        <MaterialCommunityIcons name="checkbox-blank-circle-outline" size={40} color={colors.textTertiary} />
+                        <Text className="mt-2" style={{ color: colors.textSecondary }}>No tasks completed yesterday</Text>
+                        <Text className="text-sm mt-1" style={{ color: colors.textTertiary }}>That's okay, let's focus on today</Text>
                     </View>
                 )}
             </ScrollView>
@@ -109,7 +122,8 @@ export default function StandupScreen() {
             <View className="px-4 pb-4">
                 <TouchableOpacity
                     onPress={() => setStep('today')}
-                    className="bg-blue-600 py-4 rounded-xl items-center"
+                    className="py-4 rounded-xl items-center"
+                    style={{ backgroundColor: colors.primary }}
                 >
                     <Text className="text-white font-bold text-base">Continue</Text>
                 </TouchableOpacity>
@@ -120,30 +134,41 @@ export default function StandupScreen() {
     const renderTodayStep = () => (
         <View className="flex-1">
             <View className="px-4 mb-4">
-                <Text className="text-xl font-bold text-gray-900 mb-2">What's the focus today?</Text>
-                <Text className="text-sm text-gray-500">Your top priorities for the day</Text>
+                <Text className="text-xl font-bold mb-2" style={{ color: colors.text }}>What's the focus today?</Text>
+                <Text className="text-sm" style={{ color: colors.textSecondary }}>Your top priorities for the day</Text>
             </View>
 
             <ScrollView className="flex-1 px-4">
                 {focusToday.length > 0 ? (
                     focusToday.map((task: StandupTask, index: number) => (
-                        <View key={task.taskId} className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-3">
+                        <View 
+                            key={task.taskId} 
+                            className="rounded-xl p-4 mb-3"
+                            style={{ 
+                                backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : '#EFF6FF',
+                                borderWidth: 1,
+                                borderColor: isDark ? '#3B82F6' : '#BFDBFE'
+                            }}
+                        >
                             <View className="flex-row items-center">
-                                <View className="w-8 h-8 bg-blue-600 rounded-full items-center justify-center">
+                                <View className="w-8 h-8 rounded-full items-center justify-center" style={{ backgroundColor: colors.primary }}>
                                     <Text className="text-white font-bold">{index + 1}</Text>
                                 </View>
                                 <View className="flex-1 ml-3">
-                                    <Text className="text-base font-medium text-gray-900">{task.title}</Text>
-                                    <Text className="text-sm text-gray-500">{task.points} points</Text>
+                                    <Text className="text-base font-medium" style={{ color: colors.text }}>{task.title}</Text>
+                                    <Text className="text-sm" style={{ color: colors.textSecondary }}>{task.points} points</Text>
                                 </View>
                             </View>
                         </View>
                     ))
                 ) : (
-                    <View className="bg-amber-50 rounded-xl p-6 items-center">
+                    <View 
+                        className="rounded-xl p-6 items-center"
+                        style={{ backgroundColor: isDark ? 'rgba(245, 158, 11, 0.15)' : '#FFFBEB' }}
+                    >
                         <MaterialCommunityIcons name="calendar-alert" size={40} color="#F59E0B" />
-                        <Text className="text-amber-700 mt-2">No tasks planned for today</Text>
-                        <Text className="text-sm text-amber-600 mt-1">Consider adding tasks to your sprint</Text>
+                        <Text className="mt-2" style={{ color: isDark ? '#FCD34D' : '#B45309' }}>No tasks planned for today</Text>
+                        <Text className="text-sm mt-1" style={{ color: isDark ? '#FBBF24' : '#D97706' }}>Consider adding tasks to your sprint</Text>
                     </View>
                 )}
             </ScrollView>
@@ -151,13 +176,15 @@ export default function StandupScreen() {
             <View className="px-4 pb-4 flex-row">
                 <TouchableOpacity
                     onPress={() => setStep('yesterday')}
-                    className="flex-1 bg-gray-100 py-4 rounded-xl items-center mr-2"
+                    className="flex-1 py-4 rounded-xl items-center mr-2"
+                    style={{ backgroundColor: colors.backgroundSecondary }}
                 >
-                    <Text className="text-gray-700 font-medium">Back</Text>
+                    <Text className="font-medium" style={{ color: colors.text }}>Back</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                     onPress={() => setStep('blockers')}
-                    className="flex-2 bg-blue-600 py-4 rounded-xl items-center ml-2 flex-1"
+                    className="flex-2 py-4 rounded-xl items-center ml-2 flex-1"
+                    style={{ backgroundColor: colors.primary }}
                 >
                     <Text className="text-white font-bold">Continue</Text>
                 </TouchableOpacity>
@@ -171,24 +198,32 @@ export default function StandupScreen() {
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
             <View className="px-4 mb-4">
-                <Text className="text-xl font-bold text-gray-900 mb-2">Any blockers?</Text>
-                <Text className="text-sm text-gray-500">What's slowing you down or stopping progress?</Text>
+                <Text className="text-xl font-bold mb-2" style={{ color: colors.text }}>Any blockers?</Text>
+                <Text className="text-sm" style={{ color: colors.textSecondary }}>What's slowing you down or stopping progress?</Text>
             </View>
 
             <ScrollView className="flex-1 px-4">
                 {/* Existing blockers from previous days */}
                 {existingBlockers.filter(b => !b.convertedToTask).map((blocker: StandupBlocker) => (
-                    <View key={blocker.id} className="bg-red-50 border border-red-200 rounded-xl p-4 mb-3">
+                    <View 
+                        key={blocker.id} 
+                        className="rounded-xl p-4 mb-3"
+                        style={{ 
+                            backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : '#FEF2F2',
+                            borderWidth: 1,
+                            borderColor: isDark ? '#EF4444' : '#FECACA'
+                        }}
+                    >
                         <View className="flex-row items-start">
                             <MaterialCommunityIcons name="alert-circle" size={20} color="#EF4444" />
                             <View className="flex-1 ml-3">
-                                <Text className="text-sm text-gray-900">{blocker.description}</Text>
+                                <Text className="text-sm" style={{ color: colors.text }}>{blocker.description}</Text>
                                 <TouchableOpacity
                                     onPress={() => convertBlockerToTask(blocker.id)}
                                     className="mt-2 flex-row items-center"
                                 >
-                                    <MaterialCommunityIcons name="arrow-right-circle" size={16} color="#3B82F6" />
-                                    <Text className="text-blue-600 text-xs ml-1">Convert to task</Text>
+                                    <MaterialCommunityIcons name="arrow-right-circle" size={16} color={colors.primary} />
+                                    <Text className="text-xs ml-1" style={{ color: colors.primary }}>Convert to task</Text>
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -197,12 +232,20 @@ export default function StandupScreen() {
 
                 {/* New blockers */}
                 {blockers.map((blocker, index) => (
-                    <View key={index} className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-3">
+                    <View 
+                        key={index} 
+                        className="rounded-xl p-4 mb-3"
+                        style={{ 
+                            backgroundColor: isDark ? 'rgba(245, 158, 11, 0.15)' : '#FFFBEB',
+                            borderWidth: 1,
+                            borderColor: isDark ? '#F59E0B' : '#FDE68A'
+                        }}
+                    >
                         <View className="flex-row items-start">
                             <MaterialCommunityIcons name="alert" size={20} color="#F59E0B" />
-                            <Text className="flex-1 ml-3 text-sm text-gray-900">{blocker}</Text>
+                            <Text className="flex-1 ml-3 text-sm" style={{ color: colors.text }}>{blocker}</Text>
                             <TouchableOpacity onPress={() => handleRemoveBlocker(index)}>
-                                <MaterialCommunityIcons name="close-circle" size={20} color="#9CA3AF" />
+                                <MaterialCommunityIcons name="close-circle" size={20} color={colors.textTertiary} />
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -214,13 +257,21 @@ export default function StandupScreen() {
                         value={blockerInput}
                         onChangeText={setBlockerInput}
                         placeholder="Describe a blocker..."
-                        className="flex-1 bg-white border border-gray-200 rounded-xl px-4 py-3 text-base"
+                        placeholderTextColor={colors.placeholder}
+                        className="flex-1 rounded-xl px-4 py-3 text-base"
+                        style={{ 
+                            backgroundColor: colors.inputBackground,
+                            borderWidth: 1,
+                            borderColor: colors.border,
+                            color: colors.text
+                        }}
                         multiline
                         onSubmitEditing={handleAddBlocker}
                     />
                     <TouchableOpacity
                         onPress={handleAddBlocker}
-                        className="ml-2 bg-blue-600 w-12 h-12 rounded-xl items-center justify-center"
+                        className="ml-2 w-12 h-12 rounded-xl items-center justify-center"
+                        style={{ backgroundColor: colors.primary }}
                         disabled={!blockerInput.trim()}
                     >
                         <MaterialCommunityIcons name="plus" size={24} color="white" />
@@ -228,9 +279,12 @@ export default function StandupScreen() {
                 </View>
 
                 {blockers.length === 0 && existingBlockers.length === 0 && (
-                    <View className="bg-green-50 rounded-xl p-4 items-center">
+                    <View 
+                        className="rounded-xl p-4 items-center"
+                        style={{ backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5' }}
+                    >
                         <MaterialCommunityIcons name="check-circle" size={32} color="#10B981" />
-                        <Text className="text-green-700 mt-2">No blockers - clear path ahead!</Text>
+                        <Text className="mt-2" style={{ color: isDark ? '#6EE7B7' : '#047857' }}>No blockers - clear path ahead!</Text>
                     </View>
                 )}
             </ScrollView>
@@ -238,13 +292,15 @@ export default function StandupScreen() {
             <View className="px-4 pb-4 flex-row">
                 <TouchableOpacity
                     onPress={() => setStep('today')}
-                    className="flex-1 bg-gray-100 py-4 rounded-xl items-center mr-2"
+                    className="flex-1 py-4 rounded-xl items-center mr-2"
+                    style={{ backgroundColor: colors.backgroundSecondary }}
                 >
-                    <Text className="text-gray-700 font-medium">Back</Text>
+                    <Text className="font-medium" style={{ color: colors.text }}>Back</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                     onPress={() => setStep('summary')}
-                    className="flex-2 bg-blue-600 py-4 rounded-xl items-center ml-2 flex-1"
+                    className="flex-2 py-4 rounded-xl items-center ml-2 flex-1"
+                    style={{ backgroundColor: colors.primary }}
                 >
                     <Text className="text-white font-bold">Continue</Text>
                 </TouchableOpacity>
@@ -258,8 +314,8 @@ export default function StandupScreen() {
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
             <View className="px-4 mb-4">
-                <Text className="text-xl font-bold text-gray-900 mb-2">How are you feeling?</Text>
-                <Text className="text-sm text-gray-500">Quick check-in before we wrap up</Text>
+                <Text className="text-xl font-bold mb-2" style={{ color: colors.text }}>How are you feeling?</Text>
+                <Text className="text-sm" style={{ color: colors.textSecondary }}>Quick check-in before we wrap up</Text>
             </View>
 
             <ScrollView className="flex-1 px-4">
@@ -274,12 +330,23 @@ export default function StandupScreen() {
                         <TouchableOpacity
                             key={option.value}
                             onPress={() => setMood(option.value as any)}
-                            className={`flex-1 mx-1 py-4 rounded-xl items-center ${
-                                mood === option.value ? 'bg-blue-100 border-2 border-blue-500' : 'bg-gray-50 border border-gray-200'
-                            }`}
+                            className="flex-1 mx-1 py-4 rounded-xl items-center"
+                            style={{
+                                backgroundColor: mood === option.value 
+                                    ? (isDark ? 'rgba(59, 130, 246, 0.2)' : '#DBEAFE')
+                                    : colors.backgroundSecondary,
+                                borderWidth: mood === option.value ? 2 : 1,
+                                borderColor: mood === option.value ? colors.primary : colors.border
+                            }}
                         >
                             <Text className="text-2xl mb-1">{option.emoji}</Text>
-                            <Text className={`text-xs ${mood === option.value ? 'text-blue-700 font-semibold' : 'text-gray-600'}`}>
+                            <Text 
+                                className="text-xs"
+                                style={{ 
+                                    color: mood === option.value ? colors.primary : colors.textSecondary,
+                                    fontWeight: mood === option.value ? '600' : '400'
+                                }}
+                            >
                                 {option.label}
                             </Text>
                         </TouchableOpacity>
@@ -287,31 +354,38 @@ export default function StandupScreen() {
                 </View>
 
                 {/* Optional Notes */}
-                <Text className="text-sm font-medium text-gray-700 mb-2">Any notes? (Optional)</Text>
+                <Text className="text-sm font-medium mb-2" style={{ color: colors.text }}>Any notes? (Optional)</Text>
                 <TextInput
                     value={notes}
                     onChangeText={setNotes}
                     placeholder="Quick thoughts for the day..."
-                    className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-base mb-6"
+                    placeholderTextColor={colors.placeholder}
+                    className="rounded-xl px-4 py-3 text-base mb-6"
+                    style={{ 
+                        backgroundColor: colors.inputBackground,
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                        color: colors.text
+                    }}
                     multiline
                     numberOfLines={3}
                 />
 
                 {/* Summary */}
-                <View className="bg-gray-50 rounded-xl p-4">
-                    <Text className="text-sm font-semibold text-gray-700 mb-3">Standup Summary</Text>
+                <View className="rounded-xl p-4" style={{ backgroundColor: colors.backgroundSecondary }}>
+                    <Text className="text-sm font-semibold mb-3" style={{ color: colors.text }}>Standup Summary</Text>
                     <View className="flex-row justify-between">
                         <View className="items-center">
-                            <Text className="text-2xl font-bold text-green-600">{completedYesterday.length}</Text>
-                            <Text className="text-xs text-gray-500">Completed</Text>
+                            <Text className="text-2xl font-bold" style={{ color: colors.success }}>{completedYesterday.length}</Text>
+                            <Text className="text-xs" style={{ color: colors.textSecondary }}>Completed</Text>
                         </View>
                         <View className="items-center">
-                            <Text className="text-2xl font-bold text-blue-600">{focusToday.length}</Text>
-                            <Text className="text-xs text-gray-500">Today's Focus</Text>
+                            <Text className="text-2xl font-bold" style={{ color: colors.primary }}>{focusToday.length}</Text>
+                            <Text className="text-xs" style={{ color: colors.textSecondary }}>Today's Focus</Text>
                         </View>
                         <View className="items-center">
-                            <Text className="text-2xl font-bold text-amber-600">{blockers.length + existingBlockers.length}</Text>
-                            <Text className="text-xs text-gray-500">Blockers</Text>
+                            <Text className="text-2xl font-bold" style={{ color: colors.warning }}>{blockers.length + existingBlockers.length}</Text>
+                            <Text className="text-xs" style={{ color: colors.textSecondary }}>Blockers</Text>
                         </View>
                     </View>
                 </View>
@@ -320,14 +394,16 @@ export default function StandupScreen() {
             <View className="px-4 pb-4 flex-row">
                 <TouchableOpacity
                     onPress={() => setStep('blockers')}
-                    className="flex-1 bg-gray-100 py-4 rounded-xl items-center mr-2"
+                    className="flex-1 py-4 rounded-xl items-center mr-2"
+                    style={{ backgroundColor: colors.backgroundSecondary }}
                 >
-                    <Text className="text-gray-700 font-medium">Back</Text>
+                    <Text className="font-medium" style={{ color: colors.text }}>Back</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                     onPress={handleComplete}
                     disabled={loading}
-                    className="flex-2 bg-green-600 py-4 rounded-xl items-center ml-2 flex-1 flex-row justify-center"
+                    className="flex-2 py-4 rounded-xl items-center ml-2 flex-1 flex-row justify-center"
+                    style={{ backgroundColor: colors.success }}
                 >
                     {loading ? (
                         <ActivityIndicator color="white" />
@@ -345,21 +421,31 @@ export default function StandupScreen() {
     // If standup is already completed
     if (todayStandup?.status === 'completed') {
         return (
-            <SafeAreaView className="flex-1 bg-gray-50" edges={['top']}>
-                <View className="flex-row items-center px-4 py-3 border-b border-gray-100">
+            <SafeAreaView className="flex-1" edges={['top']} style={{ backgroundColor: colors.background }}>
+                <View 
+                    className="flex-row items-center px-4 py-3"
+                    style={{ borderBottomWidth: 1, borderBottomColor: colors.border }}
+                >
                     <TouchableOpacity onPress={() => router.back()}>
-                        <MaterialCommunityIcons name="arrow-left" size={24} color="#374151" />
+                        <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
                     </TouchableOpacity>
-                    <Text className="text-lg font-bold text-gray-900 ml-4">Today's Standup</Text>
+                    <Text className="text-lg font-bold ml-4" style={{ color: colors.text }}>Today's Standup</Text>
                 </View>
 
                 <ScrollView className="flex-1 px-4 pt-4">
-                    <View className="bg-green-50 border border-green-200 rounded-2xl p-6 items-center mb-6">
-                        <View className="w-16 h-16 bg-green-500 rounded-full items-center justify-center mb-4">
+                    <View 
+                        className="rounded-2xl p-6 items-center mb-6"
+                        style={{ 
+                            backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5',
+                            borderWidth: 1,
+                            borderColor: isDark ? '#10B981' : '#A7F3D0'
+                        }}
+                    >
+                        <View className="w-16 h-16 rounded-full items-center justify-center mb-4" style={{ backgroundColor: colors.success }}>
                             <MaterialCommunityIcons name="check" size={36} color="white" />
                         </View>
-                        <Text className="text-xl font-bold text-green-900">Standup Complete!</Text>
-                        <Text className="text-sm text-green-700 mt-1">
+                        <Text className="text-xl font-bold" style={{ color: isDark ? '#6EE7B7' : '#065F46' }}>Standup Complete!</Text>
+                        <Text className="text-sm mt-1" style={{ color: isDark ? '#34D399' : '#047857' }}>
                             Completed at {new Date(todayStandup.completedAt || '').toLocaleTimeString([], { 
                                 hour: '2-digit', 
                                 minute: '2-digit' 
@@ -369,7 +455,7 @@ export default function StandupScreen() {
 
                     {currentSprintHealth && (
                         <View className="mb-6">
-                            <Text className="text-lg font-bold text-gray-900 mb-3">Sprint Health</Text>
+                            <Text className="text-lg font-bold mb-3" style={{ color: colors.text }}>Sprint Health</Text>
                             <SprintHealthCard health={currentSprintHealth} />
                         </View>
                     )}
@@ -391,13 +477,16 @@ export default function StandupScreen() {
     }
 
     return (
-        <SafeAreaView className="flex-1 bg-gray-50" edges={['top']}>
+        <SafeAreaView className="flex-1" edges={['top']} style={{ backgroundColor: colors.background }}>
             {/* Header */}
-            <View className="flex-row items-center px-4 py-3 border-b border-gray-100">
+            <View 
+                className="flex-row items-center px-4 py-3"
+                style={{ borderBottomWidth: 1, borderBottomColor: colors.border }}
+            >
                 <TouchableOpacity onPress={() => router.back()}>
-                    <MaterialCommunityIcons name="close" size={24} color="#374151" />
+                    <MaterialCommunityIcons name="close" size={24} color={colors.text} />
                 </TouchableOpacity>
-                <Text className="text-lg font-bold text-gray-900 ml-4">Daily Standup</Text>
+                <Text className="text-lg font-bold ml-4" style={{ color: colors.text }}>Daily Standup</Text>
             </View>
 
             {/* Step Indicator */}

@@ -6,6 +6,7 @@ import { ScreenHeader } from '../../../components/layout/ScreenHeader';
 import { Card } from '../../../components/ui/Card';
 import { Badge } from '../../../components/ui/Badge';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useThemeContext } from '../../../providers/ThemeProvider';
 
 interface LeaderboardEntry {
     rank: number;
@@ -19,6 +20,7 @@ interface LeaderboardEntry {
 
 export default function LeaderboardScreen() {
     const router = useRouter();
+    const { colors, isDark } = useThemeContext();
     const [timeframe, setTimeframe] = useState<'week' | 'month' | 'allTime'>('week');
     
     // Mock leaderboard data
@@ -90,42 +92,49 @@ export default function LeaderboardScreen() {
             
             <ScrollView className="flex-1">
                 {/* Timeframe Selector */}
-                <View className="flex-row px-4 py-3 bg-gray-50 border-b border-gray-200">
+                <View 
+                    className="flex-row px-4 py-3"
+                    style={{ 
+                        backgroundColor: colors.backgroundSecondary,
+                        borderBottomWidth: 1,
+                        borderBottomColor: colors.border
+                    }}
+                >
                     <TouchableOpacity
                         onPress={() => setTimeframe('week')}
-                        className={`flex-1 py-2 items-center rounded-lg ${
-                            timeframe === 'week' ? 'bg-blue-600' : ''
-                        }`}
+                        className="flex-1 py-2 items-center rounded-lg"
+                        style={{ backgroundColor: timeframe === 'week' ? colors.primary : 'transparent' }}
                     >
-                        <Text className={`font-semibold ${
-                            timeframe === 'week' ? 'text-white' : 'text-gray-600'
-                        }`}>
+                        <Text 
+                            className="font-semibold"
+                            style={{ color: timeframe === 'week' ? '#FFFFFF' : colors.textSecondary }}
+                        >
                             This Week
                         </Text>
                     </TouchableOpacity>
                     
                     <TouchableOpacity
                         onPress={() => setTimeframe('month')}
-                        className={`flex-1 py-2 items-center rounded-lg mx-2 ${
-                            timeframe === 'month' ? 'bg-blue-600' : ''
-                        }`}
+                        className="flex-1 py-2 items-center rounded-lg mx-2"
+                        style={{ backgroundColor: timeframe === 'month' ? colors.primary : 'transparent' }}
                     >
-                        <Text className={`font-semibold ${
-                            timeframe === 'month' ? 'text-white' : 'text-gray-600'
-                        }`}>
+                        <Text 
+                            className="font-semibold"
+                            style={{ color: timeframe === 'month' ? '#FFFFFF' : colors.textSecondary }}
+                        >
                             This Month
                         </Text>
                     </TouchableOpacity>
                     
                     <TouchableOpacity
                         onPress={() => setTimeframe('allTime')}
-                        className={`flex-1 py-2 items-center rounded-lg ${
-                            timeframe === 'allTime' ? 'bg-blue-600' : ''
-                        }`}
+                        className="flex-1 py-2 items-center rounded-lg"
+                        style={{ backgroundColor: timeframe === 'allTime' ? colors.primary : 'transparent' }}
                     >
-                        <Text className={`font-semibold ${
-                            timeframe === 'allTime' ? 'text-white' : 'text-gray-600'
-                        }`}>
+                        <Text 
+                            className="font-semibold"
+                            style={{ color: timeframe === 'allTime' ? '#FFFFFF' : colors.textSecondary }}
+                        >
                             All Time
                         </Text>
                     </TouchableOpacity>
@@ -133,42 +142,43 @@ export default function LeaderboardScreen() {
                 
                 <View className="p-4">
                     {/* Your Stats */}
-                    <Card className="mb-4 bg-gradient-to-r from-blue-50 to-purple-50">
+                    <Card className="mb-4">
                         <View className="flex-row items-center justify-between mb-3">
-                            <Text className="text-lg font-bold">Your Stats</Text>
+                            <Text className="text-lg font-bold" style={{ color: colors.text }}>Your Stats</Text>
                             <Badge variant="success">
                                 #{leaderboardData[0].rank}
                             </Badge>
                         </View>
                         <View className="flex-row justify-around">
                             <View className="items-center">
-                                <Text className="text-2xl font-bold text-blue-600">
+                                <Text className="text-2xl font-bold" style={{ color: colors.primary }}>
                                     {leaderboardData[0].points}
                                 </Text>
-                                <Text className="text-gray-600">Points</Text>
+                                <Text style={{ color: colors.textSecondary }}>Points</Text>
                             </View>
                             <View className="items-center">
-                                <Text className="text-2xl font-bold text-blue-600">
+                                <Text className="text-2xl font-bold" style={{ color: colors.primary }}>
                                     {leaderboardData[0].challengesCompleted}
                                 </Text>
-                                <Text className="text-gray-600">Completed</Text>
+                                <Text style={{ color: colors.textSecondary }}>Completed</Text>
                             </View>
                             <View className="items-center">
-                                <Text className="text-2xl font-bold text-blue-600">
+                                <Text className="text-2xl font-bold" style={{ color: colors.primary }}>
                                     {leaderboardData[0].currentStreak}
                                 </Text>
-                                <Text className="text-gray-600">Day Streak</Text>
+                                <Text style={{ color: colors.textSecondary }}>Day Streak</Text>
                             </View>
                         </View>
                     </Card>
                     
                     {/* Leaderboard List */}
-                    <Text className="text-xl font-bold mb-4">Top Performers</Text>
+                    <Text className="text-xl font-bold mb-4" style={{ color: colors.text }}>Top Performers</Text>
                     
                     {leaderboardData.map((entry, index) => (
                         <Card 
                             key={entry.userId} 
-                            className={`mb-3 ${entry.userId === 'user-1' ? 'border-2 border-blue-500' : ''}`}
+                            className="mb-3"
+                            style={entry.userId === 'user-1' ? { borderWidth: 2, borderColor: colors.primary } : undefined}
                         >
                             <View className="flex-row items-center">
                                 {/* Rank */}
@@ -187,7 +197,7 @@ export default function LeaderboardScreen() {
                                 {/* User Info */}
                                 <View className="flex-1">
                                     <View className="flex-row items-center mb-1">
-                                        <Text className="text-lg font-bold">
+                                        <Text className="text-lg font-bold" style={{ color: colors.text }}>
                                             {entry.name}
                                         </Text>
                                         {entry.userId === 'user-1' && (
@@ -205,7 +215,7 @@ export default function LeaderboardScreen() {
                                                 size={16} 
                                                 color="#f59e0b" 
                                             />
-                                            <Text className="text-sm text-gray-600 ml-1">
+                                            <Text className="text-sm ml-1" style={{ color: colors.textSecondary }}>
                                                 {entry.points}
                                             </Text>
                                         </View>
@@ -215,7 +225,7 @@ export default function LeaderboardScreen() {
                                                 size={16} 
                                                 color="#10b981" 
                                             />
-                                            <Text className="text-sm text-gray-600 ml-1">
+                                            <Text className="text-sm ml-1" style={{ color: colors.textSecondary }}>
                                                 {entry.challengesCompleted}
                                             </Text>
                                         </View>
@@ -225,7 +235,7 @@ export default function LeaderboardScreen() {
                                                 size={16} 
                                                 color="#ef4444" 
                                             />
-                                            <Text className="text-sm text-gray-600 ml-1">
+                                            <Text className="text-sm ml-1" style={{ color: colors.textSecondary }}>
                                                 {entry.currentStreak}
                                             </Text>
                                         </View>
@@ -233,14 +243,15 @@ export default function LeaderboardScreen() {
                                 </View>
                             </View>
                         </Card>
-                    ))}
+                    ))
+                    }
                     
                     {/* Rewards Section */}
-                    <Card className="mt-4 bg-gradient-to-r from-yellow-50 to-orange-50">
+                    <Card className="mt-4">
                         <View className="items-center">
                             <Text className="text-4xl mb-2">🏆</Text>
-                            <Text className="text-lg font-bold mb-2">Rewards & Badges</Text>
-                            <Text className="text-center text-gray-600 mb-3">
+                            <Text className="text-lg font-bold mb-2" style={{ color: colors.text }}>Rewards & Badges</Text>
+                            <Text className="text-center mb-3" style={{ color: colors.textSecondary }}>
                                 Earn badges and unlock rewards as you climb the leaderboard
                             </Text>
                             <View className="flex-row gap-2">

@@ -14,6 +14,7 @@ import { TaskTemplate } from '../../types/models';
 import { TemplateCard, LIFE_WHEEL_CONFIG } from './TemplateCard';
 import { useTemplateStore } from '../../store/templateStore';
 import { useTranslation } from '../../hooks';
+import { useThemeContext } from '../../providers/ThemeProvider';
 
 interface TemplateListProps {
     templates: TaskTemplate[];
@@ -54,6 +55,7 @@ export function TemplateList({
     compact = false,
 }: TemplateListProps) {
     const { t } = useTranslation();
+    const { colors, isDark } = useThemeContext();
     const { toggleFavorite } = useTemplateStore();
     
     const [searchQuery, setSearchQuery] = useState('');
@@ -114,7 +116,10 @@ export function TemplateList({
     const renderFilterPills = () => (
         <View className="mb-4">
             {/* Type Tabs */}
-            <View className="flex-row mb-3 bg-gray-100 rounded-xl p-1">
+            <View 
+                className="flex-row mb-3 rounded-xl p-1"
+                style={{ backgroundColor: colors.backgroundSecondary }}
+            >
                 {[
                     { key: 'all', label: 'All' },
                     { key: 'task', label: '✅ Tasks' },
@@ -123,14 +128,15 @@ export function TemplateList({
                     <TouchableOpacity
                         key={tab.key}
                         onPress={() => setSelectedType(tab.key as FilterTab)}
-                        className={`flex-1 py-2 rounded-lg items-center ${
-                            selectedType === tab.key ? 'bg-white shadow-sm' : ''
-                        }`}
+                        className="flex-1 py-2 rounded-lg items-center"
+                        style={{
+                            backgroundColor: selectedType === tab.key ? colors.card : 'transparent',
+                            ...(selectedType === tab.key ? { shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 2 } : {})
+                        }}
                     >
                         <Text
-                            className={`font-medium ${
-                                selectedType === tab.key ? 'text-blue-600' : 'text-gray-600'
-                            }`}
+                            className="font-medium"
+                            style={{ color: selectedType === tab.key ? colors.primary : colors.textSecondary }}
                         >
                             {tab.label}
                         </Text>
@@ -152,16 +158,17 @@ export function TemplateList({
                         <TouchableOpacity
                             key={area.id}
                             onPress={() => setSelectedArea(area.id)}
-                            className={`mr-2 px-3 py-2 rounded-full flex-row items-center ${
-                                isSelected ? '' : 'bg-gray-100'
-                            }`}
-                            style={isSelected ? { backgroundColor: config?.color || '#3b82f6' } : {}}
+                            className="mr-2 px-3 py-2 rounded-full flex-row items-center"
+                            style={{ 
+                                backgroundColor: isSelected 
+                                    ? (config?.color || colors.primary) 
+                                    : colors.backgroundSecondary
+                            }}
                         >
                             <Text className={isSelected ? '' : 'mr-1'}>{area.emoji}</Text>
                             <Text
-                                className={`ml-1 font-medium ${
-                                    isSelected ? 'text-white' : 'text-gray-700'
-                                }`}
+                                className="ml-1 font-medium"
+                                style={{ color: isSelected ? '#FFFFFF' : colors.textSecondary }}
                             >
                                 {area.name}
                             </Text>
@@ -174,18 +181,22 @@ export function TemplateList({
 
     const renderSearchBar = () => (
         <View className="mb-4">
-            <View className="flex-row items-center bg-gray-100 rounded-xl px-4 py-3">
-                <Ionicons name="search" size={20} color="#6b7280" />
+            <View 
+                className="flex-row items-center rounded-xl px-4 py-3"
+                style={{ backgroundColor: colors.inputBackground }}
+            >
+                <Ionicons name="search" size={20} color={colors.placeholder} />
                 <TextInput
-                    className="flex-1 ml-3 text-gray-900"
+                    className="flex-1 ml-3"
+                    style={{ color: colors.text }}
                     placeholder="Search templates..."
-                    placeholderTextColor="#9ca3af"
+                    placeholderTextColor={colors.placeholder}
                     value={searchQuery}
                     onChangeText={setSearchQuery}
                 />
                 {searchQuery.length > 0 && (
                     <TouchableOpacity onPress={() => setSearchQuery('')}>
-                        <Ionicons name="close-circle" size={20} color="#9ca3af" />
+                        <Ionicons name="close-circle" size={20} color={colors.placeholder} />
                     </TouchableOpacity>
                 )}
             </View>
@@ -194,8 +205,8 @@ export function TemplateList({
 
     const renderEmpty = () => (
         <View className="items-center justify-center py-12">
-            <Ionicons name="document-outline" size={64} color="#d1d5db" />
-            <Text className="text-gray-500 text-lg mt-4">{emptyMessage}</Text>
+            <Ionicons name="document-outline" size={64} color={colors.textTertiary} />
+            <Text className="text-lg mt-4" style={{ color: colors.textSecondary }}>{emptyMessage}</Text>
             {searchQuery && (
                 <TouchableOpacity
                     onPress={() => {
@@ -204,9 +215,10 @@ export function TemplateList({
                         setSelectedType('all');
                         setShowFavoritesOnly(false);
                     }}
-                    className="mt-4 px-4 py-2 bg-blue-100 rounded-lg"
+                    className="mt-4 px-4 py-2 rounded-lg"
+                    style={{ backgroundColor: isDark ? 'rgba(59, 130, 246, 0.2)' : '#DBEAFE' }}
                 >
-                    <Text className="text-blue-600 font-medium">Clear Filters</Text>
+                    <Text className="font-medium" style={{ color: colors.primary }}>Clear Filters</Text>
                 </TouchableOpacity>
             )}
         </View>
@@ -229,8 +241,8 @@ export function TemplateList({
     if (loading && templates.length === 0) {
         return (
             <View className="flex-1 items-center justify-center py-12">
-                <ActivityIndicator size="large" color="#3b82f6" />
-                <Text className="text-gray-500 mt-4">Loading templates...</Text>
+                <ActivityIndicator size="large" color={colors.primary} />
+                <Text className="mt-4" style={{ color: colors.textSecondary }}>Loading templates...</Text>
             </View>
         );
     }
@@ -242,7 +254,7 @@ export function TemplateList({
 
             {/* Results Count */}
             <View className="flex-row justify-between items-center mb-3 px-1">
-                <Text className="text-gray-500 text-sm">
+                <Text className="text-sm" style={{ color: colors.textSecondary }}>
                     {filteredTemplates.length} template{filteredTemplates.length !== 1 ? 's' : ''} found
                 </Text>
             </View>

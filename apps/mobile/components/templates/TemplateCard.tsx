@@ -4,6 +4,7 @@ import { TaskTemplate } from '../../types/models';
 import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import { Ionicons } from '@expo/vector-icons';
+import { useThemeContext } from '../../providers/ThemeProvider';
 
 interface TemplateCardProps {
     template: TaskTemplate;
@@ -60,6 +61,7 @@ export function TemplateCard({
     showActions = true,
     compact = false,
 }: TemplateCardProps) {
+    const { colors, isDark } = useThemeContext();
     const wheelConfig = getLifeWheelConfig(template.defaultLifeWheelAreaId || '');
     const isEvent = template.type === 'event';
 
@@ -84,14 +86,14 @@ export function TemplateCard({
 
                         {/* Content */}
                         <View className="flex-1">
-                            <Text className="font-semibold text-gray-900" numberOfLines={1}>
+                            <Text className="font-semibold" numberOfLines={1} style={{ color: colors.text }}>
                                 {template.name}
                             </Text>
                             <View className="flex-row items-center mt-1">
                                 <View className="flex-row items-center mr-3">
                                     {renderStars(template.rating, 10)}
                                 </View>
-                                <Text className="text-xs text-gray-500">
+                                <Text className="text-xs" style={{ color: colors.textSecondary }}>
                                     {template.usageCount} uses
                                 </Text>
                             </View>
@@ -174,11 +176,11 @@ export function TemplateCard({
                         <Text className="text-2xl">{template.icon || wheelConfig.emoji}</Text>
                     </View>
                     <View className="flex-1">
-                        <Text className="text-lg font-bold text-gray-900" numberOfLines={2}>
+                        <Text className="text-lg font-bold" numberOfLines={2} style={{ color: colors.text }}>
                             {template.name}
                         </Text>
                         {template.description && (
-                            <Text className="text-sm text-gray-600 mt-1" numberOfLines={2}>
+                            <Text className="text-sm mt-1" numberOfLines={2} style={{ color: colors.textSecondary }}>
                                 {template.description}
                             </Text>
                         )}
@@ -186,15 +188,18 @@ export function TemplateCard({
                 </View>
 
                 {/* Stats Row */}
-                <View className="flex-row items-center justify-between pt-3 border-t border-gray-100">
+                <View 
+                    className="flex-row items-center justify-between pt-3"
+                    style={{ borderTopWidth: 1, borderTopColor: colors.border }}
+                >
                     {/* Rating */}
                     <View className="flex-row items-center">
                         <View className="flex-row mr-1">{renderStars(template.rating)}</View>
-                        <Text className="text-sm text-gray-600 ml-1">
+                        <Text className="text-sm ml-1" style={{ color: colors.textSecondary }}>
                             {template.rating.toFixed(1)}
                         </Text>
                         {template.ratingCount > 0 && (
-                            <Text className="text-xs text-gray-400 ml-1">
+                            <Text className="text-xs ml-1" style={{ color: colors.textTertiary }}>
                                 ({template.ratingCount})
                             </Text>
                         )}
@@ -202,8 +207,8 @@ export function TemplateCard({
 
                     {/* Usage Count */}
                     <View className="flex-row items-center">
-                        <Ionicons name="people-outline" size={16} color="#6b7280" />
-                        <Text className="text-sm text-gray-600 ml-1">
+                        <Ionicons name="people-outline" size={16} color={colors.textSecondary} />
+                        <Text className="text-sm ml-1" style={{ color: colors.textSecondary }}>
                             {template.usageCount.toLocaleString()} uses
                         </Text>
                     </View>
@@ -216,24 +221,29 @@ export function TemplateCard({
                         {template.userTags?.slice(0, 2).map((tag, index) => (
                             <View
                                 key={`user-${index}`}
-                                className="px-2 py-0.5 rounded-md bg-blue-100"
+                                className="px-2 py-0.5 rounded-md"
+                                style={{ backgroundColor: isDark ? 'rgba(59, 130, 246, 0.2)' : '#DBEAFE' }}
                             >
-                                <Text className="text-xs text-blue-600">#{tag}</Text>
+                                <Text className="text-xs" style={{ color: isDark ? '#93C5FD' : '#1D4ED8' }}>#{tag}</Text>
                             </View>
                         ))}
                         {/* Global template tags */}
                         {template.tags?.slice(0, template.userTags?.length ? 1 : 3).map((tag, index) => (
                             <View
                                 key={`global-${index}`}
-                                className="px-2 py-0.5 rounded-md bg-gray-100"
+                                className="px-2 py-0.5 rounded-md"
+                                style={{ backgroundColor: colors.backgroundSecondary }}
                             >
-                                <Text className="text-xs text-gray-600">#{tag}</Text>
+                                <Text className="text-xs" style={{ color: colors.textSecondary }}>#{tag}</Text>
                             </View>
                         ))}
                         {/* Show count of remaining tags */}
                         {((template.userTags?.length || 0) + (template.tags?.length || 0)) > 3 && (
-                            <View className="px-2 py-0.5 rounded-md bg-gray-100">
-                                <Text className="text-xs text-gray-500">
+                            <View 
+                                className="px-2 py-0.5 rounded-md"
+                                style={{ backgroundColor: colors.backgroundSecondary }}
+                            >
+                                <Text className="text-xs" style={{ color: colors.textTertiary }}>
                                     +{((template.userTags?.length || 0) + (template.tags?.length || 0)) - 3}
                                 </Text>
                             </View>
@@ -245,24 +255,24 @@ export function TemplateCard({
                 <View className="flex-row items-center mt-3 gap-3">
                     {template.defaultDuration && (
                         <View className="flex-row items-center">
-                            <Ionicons name="time-outline" size={14} color="#6b7280" />
-                            <Text className="text-xs text-gray-500 ml-1">
+                            <Ionicons name="time-outline" size={14} color={colors.textSecondary} />
+                            <Text className="text-xs ml-1" style={{ color: colors.textTertiary }}>
                                 {template.defaultDuration} min
                             </Text>
                         </View>
                     )}
                     {template.recurrencePattern && (
                         <View className="flex-row items-center">
-                            <Ionicons name="repeat-outline" size={14} color="#6b7280" />
-                            <Text className="text-xs text-gray-500 ml-1">
+                            <Ionicons name="repeat-outline" size={14} color={colors.textSecondary} />
+                            <Text className="text-xs ml-1" style={{ color: colors.textTertiary }}>
                                 {template.recurrencePattern.frequency}
                             </Text>
                         </View>
                     )}
                     {template.defaultStoryPoints && (
                         <View className="flex-row items-center">
-                            <Ionicons name="star-outline" size={14} color="#6b7280" />
-                            <Text className="text-xs text-gray-500 ml-1">
+                            <Ionicons name="star-outline" size={14} color={colors.textSecondary} />
+                            <Text className="text-xs ml-1" style={{ color: colors.textTertiary }}>
                                 {template.defaultStoryPoints} pts
                             </Text>
                         </View>
@@ -291,8 +301,14 @@ export function TemplateCard({
                 {/* Creator Badge */}
                 {template.creatorType === 'system' && (
                     <View className="absolute top-3 right-3">
-                        <View className="bg-yellow-100 px-2 py-0.5 rounded-full">
-                            <Text className="text-xs text-yellow-700 font-medium">⭐ Global</Text>
+                        <View 
+                            className="px-2 py-0.5 rounded-full"
+                            style={{ backgroundColor: isDark ? 'rgba(251, 191, 36, 0.2)' : '#FEF3C7' }}
+                        >
+                            <Text 
+                                className="text-xs font-medium"
+                                style={{ color: isDark ? '#FCD34D' : '#92400E' }}
+                            >⭐ Global</Text>
                         </View>
                     </View>
                 )}

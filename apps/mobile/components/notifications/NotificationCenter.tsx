@@ -24,6 +24,7 @@ import {
 } from '../../types/notification.types';
 import { useNotificationStore } from '../../store/notificationStore';
 import { useTranslation } from '../../hooks';
+import { useThemeContext } from '../../providers/ThemeProvider';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -48,13 +49,16 @@ export function NotificationItem({
     onPin,
     isExpanded = false,
 }: NotificationItemProps) {
+    const { colors, isDark } = useThemeContext();
     const swipeAnim = useRef(new Animated.Value(0)).current;
     const typeConfig = getNotificationTypeConfig(notification.type);
     const categoryConfig = getCategoryConfig(notification.category);
     
     const iconName = notification.icon || typeConfig?.icon || 'bell-outline';
-    const iconColor = notification.iconColor || typeConfig?.color || categoryConfig?.color || '#6B7280';
-    const bgColor = categoryConfig?.bgColor || '#F3F4F6';
+    const iconColor = notification.iconColor || typeConfig?.color || categoryConfig?.color || colors.textSecondary;
+    const bgColor = isDark 
+        ? (categoryConfig?.color ? `${categoryConfig.color}20` : colors.backgroundSecondary)
+        : (categoryConfig?.bgColor || '#F3F4F6');
 
     const formatTime = (dateStr: string) => {
         const date = new Date(dateStr);
@@ -74,10 +78,9 @@ export function NotificationItem({
         <TouchableOpacity
             onPress={onPress}
             activeOpacity={0.7}
-            className={`mx-4 mb-2 rounded-2xl overflow-hidden ${
-                !notification.isRead ? 'bg-white' : 'bg-gray-50'
-            }`}
+            className="mx-4 mb-2 rounded-2xl overflow-hidden"
             style={{
+                backgroundColor: !notification.isRead ? colors.card : colors.backgroundSecondary,
                 shadowColor: !notification.isRead ? '#000' : 'transparent',
                 shadowOffset: { width: 0, height: 2 },
                 shadowOpacity: !notification.isRead ? 0.08 : 0,
@@ -122,20 +125,23 @@ export function NotificationItem({
                 <View className="flex-1">
                     <View className="flex-row items-start justify-between mb-1">
                         <Text
-                            className={`text-base flex-1 mr-2 ${
-                                !notification.isRead ? 'font-semibold text-gray-900' : 'font-medium text-gray-700'
-                            }`}
+                            className="text-base flex-1 mr-2"
+                            style={{
+                                fontWeight: !notification.isRead ? '600' : '500',
+                                color: !notification.isRead ? colors.text : colors.textSecondary
+                            }}
                             numberOfLines={1}
                         >
                             {notification.title}
                         </Text>
-                        <Text className="text-xs text-gray-400">
+                        <Text className="text-xs" style={{ color: colors.textTertiary }}>
                             {formatTime(notification.createdAt)}
                         </Text>
                     </View>
                     
                     <Text
-                        className={`text-sm ${!notification.isRead ? 'text-gray-600' : 'text-gray-500'}`}
+                        className="text-sm"
+                        style={{ color: !notification.isRead ? colors.textSecondary : colors.textTertiary }}
                         numberOfLines={isExpanded ? undefined : 2}
                     >
                         {notification.body}
@@ -144,7 +150,10 @@ export function NotificationItem({
                     {/* Metadata - Progress indicator */}
                     {notification.metadata?.progress !== undefined && (
                         <View className="mt-2">
-                            <View className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                            <View 
+                                className="h-1.5 rounded-full overflow-hidden"
+                                style={{ backgroundColor: colors.backgroundTertiary }}
+                            >
                                 <View
                                     className="h-full rounded-full"
                                     style={{
@@ -162,19 +171,21 @@ export function NotificationItem({
                             {notification.actions.slice(0, 2).map((action) => (
                                 <TouchableOpacity
                                     key={action.id}
-                                    className={`px-3 py-1.5 rounded-full ${
-                                        action.type === 'primary'
-                                            ? 'bg-blue-600'
-                                            : 'bg-gray-100'
-                                    }`}
+                                    className="px-3 py-1.5 rounded-full"
+                                    style={{
+                                        backgroundColor: action.type === 'primary'
+                                            ? '#3B82F6'
+                                            : colors.backgroundSecondary
+                                    }}
                                     onPress={() => {
                                         // Handle action
                                     }}
                                 >
                                     <Text
-                                        className={`text-xs font-medium ${
-                                            action.type === 'primary' ? 'text-white' : 'text-gray-700'
-                                        }`}
+                                        className="text-xs font-medium"
+                                        style={{
+                                            color: action.type === 'primary' ? '#fff' : colors.textSecondary
+                                        }}
                                     >
                                         {action.label}
                                     </Text>
@@ -218,13 +229,16 @@ interface CategoryTabProps {
 }
 
 function CategoryTab({ category, label, icon, color, isActive, unreadCount, onPress }: CategoryTabProps) {
+    const { colors, isDark } = useThemeContext();
+    
     return (
         <TouchableOpacity
             onPress={onPress}
-            className={`items-center px-4 py-2 mr-2 rounded-2xl ${
-                isActive ? 'bg-gray-900' : 'bg-white'
-            }`}
+            className="items-center px-4 py-2 mr-2 rounded-2xl"
             style={{
+                backgroundColor: isActive 
+                    ? (isDark ? '#374151' : '#1F2937') 
+                    : colors.card,
                 shadowColor: isActive ? '#000' : 'transparent',
                 shadowOffset: { width: 0, height: 2 },
                 shadowOpacity: isActive ? 0.15 : 0,
@@ -239,9 +253,10 @@ function CategoryTab({ category, label, icon, color, isActive, unreadCount, onPr
                     color={isActive ? '#FFFFFF' : color}
                 />
                 <Text
-                    className={`ml-1.5 text-sm font-medium ${
-                        isActive ? 'text-white' : 'text-gray-700'
-                    }`}
+                    className="ml-1.5 text-sm font-medium"
+                    style={{
+                        color: isActive ? '#fff' : colors.textSecondary
+                    }}
                 >
                     {label}
                 </Text>
@@ -275,12 +290,16 @@ interface NotificationSectionProps {
 
 function NotificationSection({ title, notifications, onNotificationPress }: NotificationSectionProps) {
     const { markAsRead } = useNotificationStore();
+    const { colors } = useThemeContext();
     
     if (notifications.length === 0) return null;
 
     return (
         <View className="mb-4">
-            <Text className="text-sm font-semibold text-gray-500 uppercase tracking-wide px-4 mb-2">
+            <Text 
+                className="text-sm font-semibold uppercase tracking-wide px-4 mb-2"
+                style={{ color: colors.textSecondary }}
+            >
                 {title}
             </Text>
             {notifications.map((notification) => (
@@ -305,6 +324,7 @@ interface EmptyStateProps {
 }
 
 function EmptyState({ category }: EmptyStateProps) {
+    const { colors } = useThemeContext();
     const categoryConfig = category !== 'all' ? getCategoryConfig(category) : null;
     
     const getEmptyMessage = () => {
@@ -335,8 +355,8 @@ function EmptyState({ category }: EmptyStateProps) {
     return (
         <View className="flex-1 items-center justify-center py-16">
             <Text className="text-6xl mb-4">{icon}</Text>
-            <Text className="text-xl font-semibold text-gray-900 mb-1">{title}</Text>
-            <Text className="text-gray-500 text-center px-8">{subtitle}</Text>
+            <Text className="text-xl font-semibold mb-1" style={{ color: colors.text }}>{title}</Text>
+            <Text className="text-center px-8" style={{ color: colors.textSecondary }}>{subtitle}</Text>
         </View>
     );
 }
@@ -353,6 +373,7 @@ interface NotificationCenterProps {
 export function NotificationCenter({ onClose, isModal = false }: NotificationCenterProps) {
     const router = useRouter();
     const { t } = useTranslation();
+    const { colors, isDark } = useThemeContext();
     const { notifications, unreadCount, fetchNotifications, markAllAsRead, loading } = useNotificationStore();
     const [selectedCategory, setSelectedCategory] = useState<'all' | NotificationCategory>('all');
     const [refreshing, setRefreshing] = useState(false);
@@ -436,19 +457,22 @@ export function NotificationCenter({ onClose, isModal = false }: NotificationCen
     };
 
     return (
-        <View className="flex-1 bg-gray-100">
+        <View className="flex-1" style={{ backgroundColor: colors.background }}>
             {/* Header */}
-            <View className="bg-white px-4 pt-2 pb-3 border-b border-gray-100">
+            <View 
+                className="px-4 pt-2 pb-3"
+                style={{ backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.border }}
+            >
                 <View className="flex-row items-center justify-between mb-3">
                     <View className="flex-row items-center">
                         <TouchableOpacity onPress={handleBack} className="mr-3">
                             <MaterialCommunityIcons 
                                 name={isModal ? "close" : "arrow-left"} 
                                 size={24} 
-                                color="#374151" 
+                                color={colors.text} 
                             />
                         </TouchableOpacity>
-                        <Text className="text-2xl font-bold text-gray-900">Notifications</Text>
+                        <Text className="text-2xl font-bold" style={{ color: colors.text }}>Notifications</Text>
                         {unreadCount > 0 && (
                             <View className="ml-2 bg-blue-600 px-2 py-0.5 rounded-full">
                                 <Text className="text-xs font-bold text-white">{unreadCount}</Text>
@@ -470,7 +494,7 @@ export function NotificationCenter({ onClose, isModal = false }: NotificationCen
                                 if (onClose) onClose();
                             }}
                         >
-                            <MaterialCommunityIcons name="cog-outline" size={24} color="#6B7280" />
+                            <MaterialCommunityIcons name="cog-outline" size={24} color={colors.textSecondary} />
                         </TouchableOpacity>
                     </View>
                 </View>

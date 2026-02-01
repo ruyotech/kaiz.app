@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCommunityStore } from '../../../store/communityStore';
 import { StoryCard } from '../../../components/community/StoryCard';
 import { WinCategory } from '../../../types/models';
+import { useThemeContext } from '../../../providers/ThemeProvider';
 
 const CATEGORIES: { key: WinCategory | 'all'; label: string; icon: string; color: string }[] = [
     { key: 'all', label: 'All Wins', icon: 'star', color: '#9333EA' },
@@ -18,6 +19,7 @@ const CATEGORIES: { key: WinCategory | 'all'; label: string; icon: string; color
 
 export default function WinsScreen() {
     const router = useRouter();
+    const { colors, isDark } = useThemeContext();
     const [refreshing, setRefreshing] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
     const [showShareModal, setShowShareModal] = useState(false);
@@ -52,18 +54,18 @@ export default function WinsScreen() {
     };
 
     return (
-        <View className="flex-1 bg-gray-50">
+        <View className="flex-1" style={{ backgroundColor: colors.background }}>
             {/* Header */}
-            <SafeAreaView edges={['top']} className="bg-white border-b border-gray-200">
+            <SafeAreaView edges={['top']} style={{ backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.border }}>
                 <View className="px-4 py-3">
                     <View className="flex-row items-center justify-between">
                         <View className="flex-row items-center">
                             <TouchableOpacity onPress={() => router.back()} className="mr-3">
-                                <MaterialCommunityIcons name="arrow-left" size={24} color="#374151" />
+                                <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
                             </TouchableOpacity>
                             <View>
-                                <Text className="text-xl font-bold text-gray-900">Wins Board 🎉</Text>
-                                <Text className="text-xs text-gray-500">Celebrate achievements together</Text>
+                                <Text className="text-xl font-bold" style={{ color: colors.text }}>Wins Board 🎉</Text>
+                                <Text className="text-xs" style={{ color: colors.textSecondary }}>Celebrate achievements together</Text>
                             </View>
                         </View>
                         <TouchableOpacity 
@@ -81,18 +83,18 @@ export default function WinsScreen() {
             <ScrollView 
                 horizontal 
                 showsHorizontalScrollIndicator={false}
-                className="bg-white border-b border-gray-100"
-                style={{ flexGrow: 0 }}
+                style={{ backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.border, flexGrow: 0 }}
                 contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 12, alignItems: 'center' }}
             >
                 {CATEGORIES.map((cat) => (
                     <TouchableOpacity
                         key={cat.key}
-                        className={`flex-row items-center px-4 py-2 rounded-full mr-2 ${
-                            selectedCategory === cat.key 
-                                ? 'bg-purple-600' 
-                                : 'bg-gray-100'
-                        }`}
+                        className="flex-row items-center px-4 py-2 rounded-full mr-2"
+                        style={{ 
+                            backgroundColor: selectedCategory === cat.key 
+                                ? '#9333EA' 
+                                : colors.backgroundSecondary
+                        }}
                         onPress={() => setSelectedCategory(cat.key)}
                     >
                         <MaterialCommunityIcons 
@@ -101,9 +103,8 @@ export default function WinsScreen() {
                             color={selectedCategory === cat.key ? '#fff' : cat.color} 
                         />
                         <Text 
-                            className={`ml-1 text-sm font-medium ${
-                                selectedCategory === cat.key ? 'text-white' : 'text-gray-600'
-                            }`}
+                            className="ml-1 text-sm font-medium"
+                            style={{ color: selectedCategory === cat.key ? '#fff' : colors.textSecondary }}
                         >
                             {cat.label}
                         </Text>
@@ -122,7 +123,7 @@ export default function WinsScreen() {
                 {filteredStories.length === 0 ? (
                     <View className="items-center justify-center py-12">
                         <Text className="text-6xl mb-4">🏆</Text>
-                        <Text className="text-gray-500 text-base text-center">
+                        <Text className="text-base text-center" style={{ color: colors.textSecondary }}>
                             No wins shared yet in this category
                         </Text>
                         <TouchableOpacity 
@@ -151,23 +152,23 @@ export default function WinsScreen() {
                 presentationStyle="pageSheet"
                 onRequestClose={() => setShowShareModal(false)}
             >
-                <SafeAreaView className="flex-1 bg-white">
+                <SafeAreaView className="flex-1" style={{ backgroundColor: colors.background }}>
                     {/* Modal Header */}
-                    <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-200">
+                    <View 
+                        className="flex-row items-center justify-between px-4 py-3"
+                        style={{ borderBottomWidth: 1, borderBottomColor: colors.border }}
+                    >
                         <TouchableOpacity onPress={() => setShowShareModal(false)}>
-                            <Text className="text-gray-500 text-base">Cancel</Text>
+                            <Text className="text-base" style={{ color: colors.textSecondary }}>Cancel</Text>
                         </TouchableOpacity>
-                        <Text className="text-lg font-bold">Share Your Win 🎉</Text>
+                        <Text className="text-lg font-bold" style={{ color: colors.text }}>Share Your Win 🎉</Text>
                         <TouchableOpacity 
                             onPress={handleShare}
                             disabled={!newStory.title.trim() || !newStory.story.trim()}
                         >
                             <Text 
-                                className={`text-base font-semibold ${
-                                    newStory.title.trim() && newStory.story.trim()
-                                        ? 'text-yellow-600'
-                                        : 'text-gray-300'
-                                }`}
+                                className="text-base font-semibold"
+                                style={{ color: newStory.title.trim() && newStory.story.trim() ? '#D97706' : colors.textTertiary }}
                             >
                                 Share
                             </Text>
@@ -176,16 +177,21 @@ export default function WinsScreen() {
 
                     <ScrollView className="flex-1 px-4 py-4">
                         {/* Category Selection */}
-                        <Text className="text-sm font-medium text-gray-700 mb-2">Win Category</Text>
+                        <Text className="text-sm font-medium mb-2" style={{ color: colors.textSecondary }}>Win Category</Text>
                         <View className="flex-row flex-wrap mb-4">
                             {CATEGORIES.filter(c => c.key !== 'all').map((cat) => (
                                 <TouchableOpacity
                                     key={cat.key}
-                                    className={`flex-row items-center px-3 py-2 rounded-lg mr-2 mb-2 border ${
-                                        newStory.category === cat.key 
-                                            ? 'border-purple-300 bg-purple-50' 
-                                            : 'border-gray-200 bg-gray-50'
-                                    }`}
+                                    className="flex-row items-center px-3 py-2 rounded-lg mr-2 mb-2"
+                                    style={{ 
+                                        borderWidth: 1,
+                                        borderColor: newStory.category === cat.key 
+                                            ? (isDark ? 'rgba(147, 51, 234, 0.5)' : '#D8B4FE')
+                                            : colors.border,
+                                        backgroundColor: newStory.category === cat.key 
+                                            ? (isDark ? 'rgba(147, 51, 234, 0.15)' : '#FAF5FF')
+                                            : colors.backgroundSecondary
+                                    }}
                                     onPress={() => setNewStory({ ...newStory, category: cat.key as WinCategory })}
                                 >
                                     <MaterialCommunityIcons 
@@ -194,11 +200,13 @@ export default function WinsScreen() {
                                         color={cat.color} 
                                     />
                                     <Text 
-                                        className={`ml-1 text-sm ${
-                                            newStory.category === cat.key 
-                                                ? 'text-purple-700 font-medium' 
-                                                : 'text-gray-600'
-                                        }`}
+                                        className="ml-1 text-sm"
+                                        style={{ 
+                                            color: newStory.category === cat.key 
+                                                ? (isDark ? '#C4B5FD' : '#7E22CE')
+                                                : colors.textSecondary,
+                                            fontWeight: newStory.category === cat.key ? '500' : 'normal'
+                                        }}
                                     >
                                         {cat.label}
                                     </Text>
@@ -207,19 +215,33 @@ export default function WinsScreen() {
                         </View>
 
                         {/* Title Input */}
-                        <Text className="text-sm font-medium text-gray-700 mb-2">Win Title</Text>
+                        <Text className="text-sm font-medium mb-2" style={{ color: colors.textSecondary }}>Win Title</Text>
                         <TextInput
-                            className="bg-gray-50 rounded-xl px-4 py-3 text-base mb-4 border border-gray-200"
+                            className="rounded-xl px-4 py-3 text-base mb-4"
+                            style={{ 
+                                backgroundColor: colors.inputBackground,
+                                borderWidth: 1,
+                                borderColor: colors.border,
+                                color: colors.text
+                            }}
                             placeholder="Give your win a catchy title!"
+                            placeholderTextColor={colors.placeholder}
                             value={newStory.title}
                             onChangeText={(text) => setNewStory({ ...newStory, title: text })}
                         />
 
                         {/* Story Input */}
-                        <Text className="text-sm font-medium text-gray-700 mb-2">Your Story</Text>
+                        <Text className="text-sm font-medium mb-2" style={{ color: colors.textSecondary }}>Your Story</Text>
                         <TextInput
-                            className="bg-gray-50 rounded-xl px-4 py-3 text-base mb-4 border border-gray-200 min-h-[150px]"
+                            className="rounded-xl px-4 py-3 text-base mb-4 min-h-[150px]"
+                            style={{ 
+                                backgroundColor: colors.inputBackground,
+                                borderWidth: 1,
+                                borderColor: colors.border,
+                                color: colors.text
+                            }}
                             placeholder="Share the details of your achievement..."
+                            placeholderTextColor={colors.placeholder}
                             value={newStory.story}
                             onChangeText={(text) => setNewStory({ ...newStory, story: text })}
                             multiline
@@ -227,15 +249,18 @@ export default function WinsScreen() {
                         />
 
                         {/* Inspiration */}
-                        <View className="bg-yellow-50 rounded-xl p-4 mt-2">
+                        <View 
+                            className="rounded-xl p-4 mt-2"
+                            style={{ backgroundColor: isDark ? 'rgba(245, 158, 11, 0.15)' : '#FFFBEB' }}
+                        >
                             <View className="flex-row items-center mb-2">
                                 <Text className="text-xl mr-2">💡</Text>
-                                <Text className="text-amber-700 font-semibold">What to share</Text>
+                                <Text className="font-semibold" style={{ color: isDark ? '#FCD34D' : '#B45309' }}>What to share</Text>
                             </View>
-                            <Text className="text-amber-600 text-sm leading-5">
-                                • What did you achieve?{'\n'}
-                                • How long did it take?{'\n'}
-                                • What helped you succeed?{'\n'}
+                            <Text className="text-sm leading-5" style={{ color: isDark ? '#FBBF24' : '#D97706' }}>
+                                • What did you achieve?{`\n`}
+                                • How long did it take?{`\n`}
+                                • What helped you succeed?{`\n`}
                                 • Any tips for others?
                             </Text>
                         </View>

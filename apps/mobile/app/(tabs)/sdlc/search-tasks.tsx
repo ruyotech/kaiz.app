@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { View, Text, TextInput, FlatList, Pressable, ScrollView, TouchableOpacity } from 'react-native';
 import { Container } from '../../../components/layout/Container';
+import { ScreenHeader } from '../../../components/layout/ScreenHeader';
 import { Card } from '../../../components/ui/Card';
 import { Badge } from '../../../components/ui/Badge';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -9,9 +10,11 @@ import { Task, LifeWheelArea, EisenhowerQuadrant } from '../../../types/models';
 import { useTaskStore } from '../../../store/taskStore';
 import { useEpicStore } from '../../../store/epicStore';
 import { lifeWheelApi } from '../../../services/api';
+import { useThemeContext } from '../../../providers/ThemeProvider';
 
 export default function SearchTasksScreen() {
     const router = useRouter();
+    const { colors, isDark } = useThemeContext();
     const { tasks, fetchTasks } = useTaskStore();
     const [searchQuery, setSearchQuery] = useState('');
     const [filteredTasks, setFilteredTasks] = useState<Task[]>([]);
@@ -74,11 +77,27 @@ export default function SearchTasksScreen() {
     };
 
     const getQuadrantStyle = (quadrantId: string) => {
-        const styles: Record<string, { bg: string; text: string; border: string }> = {
-            'eq-1': { bg: 'bg-red-50', text: 'text-red-900', border: 'border-red-200' },
-            'eq-2': { bg: 'bg-blue-50', text: 'text-blue-900', border: 'border-blue-200' },
-            'eq-3': { bg: 'bg-yellow-50', text: 'text-yellow-900', border: 'border-yellow-200' },
-            'eq-4': { bg: 'bg-gray-50', text: 'text-gray-900', border: 'border-gray-200' },
+        const styles: Record<string, { bgColor: string; textColor: string; borderColor: string }> = {
+            'eq-1': { 
+                bgColor: isDark ? 'rgba(220, 38, 38, 0.15)' : 'rgba(254, 242, 242, 1)', 
+                textColor: isDark ? '#FCA5A5' : '#991B1B', 
+                borderColor: isDark ? '#DC2626' : '#FECACA'
+            },
+            'eq-2': { 
+                bgColor: isDark ? 'rgba(37, 99, 235, 0.15)' : 'rgba(239, 246, 255, 1)', 
+                textColor: isDark ? '#93C5FD' : '#1E40AF', 
+                borderColor: isDark ? '#2563EB' : '#BFDBFE'
+            },
+            'eq-3': { 
+                bgColor: isDark ? 'rgba(202, 138, 4, 0.15)' : 'rgba(254, 252, 232, 1)', 
+                textColor: isDark ? '#FCD34D' : '#92400E', 
+                borderColor: isDark ? '#CA8A04' : '#FDE68A'
+            },
+            'eq-4': { 
+                bgColor: isDark ? 'rgba(107, 114, 128, 0.15)' : 'rgba(249, 250, 251, 1)', 
+                textColor: isDark ? '#D1D5DB' : '#374151', 
+                borderColor: isDark ? '#6B7280' : '#E5E7EB'
+            },
         };
         return styles[quadrantId] || styles['eq-2'];
     };
@@ -116,25 +135,46 @@ export default function SearchTasksScreen() {
         };
 
         const taskEpic = epics.find(e => e.id === item.epicId);
+        const style = getQuadrantStyle(item.eisenhowerQuadrantId || 'eq-2');
 
         return (
             <Pressable onPress={() => router.push(`/(tabs)/sdlc/task/${item.id}` as any)}>
-                <Card className="mb-3">
+                <View 
+                    className="mb-3 p-4 rounded-xl"
+                    style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
+                >
                     <View className="flex-row items-start justify-between mb-2">
-                        <Text className="text-base font-semibold flex-1 mr-2">{item.title}</Text>
-                        <Badge className={getStatusColor(item.status)} size="sm">
-                            {item.storyPoints} pts
-                        </Badge>
+                        <Text 
+                            className="text-base font-semibold flex-1 mr-2"
+                            style={{ color: colors.text }}
+                        >{item.title}</Text>
+                        <View 
+                            className="px-2 py-1 rounded-lg"
+                            style={{ backgroundColor: style.bgColor, borderWidth: 1, borderColor: style.borderColor }}
+                        >
+                            <Text className="text-xs font-bold" style={{ color: style.textColor }}>
+                                {item.storyPoints} pts
+                            </Text>
+                        </View>
                     </View>
                     {item.description && (
-                        <Text className="text-sm text-gray-600 mb-3" numberOfLines={2}>
+                        <Text 
+                            className="text-sm mb-3" 
+                            numberOfLines={2}
+                            style={{ color: colors.textSecondary }}
+                        >
                             {item.description}
                         </Text>
                     )}
                     <View className="flex-row gap-2 flex-wrap">
-                        <Badge className={getStatusColor(item.status)} size="sm">
-                            {getStatusLabel(item.status)}
-                        </Badge>
+                        <View 
+                            className="px-2 py-1 rounded-full"
+                            style={{ backgroundColor: colors.backgroundSecondary }}
+                        >
+                            <Text className="text-xs font-medium" style={{ color: colors.textSecondary }}>
+                                {getStatusLabel(item.status)}
+                            </Text>
+                        </View>
                         {taskEpic && (
                             <View 
                                 className="px-2.5 py-1 rounded-full flex-row items-center"
@@ -154,44 +194,44 @@ export default function SearchTasksScreen() {
                             </View>
                         )}
                     </View>
-                </Card>
+                </View>
             </Pressable>
         );
     };
 
     return (
         <Container safeArea={false}>
-            {/* Header */}
-            <View className="bg-white border-b border-gray-200 px-4 pt-12 pb-3">
-                <View className="flex-row items-center justify-between">
-                    <View className="flex-row items-center flex-1">
-                        <Pressable onPress={() => router.back()} className="mr-3">
-                            <MaterialCommunityIcons name="arrow-left" size={24} color="#2563EB" />
-                        </Pressable>
-                        <View className="flex-1">
-                            <Text className="text-xl font-bold text-gray-900">Task Search</Text>
-                            <Text className="text-sm text-gray-600 mt-0.5">Search and filter all tasks</Text>
-                        </View>
-                    </View>
-                </View>
-            </View>
+            <ScreenHeader
+                title="Task Search"
+                subtitle="Search and filter all tasks"
+                showBack
+                useSafeArea={false}
+                showNotifications={false}
+            />
 
             {/* Filters Section */}
-            <View className="bg-white border-b border-gray-200 py-3">
+            <View 
+                className="py-3"
+                style={{ backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.border }}
+            >
                 {/* Search Input */}
                 <View className="px-4 mb-3">
-                    <View className="bg-gray-50 rounded-xl p-3 flex-row items-center border border-gray-200">
-                        <MaterialCommunityIcons name="magnify" size={20} color="#9CA3AF" />
+                    <View 
+                        className="rounded-xl p-3 flex-row items-center"
+                        style={{ backgroundColor: colors.inputBackground, borderWidth: 1, borderColor: colors.border }}
+                    >
+                        <MaterialCommunityIcons name="magnify" size={20} color={colors.placeholder} />
                         <TextInput
                             value={searchQuery}
                             onChangeText={handleSearch}
                             placeholder="Search tasks..."
                             className="flex-1 ml-2 text-base"
-                            placeholderTextColor="#9CA3AF"
+                            placeholderTextColor={colors.placeholder}
+                            style={{ color: colors.text }}
                         />
                         {searchQuery.length > 0 && (
                             <Pressable onPress={() => setSearchQuery('')}>
-                                <MaterialCommunityIcons name="close-circle" size={18} color="#9CA3AF" />
+                                <MaterialCommunityIcons name="close-circle" size={18} color={colors.placeholder} />
                             </Pressable>
                         )}
                     </View>
@@ -210,9 +250,17 @@ export default function SearchTasksScreen() {
                                 setSelectedQuadrant(null);
                                 setSelectedStatus(null);
                             }}
-                            className={`px-3 py-1.5 rounded-full ${!selectedLifeWheel && !selectedQuadrant && !selectedStatus ? 'bg-blue-600' : 'bg-gray-100 border border-gray-300'}`}
+                            className="px-3 py-1.5 rounded-full"
+                            style={{
+                                backgroundColor: !selectedLifeWheel && !selectedQuadrant && !selectedStatus ? colors.primary : colors.backgroundSecondary,
+                                borderWidth: !selectedLifeWheel && !selectedQuadrant && !selectedStatus ? 0 : 1,
+                                borderColor: colors.border,
+                            }}
                         >
-                            <Text className={`font-medium text-sm ${!selectedLifeWheel && !selectedQuadrant && !selectedStatus ? 'text-white' : 'text-gray-700'}`}>
+                            <Text 
+                                className="font-medium text-sm"
+                                style={{ color: !selectedLifeWheel && !selectedQuadrant && !selectedStatus ? '#FFFFFF' : colors.textSecondary }}
+                            >
                                 All ({tasks.length})
                             </Text>
                         </Pressable>
@@ -227,10 +275,18 @@ export default function SearchTasksScreen() {
                                         setSelectedLifeWheel(area.id === selectedLifeWheel ? null : area.id);
                                         setSelectedQuadrant(null);
                                     }}
-                                    className={`px-3 py-1.5 rounded-full flex-row items-center ${selectedLifeWheel === area.id ? 'bg-blue-600' : 'bg-gray-100 border border-gray-300'}`}
+                                    className="px-3 py-1.5 rounded-full flex-row items-center"
+                                    style={{
+                                        backgroundColor: selectedLifeWheel === area.id ? colors.primary : colors.backgroundSecondary,
+                                        borderWidth: selectedLifeWheel === area.id ? 0 : 1,
+                                        borderColor: colors.border,
+                                    }}
                                 >
                                     <Text className="mr-1 text-sm">{area.icon}</Text>
-                                    <Text className={`font-medium text-sm ${selectedLifeWheel === area.id ? 'text-white' : 'text-gray-700'}`}>
+                                    <Text 
+                                        className="font-medium text-sm"
+                                        style={{ color: selectedLifeWheel === area.id ? '#FFFFFF' : colors.textSecondary }}
+                                    >
                                         {area.name.split('&')[0].trim()} ({count})
                                     </Text>
                                 </Pressable>
@@ -257,9 +313,18 @@ export default function SearchTasksScreen() {
                                     onPress={() => {
                                         setSelectedQuadrant(quadrant.id === selectedQuadrant ? null : quadrant.id);
                                     }}
-                                    className={`px-3 py-1.5 rounded-lg ${isSelected ? `${style.bg} border-2 ${style.border}` : `${style.bg} border ${style.border} opacity-60`}`}
+                                    className="px-3 py-1.5 rounded-lg"
+                                    style={{
+                                        backgroundColor: style.bgColor,
+                                        borderWidth: isSelected ? 2 : 1,
+                                        borderColor: style.borderColor,
+                                        opacity: isSelected ? 1 : 0.7,
+                                    }}
                                 >
-                                    <Text className={`text-xs font-bold ${style.text}`}>
+                                    <Text 
+                                        className="text-xs font-bold"
+                                        style={{ color: style.textColor }}
+                                    >
                                         {quadrant.label} ({count})
                                     </Text>
                                 </Pressable>
@@ -275,14 +340,16 @@ export default function SearchTasksScreen() {
                             <Pressable
                                 key={filter.label}
                                 onPress={() => setSelectedStatus(filter.value)}
-                                className={`px-3 py-1.5 rounded-full ${selectedStatus === filter.value
-                                    ? 'bg-blue-600'
-                                    : 'bg-gray-100 border border-gray-300'
-                                    }`}
+                                className="px-3 py-1.5 rounded-full"
+                                style={{
+                                    backgroundColor: selectedStatus === filter.value ? colors.primary : colors.backgroundSecondary,
+                                    borderWidth: selectedStatus === filter.value ? 0 : 1,
+                                    borderColor: colors.border,
+                                }}
                             >
                                 <Text
-                                    className={`text-sm font-medium ${selectedStatus === filter.value ? 'text-white' : 'text-gray-700'
-                                        }`}
+                                    className="text-sm font-medium"
+                                    style={{ color: selectedStatus === filter.value ? '#FFFFFF' : colors.textSecondary }}
                                 >
                                     {filter.label}
                                 </Text>
@@ -295,7 +362,10 @@ export default function SearchTasksScreen() {
             <View className="p-4">
                 {/* Results */}
                 <View>
-                    <Text className="text-sm text-gray-600 mb-3">
+                    <Text 
+                        className="text-sm mb-3"
+                        style={{ color: colors.textSecondary }}
+                    >
                         {filteredTasks.length} {filteredTasks.length === 1 ? 'task' : 'tasks'} found
                     </Text>
                     {filteredTasks.length > 0 ? (
@@ -307,8 +377,8 @@ export default function SearchTasksScreen() {
                         />
                     ) : (
                         <View className="items-center justify-center py-12">
-                            <MaterialCommunityIcons name="magnify" size={64} color="#E5E7EB" />
-                            <Text className="text-gray-500 mt-4">No tasks found</Text>
+                            <MaterialCommunityIcons name="magnify" size={64} color={colors.textTertiary} />
+                            <Text style={{ color: colors.textSecondary, marginTop: 16 }}>No tasks found</Text>
                         </View>
                     )}
                 </View>

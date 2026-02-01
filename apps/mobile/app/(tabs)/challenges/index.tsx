@@ -11,6 +11,7 @@ import { Challenge, LifeWheelArea } from '../../../types/models';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { lifeWheelApi } from '../../../services/api';
 import { useTranslation } from '../../../hooks';
+import { useThemeContext } from '../../../providers/ThemeProvider';
 
 // Map challenge Life Wheel IDs to actual Life Wheel area IDs
 const LIFE_WHEEL_ID_MAP: Record<string, string> = {
@@ -28,6 +29,7 @@ const LIFE_WHEEL_ID_MAP: Record<string, string> = {
 export default function ChallengesScreen() {
     const router = useRouter();
     const { t } = useTranslation();
+    const { colors, isDark } = useThemeContext();
     const { challenges, loading, fetchChallenges, logEntry } = useChallengeStore();
     const [refreshing, setRefreshing] = useState(false);
     const [logModalVisible, setLogModalVisible] = useState(false);
@@ -130,18 +132,26 @@ export default function ChallengesScreen() {
             >
                 {/* Search Input */}
                 <View className="px-4 mb-3">
-                    <View className="bg-gray-50 rounded-xl p-3 flex-row items-center border border-gray-200">
-                        <MaterialCommunityIcons name="magnify" size={20} color="#9CA3AF" />
+                    <View 
+                        className="rounded-xl p-3 flex-row items-center"
+                        style={{ 
+                            backgroundColor: colors.inputBackground,
+                            borderWidth: 1,
+                            borderColor: colors.border
+                        }}
+                    >
+                        <MaterialCommunityIcons name="magnify" size={20} color={colors.placeholder} />
                         <TextInput
                             value={searchQuery}
                             onChangeText={setSearchQuery}
                             placeholder={t('challenges.searchPlaceholder')}
                             className="flex-1 ml-2 text-base"
-                            placeholderTextColor="#9CA3AF"
+                            placeholderTextColor={colors.placeholder}
+                            style={{ color: colors.text }}
                         />
                         {searchQuery.length > 0 && (
                             <Pressable onPress={() => setSearchQuery('')}>
-                                <MaterialCommunityIcons name="close-circle" size={18} color="#9CA3AF" />
+                                <MaterialCommunityIcons name="close-circle" size={18} color={colors.placeholder} />
                             </Pressable>
                         )}
                     </View>
@@ -156,9 +166,17 @@ export default function ChallengesScreen() {
                     <View className="flex-row gap-2">
                         <Pressable
                             onPress={() => setSelectedLifeWheel(null)}
-                            className={`px-3 py-1.5 rounded-full ${!selectedLifeWheel ? 'bg-blue-600' : 'bg-gray-100 border border-gray-300'}`}
+                            className="px-3 py-1.5 rounded-full"
+                            style={{ 
+                                backgroundColor: !selectedLifeWheel ? colors.primary : colors.backgroundSecondary,
+                                borderWidth: !selectedLifeWheel ? 0 : 1,
+                                borderColor: colors.border
+                            }}
                         >
-                            <Text className={`font-medium text-sm ${!selectedLifeWheel ? 'text-white' : 'text-gray-700'}`}>
+                            <Text 
+                                className="font-medium text-sm"
+                                style={{ color: !selectedLifeWheel ? '#FFFFFF' : colors.textSecondary }}
+                            >
                                 {t('common.all')} ({challenges.length})
                             </Text>
                         </Pressable>
@@ -170,10 +188,18 @@ export default function ChallengesScreen() {
                                 <Pressable
                                     key={area.id}
                                     onPress={() => setSelectedLifeWheel(area.id === selectedLifeWheel ? null : area.id)}
-                                    className={`px-3 py-1.5 rounded-full flex-row items-center ${selectedLifeWheel === area.id ? 'bg-blue-600' : 'bg-gray-100 border border-gray-300'}`}
+                                    className="px-3 py-1.5 rounded-full flex-row items-center"
+                                    style={{ 
+                                        backgroundColor: selectedLifeWheel === area.id ? colors.primary : colors.backgroundSecondary,
+                                        borderWidth: selectedLifeWheel === area.id ? 0 : 1,
+                                        borderColor: colors.border
+                                    }}
                                 >
                                     <Text className="mr-1 text-sm">{area.icon}</Text>
-                                    <Text className={`font-medium text-sm ${selectedLifeWheel === area.id ? 'text-white' : 'text-gray-700'}`}>
+                                    <Text 
+                                        className="font-medium text-sm"
+                                        style={{ color: selectedLifeWheel === area.id ? '#FFFFFF' : colors.textSecondary }}
+                                    >
                                         {area.name.split('&')[0].trim()} ({count})
                                     </Text>
                                 </Pressable>
@@ -195,13 +221,13 @@ export default function ChallengesScreen() {
                         onPress={() => setActiveExpanded(!activeExpanded)}
                         className="flex-row justify-between items-center mb-4"
                     >
-                        <Text className="text-xl font-bold">
+                        <Text className="text-xl font-bold" style={{ color: colors.text }}>
                             {t('challenges.activeChallenges')} ({activeChallenges.length})
                         </Text>
                         <MaterialCommunityIcons 
                             name={activeExpanded ? 'chevron-up' : 'chevron-down'} 
                             size={24} 
-                            color="#374151" 
+                            color={colors.textSecondary} 
                         />
                     </TouchableOpacity>
                     
@@ -230,10 +256,10 @@ export default function ChallengesScreen() {
                                                     <Text className="text-2xl">{area.icon}</Text>
                                                 </View>
                                                 <View className="flex-1">
-                                                    <Text className="text-lg font-bold text-gray-900">
+                                                    <Text className="text-lg font-bold" style={{ color: colors.text }}>
                                                         {area.name}
                                                     </Text>
-                                                    <Text className="text-sm text-gray-600">
+                                                    <Text className="text-sm" style={{ color: colors.textSecondary }}>
                                                         {areaChallenges.length} {areaChallenges.length === 1 ? t('challenges.challenge') : t('challenges.challengesPlural')}
                                                     </Text>
                                                 </View>
@@ -272,17 +298,17 @@ export default function ChallengesScreen() {
                                 onPress={() => setCompletedExpanded(!completedExpanded)}
                                 className="flex-row items-center flex-1"
                             >
-                                <Text className="text-xl font-bold mr-2">
+                                <Text className="text-xl font-bold mr-2" style={{ color: colors.text }}>
                                     {t('common.completed')} ({completedChallenges.length})
                                 </Text>
                                 <MaterialCommunityIcons 
                                     name={completedExpanded ? 'chevron-up' : 'chevron-down'} 
                                     size={24} 
-                                    color="#374151" 
+                                    color={colors.textSecondary} 
                                 />
                             </TouchableOpacity>
                             <TouchableOpacity onPress={() => router.push('/(tabs)/challenges/completed' as any)}>
-                                <Text className="text-blue-600 font-semibold">{t('common.viewAll')} →</Text>
+                                <Text className="font-semibold" style={{ color: colors.primary }}>{t('common.viewAll')} →</Text>
                             </TouchableOpacity>
                         </View>
                         
@@ -298,10 +324,13 @@ export default function ChallengesScreen() {
                 )}
                 
                 {/* Community Challenges Teaser */}
-                <View className="bg-gradient-to-r from-purple-100 to-blue-100 rounded-xl p-6 items-center mb-6">
+                <View 
+                    className="rounded-xl p-6 items-center mb-6"
+                    style={{ backgroundColor: isDark ? 'rgba(139, 92, 246, 0.15)' : '#F5F3FF' }}
+                >
                     <Text className="text-3xl mb-2">👥</Text>
-                    <Text className="text-lg font-bold mb-2">{t('challenges.community.joinTitle')}</Text>
-                    <Text className="text-center text-gray-600 mb-4">
+                    <Text className="text-lg font-bold mb-2" style={{ color: colors.text }}>{t('challenges.community.joinTitle')}</Text>
+                    <Text className="text-center mb-4" style={{ color: colors.textSecondary }}>
                         {t('challenges.community.joinSubtitle')}
                     </Text>
                     <TouchableOpacity 
@@ -313,10 +342,13 @@ export default function ChallengesScreen() {
                 </View>
                 
                 {/* Leaderboard Teaser */}
-                <View className="bg-gradient-to-r from-yellow-100 to-orange-100 rounded-xl p-6 items-center mb-6">
+                <View 
+                    className="rounded-xl p-6 items-center mb-6"
+                    style={{ backgroundColor: isDark ? 'rgba(245, 158, 11, 0.15)' : '#FFF7ED' }}
+                >
                     <Text className="text-3xl mb-2">🏆</Text>
-                    <Text className="text-lg font-bold mb-2">{t('challenges.leaderboard.checkTitle')}</Text>
-                    <Text className="text-center text-gray-600 mb-4">
+                    <Text className="text-lg font-bold mb-2" style={{ color: colors.text }}>{t('challenges.leaderboard.checkTitle')}</Text>
+                    <Text className="text-center mb-4" style={{ color: colors.textSecondary }}>
                         {t('challenges.leaderboard.checkSubtitle')}
                     </Text>
                     <TouchableOpacity 

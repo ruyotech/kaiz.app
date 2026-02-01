@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useThemeContext } from '../../providers/ThemeProvider';
 
 interface TimerProps {
   timeRemaining: number;
@@ -9,6 +10,7 @@ interface TimerProps {
 }
 
 export default function Timer({ timeRemaining, mode, isPaused }: TimerProps) {
+  const { colors, isDark } = useThemeContext();
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [soundType, setSoundType] = useState<'tick' | 'none'>('none');
 
@@ -24,44 +26,44 @@ export default function Timer({ timeRemaining, mode, isPaused }: TimerProps) {
   const getModeConfig = () => {
     if (isPaused) {
       return {
-        bgColor: '#FEF3C7',
+        bgColor: isDark ? 'rgba(245, 158, 11, 0.2)' : '#FEF3C7',
         icon: 'pause-circle',
         iconColor: '#F59E0B',
-        textColor: '#92400E',
+        textColor: isDark ? '#FCD34D' : '#92400E',
         label: 'Paused'
       };
     }
     switch (mode) {
       case 'focus':
         return {
-          bgColor: '#D1FAE5',
+          bgColor: isDark ? 'rgba(16, 185, 129, 0.2)' : '#D1FAE5',
           icon: 'brain',
           iconColor: '#10B981',
-          textColor: '#065F46',
+          textColor: isDark ? '#6EE7B7' : '#065F46',
           label: 'Focus'
         };
       case 'shortBreak':
         return {
-          bgColor: '#DBEAFE',
+          bgColor: isDark ? 'rgba(59, 130, 246, 0.2)' : '#DBEAFE',
           icon: 'coffee',
           iconColor: '#3B82F6',
-          textColor: '#1E40AF',
+          textColor: isDark ? '#93C5FD' : '#1E40AF',
           label: 'Short Break'
         };
       case 'longBreak':
         return {
-          bgColor: '#EDE9FE',
+          bgColor: isDark ? 'rgba(139, 92, 246, 0.2)' : '#EDE9FE',
           icon: 'spa',
           iconColor: '#8B5CF6',
-          textColor: '#5B21B6',
+          textColor: isDark ? '#C4B5FD' : '#5B21B6',
           label: 'Long Break'
         };
       default:
         return {
-          bgColor: '#F1F5F9',
+          bgColor: colors.backgroundSecondary,
           icon: 'timer-outline',
-          iconColor: '#64748B',
-          textColor: '#1E293B',
+          iconColor: colors.textSecondary,
+          textColor: colors.text,
           label: 'Idle'
         };
     }
@@ -135,7 +137,7 @@ export default function Timer({ timeRemaining, mode, isPaused }: TimerProps) {
         {/* Sound Toggle - Top Right Corner */}
         <TouchableOpacity
           className="absolute top-4 right-4 p-2 rounded-full"
-          style={{ backgroundColor: 'rgba(255, 255, 255, 0.7)' }}
+          style={{ backgroundColor: isDark ? 'rgba(0, 0, 0, 0.3)' : 'rgba(255, 255, 255, 0.7)' }}
           onPress={toggleSound}
         >
           <MaterialCommunityIcons 
@@ -149,8 +151,8 @@ export default function Timer({ timeRemaining, mode, isPaused }: TimerProps) {
       {/* Sound Type Indicator */}
       {soundEnabled && (
         <View className="mt-3 flex-row items-center gap-2">
-          <MaterialCommunityIcons name="clock-outline" size={14} color="#6B7280" />
-          <Text className="text-xs text-gray-600">Tick sound enabled</Text>
+          <MaterialCommunityIcons name="clock-outline" size={14} color={colors.textSecondary} />
+          <Text className="text-xs" style={{ color: colors.textSecondary }}>Tick sound enabled</Text>
         </View>
       )}
     </View>

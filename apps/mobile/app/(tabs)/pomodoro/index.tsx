@@ -11,10 +11,12 @@ import Timer from '../../../components/pomodoro/Timer';
 import SessionControls from '../../../components/pomodoro/SessionControls';
 import TaskQuickPick from '../../../components/pomodoro/TaskQuickPick';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { useThemeContext } from '../../../providers/ThemeProvider';
 
 export default function PomodoroScreen() {
   const params = useLocalSearchParams();
   const { t } = useTranslation();
+  const { colors, isDark } = useThemeContext();
   const {
     isActive,
     isPaused,
@@ -143,7 +145,7 @@ export default function PomodoroScreen() {
   };
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <View className="flex-1" style={{ backgroundColor: colors.background }}>
       <ScreenHeader
         title={t('pomodoro.title')}
         subtitle={t('pomodoro.subtitle')}
@@ -159,23 +161,29 @@ export default function PomodoroScreen() {
           <View>
             {/* Selected Task Card - Compact & Clickable */}
             <TouchableOpacity 
-              className="mb-4 bg-white rounded-lg p-3 border-l-4 shadow-sm" 
-              style={{ borderLeftColor: getQuadrantColor(selectedTask.quadrant) }}
+              className="mb-4 rounded-lg p-3 border-l-4 shadow-sm" 
+              style={{ 
+                borderLeftColor: getQuadrantColor(selectedTask.quadrant),
+                backgroundColor: colors.card
+              }}
               onPress={() => router.push(`/(tabs)/sdlc/task/${selectedTask.id}` as any)}
             >
               <View className="flex-row items-center justify-between mb-1">
-                <Text className="text-gray-900 text-lg font-bold flex-1" numberOfLines={2}>
+                <Text className="text-lg font-bold flex-1" style={{ color: colors.text }} numberOfLines={2}>
                   {selectedTask.title}
                 </Text>
                 <View className="flex-row items-center gap-2">
-                  <View className="px-2 py-1 rounded bg-blue-50">
-                    <Text className="text-blue-600 text-xs font-semibold">{selectedTask.storyPoints} pts</Text>
+                  <View 
+                    className="px-2 py-1 rounded"
+                    style={{ backgroundColor: isDark ? 'rgba(59, 130, 246, 0.2)' : '#EFF6FF' }}
+                  >
+                    <Text className="text-xs font-semibold" style={{ color: colors.primary }}>{selectedTask.storyPoints} pts</Text>
                   </View>
-                  <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
+                  <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
                 </View>
               </View>
               {selectedTask.description && (
-                <Text className="text-gray-600 text-sm" numberOfLines={2}>
+                <Text className="text-sm" style={{ color: colors.textSecondary }} numberOfLines={2}>
                   {selectedTask.description}
                 </Text>
               )}
@@ -192,21 +200,23 @@ export default function PomodoroScreen() {
               {/* Back to Task Button - Show if returnToTask is set */}
               {returnToTask && (
                 <TouchableOpacity
-                  className="bg-blue-100 rounded-lg p-2.5 flex-row items-center justify-center"
+                  className="rounded-lg p-2.5 flex-row items-center justify-center"
+                  style={{ backgroundColor: isDark ? 'rgba(59, 130, 246, 0.2)' : '#DBEAFE' }}
                   onPress={() => router.push(`/(tabs)/sdlc/task/${returnToTask}` as any)}
                 >
-                  <MaterialCommunityIcons name="arrow-left" size={18} color="#2563EB" />
-                  <Text className="text-blue-600 text-sm font-semibold ml-2">{t('pomodoro.backToTask')}</Text>
+                  <MaterialCommunityIcons name="arrow-left" size={18} color={colors.primary} />
+                  <Text className="text-sm font-semibold ml-2" style={{ color: colors.primary }}>{t('pomodoro.backToTask')}</Text>
                 </TouchableOpacity>
               )}
               
               {/* Stop Button */}
               <TouchableOpacity
-                className="bg-red-100 rounded-lg p-2.5 flex-row items-center justify-center"
+                className="rounded-lg p-2.5 flex-row items-center justify-center"
+                style={{ backgroundColor: isDark ? 'rgba(239, 68, 68, 0.2)' : '#FEE2E2' }}
                 onPress={handleStopSession}
               >
-                <MaterialCommunityIcons name="stop-circle" size={18} color="#DC2626" />
-                <Text className="text-red-600 text-sm font-semibold ml-2">{t('pomodoro.endSession')}</Text>
+                <MaterialCommunityIcons name="stop-circle" size={18} color={colors.error} />
+                <Text className="text-sm font-semibold ml-2" style={{ color: colors.error }}>{t('pomodoro.endSession')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -219,7 +229,7 @@ export default function PomodoroScreen() {
                   className="w-3 h-3 rounded-full mr-2"
                   style={{ backgroundColor: getModeColor() }}
                 />
-                <Text className="text-gray-900 text-xl font-semibold">{getModeLabel()}</Text>
+                <Text className="text-xl font-semibold" style={{ color: colors.text }}>{getModeLabel()}</Text>
               </View>
             </Card>
 
@@ -229,9 +239,16 @@ export default function PomodoroScreen() {
         ) : (
           <View>
             {/* Task Selection Required */}
-            <View className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4 flex-row items-center">
-              <MaterialCommunityIcons name="information" size={24} color="#3B82F6" />
-              <Text className="text-blue-600 text-sm ml-3 flex-1">
+            <View 
+              className="rounded-xl p-4 mb-4 flex-row items-center"
+              style={{ 
+                backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : '#EFF6FF',
+                borderWidth: 1,
+                borderColor: isDark ? 'rgba(59, 130, 246, 0.3)' : '#BFDBFE'
+              }}
+            >
+              <MaterialCommunityIcons name="information" size={24} color={colors.primary} />
+              <Text className="text-sm ml-3 flex-1" style={{ color: colors.primary }}>
                 {t('pomodoro.selectTaskInfo')}
               </Text>
             </View>
@@ -240,19 +257,21 @@ export default function PomodoroScreen() {
 
             <View className="flex-row mt-4" style={{ gap: 12 }}>
               <TouchableOpacity
-                className="flex-1 bg-blue-100 rounded-lg p-3 items-center"
+                className="flex-1 rounded-lg p-3 items-center"
+                style={{ backgroundColor: isDark ? 'rgba(59, 130, 246, 0.2)' : '#DBEAFE' }}
                 onPress={() => startSession(null, null, 'shortBreak')}
               >
-                <MaterialCommunityIcons name="coffee" size={20} color="#2563EB" />
-                <Text className="text-blue-600 text-sm font-medium mt-1">{t('pomodoro.shortBreak')}</Text>
+                <MaterialCommunityIcons name="coffee" size={20} color={colors.primary} />
+                <Text className="text-sm font-medium mt-1" style={{ color: colors.primary }}>{t('pomodoro.shortBreak')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                className="flex-1 bg-purple-100 rounded-lg p-3 items-center"
+                className="flex-1 rounded-lg p-3 items-center"
+                style={{ backgroundColor: isDark ? 'rgba(139, 92, 246, 0.2)' : '#EDE9FE' }}
                 onPress={() => startSession(null, null, 'longBreak')}
               >
-                <MaterialCommunityIcons name="spa" size={20} color="#7C3AED" />
-                <Text className="text-purple-600 text-sm font-medium mt-1">{t('pomodoro.longBreak')}</Text>
+                <MaterialCommunityIcons name="spa" size={20} color="#8B5CF6" />
+                <Text className="text-sm font-medium mt-1" style={{ color: '#8B5CF6' }}>{t('pomodoro.longBreak')}</Text>
               </TouchableOpacity>
             </View>
           </View>

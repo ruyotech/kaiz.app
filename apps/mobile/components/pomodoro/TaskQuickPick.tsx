@@ -6,6 +6,7 @@ import { Task } from '@/types/models';
 import { getWeekNumber } from '@/utils/dateHelpers';
 import { sprintApi, taskApi, AuthExpiredError } from '@/services/api';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useThemeContext } from '@/providers/ThemeProvider';
 
 interface TaskQuickPickProps {
   onSelectTask: (taskId: string | null, taskTitle: string | null, taskDetails?: { description: string; storyPoints: number; quadrant: string }) => void;
@@ -14,6 +15,7 @@ interface TaskQuickPickProps {
 export default function TaskQuickPick({ onSelectTask }: TaskQuickPickProps) {
   const { tasks, fetchTasks } = useTaskStore();
   const { t } = useTranslation();
+  const { colors, isDark } = useThemeContext();
   const [sprintTasks, setSprintTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentSprintName, setCurrentSprintName] = useState('');
@@ -68,7 +70,8 @@ export default function TaskQuickPick({ onSelectTask }: TaskQuickPickProps) {
     
     return (
       <TouchableOpacity
-        className="bg-white rounded-lg p-3 mb-2 flex-row items-start"
+        className="rounded-lg p-3 mb-2 flex-row items-start"
+        style={{ backgroundColor: colors.card }}
         onPress={() => onSelectTask(item.id, item.title, {
           description: item.description,
           storyPoints: item.storyPoints,
@@ -85,13 +88,13 @@ export default function TaskQuickPick({ onSelectTask }: TaskQuickPickProps) {
                 {quadrant.label}
               </Text>
             </View>
-            <Text className="text-xs text-gray-500">{item.storyPoints} pts</Text>
+            <Text className="text-xs" style={{ color: colors.textSecondary }}>{item.storyPoints} pts</Text>
           </View>
-          <Text className="text-gray-900 font-medium mb-1" numberOfLines={2}>
+          <Text className="font-medium mb-1" style={{ color: colors.text }} numberOfLines={2}>
             {item.title}
           </Text>
           {item.description && (
-            <Text className="text-gray-500 text-xs" numberOfLines={2}>
+            <Text className="text-xs" style={{ color: colors.textSecondary }} numberOfLines={2}>
               {item.description}
             </Text>
           )}
@@ -102,18 +105,21 @@ export default function TaskQuickPick({ onSelectTask }: TaskQuickPickProps) {
   };
 
   return (
-    <View className="bg-gray-100 rounded-xl p-3">
+    <View 
+      className="rounded-xl p-3"
+      style={{ backgroundColor: colors.backgroundSecondary }}
+    >
       <View className="flex-row items-center justify-between mb-3">
-        <Text className="text-gray-700 font-semibold">{t('pomodoro.selectTask')}</Text>
+        <Text className="font-semibold" style={{ color: colors.textSecondary }}>{t('pomodoro.selectTask')}</Text>
         {currentSprintName && (
-          <Text className="text-blue-600 text-xs font-medium">{currentSprintName}</Text>
+          <Text className="text-xs font-medium" style={{ color: colors.primary }}>{currentSprintName}</Text>
         )}
       </View>
 
       {loading ? (
         <View className="py-8 items-center">
-          <ActivityIndicator size="small" color="#3B82F6" />
-          <Text className="text-gray-500 text-sm mt-2">{t('common.loading')}</Text>
+          <ActivityIndicator size="small" color={colors.primary} />
+          <Text className="text-sm mt-2" style={{ color: colors.textSecondary }}>{t('common.loading')}</Text>
         </View>
       ) : sprintTasks.length > 0 ? (
         <FlatList
@@ -124,9 +130,9 @@ export default function TaskQuickPick({ onSelectTask }: TaskQuickPickProps) {
         />
       ) : (
         <View className="py-8 items-center">
-          <MaterialCommunityIcons name="checkbox-marked-circle-outline" size={48} color="#D1D5DB" />
-          <Text className="text-gray-500 text-center mt-2">{t('pomodoro.noTasksInSprint')}</Text>
-          <Text className="text-gray-400 text-xs text-center mt-1">
+          <MaterialCommunityIcons name="checkbox-marked-circle-outline" size={48} color={colors.textTertiary} />
+          <Text className="text-center mt-2" style={{ color: colors.textSecondary }}>{t('pomodoro.noTasksInSprint')}</Text>
+          <Text className="text-xs text-center mt-1" style={{ color: colors.textTertiary }}>
             {t('pomodoro.addTasksToSprint')}
           </Text>
         </View>

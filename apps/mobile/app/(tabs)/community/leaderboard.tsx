@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCommunityStore } from '../../../store/communityStore';
 import { LeaderboardRow } from '../../../components/community/LeaderboardRow';
 import { LeaderboardPeriod, LeaderboardCategory } from '../../../types/models';
+import { useThemeContext } from '../../../providers/ThemeProvider';
 
 const PERIODS: { key: LeaderboardPeriod; label: string }[] = [
     { key: 'weekly', label: 'This Week' },
@@ -22,6 +23,7 @@ const CATEGORIES: { key: LeaderboardCategory; label: string; icon: string; color
 
 export default function LeaderboardScreen() {
     const router = useRouter();
+    const { colors, isDark } = useThemeContext();
     const [refreshing, setRefreshing] = useState(false);
     
     const { 
@@ -47,9 +49,9 @@ export default function LeaderboardScreen() {
     const selectedCategory = CATEGORIES.find(c => c.key === filters.leaderboardCategory);
 
     return (
-        <View className="flex-1 bg-gray-50">
+        <View className="flex-1" style={{ backgroundColor: colors.background }}>
             {/* Header */}
-            <SafeAreaView edges={['top']} className="bg-gradient-to-b" style={{ backgroundColor: '#4F46E5' }}>
+            <SafeAreaView edges={['top']} className="bg-gradient-to-b" style={{ backgroundColor: isDark ? '#312E81' : '#4F46E5' }}>
                 <View className="px-4 py-4">
                     <View className="flex-row items-center justify-between">
                         <View className="flex-row items-center">
@@ -58,10 +60,10 @@ export default function LeaderboardScreen() {
                             </TouchableOpacity>
                             <View className="ml-3">
                                 <Text className="text-white text-xl font-bold">Leaderboard</Text>
-                                <Text className="text-purple-200 text-xs">Community rankings</Text>
+                                <Text style={{ color: 'rgba(255,255,255,0.7)' }} className="text-xs">Community rankings</Text>
                             </View>
                         </View>
-                        <View className="flex-row items-center bg-white/20 rounded-full px-3 py-1">
+                        <View className="flex-row items-center rounded-full px-3 py-1" style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}>
                             <MaterialCommunityIcons name="podium-gold" size={16} color="#F59E0B" />
                             <Text className="text-white text-sm font-medium ml-1">
                                 #{userRank?.rank || '--'}
@@ -70,21 +72,25 @@ export default function LeaderboardScreen() {
                     </View>
 
                     {/* Period Filter */}
-                    <View className="flex-row mt-4 bg-white/20 rounded-xl p-1">
+                    <View className="flex-row mt-4 rounded-xl p-1" style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}>
                         {PERIODS.map((period) => (
                             <TouchableOpacity
                                 key={period.key}
-                                className={`flex-1 py-2 rounded-lg ${
-                                    filters.leaderboardPeriod === period.key ? 'bg-white' : ''
-                                }`}
+                                className="flex-1 py-2 rounded-lg"
+                                style={{
+                                    backgroundColor: filters.leaderboardPeriod === period.key 
+                                        ? (isDark ? 'rgba(255,255,255,0.9)' : '#fff') 
+                                        : 'transparent'
+                                }}
                                 onPress={() => setFilters({ leaderboardPeriod: period.key })}
                             >
                                 <Text 
-                                    className={`text-center text-sm font-medium ${
-                                        filters.leaderboardPeriod === period.key 
-                                            ? 'text-purple-700' 
-                                            : 'text-white'
-                                    }`}
+                                    className="text-center text-sm font-medium"
+                                    style={{
+                                        color: filters.leaderboardPeriod === period.key 
+                                            ? (isDark ? '#4338CA' : '#7E22CE') 
+                                            : '#fff'
+                                    }}
                                 >
                                     {period.label}
                                 </Text>
@@ -98,18 +104,18 @@ export default function LeaderboardScreen() {
             <ScrollView 
                 horizontal 
                 showsHorizontalScrollIndicator={false}
-                className="bg-white border-b border-gray-100"
-                style={{ flexGrow: 0 }}
+                style={{ backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.border, flexGrow: 0 }}
                 contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 12, alignItems: 'center' }}
             >
                 {CATEGORIES.map((cat) => (
                     <TouchableOpacity
                         key={cat.key}
-                        className={`flex-row items-center px-4 py-2 rounded-full mr-2 ${
-                            filters.leaderboardCategory === cat.key 
-                                ? 'bg-purple-600' 
-                                : 'bg-gray-100'
-                        }`}
+                        className="flex-row items-center px-4 py-2 rounded-full mr-2"
+                        style={{
+                            backgroundColor: filters.leaderboardCategory === cat.key 
+                                ? '#9333EA' 
+                                : colors.backgroundSecondary
+                        }}
                         onPress={() => setFilters({ leaderboardCategory: cat.key })}
                     >
                         <MaterialCommunityIcons 
@@ -118,9 +124,10 @@ export default function LeaderboardScreen() {
                             color={filters.leaderboardCategory === cat.key ? '#fff' : cat.color} 
                         />
                         <Text 
-                            className={`ml-1 text-sm font-medium ${
-                                filters.leaderboardCategory === cat.key ? 'text-white' : 'text-gray-600'
-                            }`}
+                            className="ml-1 text-sm font-medium"
+                            style={{
+                                color: filters.leaderboardCategory === cat.key ? '#fff' : colors.textSecondary
+                            }}
                         >
                             {cat.label}
                         </Text>
@@ -174,13 +181,16 @@ export default function LeaderboardScreen() {
                         {/* 2nd Place */}
                         <View className="items-center mx-2">
                             <Text className="text-4xl mb-2">{leaderboard[1].avatar}</Text>
-                            <View className="bg-gray-200 w-20 rounded-t-xl items-center py-3" style={{ height: 60 }}>
+                            <View 
+                                className="w-20 rounded-t-xl items-center py-3" 
+                                style={{ height: 60, backgroundColor: isDark ? '#374151' : '#E5E7EB' }}
+                            >
                                 <Text className="text-2xl">🥈</Text>
-                                <Text className="text-xs font-bold text-gray-700">
+                                <Text className="text-xs font-bold" style={{ color: colors.textSecondary }}>
                                     {leaderboard[1].value.toLocaleString()}
                                 </Text>
                             </View>
-                            <Text className="text-xs font-medium text-gray-600 mt-1" numberOfLines={1}>
+                            <Text className="text-xs font-medium mt-1" style={{ color: colors.textSecondary }} numberOfLines={1}>
                                 {leaderboard[1].displayName}
                             </Text>
                         </View>
@@ -188,13 +198,16 @@ export default function LeaderboardScreen() {
                         {/* 1st Place */}
                         <View className="items-center mx-2">
                             <Text className="text-5xl mb-2">{leaderboard[0].avatar}</Text>
-                            <View className="bg-yellow-100 w-20 rounded-t-xl items-center py-3" style={{ height: 80 }}>
+                            <View 
+                                className="w-20 rounded-t-xl items-center py-3" 
+                                style={{ height: 80, backgroundColor: isDark ? 'rgba(250, 204, 21, 0.2)' : '#FEF9C3' }}
+                            >
                                 <Text className="text-3xl">🥇</Text>
-                                <Text className="text-sm font-bold text-yellow-700">
+                                <Text className="text-sm font-bold" style={{ color: isDark ? '#FACC15' : '#A16207' }}>
                                     {leaderboard[0].value.toLocaleString()}
                                 </Text>
                             </View>
-                            <Text className="text-xs font-medium text-gray-700 mt-1" numberOfLines={1}>
+                            <Text className="text-xs font-medium mt-1" style={{ color: colors.text }} numberOfLines={1}>
                                 {leaderboard[0].displayName}
                             </Text>
                         </View>
@@ -202,13 +215,16 @@ export default function LeaderboardScreen() {
                         {/* 3rd Place */}
                         <View className="items-center mx-2">
                             <Text className="text-4xl mb-2">{leaderboard[2].avatar}</Text>
-                            <View className="bg-orange-100 w-20 rounded-t-xl items-center py-2" style={{ height: 50 }}>
+                            <View 
+                                className="w-20 rounded-t-xl items-center py-2" 
+                                style={{ height: 50, backgroundColor: isDark ? 'rgba(251, 146, 60, 0.2)' : '#FFEDD5' }}
+                            >
                                 <Text className="text-xl">🥉</Text>
-                                <Text className="text-xs font-bold text-orange-700">
+                                <Text className="text-xs font-bold" style={{ color: isDark ? '#FB923C' : '#C2410C' }}>
                                     {leaderboard[2].value.toLocaleString()}
                                 </Text>
                             </View>
-                            <Text className="text-xs font-medium text-gray-600 mt-1" numberOfLines={1}>
+                            <Text className="text-xs font-medium mt-1" style={{ color: colors.textSecondary }} numberOfLines={1}>
                                 {leaderboard[2].displayName}
                             </Text>
                         </View>
@@ -225,12 +241,15 @@ export default function LeaderboardScreen() {
                 ))}
 
                 {/* Motivation */}
-                <View className="bg-purple-50 rounded-2xl p-4 mt-4">
+                <View 
+                    className="rounded-2xl p-4 mt-4"
+                    style={{ backgroundColor: isDark ? 'rgba(147, 51, 234, 0.15)' : '#FAF5FF' }}
+                >
                     <View className="flex-row items-center">
                         <MaterialCommunityIcons name="lightbulb-on" size={24} color="#9333EA" />
                         <View className="ml-3 flex-1">
-                            <Text className="text-purple-800 font-bold">How to climb the ranks</Text>
-                            <Text className="text-purple-600 text-sm mt-1">
+                            <Text className="font-bold" style={{ color: isDark ? '#C4B5FD' : '#6B21A8' }}>How to climb the ranks</Text>
+                            <Text className="text-sm mt-1" style={{ color: isDark ? '#A78BFA' : '#7C3AED' }}>
                                 Answer questions, share templates, help others, and complete challenges!
                             </Text>
                         </View>

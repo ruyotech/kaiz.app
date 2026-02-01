@@ -11,6 +11,7 @@ import { AttachmentPicker, AttachmentPreview, CommentAttachment } from '../../..
 import { RichTextComment } from '../../../../components/ui/RichTextComment';
 import { AttachmentPreviewModal, AttachmentData } from '../../../../components/ui/AttachmentPreviewModal';
 import { RichTextEditor } from '../../../../components/ui/RichTextEditor';
+import { useThemeContext } from '../../../../providers/ThemeProvider';
 
 type TabType = 'overview' | 'comments' | 'checklist' | 'history';
 
@@ -38,6 +39,7 @@ interface Attachment {
 export default function TaskWorkView() {
     const router = useRouter();
     const { t } = useTranslation();
+    const { colors, isDark } = useThemeContext();
     const { id } = useLocalSearchParams();
     const { epics, fetchEpics } = useEpicStore();
     const { tasks, fetchTasks } = useTaskStore();
@@ -372,8 +374,8 @@ export default function TaskWorkView() {
 
     if (loading || !task) {
         return (
-            <View className="flex-1 items-center justify-center bg-white">
-                <Text>{t('common.loading')}</Text>
+            <View className="flex-1 items-center justify-center" style={{ backgroundColor: colors.background }}>
+                <Text style={{ color: colors.text }}>{t('common.loading')}</Text>
             </View>
         );
     }
@@ -404,7 +406,7 @@ export default function TaskWorkView() {
     const timelineCount = getTimelineCount();
 
     return (
-        <View className="flex-1 bg-gray-50">
+        <View className="flex-1" style={{ backgroundColor: colors.background }}>
             {/* Header with Task Name - Status Based Color */}
             <View style={{ backgroundColor: currentStatus.bgColor }} className="pt-12 pb-4 px-4">
                 <View className="flex-row items-center mb-3">
@@ -453,7 +455,7 @@ export default function TaskWorkView() {
             </View>
 
             {/* Tab Bar */}
-            <View className="bg-white border-b border-gray-200 flex-row">
+            <View className="flex-row" style={{ backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.border }}>
                 {[
                     { id: 'overview', label: t('tasks.tabs.overview'), icon: 'information-outline' },
                     { id: 'comments', label: t('tasks.tabs.comments'), icon: 'comment-outline', badge: (comments.length + attachments.length) > 0 ? (comments.length + attachments.length) : undefined },
@@ -463,25 +465,28 @@ export default function TaskWorkView() {
                     <TouchableOpacity
                         key={tab.id}
                         onPress={() => setActiveTab(tab.id as TabType)}
-                        className={`flex-1 py-3 border-b-2 ${activeTab === tab.id ? 'border-blue-600' : 'border-transparent'
-                            }`}
+                        className="flex-1 py-3"
+                        style={{ borderBottomWidth: 2, borderBottomColor: activeTab === tab.id ? '#3B82F6' : 'transparent' }}
                     >
                         <View className="items-center">
                             <View className="flex-row items-center">
                                 <MaterialCommunityIcons
                                     name={tab.icon as any}
                                     size={18}
-                                    color={activeTab === tab.id ? '#3B82F6' : '#9CA3AF'}
+                                    color={activeTab === tab.id ? '#3B82F6' : colors.textSecondary}
                                 />
                                 {tab.badge && (
-                                    <View className="ml-1 bg-blue-100 px-1.5 py-0.5 rounded-full">
-                                        <Text className="text-xs text-blue-600 font-semibold">{tab.badge}</Text>
+                                    <View className="ml-1 px-1.5 py-0.5 rounded-full" style={{ backgroundColor: isDark ? 'rgba(59, 130, 246, 0.2)' : '#DBEAFE' }}>
+                                        <Text className="text-xs font-semibold" style={{ color: '#3B82F6' }}>{tab.badge}</Text>
                                     </View>
                                 )}
                             </View>
                             <Text
-                                className={`text-xs mt-1 ${activeTab === tab.id ? 'text-blue-600 font-semibold' : 'text-gray-600'
-                                    }`}
+                                className="text-xs mt-1"
+                                style={{ 
+                                    color: activeTab === tab.id ? '#3B82F6' : colors.textSecondary,
+                                    fontWeight: activeTab === tab.id ? '600' : 'normal'
+                                }}
                             >
                                 {tab.label}
                             </Text>
@@ -496,36 +501,36 @@ export default function TaskWorkView() {
                 {activeTab === 'overview' && (
                     <View className="p-4">
                         {/* Task Info Cards */}
-                        <View className="bg-white rounded-xl p-4 mb-3 shadow-sm">
-                            <Text className="text-sm font-semibold text-gray-700 mb-3">{t('tasks.details.taskDetails')}</Text>
+                        <View className="rounded-xl p-4 mb-3" style={{ backgroundColor: colors.card }}>
+                            <Text className="text-sm font-semibold mb-3" style={{ color: colors.textSecondary }}>{t('tasks.details.taskDetails')}</Text>
                             {task.description && (
-                                <View className="mb-4 pb-4 border-b border-gray-100">
-                                    <Text className="text-xs text-gray-500 mb-1.5">{t('tasks.details.description')}</Text>
-                                    <Text className="text-gray-700 leading-5">{task.description}</Text>
+                                <View className="mb-4 pb-4" style={{ borderBottomWidth: 1, borderBottomColor: colors.border }}>
+                                    <Text className="text-xs mb-1.5" style={{ color: colors.textTertiary }}>{t('tasks.details.description')}</Text>
+                                    <Text className="leading-5" style={{ color: colors.textSecondary }}>{task.description}</Text>
                                 </View>
                             )}
                             <View className="flex-row flex-wrap gap-3">
                                 <View className="flex-1 min-w-[45%]">
-                                    <Text className="text-xs text-gray-500 mb-1">{t('tasks.details.storyPoints')}</Text>
+                                    <Text className="text-xs mb-1" style={{ color: colors.textTertiary }}>{t('tasks.details.storyPoints')}</Text>
                                     <View className="flex-row items-center">
-                                        <View className="w-8 h-8 bg-blue-100 rounded-full items-center justify-center mr-2">
-                                            <Text className="text-blue-600 font-bold text-sm">{task.storyPoints}</Text>
+                                        <View className="w-8 h-8 rounded-full items-center justify-center mr-2" style={{ backgroundColor: isDark ? 'rgba(59, 130, 246, 0.2)' : '#DBEAFE' }}>
+                                            <Text className="font-bold text-sm" style={{ color: '#3B82F6' }}>{task.storyPoints}</Text>
                                         </View>
-                                        <Text className="text-gray-600 text-xs">{t('common.points')}</Text>
+                                        <Text className="text-xs" style={{ color: colors.textSecondary }}>{t('common.points')}</Text>
                                     </View>
                                 </View>
                                 <View className="flex-1 min-w-[45%]">
-                                    <Text className="text-xs text-gray-500 mb-1">{t('tasks.details.lifeWheel')}</Text>
-                                    <Text className="text-gray-800 font-medium">{getLifeWheelName()}</Text>
+                                    <Text className="text-xs mb-1" style={{ color: colors.textTertiary }}>{t('tasks.details.lifeWheel')}</Text>
+                                    <Text className="font-medium" style={{ color: colors.text }}>{getLifeWheelName()}</Text>
                                 </View>
                             </View>
                         </View>
 
                         {/* Recurrence Schedule (for recurring tasks) */}
                         {(task.isRecurring || task.recurrence?.frequency) && task.recurrence && (
-                            <View className="bg-white rounded-xl p-4 mb-3 shadow-sm">
-                                <Text className="text-sm font-semibold text-gray-700 mb-3">📅 Recurring Schedule</Text>
-                                <View className="bg-pink-50 rounded-lg p-3 border border-pink-200">
+                            <View className="rounded-xl p-4 mb-3" style={{ backgroundColor: colors.card }}>
+                                <Text className="text-sm font-semibold mb-3" style={{ color: colors.textSecondary }}>📅 Recurring Schedule</Text>
+                                <View className="rounded-lg p-3" style={{ backgroundColor: isDark ? 'rgba(236, 72, 153, 0.15)' : '#FDF2F8', borderWidth: 1, borderColor: isDark ? 'rgba(236, 72, 153, 0.3)' : '#FBCFE8' }}>
                                     <View className="flex-row items-center">
                                         <Text className="text-2xl mr-3">
                                             {task.recurrence.frequency === 'DAILY' ? '📆' :
@@ -557,18 +562,33 @@ export default function TaskWorkView() {
                         )}
 
                         {/* Eisenhower Matrix & Tags */}
-                        <View className="bg-white rounded-xl p-4 mb-3 shadow-sm">
-                            <Text className="text-sm font-semibold text-gray-700 mb-3">{t('tasks.details.priorityTags')}</Text>
+                        <View className="rounded-xl p-4 mb-3" style={{ backgroundColor: colors.card }}>
+                            <Text className="text-sm font-semibold mb-3" style={{ color: colors.textSecondary }}>{t('tasks.details.priorityTags')}</Text>
 
                             {/* Eisenhower Quadrant */}
                             <View className="mb-3">
-                                <Text className="text-xs text-gray-500 mb-2">{t('tasks.details.eisenhowerMatrix')}</Text>
-                                <View className={`px-4 py-2.5 rounded-lg border-2 ${task.eisenhowerQuadrantId === 'eq-1' ? 'bg-red-50 border-red-300' :
-                                    task.eisenhowerQuadrantId === 'eq-2' ? 'bg-blue-50 border-blue-300' :
-                                        task.eisenhowerQuadrantId === 'eq-3' ? 'bg-yellow-50 border-yellow-300' :
-                                            'bg-gray-50 border-gray-300'
-                                    }`}>
-                                    <Text className="font-medium text-gray-800">
+                                <Text className="text-xs mb-2" style={{ color: colors.textTertiary }}>{t('tasks.details.eisenhowerMatrix')}</Text>
+                                <View 
+                                    className="px-4 py-2.5 rounded-lg"
+                                    style={{
+                                        borderWidth: 2,
+                                        backgroundColor: task.eisenhowerQuadrantId === 'eq-1' 
+                                            ? (isDark ? 'rgba(239, 68, 68, 0.15)' : '#FEF2F2')
+                                            : task.eisenhowerQuadrantId === 'eq-2' 
+                                            ? (isDark ? 'rgba(59, 130, 246, 0.15)' : '#EFF6FF')
+                                            : task.eisenhowerQuadrantId === 'eq-3' 
+                                            ? (isDark ? 'rgba(234, 179, 8, 0.15)' : '#FEFCE8')
+                                            : colors.backgroundSecondary,
+                                        borderColor: task.eisenhowerQuadrantId === 'eq-1' 
+                                            ? (isDark ? 'rgba(239, 68, 68, 0.4)' : '#FCA5A5')
+                                            : task.eisenhowerQuadrantId === 'eq-2' 
+                                            ? (isDark ? 'rgba(59, 130, 246, 0.4)' : '#93C5FD')
+                                            : task.eisenhowerQuadrantId === 'eq-3' 
+                                            ? (isDark ? 'rgba(234, 179, 8, 0.4)' : '#FDE047')
+                                            : colors.border,
+                                    }}
+                                >
+                                    <Text className="font-medium" style={{ color: colors.text }}>
                                         {task.eisenhowerQuadrantId === 'eq-1' && `🔴 ${t('calendar.urgentImportant')}`}
                                         {task.eisenhowerQuadrantId === 'eq-2' && `🔵 ${t('calendar.notUrgentImportant')}`}
                                         {task.eisenhowerQuadrantId === 'eq-3' && `🟡 ${t('calendar.urgentNotImportant')}`}
@@ -580,8 +600,11 @@ export default function TaskWorkView() {
                             {/* Sprint & Epic Tags */}
                             <View className="flex-row gap-2 flex-wrap">
                                 {task.sprintId && (
-                                    <View className="bg-purple-100 px-3 py-1.5 rounded-lg border border-purple-200">
-                                        <Text className="text-purple-700 font-medium text-xs">📅 Sprint {task.sprintId}</Text>
+                                    <View 
+                                        className="px-3 py-1.5 rounded-lg"
+                                        style={{ backgroundColor: isDark ? 'rgba(147, 51, 234, 0.15)' : '#F3E8FF', borderWidth: 1, borderColor: isDark ? 'rgba(147, 51, 234, 0.3)' : '#E9D5FF' }}
+                                    >
+                                        <Text className="font-medium text-xs" style={{ color: isDark ? '#C4B5FD' : '#7E22CE' }}>📅 Sprint {task.sprintId}</Text>
                                     </View>
                                 )}
                                 {task.epicId && getTaskEpic() && (
@@ -610,15 +633,21 @@ export default function TaskWorkView() {
                         </View>
 
                         {/* Quick Actions */}
-                        <View className="bg-white rounded-xl p-4 shadow-sm">
-                            <Text className="text-sm font-semibold text-gray-700 mb-3">{t('tasks.details.quickActions')}</Text>
-                            <TouchableOpacity className="bg-gray-100 py-3.5 rounded-lg mb-2 flex-row items-center justify-center">
-                                <MaterialCommunityIcons name="playlist-plus" size={20} color="#4B5563" />
-                                <Text className="text-gray-700 font-semibold ml-2">{t('tasks.details.addRelatedTask')}</Text>
+                        <View className="rounded-xl p-4" style={{ backgroundColor: colors.card }}>
+                            <Text className="text-sm font-semibold mb-3" style={{ color: colors.textSecondary }}>{t('tasks.details.quickActions')}</Text>
+                            <TouchableOpacity 
+                                className="py-3.5 rounded-lg mb-2 flex-row items-center justify-center"
+                                style={{ backgroundColor: colors.backgroundSecondary }}
+                            >
+                                <MaterialCommunityIcons name="playlist-plus" size={20} color={colors.textSecondary} />
+                                <Text className="font-semibold ml-2" style={{ color: colors.textSecondary }}>{t('tasks.details.addRelatedTask')}</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity className="bg-gray-100 py-3.5 rounded-lg flex-row items-center justify-center">
-                                <MaterialCommunityIcons name="link-variant-plus" size={20} color="#4B5563" />
-                                <Text className="text-gray-700 font-semibold ml-2">{t('tasks.details.addRelatedTask')}</Text>
+                            <TouchableOpacity 
+                                className="py-3.5 rounded-lg flex-row items-center justify-center"
+                                style={{ backgroundColor: colors.backgroundSecondary }}
+                            >
+                                <MaterialCommunityIcons name="link-variant-plus" size={20} color={colors.textSecondary} />
+                                <Text className="font-semibold ml-2" style={{ color: colors.textSecondary }}>{t('tasks.details.addRelatedTask')}</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -629,29 +658,29 @@ export default function TaskWorkView() {
                     <View className="p-4">
                         {commentsLoading ? (
                             <View className="items-center py-8">
-                                <Text className="text-gray-500">{t('common.loading')}</Text>
+                                <Text style={{ color: colors.textTertiary }}>{t('common.loading')}</Text>
                             </View>
                         ) : (comments.length === 0 && attachments.length === 0) ? (
-                            <View className="bg-white rounded-lg p-8 items-center mb-4">
-                                <MaterialCommunityIcons name="comment-outline" size={48} color="#D1D5DB" />
-                                <Text className="text-gray-500 mt-3">No activity yet</Text>
-                                <Text className="text-gray-400 text-sm">Comments and attachments will appear here</Text>
+                            <View className="rounded-lg p-8 items-center mb-4" style={{ backgroundColor: colors.card }}>
+                                <MaterialCommunityIcons name="comment-outline" size={48} color={colors.textTertiary} />
+                                <Text className="mt-3" style={{ color: colors.textTertiary }}>No activity yet</Text>
+                                <Text className="text-sm" style={{ color: colors.textTertiary }}>Comments and attachments will appear here</Text>
                             </View>
                         ) : (
                             <>
                                 {/* Show attachments first if any */}
                                 {attachments.length > 0 && (
-                                    <View className="bg-white rounded-lg p-4 mb-3">
+                                    <View className="rounded-lg p-4 mb-3" style={{ backgroundColor: colors.card }}>
                                         <View className="flex-row items-center mb-3">
-                                            <MaterialCommunityIcons name="attachment" size={18} color="#6B7280" />
-                                            <Text className="font-semibold text-gray-700 ml-2">Attachments ({attachments.length})</Text>
+                                            <MaterialCommunityIcons name="attachment" size={18} color={colors.textSecondary} />
+                                            <Text className="font-semibold ml-2" style={{ color: colors.textSecondary }}>Attachments ({attachments.length})</Text>
                                         </View>
                                         <View className="flex-row flex-wrap gap-2">
                                             {attachments.map((attachment, index) => (
                                                 <TouchableOpacity 
                                                     key={attachment.id} 
-                                                    className="bg-gray-50 rounded-lg p-2 flex-row items-center"
-                                                    style={{ maxWidth: '48%' }}
+                                                    className="rounded-lg p-2 flex-row items-center"
+                                                    style={{ maxWidth: '48%', backgroundColor: colors.backgroundSecondary }}
                                                     onPress={() => {
                                                         openAttachmentPreview(
                                                             attachment as AttachmentData,
@@ -667,7 +696,7 @@ export default function TaskWorkView() {
                                                             resizeMode="cover"
                                                         />
                                                     ) : (
-                                                        <View className="w-10 h-10 rounded bg-gray-100 items-center justify-center">
+                                                        <View className="w-10 h-10 rounded items-center justify-center" style={{ backgroundColor: colors.backgroundTertiary }}>
                                                             <MaterialCommunityIcons 
                                                                 name={
                                                                     attachment.fileType?.includes('pdf') ? 'file-pdf-box' :
@@ -675,16 +704,16 @@ export default function TaskWorkView() {
                                                                     'file-document'
                                                                 } 
                                                                 size={20} 
-                                                                color="#6B7280" 
+                                                                color={colors.textTertiary} 
                                                             />
                                                         </View>
                                                     )}
                                                     <View className="flex-1 ml-2">
-                                                        <Text className="text-xs text-gray-800 font-medium" numberOfLines={1}>
+                                                        <Text className="text-xs font-medium" style={{ color: colors.text }} numberOfLines={1}>
                                                             {attachment.filename}
                                                         </Text>
                                                         {attachment.fileSize && (
-                                                            <Text className="text-xs text-gray-500">
+                                                            <Text className="text-xs" style={{ color: colors.textTertiary }}>
                                                                 {(attachment.fileSize / 1024).toFixed(1)} KB
                                                             </Text>
                                                         )}
@@ -697,24 +726,24 @@ export default function TaskWorkView() {
                                 
                                 {/* Show comments */}
                                 {comments.map((comment) => (
-                                    <View key={comment.id} className="bg-white rounded-lg p-4 mb-3">
+                                    <View key={comment.id} className="rounded-lg p-4 mb-3" style={{ backgroundColor: colors.card }}>
                                         <View className="flex-row justify-between items-start mb-2">
                                             <View className="flex-row items-center">
-                                                <Text className="font-semibold text-gray-800">
+                                                <Text className="font-semibold" style={{ color: colors.text }}>
                                                     {(comment as any).userName || 'User'}
                                                 </Text>
                                                 {comment.isAiGenerated && (
-                                                    <View className="ml-2 bg-purple-100 px-2 py-0.5 rounded">
-                                                        <Text className="text-xs text-purple-600">AI</Text>
+                                                    <View className="ml-2 px-2 py-0.5 rounded" style={{ backgroundColor: isDark ? 'rgba(147, 51, 234, 0.2)' : '#F3E8FF' }}>
+                                                        <Text className="text-xs" style={{ color: isDark ? '#C4B5FD' : '#9333EA' }}>AI</Text>
                                                     </View>
                                                 )}
                                             </View>
-                                            <Text className="text-xs text-gray-500">
+                                            <Text className="text-xs" style={{ color: colors.textTertiary }}>
                                                 {formatDate((comment as any).createdAt || comment.timestamp)}
                                             </Text>
                                         </View>
                                         {/* Rich Text Comment with markdown support */}
-                                        <RichTextComment text={comment.commentText} textColor="#4B5563" />
+                                        <RichTextComment text={comment.commentText} textColor={colors.textSecondary} />
                                         
                                         {/* Comment Attachments */}
                                         {(comment as any).attachments && (comment as any).attachments.length > 0 && (
@@ -724,8 +753,8 @@ export default function TaskWorkView() {
                                                     return (
                                                     <TouchableOpacity
                                                         key={attachment.id || index}
-                                                        className="bg-gray-50 rounded-lg p-2 flex-row items-center"
-                                                        style={{ maxWidth: '48%' }}
+                                                        className="rounded-lg p-2 flex-row items-center"
+                                                        style={{ maxWidth: '48%', backgroundColor: colors.backgroundSecondary }}
                                                         onPress={() => {
                                                             openAttachmentPreview(attachment, commentAttachmentsList, index);
                                                         }}
@@ -737,7 +766,7 @@ export default function TaskWorkView() {
                                                                 resizeMode="cover"
                                                             />
                                                         ) : attachment.fileType?.startsWith('audio/') ? (
-                                                            <View className="w-10 h-10 rounded bg-purple-100 items-center justify-center">
+                                                            <View className="w-10 h-10 rounded items-center justify-center" style={{ backgroundColor: isDark ? 'rgba(147, 51, 234, 0.2)' : '#F3E8FF' }}>
                                                                 <MaterialCommunityIcons 
                                                                     name="microphone" 
                                                                     size={20} 
@@ -745,7 +774,7 @@ export default function TaskWorkView() {
                                                                 />
                                                             </View>
                                                         ) : (
-                                                            <View className="w-10 h-10 rounded bg-gray-100 items-center justify-center">
+                                                            <View className="w-10 h-10 rounded items-center justify-center" style={{ backgroundColor: colors.backgroundSecondary }}>
                                                                 <MaterialCommunityIcons 
                                                                     name={
                                                                         attachment.fileType?.includes('pdf') ? 'file-pdf-box' :
@@ -753,16 +782,16 @@ export default function TaskWorkView() {
                                                                         'file-document'
                                                                     } 
                                                                     size={20} 
-                                                                    color="#6B7280" 
+                                                                    color={colors.textTertiary} 
                                                                 />
                                                             </View>
                                                         )}
                                                         <View className="flex-1 ml-2">
-                                                            <Text className="text-xs text-gray-800 font-medium" numberOfLines={1}>
+                                                            <Text className="text-xs font-medium" style={{ color: colors.text }} numberOfLines={1}>
                                                                 {attachment.filename}
                                                             </Text>
                                                             {attachment.fileSize && (
-                                                                <Text className="text-xs text-gray-500">
+                                                                <Text className="text-xs" style={{ color: colors.textTertiary }}>
                                                                     {(attachment.fileSize / 1024).toFixed(1)} KB
                                                                 </Text>
                                                             )}
@@ -778,8 +807,8 @@ export default function TaskWorkView() {
                         )}
 
                         {/* Rich Text Comment Editor */}
-                        <View className="bg-white rounded-xl p-4 shadow-sm">
-                            <Text className="text-sm font-semibold text-gray-700 mb-3">Add Comment</Text>
+                        <View className="rounded-xl p-4" style={{ backgroundColor: colors.card }}>
+                            <Text className="text-sm font-semibold mb-3" style={{ color: colors.textSecondary }}>Add Comment</Text>
                             
                             <RichTextEditor
                                 value={newComment}
@@ -805,10 +834,11 @@ export default function TaskWorkView() {
                                 {/* Attachment Button */}
                                 <TouchableOpacity
                                     onPress={() => setShowAttachmentPicker(true)}
-                                    className="flex-1 flex-row items-center justify-center bg-gray-100 py-3 rounded-lg"
+                                    className="flex-1 flex-row items-center justify-center py-3 rounded-lg"
+                                    style={{ backgroundColor: colors.backgroundSecondary }}
                                 >
-                                    <MaterialCommunityIcons name="attachment" size={20} color="#6B7280" />
-                                    <Text className="text-gray-700 text-sm font-medium ml-2">
+                                    <MaterialCommunityIcons name="attachment" size={20} color={colors.textSecondary} />
+                                    <Text className="text-sm font-medium ml-2" style={{ color: colors.textSecondary }}>
                                         Attach
                                     </Text>
                                     {commentAttachments.length > 0 && (
@@ -842,20 +872,29 @@ export default function TaskWorkView() {
                 {
                     activeTab === 'checklist' && (
                         <View className="p-4">
-                            <View className="bg-white rounded-lg overflow-hidden mb-3">
+                            <View className="rounded-lg overflow-hidden mb-3" style={{ backgroundColor: colors.card }}>
                                 {checklist.map((item) => (
                                     <TouchableOpacity
                                         key={item.id}
                                         onPress={() => toggleChecklistItem(item.id)}
-                                        className="flex-row items-center p-4 border-b border-gray-100"
+                                        className="flex-row items-center p-4"
+                                        style={{ borderBottomWidth: 1, borderBottomColor: colors.border }}
                                     >
-                                        <View className={`w-6 h-6 rounded border-2 items-center justify-center mr-3 ${item.completed ? 'bg-blue-600 border-blue-600' : 'border-gray-300'
-                                            }`}>
+                                        <View className="w-6 h-6 rounded items-center justify-center mr-3"
+                                            style={{
+                                                borderWidth: 2,
+                                                backgroundColor: item.completed ? '#3B82F6' : 'transparent',
+                                                borderColor: item.completed ? '#3B82F6' : colors.border
+                                            }}
+                                        >
                                             {item.completed && (
                                                 <MaterialCommunityIcons name="check" size={16} color="white" />
                                             )}
                                         </View>
-                                        <Text className={`flex-1 ${item.completed ? 'text-gray-400 line-through' : 'text-gray-800'}`}>
+                                        <Text className="flex-1" style={{ 
+                                            color: item.completed ? colors.textTertiary : colors.text,
+                                            textDecorationLine: item.completed ? 'line-through' : 'none'
+                                        }}>
                                             {item.text}
                                         </Text>
                                     </TouchableOpacity>
@@ -863,40 +902,45 @@ export default function TaskWorkView() {
                             </View>
 
                             {showAddChecklist ? (
-                                <View className="bg-white rounded-lg p-4">
+                                <View className="rounded-lg p-4" style={{ backgroundColor: colors.card }}>
                                     <TextInput
                                         value={newChecklistItem}
                                         onChangeText={setNewChecklistItem}
                                         placeholder="Enter checklist item..."
-                                        className="border border-gray-300 rounded-lg px-3 py-2 mb-3"
+                                        placeholderTextColor={colors.placeholder}
+                                        className="rounded-lg px-3 py-2 mb-3"
+                                        style={{ borderWidth: 1, borderColor: colors.border, color: colors.text, backgroundColor: colors.inputBackground }}
                                         autoFocus
                                     />
                                     <View className="flex-row gap-2">
                                         <TouchableOpacity
                                             onPress={handleAddChecklistItem}
                                             disabled={!newChecklistItem.trim()}
-                                            className={`flex-1 py-3 rounded-lg ${newChecklistItem.trim() ? 'bg-blue-600' : 'bg-gray-300'}`}
+                                            className="flex-1 py-3 rounded-lg"
+                                            style={{ backgroundColor: newChecklistItem.trim() ? '#3B82F6' : colors.backgroundSecondary }}
                                         >
-                                            <Text className="text-white text-center font-semibold">{t('common.add')}</Text>
+                                            <Text className="text-center font-semibold" style={{ color: newChecklistItem.trim() ? '#FFFFFF' : colors.textTertiary }}>{t('common.add')}</Text>
                                         </TouchableOpacity>
                                         <TouchableOpacity
                                             onPress={() => {
                                                 setShowAddChecklist(false);
                                                 setNewChecklistItem('');
                                             }}
-                                            className="flex-1 py-3 rounded-lg bg-gray-100"
+                                            className="flex-1 py-3 rounded-lg"
+                                            style={{ backgroundColor: colors.backgroundSecondary }}
                                         >
-                                            <Text className="text-gray-700 text-center font-semibold">{t('common.cancel')}</Text>
+                                            <Text className="text-center font-semibold" style={{ color: colors.textSecondary }}>{t('common.cancel')}</Text>
                                         </TouchableOpacity>
                                     </View>
                                 </View>
                             ) : (
                                 <TouchableOpacity
                                     onPress={() => setShowAddChecklist(true)}
-                                    className="bg-white rounded-lg p-4 flex-row items-center justify-center"
+                                    className="rounded-lg p-4 flex-row items-center justify-center"
+                                    style={{ backgroundColor: colors.card }}
                                 >
                                     <MaterialCommunityIcons name="plus-circle-outline" size={20} color="#3B82F6" />
-                                    <Text className="text-blue-600 font-semibold ml-2">{t('tasks.details.addChecklistItem')}</Text>
+                                    <Text className="font-semibold ml-2" style={{ color: '#3B82F6' }}>{t('tasks.details.addChecklistItem')}</Text>
                                 </TouchableOpacity>
                             )}
                         </View>
@@ -909,7 +953,7 @@ export default function TaskWorkView() {
                         <View className="p-4">
                             {historyLoading ? (
                                 <View className="items-center py-8">
-                                    <Text className="text-gray-500">{t('common.loading')}</Text>
+                                    <Text style={{ color: colors.textTertiary }}>{t('common.loading')}</Text>
                                 </View>
                             ) : (() => {
                                 // Build unified timeline
@@ -949,7 +993,7 @@ export default function TaskWorkView() {
                                             timestamp: createdDate,
                                             icon: 'plus-circle',
                                             iconColor: '#10B981',
-                                            bgColor: 'bg-green-100',
+                                            bgColor: isDark ? 'rgba(16, 185, 129, 0.2)' : '#D1FAE5',
                                         });
                                     }
                                 }
@@ -973,24 +1017,24 @@ export default function TaskWorkView() {
                                     // Determine icon and colors based on action type
                                     let icon = 'pencil';
                                     let iconColor = '#3B82F6';
-                                    let bgColor = 'bg-blue-100';
+                                    let bgColor = isDark ? 'rgba(59, 130, 246, 0.2)' : '#DBEAFE';
                                     
                                     if (isCreation) {
                                         icon = 'plus-circle';
                                         iconColor = '#10B981';
-                                        bgColor = 'bg-green-100';
+                                        bgColor = isDark ? 'rgba(16, 185, 129, 0.2)' : '#D1FAE5';
                                     } else if (isSprint) {
                                         icon = 'calendar-arrow-right';
                                         iconColor = '#8B5CF6';
-                                        bgColor = 'bg-purple-100';
+                                        bgColor = isDark ? 'rgba(139, 92, 246, 0.2)' : '#EDE9FE';
                                     } else if (isComment) {
                                         icon = 'comment-text';
                                         iconColor = '#F59E0B';
-                                        bgColor = 'bg-yellow-100';
+                                        bgColor = isDark ? 'rgba(245, 158, 11, 0.2)' : '#FEF3C7';
                                     } else if (isAttachment) {
                                         icon = 'attachment';
                                         iconColor = '#EC4899';
-                                        bgColor = 'bg-pink-100';
+                                        bgColor = isDark ? 'rgba(236, 72, 153, 0.2)' : '#FCE7F3';
                                     }
                                     
                                     timeline.push({
@@ -1011,18 +1055,18 @@ export default function TaskWorkView() {
                                 
                                 if (timeline.length === 0) {
                                     return (
-                                        <View className="bg-white rounded-lg p-8 items-center">
-                                            <MaterialCommunityIcons name="history" size={48} color="#D1D5DB" />
-                                            <Text className="text-gray-500 mt-3">No history yet</Text>
-                                            <Text className="text-gray-400 text-sm">Task changes will appear here</Text>
+                                        <View className="rounded-lg p-8 items-center" style={{ backgroundColor: colors.card }}>
+                                            <MaterialCommunityIcons name="history" size={48} color={colors.textTertiary} />
+                                            <Text className="mt-3" style={{ color: colors.textTertiary }}>No history yet</Text>
+                                            <Text className="text-sm" style={{ color: colors.textTertiary }}>Task changes will appear here</Text>
                                         </View>
                                     );
                                 }
                                 
                                 return timeline.map((entry, index) => (
-                                    <View key={entry.id} className="bg-white rounded-lg p-4 mb-3">
+                                    <View key={entry.id} className="rounded-lg p-4 mb-3" style={{ backgroundColor: colors.card }}>
                                         <View className="flex-row items-start">
-                                            <View className={`w-8 h-8 rounded-full items-center justify-center mr-3 ${entry.bgColor}`}>
+                                            <View className="w-8 h-8 rounded-full items-center justify-center mr-3" style={{ backgroundColor: entry.bgColor }}>
                                                 <MaterialCommunityIcons 
                                                     name={entry.icon as any} 
                                                     size={18} 
@@ -1031,18 +1075,18 @@ export default function TaskWorkView() {
                                             </View>
                                             <View className="flex-1">
                                                 <View className="flex-row justify-between items-start mb-1">
-                                                    <Text className="font-semibold text-gray-800">
+                                                    <Text className="font-semibold" style={{ color: colors.text }}>
                                                         {entry.userName}
                                                     </Text>
-                                                    <Text className="text-xs text-gray-500">
+                                                    <Text className="text-xs" style={{ color: colors.textTertiary }}>
                                                         {entry.timestamp.toLocaleString()}
                                                     </Text>
                                                 </View>
-                                                <Text className="text-sm text-gray-600 mb-1">
+                                                <Text className="text-sm mb-1" style={{ color: colors.textSecondary }}>
                                                     {entry.action}
                                                 </Text>
                                                 {entry.detail && (
-                                                    <Text className="text-sm text-gray-500">
+                                                    <Text className="text-sm" style={{ color: colors.textTertiary }}>
                                                         {entry.detail}
                                                     </Text>
                                                 )}
@@ -1050,7 +1094,7 @@ export default function TaskWorkView() {
                                         </View>
                                         {/* Timeline connector line */}
                                         {index < timeline.length - 1 && (
-                                            <View className="absolute left-8 top-14 bottom-0 w-0.5 bg-gray-200" style={{ height: 20 }} />
+                                            <View className="absolute left-8 top-14 bottom-0 w-0.5" style={{ height: 20, backgroundColor: colors.border }} />
                                         )}
                                     </View>
                                 ));
@@ -1063,15 +1107,16 @@ export default function TaskWorkView() {
             {/* Quick Status Change Modal */}
             < Modal visible={showStatusMenu} transparent animationType="slide" >
                 <Pressable
-                    className="flex-1 bg-black/50 justify-end"
+                    className="flex-1 justify-end"
+                    style={{ backgroundColor: colors.overlay }}
                     onPress={() => setShowStatusMenu(false)}
                 >
                     <Pressable>
-                        <View className="bg-white rounded-t-3xl pt-4 pb-8 px-4">
+                        <View className="rounded-t-3xl pt-4 pb-8 px-4" style={{ backgroundColor: colors.card }}>
                             <View className="flex-row justify-between items-center mb-4">
-                                <Text className="text-lg font-bold">{t('tasks.details.changeStatus')}</Text>
+                                <Text className="text-lg font-bold" style={{ color: colors.text }}>{t('tasks.details.changeStatus')}</Text>
                                 <TouchableOpacity onPress={() => setShowStatusMenu(false)}>
-                                    <MaterialCommunityIcons name="close" size={24} color="#000" />
+                                    <MaterialCommunityIcons name="close" size={24} color={colors.text} />
                                 </TouchableOpacity>
                             </View>
 
@@ -1079,16 +1124,21 @@ export default function TaskWorkView() {
                                 <TouchableOpacity
                                     key={option.value}
                                     onPress={() => handleStatusChange(option.value)}
-                                    className={`flex-row items-center p-4 rounded-lg mb-2 ${task.status === option.value ? 'bg-blue-50 border-2 border-blue-600' : 'bg-gray-50'
-                                        }`}
+                                    className="flex-row items-center p-4 rounded-lg mb-2"
+                                    style={{
+                                        backgroundColor: task.status === option.value 
+                                            ? (isDark ? 'rgba(59, 130, 246, 0.15)' : '#EFF6FF') 
+                                            : colors.backgroundSecondary,
+                                        borderWidth: task.status === option.value ? 2 : 0,
+                                        borderColor: task.status === option.value ? '#3B82F6' : 'transparent'
+                                    }}
                                 >
                                     <MaterialCommunityIcons
                                         name={option.icon as any}
                                         size={24}
                                         color={option.color}
                                     />
-                                    <Text className={`ml-3 text-base font-medium ${task.status === option.value ? 'text-blue-600' : 'text-gray-800'
-                                        }`}>
+                                    <Text className="ml-3 text-base font-medium" style={{ color: task.status === option.value ? '#3B82F6' : colors.text }}>
                                         {option.label}
                                     </Text>
                                     {task.status === option.value && (
@@ -1096,7 +1146,7 @@ export default function TaskWorkView() {
                                             name="check"
                                             size={20}
                                             color="#3B82F6"
-                                            className="ml-auto"
+                                            style={{ marginLeft: 'auto' }}
                                         />
                                     )}
                                 </TouchableOpacity>

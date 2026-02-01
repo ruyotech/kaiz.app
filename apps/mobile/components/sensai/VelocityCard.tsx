@@ -9,6 +9,7 @@ import { View, Text, Dimensions } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { VelocityMetrics } from '../../types/sensai.types';
 import { useTranslation } from '../../hooks';
+import { useThemeContext } from '../../providers/ThemeProvider';
 
 interface VelocityCardProps {
     metrics: VelocityMetrics;
@@ -17,6 +18,7 @@ interface VelocityCardProps {
 
 export function VelocityCard({ metrics, showChart = true }: VelocityCardProps) {
     const { t } = useTranslation();
+    const { colors, isDark } = useThemeContext();
     
     const TREND_CONFIG = {
         up: {
@@ -50,16 +52,19 @@ export function VelocityCard({ metrics, showChart = true }: VelocityCardProps) {
     const chartHeight = 80;
 
     return (
-        <View className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+        <View 
+            className="rounded-2xl p-4 shadow-sm"
+            style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
+        >
             {/* Header */}
             <View className="flex-row items-center justify-between mb-4">
                 <View>
-                    <Text className="text-sm text-gray-500">{t('sensai.velocity.yourVelocity')}</Text>
+                    <Text className="text-sm" style={{ color: colors.textSecondary }}>{t('sensai.velocity.yourVelocity')}</Text>
                     <View className="flex-row items-baseline">
-                        <Text className="text-3xl font-bold text-gray-900">
+                        <Text className="text-3xl font-bold" style={{ color: colors.text }}>
                             {metrics.currentVelocity}
                         </Text>
-                        <Text className="text-sm text-gray-500 ml-1">{t('sensai.velocity.ptsPerSprint')}</Text>
+                        <Text className="text-sm ml-1" style={{ color: colors.textSecondary }}>{t('sensai.velocity.ptsPerSprint')}</Text>
                     </View>
                 </View>
                 
@@ -82,20 +87,26 @@ export function VelocityCard({ metrics, showChart = true }: VelocityCardProps) {
 
             {/* Stats Row */}
             <View className="flex-row mb-4">
-                <View className="flex-1 bg-blue-50 rounded-xl p-3 mr-2">
-                    <Text className="text-xs text-blue-600">{t('sensai.velocity.average')}</Text>
-                    <Text className="text-lg font-bold text-blue-900">{metrics.averageVelocity} {t('common.pts')}</Text>
+                <View 
+                    className="flex-1 rounded-xl p-3 mr-2"
+                    style={{ backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : '#EFF6FF' }}
+                >
+                    <Text className="text-xs" style={{ color: isDark ? '#60A5FA' : '#2563EB' }}>{t('sensai.velocity.average')}</Text>
+                    <Text className="text-lg font-bold" style={{ color: isDark ? '#93C5FD' : '#1E40AF' }}>{metrics.averageVelocity} {t('common.pts')}</Text>
                 </View>
-                <View className="flex-1 bg-green-50 rounded-xl p-3 ml-2">
-                    <Text className="text-xs text-green-600">{t('sensai.velocity.personalBest')}</Text>
-                    <Text className="text-lg font-bold text-green-900">{metrics.personalBest} {t('common.pts')}</Text>
+                <View 
+                    className="flex-1 rounded-xl p-3 ml-2"
+                    style={{ backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5' }}
+                >
+                    <Text className="text-xs" style={{ color: isDark ? '#34D399' : '#059669' }}>{t('sensai.velocity.personalBest')}</Text>
+                    <Text className="text-lg font-bold" style={{ color: isDark ? '#6EE7B7' : '#065F46' }}>{metrics.personalBest} {t('common.pts')}</Text>
                 </View>
             </View>
 
             {/* Mini Chart */}
             {showChart && velocityHistory.length > 0 && (
                 <View className="mt-2">
-                    <Text className="text-xs text-gray-500 mb-2">{t('sensai.velocity.lastSprints', { count: velocityHistory.length })}</Text>
+                    <Text className="text-xs mb-2" style={{ color: colors.textSecondary }}>{t('sensai.velocity.lastSprints', { count: velocityHistory.length })}</Text>
                     <View className="flex-row items-end justify-between" style={{ height: chartHeight }}>
                         {velocityHistory.slice(-8).map((sprint, index) => {
                             const height = (sprint.completedPoints / maxVelocity) * chartHeight;
@@ -104,10 +115,13 @@ export function VelocityCard({ metrics, showChart = true }: VelocityCardProps) {
                             return (
                                 <View key={sprint.sprintId} className="items-center flex-1 mx-0.5">
                                     <View 
-                                        className={`w-full rounded-t-md ${isLatest ? 'bg-blue-500' : 'bg-gray-300'}`}
-                                        style={{ height: Math.max(height, 4) }}
+                                        className="w-full rounded-t-md"
+                                        style={{ 
+                                            height: Math.max(height, 4),
+                                            backgroundColor: isLatest ? colors.primary : (isDark ? '#4B5563' : '#D1D5DB')
+                                        }}
                                     />
-                                    <Text className="text-[10px] text-gray-400 mt-1">
+                                    <Text className="text-[10px] mt-1" style={{ color: colors.textTertiary }}>
                                         {t('sensai.velocity.weekPrefix')}{sprint.weekNumber}
                                     </Text>
                                 </View>
@@ -118,18 +132,18 @@ export function VelocityCard({ metrics, showChart = true }: VelocityCardProps) {
             )}
 
             {/* Capacity Indicator */}
-            <View className="mt-4 pt-4 border-t border-gray-100">
+            <View className="mt-4 pt-4" style={{ borderTopWidth: 1, borderTopColor: colors.border }}>
                 <View className="flex-row items-center justify-between">
                     <View className="flex-row items-center">
-                        <MaterialCommunityIcons name="gauge" size={18} color="#6B7280" />
-                        <Text className="text-sm text-gray-600 ml-2">{t('sensai.velocity.projectedCapacity')}</Text>
+                        <MaterialCommunityIcons name="gauge" size={18} color={colors.textSecondary} />
+                        <Text className="text-sm ml-2" style={{ color: colors.textSecondary }}>{t('sensai.velocity.projectedCapacity')}</Text>
                     </View>
-                    <Text className="text-sm font-semibold text-gray-900">
+                    <Text className="text-sm font-semibold" style={{ color: colors.text }}>
                         {metrics.projectedCapacity} {t('common.pts')}
                     </Text>
                 </View>
                 {metrics.projectedCapacity < metrics.currentVelocity && (
-                    <Text className="text-xs text-amber-600 mt-1">
+                    <Text className="text-xs mt-1" style={{ color: colors.warning }}>
                         ⚠️ {t('sensai.velocity.reducedCapacity')}
                     </Text>
                 )}
