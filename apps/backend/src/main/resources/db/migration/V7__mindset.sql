@@ -1,8 +1,11 @@
 -- ============================================================================
--- V7: Mindset Module (Motivational Content)
+-- V7: Mindset Module
+-- Motivational Content, Themes
 -- ============================================================================
 
--- Mindset Themes
+-- ============================================================================
+-- MINDSET THEMES
+-- ============================================================================
 CREATE TABLE mindset_themes (
     id UUID PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
@@ -16,7 +19,9 @@ CREATE TABLE mindset_themes (
     updated_by VARCHAR(36)
 );
 
--- Theme Gradient Colors
+-- ============================================================================
+-- THEME GRADIENT COLORS
+-- ============================================================================
 CREATE TABLE mindset_theme_gradient_colors (
     mindset_theme_id UUID NOT NULL REFERENCES mindset_themes(id) ON DELETE CASCADE,
     color VARCHAR(20) NOT NULL,
@@ -24,7 +29,9 @@ CREATE TABLE mindset_theme_gradient_colors (
     PRIMARY KEY (mindset_theme_id, sort_order)
 );
 
--- Mindset Content
+-- ============================================================================
+-- MINDSET CONTENTS
+-- ============================================================================
 CREATE TABLE mindset_contents (
     id UUID PRIMARY KEY,
     body TEXT NOT NULL,
@@ -45,13 +52,17 @@ CREATE TABLE mindset_contents (
 CREATE INDEX idx_mindset_contents_dimension_tag ON mindset_contents(dimension_tag);
 CREATE INDEX idx_mindset_contents_emotional_tone ON mindset_contents(emotional_tone);
 
--- Content Tags
+-- ============================================================================
+-- CONTENT TAGS
+-- ============================================================================
 CREATE TABLE mindset_content_tags (
     mindset_content_id UUID NOT NULL REFERENCES mindset_contents(id) ON DELETE CASCADE,
     tag VARCHAR(100) NOT NULL
 );
 
--- Seed Themes
+-- ============================================================================
+-- SEED THEMES
+-- ============================================================================
 INSERT INTO mindset_themes (id, name, background_color, text_color, accent_color, default_asset) VALUES
 ('11111111-1111-1111-1111-111111111101'::UUID, 'dark', '#0a0a0a', '#ffffff', '#8B5CF6', 'https://images.unsplash.com/photo-1534796636912-3b95b3ab5986?w=800'),
 ('11111111-1111-1111-1111-111111111102'::UUID, 'nature', '#1a2f1a', '#e8f5e9', '#66BB6A', 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800'),
@@ -61,7 +72,9 @@ INSERT INTO mindset_themes (id, name, background_color, text_color, accent_color
 ('11111111-1111-1111-1111-111111111106'::UUID, 'gradient-purple', '#1e1b4b', '#e9d5ff', '#a855f7', 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=800'),
 ('11111111-1111-1111-1111-111111111107'::UUID, 'gradient-sunset', '#1c1917', '#fef3c7', '#f97316', 'https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?w=800');
 
--- Seed Theme Gradients
+-- ============================================================================
+-- SEED THEME GRADIENTS
+-- ============================================================================
 INSERT INTO mindset_theme_gradient_colors (mindset_theme_id, color, sort_order) VALUES
 ('11111111-1111-1111-1111-111111111101'::UUID, '#1a1a2e', 0),
 ('11111111-1111-1111-1111-111111111101'::UUID, '#16213e', 1),
@@ -70,7 +83,9 @@ INSERT INTO mindset_theme_gradient_colors (mindset_theme_id, color, sort_order) 
 ('11111111-1111-1111-1111-111111111106'::UUID, '#1e1b4b', 0),
 ('11111111-1111-1111-1111-111111111106'::UUID, '#312e81', 1);
 
--- Seed Content
+-- ============================================================================
+-- SEED CONTENT
+-- ============================================================================
 INSERT INTO mindset_contents (id, body, author, dimension_tag, theme_preset, intervention_weight, emotional_tone, dwell_time_ms) VALUES
 ('22222222-2222-2222-2222-222222222201'::UUID, 'The only way to do great work is to love what you do.', 'Steve Jobs', 'lw-2', 'dark', 85, 'MOTIVATIONAL', 5000),
 ('22222222-2222-2222-2222-222222222202'::UUID, 'Success is not final, failure is not fatal: it is the courage to continue that counts.', 'Winston Churchill', 'lw-4', 'gradient-purple', 90, 'MOTIVATIONAL', 6000),

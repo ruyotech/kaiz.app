@@ -27,10 +27,9 @@ spring:
   # Flyway Migration
   flyway:
     enabled: true
-    baseline-on-migrate: true
+    baseline-on-migrate: false
     locations: classpath:db/migration
     clean-disabled: true
-    repair-on-migrate: true
 
   # Jackson Configuration
   jackson:

@@ -1,8 +1,12 @@
 -- ============================================================================
 -- V9: Community Module
+-- Members, Badges, Articles, Questions, Answers, Stories, Partners,
+-- Templates, Groups, Polls, Weekly Challenges, Feature Requests
 -- ============================================================================
 
--- Community Members
+-- ============================================================================
+-- COMMUNITY MEMBERS
+-- ============================================================================
 CREATE TABLE community_members (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL UNIQUE REFERENCES users(id),
@@ -27,14 +31,18 @@ CREATE TABLE community_members (
     CONSTRAINT valid_role CHECK (role IN ('MEMBER', 'CONTRIBUTOR', 'MENTOR', 'MODERATOR', 'ADMIN'))
 );
 
--- Member Badges
+-- ============================================================================
+-- MEMBER BADGES
+-- ============================================================================
 CREATE TABLE community_member_badges (
     member_id UUID NOT NULL REFERENCES community_members(id) ON DELETE CASCADE,
     badge_type VARCHAR(50) NOT NULL,
     PRIMARY KEY (member_id, badge_type)
 );
 
--- Badge Definitions
+-- ============================================================================
+-- BADGE DEFINITIONS
+-- ============================================================================
 CREATE TABLE community_badges (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     badge_type VARCHAR(50) NOT NULL UNIQUE,
@@ -50,7 +58,9 @@ CREATE TABLE community_badges (
     CONSTRAINT valid_rarity CHECK (rarity IN ('COMMON', 'RARE', 'EPIC', 'LEGENDARY'))
 );
 
--- Articles
+-- ============================================================================
+-- ARTICLES
+-- ============================================================================
 CREATE TABLE community_articles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title VARCHAR(200) NOT NULL,
@@ -89,7 +99,9 @@ CREATE TABLE article_bookmarks (
     PRIMARY KEY (article_id, member_id)
 );
 
--- Questions (Q&A)
+-- ============================================================================
+-- QUESTIONS (Q&A)
+-- ============================================================================
 CREATE TABLE community_questions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title VARCHAR(300) NOT NULL,
@@ -118,7 +130,9 @@ CREATE TABLE question_upvotes (
     PRIMARY KEY (question_id, member_id)
 );
 
--- Answers
+-- ============================================================================
+-- ANSWERS
+-- ============================================================================
 CREATE TABLE community_answers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     question_id UUID NOT NULL REFERENCES community_questions(id) ON DELETE CASCADE,
@@ -139,7 +153,9 @@ CREATE TABLE answer_upvotes (
     PRIMARY KEY (answer_id, member_id)
 );
 
--- Success Stories
+-- ============================================================================
+-- SUCCESS STORIES
+-- ============================================================================
 CREATE TABLE community_stories (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     author_id UUID NOT NULL REFERENCES community_members(id),
@@ -148,24 +164,12 @@ CREATE TABLE community_stories (
     category VARCHAR(50) NOT NULL DEFAULT 'OTHER',
     life_wheel_area_id VARCHAR(50),
     like_count INTEGER DEFAULT 0,
-    comment_count INTEGER DEFAULT 0,
-    celebrate_count INTEGER DEFAULT 0,
+    is_featured BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     created_by VARCHAR(36),
     updated_by VARCHAR(36),
-    CONSTRAINT valid_story_category CHECK (category IN ('SPRINT_COMPLETE', 'CHALLENGE_DONE', 'HABIT_STREAK', 'MILESTONE', 'TRANSFORMATION', 'OTHER'))
-);
-
-CREATE TABLE story_image_urls (
-    story_id UUID NOT NULL REFERENCES community_stories(id) ON DELETE CASCADE,
-    image_url VARCHAR(500) NOT NULL
-);
-
-CREATE TABLE story_metrics (
-    story_id UUID NOT NULL REFERENCES community_stories(id) ON DELETE CASCADE,
-    metric_label VARCHAR(100),
-    metric_value VARCHAR(100)
+    CONSTRAINT valid_story_category CHECK (category IN ('HABIT', 'MILESTONE', 'TRANSFORMATION', 'LEARNING', 'OTHER'))
 );
 
 CREATE TABLE story_likes (
@@ -174,29 +178,14 @@ CREATE TABLE story_likes (
     PRIMARY KEY (story_id, member_id)
 );
 
-CREATE TABLE story_celebrates (
-    story_id UUID NOT NULL REFERENCES community_stories(id) ON DELETE CASCADE,
-    member_id UUID NOT NULL,
-    PRIMARY KEY (story_id, member_id)
-);
-
--- Story Comments
-CREATE TABLE community_story_comments (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    story_id UUID NOT NULL REFERENCES community_stories(id) ON DELETE CASCADE,
-    author_id UUID NOT NULL REFERENCES community_members(id),
-    text TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    created_by VARCHAR(36),
-    updated_by VARCHAR(36)
-);
-
--- Accountability Partners
+-- ============================================================================
+-- ACCOUNTABILITY PARTNERS
+-- ============================================================================
 CREATE TABLE community_partners (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    member_id UUID NOT NULL REFERENCES community_members(id) ON DELETE CASCADE,
-    partner_id UUID NOT NULL REFERENCES community_members(id) ON DELETE CASCADE,
+    member1_id UUID NOT NULL REFERENCES community_members(id) ON DELETE CASCADE,
+    member2_id UUID NOT NULL REFERENCES community_members(id) ON DELETE CASCADE,
+    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
     connected_since TIMESTAMP WITH TIME ZONE NOT NULL,
     last_interaction TIMESTAMP WITH TIME ZONE,
     check_in_streak INTEGER DEFAULT 0,
@@ -211,7 +200,9 @@ CREATE TABLE partner_shared_challenges (
     challenge_id UUID NOT NULL
 );
 
--- Partner Requests
+-- ============================================================================
+-- PARTNER REQUESTS
+-- ============================================================================
 CREATE TABLE community_partner_requests (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     from_member_id UUID NOT NULL REFERENCES community_members(id) ON DELETE CASCADE,
@@ -225,7 +216,9 @@ CREATE TABLE community_partner_requests (
     CONSTRAINT valid_partner_request_status CHECK (status IN ('PENDING', 'ACCEPTED', 'DECLINED'))
 );
 
--- Templates
+-- ============================================================================
+-- COMMUNITY TEMPLATES
+-- ============================================================================
 CREATE TABLE community_templates (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(200) NOT NULL,
@@ -258,7 +251,9 @@ CREATE TABLE template_bookmarks (
     PRIMARY KEY (template_id, member_id)
 );
 
--- Motivation Groups
+-- ============================================================================
+-- MOTIVATION GROUPS
+-- ============================================================================
 CREATE TABLE community_groups (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(200) NOT NULL,
@@ -286,7 +281,9 @@ CREATE TABLE group_members (
     PRIMARY KEY (group_id, member_id)
 );
 
--- Polls
+-- ============================================================================
+-- POLLS
+-- ============================================================================
 CREATE TABLE community_polls (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     question VARCHAR(500) NOT NULL,
@@ -315,7 +312,9 @@ CREATE TABLE poll_votes (
     PRIMARY KEY (poll_id, member_id)
 );
 
--- Weekly Challenges
+-- ============================================================================
+-- WEEKLY CHALLENGES
+-- ============================================================================
 CREATE TABLE community_weekly_challenges (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title VARCHAR(200) NOT NULL,
@@ -345,16 +344,17 @@ CREATE TABLE weekly_challenge_completions (
     PRIMARY KEY (challenge_id, member_id)
 );
 
--- Feature Requests
+-- ============================================================================
+-- FEATURE REQUESTS
+-- ============================================================================
 CREATE TABLE community_feature_requests (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title VARCHAR(200) NOT NULL,
-    description TEXT NOT NULL,
+    description VARCHAR(2000) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'SUBMITTED',
     author_id UUID NOT NULL REFERENCES community_members(id),
-    status VARCHAR(30) NOT NULL DEFAULT 'SUBMITTED',
     upvote_count INTEGER DEFAULT 0,
     comment_count INTEGER DEFAULT 0,
-    official_response TEXT,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     created_by VARCHAR(36),
@@ -368,87 +368,37 @@ CREATE TABLE feature_request_upvotes (
     PRIMARY KEY (request_id, member_id)
 );
 
--- Kudos
-CREATE TABLE community_kudos (
+CREATE TABLE feature_request_comments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    from_member_id UUID NOT NULL REFERENCES community_members(id),
-    to_member_id UUID NOT NULL REFERENCES community_members(id),
-    message VARCHAR(300) NOT NULL,
-    reason VARCHAR(100),
-    is_public BOOLEAN DEFAULT TRUE,
+    request_id UUID NOT NULL REFERENCES community_feature_requests(id) ON DELETE CASCADE,
+    author_id UUID NOT NULL REFERENCES community_members(id),
+    body TEXT NOT NULL,
+    is_official BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     created_by VARCHAR(36),
     updated_by VARCHAR(36)
 );
 
--- Secret Compliments
-CREATE TABLE community_compliments (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    to_member_id UUID NOT NULL REFERENCES community_members(id),
-    message VARCHAR(500) NOT NULL,
-    category VARCHAR(50) NOT NULL,
-    is_read BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    created_by VARCHAR(36),
-    updated_by VARCHAR(36),
-    CONSTRAINT valid_compliment_category CHECK (category IN ('ENCOURAGEMENT', 'APPRECIATION', 'INSPIRATION', 'GRATITUDE', 'CELEBRATION'))
-);
-
--- Activity Feed
-CREATE TABLE community_activities (
+-- ============================================================================
+-- LEADERBOARD ENTRIES
+-- ============================================================================
+CREATE TABLE community_leaderboard_entries (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     member_id UUID NOT NULL REFERENCES community_members(id) ON DELETE CASCADE,
-    activity_type VARCHAR(50) NOT NULL,
-    title VARCHAR(200) NOT NULL,
-    description VARCHAR(500),
-    metadata TEXT,
-    celebrate_count INTEGER DEFAULT 0,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    created_by VARCHAR(36),
-    updated_by VARCHAR(36)
-);
-
-CREATE TABLE activity_celebrates (
-    activity_id UUID NOT NULL REFERENCES community_activities(id) ON DELETE CASCADE,
-    member_id UUID NOT NULL,
-    PRIMARY KEY (activity_id, member_id)
-);
-
--- Leaderboard
-CREATE TABLE leaderboard_entries (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    member_id UUID NOT NULL REFERENCES community_members(id) ON DELETE CASCADE,
-    period_type VARCHAR(20) NOT NULL,
-    period_key VARCHAR(20) NOT NULL,
-    total_points INTEGER DEFAULT 0,
-    completed_tasks INTEGER DEFAULT 0,
-    challenges_completed INTEGER DEFAULT 0,
-    streak_days INTEGER DEFAULT 0,
+    period VARCHAR(20) NOT NULL,
+    period_start DATE NOT NULL,
+    points INTEGER DEFAULT 0,
     rank INTEGER,
+    tasks_completed INTEGER DEFAULT 0,
+    streak_days INTEGER DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     created_by VARCHAR(36),
     updated_by VARCHAR(36),
-    UNIQUE(member_id, period_type, period_key)
+    CONSTRAINT valid_period CHECK (period IN ('WEEKLY', 'MONTHLY', 'ALL_TIME')),
+    UNIQUE(member_id, period, period_start)
 );
 
--- Indexes
-CREATE INDEX idx_community_members_user ON community_members(user_id);
-CREATE INDEX idx_community_articles_author ON community_articles(author_id);
-CREATE INDEX idx_community_articles_category ON community_articles(category);
-CREATE INDEX idx_community_questions_author ON community_questions(author_id);
-CREATE INDEX idx_community_questions_status ON community_questions(status);
-CREATE INDEX idx_community_answers_question ON community_answers(question_id);
-CREATE INDEX idx_community_stories_author ON community_stories(author_id);
-CREATE INDEX idx_community_templates_author ON community_templates(author_id);
-CREATE INDEX idx_community_templates_type ON community_templates(template_type);
-CREATE INDEX idx_community_groups_creator ON community_groups(creator_id);
-CREATE INDEX idx_community_activities_member ON community_activities(member_id);
-CREATE INDEX idx_community_activities_type ON community_activities(activity_type);
-CREATE INDEX idx_leaderboard_period ON leaderboard_entries(period_type, period_key);
-CREATE INDEX idx_community_feature_requests_status ON community_feature_requests(status);
-CREATE INDEX idx_community_kudos_to ON community_kudos(to_member_id);
-CREATE INDEX idx_community_compliments_to ON community_compliments(to_member_id);
+CREATE INDEX idx_leaderboard_period ON community_leaderboard_entries(period, period_start);
+CREATE INDEX idx_leaderboard_rank ON community_leaderboard_entries(period, period_start, rank);

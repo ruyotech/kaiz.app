@@ -1,8 +1,12 @@
 -- ============================================================================
--- V3: Life Wheel Module (Dimensions & Eisenhower Matrix)
+-- V3: Life Wheel Module
+-- 8 Life Dimensions & Eisenhower Matrix Quadrants
+-- Reference data used across tasks, challenges, and other modules
 -- ============================================================================
 
--- Life Wheel Areas (8 dimensions)
+-- ============================================================================
+-- LIFE WHEEL AREAS (8 dimensions)
+-- ============================================================================
 CREATE TABLE life_wheel_areas (
     id VARCHAR(10) PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
@@ -21,7 +25,9 @@ INSERT INTO life_wheel_areas (id, name, icon, color, display_order) VALUES
     ('lw-7', 'Fun & Recreation', '🎮', '#14B8A6', 7),
     ('lw-8', 'Environment & Home', '🏡', '#84CC16', 8);
 
--- Eisenhower Quadrants
+-- ============================================================================
+-- EISENHOWER QUADRANTS
+-- ============================================================================
 CREATE TABLE eisenhower_quadrants (
     id VARCHAR(10) PRIMARY KEY,
     name VARCHAR(100) NOT NULL,

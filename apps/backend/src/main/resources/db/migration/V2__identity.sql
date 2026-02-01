@@ -1,8 +1,11 @@
 -- ============================================================================
--- V2: Identity Module (Users, Auth, Families)
+-- V2: Identity Module
+-- Users, Authentication, Refresh Tokens, Password Reset, Email Verification
 -- ============================================================================
 
--- Users table
+-- ============================================================================
+-- USERS
+-- ============================================================================
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email VARCHAR(255) NOT NULL UNIQUE,
@@ -28,7 +31,9 @@ CREATE TRIGGER update_users_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
--- Refresh tokens
+-- ============================================================================
+-- REFRESH TOKENS
+-- ============================================================================
 CREATE TABLE refresh_tokens (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -43,7 +48,9 @@ CREATE TABLE refresh_tokens (
 CREATE INDEX idx_refresh_tokens_user_id ON refresh_tokens(user_id);
 CREATE INDEX idx_refresh_tokens_token_hash ON refresh_tokens(token_hash);
 
--- Password reset tokens
+-- ============================================================================
+-- PASSWORD RESET TOKENS
+-- ============================================================================
 CREATE TABLE password_reset_tokens (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -55,7 +62,9 @@ CREATE TABLE password_reset_tokens (
 
 CREATE INDEX idx_password_reset_tokens_user_id ON password_reset_tokens(user_id);
 
--- Email verification codes
+-- ============================================================================
+-- EMAIL VERIFICATION CODES
+-- ============================================================================
 CREATE TABLE email_verification_codes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -66,33 +75,3 @@ CREATE TABLE email_verification_codes (
 );
 
 CREATE INDEX idx_email_verification_codes_user_id ON email_verification_codes(user_id);
-
--- Families
-CREATE TABLE families (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(255) NOT NULL,
-    owner_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    created_by VARCHAR(36),
-    updated_by VARCHAR(36)
-);
-
-CREATE INDEX idx_families_owner_id ON families(owner_id);
-
-CREATE TRIGGER update_families_updated_at
-    BEFORE UPDATE ON families
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
--- Family members
-CREATE TABLE family_members (
-    family_id UUID NOT NULL REFERENCES families(id) ON DELETE CASCADE,
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    role VARCHAR(50) NOT NULL DEFAULT 'member',
-    joined_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (family_id, user_id),
-    CONSTRAINT chk_family_role CHECK (role IN ('owner', 'adult', 'child'))
-);
-
-CREATE INDEX idx_family_members_user_id ON family_members(user_id);

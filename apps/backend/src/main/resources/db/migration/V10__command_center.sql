@@ -1,8 +1,11 @@
 -- ============================================================================
--- V10: Command Center Module (AI Input Processing)
+-- V10: Command Center Module
+-- AI Input Processing, Drafts
 -- ============================================================================
 
--- Command Center Drafts
+-- ============================================================================
+-- COMMAND CENTER DRAFTS
+-- ============================================================================
 CREATE TABLE command_center_drafts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
