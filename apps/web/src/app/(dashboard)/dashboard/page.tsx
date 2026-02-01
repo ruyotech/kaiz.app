@@ -1,215 +1,380 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
+import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
-
-const stats = [
-  { label: 'Sprint Progress', value: 67, max: 100, unit: '%', icon: '🏃', color: 'text-blue-400' },
-  { label: 'Tasks Done', value: 12, max: 18, unit: '', icon: '✅', color: 'text-green-400' },
-  { label: 'Current Streak', value: 45, max: 0, unit: ' days', icon: '🔥', color: 'text-orange-400' },
-  { label: 'Story Points', value: 28, max: 42, unit: ' pts', icon: '📊', color: 'text-purple-400' },
-];
-
-const activeChallenges = [
-  { name: 'Morning Routine', progress: 23, total: 30, emoji: '🌅' },
-  { name: 'Daily Meditation', progress: 15, total: 30, emoji: '🧘' },
-  { name: 'Read 10 Books', progress: 4, total: 10, emoji: '📚' },
-];
-
-const recentTasks = [
-  { title: 'Review Q1 goals', points: 3, status: 'done', area: 'Career' },
-  { title: 'Morning workout', points: 2, status: 'done', area: 'Health' },
-  { title: 'Team standup meeting', points: 1, status: 'in_progress', area: 'Career' },
-  { title: 'Read 30 minutes', points: 2, status: 'todo', area: 'Growth' },
-  { title: 'Family dinner planning', points: 2, status: 'todo', area: 'Relationships' },
-];
+import { useAuthStore } from '@/store/auth-store';
+import { taskApi, sprintApi, challengeApi } from '@/lib/api';
+import { cn } from '@/lib/utils';
+import {
+  CheckCircle2,
+  Circle,
+  Clock,
+  Flame,
+  Target,
+  TrendingUp,
+  Calendar,
+  ChevronRight,
+  Plus,
+  Sparkles,
+} from 'lucide-react';
 
 export default function DashboardPage() {
+  const { user } = useAuthStore();
+
+  // Fetch tasks
+  const { data: tasksData, isLoading: tasksLoading, error: tasksError } = useQuery({
+    queryKey: ['tasks'],
+    queryFn: () => taskApi.getAll(),
+    staleTime: 30000,
+    retry: 1,
+  });
+
+  // Fetch active sprint
+  const { data: sprintData, isLoading: sprintLoading, error: sprintError } = useQuery({
+    queryKey: ['activeSprint'],
+    queryFn: () => sprintApi.getCurrent(),
+    staleTime: 60000,
+    retry: 1,
+  });
+
+  // Fetch challenges
+  const { data: challengesData, isLoading: challengesLoading, error: challengesError } = useQuery({
+    queryKey: ['myChallenges'],
+    queryFn: () => challengeApi.getActive(),
+    staleTime: 60000,
+    retry: 1,
+  });
+
+  // Debug logging
+  if (typeof window !== 'undefined') {
+    console.log('Dashboard data:', { tasksData, sprintData, challengesData });
+    console.log('Dashboard errors:', { tasksError, sprintError, challengesError });
+  }
+
+  const tasks = tasksData || [];
+  const sprint = sprintData;
+  const challenges = challengesData || [];
+
+  // Calculate stats
+  const todoTasks = tasks.filter((t: any) => t.status === 'TODO');
+  const inProgressTasks = tasks.filter((t: any) => t.status === 'IN_PROGRESS');
+  const doneTasks = tasks.filter((t: any) => t.status === 'DONE');
+  const totalTasks = tasks.length;
+  const completedPercent = totalTasks > 0 ? Math.round((doneTasks.length / totalTasks) * 100) : 0;
+
+  // Active challenges
+  const activeChallenges = challenges.filter((c: any) => c.status === 'ACTIVE').slice(0, 3);
+
+  // Get greeting based on time
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto">
       {/* Welcome section */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-gradient-to-r from-primary-500/20 via-purple-500/20 to-pink-500/20 rounded-2xl p-6 border border-white/10"
-      >
-        <div className="flex items-center justify-between">
+      <div className="bg-gradient-to-r from-primary/20 via-purple-500/20 to-pink-500/20 rounded-2xl p-6 border border-white/10">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold mb-2">Good morning, John! 👋</h2>
+            <h1 className="text-2xl font-bold mb-1">
+              {getGreeting()}, {user?.fullName?.split(' ')[0] || 'there'}! 👋
+            </h1>
             <p className="text-slate-400">
-              Week 4 Sprint • <span className="text-green-400">On track</span> • 6 days remaining
+              {sprint ? (
+                <>
+                  {sprint.name} • <span className="text-green-400">Active</span> • {sprint.plannedPoints || 0} story points
+                </>
+              ) : (
+                'No active sprint. Create one to track your progress!'
+              )}
             </p>
           </div>
-          <Button variant="gradient" asChild>
-            <Link href="/dashboard/sprint">View Sprint →</Link>
-          </Button>
+          <Link
+            href="/tasks"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-white font-medium transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            New Task
+          </Link>
         </div>
-      </motion.div>
+      </div>
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat, index) => (
-          <motion.div
-            key={stat.label}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-          >
-            <Card className="bg-slate-800/50 border-white/10 hover:border-white/20 transition-all">
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-2xl">{stat.icon}</span>
-                  {stat.max > 0 && (
-                    <span className="text-xs text-slate-500">
-                      {stat.value}/{stat.max}
-                    </span>
-                  )}
-                </div>
-                <div className={`text-3xl font-bold ${stat.color}`}>
-                  {stat.value}{stat.unit}
-                </div>
-                <div className="text-sm text-slate-400 mt-1">{stat.label}</div>
-                {stat.max > 0 && (
-                  <Progress value={(stat.value / stat.max) * 100} className="h-1.5 mt-3" />
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
-        ))}
+        <StatCard
+          icon={<CheckCircle2 className="w-5 h-5" />}
+          label="Completed"
+          value={doneTasks.length}
+          subvalue={`of ${totalTasks} tasks`}
+          color="text-green-400"
+          bgColor="bg-green-500/10"
+        />
+        <StatCard
+          icon={<Clock className="w-5 h-5" />}
+          label="In Progress"
+          value={inProgressTasks.length}
+          subvalue="tasks active"
+          color="text-yellow-400"
+          bgColor="bg-yellow-500/10"
+        />
+        <StatCard
+          icon={<Target className="w-5 h-5" />}
+          label="To Do"
+          value={todoTasks.length}
+          subvalue="tasks remaining"
+          color="text-blue-400"
+          bgColor="bg-blue-500/10"
+        />
+        <StatCard
+          icon={<Flame className="w-5 h-5" />}
+          label="Challenges"
+          value={activeChallenges.length}
+          subvalue="active"
+          color="text-orange-400"
+          bgColor="bg-orange-500/10"
+        />
       </div>
 
+      {/* Main content grid */}
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Today's Tasks */}
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <Card className="bg-slate-800/50 border-white/10">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-lg font-semibold">Today's Tasks</CardTitle>
-              <Button variant="ghost" size="sm" asChild>
-                <Link href="/dashboard/tasks">View All</Link>
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {recentTasks.map((task, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
-                  >
-                    <div
-                      className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                        task.status === 'done'
-                          ? 'bg-green-500 border-green-500'
-                          : task.status === 'in_progress'
-                          ? 'border-yellow-500'
-                          : 'border-slate-500'
-                      }`}
-                    >
-                      {task.status === 'done' && <span className="text-xs">✓</span>}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className={`font-medium truncate ${task.status === 'done' ? 'line-through text-slate-500' : ''}`}>
-                        {task.title}
-                      </div>
-                      <div className="text-xs text-slate-500">{task.area}</div>
-                    </div>
-                    <Badge variant="secondary" className="text-xs">
-                      {task.points} pts
-                    </Badge>
-                  </div>
+        <div className="bg-slate-900/50 rounded-xl border border-white/10">
+          <div className="flex items-center justify-between p-4 border-b border-white/10">
+            <h2 className="font-semibold">Recent Tasks</h2>
+            <Link href="/tasks" className="text-sm text-primary hover:text-primary/80 flex items-center gap-1">
+              View All <ChevronRight className="w-4 h-4" />
+            </Link>
+          </div>
+          <div className="p-4">
+            {tasksLoading ? (
+              <TaskSkeleton />
+            ) : tasks.length === 0 ? (
+              <EmptyState
+                icon={<CheckCircle2 className="w-10 h-10 text-slate-600" />}
+                title="No tasks yet"
+                description="Create your first task to get started"
+                actionLabel="Create Task"
+                actionHref="/tasks"
+              />
+            ) : (
+              <div className="space-y-2">
+                {tasks.slice(0, 5).map((task: any) => (
+                  <TaskItem key={task.id} task={task} />
                 ))}
               </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+            )}
+          </div>
+        </div>
 
         {/* Active Challenges */}
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <Card className="bg-slate-800/50 border-white/10">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-lg font-semibold">Active Challenges</CardTitle>
-              <Button variant="ghost" size="sm" asChild>
-                <Link href="/dashboard/challenges">Browse</Link>
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {activeChallenges.map((challenge, index) => (
-                  <div key={index} className="p-4 rounded-lg bg-white/5">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xl">{challenge.emoji}</span>
-                        <span className="font-medium">{challenge.name}</span>
-                      </div>
-                      <Badge variant="outline" className="border-white/20">
-                        {challenge.progress}/{challenge.total}
-                      </Badge>
-                    </div>
-                    <Progress
-                      value={(challenge.progress / challenge.total) * 100}
-                      className="h-2"
-                    />
-                    <div className="text-xs text-slate-500 mt-2">
-                      {challenge.total - challenge.progress} days remaining
-                    </div>
-                  </div>
+        <div className="bg-slate-900/50 rounded-xl border border-white/10">
+          <div className="flex items-center justify-between p-4 border-b border-white/10">
+            <h2 className="font-semibold">Active Challenges</h2>
+            <Link href="/challenges" className="text-sm text-primary hover:text-primary/80 flex items-center gap-1">
+              Browse <ChevronRight className="w-4 h-4" />
+            </Link>
+          </div>
+          <div className="p-4">
+            {challengesLoading ? (
+              <ChallengeSkeleton />
+            ) : activeChallenges.length === 0 ? (
+              <EmptyState
+                icon={<Flame className="w-10 h-10 text-slate-600" />}
+                title="No active challenges"
+                description="Join a challenge to build better habits"
+                actionLabel="Browse Challenges"
+                actionHref="/challenges"
+              />
+            ) : (
+              <div className="space-y-3">
+                {activeChallenges.map((challenge: any) => (
+                  <ChallengeItem key={challenge.id} challenge={challenge} />
                 ))}
               </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Life Wheel Summary */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
+      {/* Quick Actions */}
+      <div className="bg-slate-900/50 rounded-xl border border-white/10 p-4">
+        <h2 className="font-semibold mb-4">Quick Actions</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <QuickAction href="/tasks" icon={<Plus />} label="New Task" />
+          <QuickAction href="/challenges" icon={<Flame />} label="Start Challenge" />
+          <QuickAction href="/community" icon={<Sparkles />} label="Community" />
+          <QuickAction href="/calendar" icon={<Calendar />} label="Calendar" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StatCard({
+  icon,
+  label,
+  value,
+  subvalue,
+  color,
+  bgColor,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: number;
+  subvalue: string;
+  color: string;
+  bgColor: string;
+}) {
+  return (
+    <div className="bg-slate-900/50 rounded-xl border border-white/10 p-4 hover:border-white/20 transition-all">
+      <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center mb-3', bgColor, color)}>
+        {icon}
+      </div>
+      <div className={cn('text-3xl font-bold', color)}>{value}</div>
+      <div className="text-sm text-slate-400 mt-1">{label}</div>
+      <div className="text-xs text-slate-500">{subvalue}</div>
+    </div>
+  );
+}
+
+function TaskItem({ task }: { task: any }) {
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'DONE':
+        return <CheckCircle2 className="w-5 h-5 text-green-500" />;
+      case 'IN_PROGRESS':
+        return <Clock className="w-5 h-5 text-yellow-500" />;
+      default:
+        return <Circle className="w-5 h-5 text-slate-500" />;
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">
+      {getStatusIcon(task.status)}
+      <div className="flex-1 min-w-0">
+        <div className={cn('font-medium truncate', task.status === 'DONE' && 'line-through text-slate-500')}>
+          {task.title}
+        </div>
+        {task.lifeArea && <div className="text-xs text-slate-500">{task.lifeArea}</div>}
+      </div>
+      {task.storyPoints && (
+        <span className="text-xs px-2 py-1 rounded-full bg-primary/20 text-primary font-medium">
+          {task.storyPoints} pts
+        </span>
+      )}
+    </div>
+  );
+}
+
+function ChallengeItem({ challenge }: { challenge: any }) {
+  const progress = challenge.currentStreak || 0;
+  const total = challenge.targetDays || 30;
+  const percent = Math.min((progress / total) * 100, 100);
+
+  return (
+    <div className="p-4 rounded-lg bg-white/5">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <span className="text-xl">{challenge.emoji || '🎯'}</span>
+          <span className="font-medium">{challenge.title}</span>
+        </div>
+        <span className="text-xs px-2 py-1 rounded-full bg-white/10 text-slate-300">
+          {progress}/{total} days
+        </span>
+      </div>
+      <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-gradient-to-r from-primary to-cyan-500 rounded-full transition-all"
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+      <div className="text-xs text-slate-500 mt-2">{total - progress} days remaining</div>
+    </div>
+  );
+}
+
+function QuickAction({
+  href,
+  icon,
+  label,
+}: {
+  href: string;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex flex-col items-center gap-2 p-4 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-primary/50 transition-all text-center"
+    >
+      <div className="w-10 h-10 rounded-full bg-primary/20 text-primary flex items-center justify-center">
+        {icon}
+      </div>
+      <span className="text-sm font-medium">{label}</span>
+    </Link>
+  );
+}
+
+function EmptyState({
+  icon,
+  title,
+  description,
+  actionLabel,
+  actionHref,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  actionLabel: string;
+  actionHref: string;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center py-8 text-center">
+      {icon}
+      <h3 className="font-medium mt-3">{title}</h3>
+      <p className="text-sm text-slate-500 mt-1">{description}</p>
+      <Link
+        href={actionHref}
+        className="mt-4 text-sm text-primary hover:text-primary/80 font-medium"
       >
-        <Card className="bg-slate-800/50 border-white/10">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold">Life Balance This Week</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-4 md:grid-cols-8 gap-4">
-              {[
-                { name: 'Health', value: 75, emoji: '💪', color: '#22c55e' },
-                { name: 'Career', value: 90, emoji: '💼', color: '#3b82f6' },
-                { name: 'Spiritual', value: 45, emoji: '🧘', color: '#eab308' },
-                { name: 'Growth', value: 80, emoji: '🌱', color: '#a855f7' },
-                { name: 'Relations', value: 55, emoji: '❤️', color: '#ec4899' },
-                { name: 'Social', value: 40, emoji: '🎉', color: '#f97316' },
-                { name: 'Fun', value: 35, emoji: '🎮', color: '#14b8a6' },
-                { name: 'Home', value: 60, emoji: '🏡', color: '#84cc16' },
-              ].map((area) => (
-                <div key={area.name} className="text-center">
-                  <div
-                    className="w-12 h-12 mx-auto rounded-full flex items-center justify-center text-xl mb-2"
-                    style={{ backgroundColor: `${area.color}20` }}
-                  >
-                    {area.emoji}
-                  </div>
-                  <div className="text-xs text-slate-400 mb-1">{area.name}</div>
-                  <div className="text-sm font-semibold" style={{ color: area.color }}>
-                    {area.value}%
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
+        {actionLabel} →
+      </Link>
+    </div>
+  );
+}
+
+function TaskSkeleton() {
+  return (
+    <div className="space-y-2">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-white/5 animate-pulse">
+          <div className="w-5 h-5 rounded-full bg-slate-700" />
+          <div className="flex-1">
+            <div className="h-4 bg-slate-700 rounded w-3/4" />
+            <div className="h-3 bg-slate-700 rounded w-1/4 mt-2" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ChallengeSkeleton() {
+  return (
+    <div className="space-y-3">
+      {[1, 2].map((i) => (
+        <div key={i} className="p-4 rounded-lg bg-white/5 animate-pulse">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-6 h-6 rounded bg-slate-700" />
+            <div className="h-4 bg-slate-700 rounded w-1/2" />
+          </div>
+          <div className="h-2 bg-slate-700 rounded" />
+        </div>
+      ))}
     </div>
   );
 }

@@ -1,6 +1,53 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+/**
+ * KAIZ Web API Service
+ * Mirrors the mobile API service for full feature parity
+ */
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://kaiz-api-213334506754.us-central1.run.app';
 const API_V1 = `${API_BASE_URL}/api/v1`;
 
+// Storage keys
+const ACCESS_TOKEN_KEY = 'kaiz_access_token';
+const REFRESH_TOKEN_KEY = 'kaiz_refresh_token';
+
+// Types
+export interface User {
+  id: string;
+  email: string;
+  fullName: string;
+  accountType: 'INDIVIDUAL' | 'FAMILY' | 'CORPORATE';
+  subscriptionTier: 'FREE' | 'PREMIUM' | 'ENTERPRISE';
+  timezone: string;
+  avatarUrl: string | null;
+  emailVerified: boolean;
+  role?: 'USER' | 'ADMIN';
+  createdAt?: string;
+}
+
+export interface AuthResponse {
+  accessToken: string;
+  refreshToken: string;
+  user: User;
+}
+
+export interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string | { code: string; message: string };
+  timestamp?: string;
+}
+
+export interface PaginatedResponse<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  page: number;
+  size: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+}
+
+// Error classes
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -12,35 +59,60 @@ export class ApiError extends Error {
   }
 }
 
-// Token management for client-side
-let accessToken: string | null = null;
-
-export function setAccessToken(token: string | null) {
-  accessToken = token;
-  if (typeof window !== 'undefined') {
-    if (token) {
-      localStorage.setItem('accessToken', token);
-    } else {
-      localStorage.removeItem('accessToken');
-    }
+export class AuthExpiredError extends Error {
+  constructor() {
+    super('Session expired');
+    this.name = 'AuthExpiredError';
   }
 }
 
+// Token management
 export function getAccessToken(): string | null {
-  if (accessToken) return accessToken;
-  if (typeof window !== 'undefined') {
-    accessToken = localStorage.getItem('accessToken');
-  }
-  return accessToken;
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(ACCESS_TOKEN_KEY);
 }
 
+export function getRefreshToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(REFRESH_TOKEN_KEY);
+}
+
+export function saveTokens(accessToken: string, refreshToken: string): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+  localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+}
+
+export function clearTokens(): void {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(ACCESS_TOKEN_KEY);
+  localStorage.removeItem(REFRESH_TOKEN_KEY);
+}
+
+// Auth expiration callback
+let onAuthExpired: (() => void) | null = null;
+let authExpirationTriggered = false;
+
+export function setOnAuthExpired(callback: () => void): void {
+  onAuthExpired = callback;
+  authExpirationTriggered = false;
+}
+
+async function triggerAuthExpiration(): Promise<void> {
+  if (authExpirationTriggered) return;
+  authExpirationTriggered = true;
+  clearTokens();
+  onAuthExpired?.();
+}
+
+// HTTP request helper
 async function request<T>(
   endpoint: string,
   options: RequestInit = {},
   requiresAuth: boolean = false
 ): Promise<T> {
   const url = `${API_V1}${endpoint}`;
-  
+
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
     ...options.headers,
@@ -53,146 +125,1005 @@ async function request<T>(
     }
   }
 
-  const response = await fetch(url, { ...options, headers });
-  const data = await response.json();
+  try {
+    const response = await fetch(url, { ...options, headers });
+    const data = await response.json();
 
-  if (!response.ok) {
-    throw new ApiError(
-      data.error || 'Request failed',
-      response.status,
-      data.errorCode
-    );
+    const getErrorMessage = (responseData: any): string => {
+      // Handle direct message field (API error format)
+      if (responseData.message) return responseData.message;
+      // Handle error field (legacy format)
+      if (typeof responseData.error === 'string') return responseData.error;
+      if (responseData.error && typeof responseData.error === 'object') return responseData.error.message;
+      return 'Request failed';
+    };
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        await triggerAuthExpiration();
+        throw new AuthExpiredError();
+      }
+      throw new ApiError(getErrorMessage(data), response.status);
+    }
+
+    if (data.success === false) {
+      throw new ApiError(getErrorMessage(data), response.status);
+    }
+
+    return data.data as T;
+  } catch (error) {
+    if (error instanceof AuthExpiredError || error instanceof ApiError) {
+      throw error;
+    }
+    throw new ApiError('Unable to connect to server', 0, 'NETWORK_ERROR');
   }
-
-  return data.data ?? data;
 }
 
-// ==========================================
-// Auth API
-// ==========================================
+async function requestRaw<T>(
+  endpoint: string,
+  options: RequestInit = {},
+  requiresAuth: boolean = false
+): Promise<T> {
+  const url = `${API_V1}${endpoint}`;
 
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  };
+
+  if (requiresAuth) {
+    const token = getAccessToken();
+    if (token) {
+      (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+    }
+  }
+
+  try {
+    const response = await fetch(url, { ...options, headers });
+
+    if (response.status === 204) {
+      return undefined as T;
+    }
+
+    const text = await response.text();
+    if (!text) return undefined as T;
+
+    const data = JSON.parse(text);
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        await triggerAuthExpiration();
+        throw new AuthExpiredError();
+      }
+      throw new ApiError(data?.error?.message || data?.error || 'Request failed', response.status);
+    }
+
+    if (data && typeof data === 'object' && 'data' in data && Array.isArray(data.data)) {
+      return data.data as T;
+    }
+
+    return data as T;
+  } catch (error) {
+    if (error instanceof AuthExpiredError || error instanceof ApiError) {
+      throw error;
+    }
+    throw new ApiError('Unable to connect to server', 0, 'NETWORK_ERROR');
+  }
+}
+
+// ============================================================
+// AUTH API
+// ============================================================
 export const authApi = {
-  login: (email: string, password: string) =>
-    request<{ accessToken: string; refreshToken: string; user: any }>('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    }),
-
-  register: (data: { email: string; password: string; fullName: string; timezone?: string }) =>
-    request<{ accessToken: string; refreshToken: string; user: any }>('/auth/register', {
+  async register(data: { email: string; password: string; fullName: string; timezone?: string }) {
+    const response = await request<AuthResponse>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(data),
-    }),
+    });
+    saveTokens(response.accessToken, response.refreshToken);
+    return response;
+  },
 
-  logout: () => request('/auth/logout', { method: 'POST' }, true),
+  async login(email: string, password: string) {
+    const response = await request<AuthResponse>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+    saveTokens(response.accessToken, response.refreshToken);
+    return response;
+  },
 
-  getCurrentUser: () => request<any>('/auth/me', {}, true),
+  async logout() {
+    try {
+      await request<void>('/auth/logout', { method: 'POST' }, true);
+    } catch {
+      // Clear tokens even if API call fails
+    }
+    clearTokens();
+  },
 
-  forgotPassword: (email: string) =>
-    request('/auth/forgot-password', {
+  async getCurrentUser(): Promise<User> {
+    return request<User>('/auth/me', { method: 'GET' }, true);
+  },
+
+  async refreshToken() {
+    const refreshToken = getRefreshToken();
+    if (!refreshToken) {
+      throw new ApiError('No refresh token', 401);
+    }
+    const response = await request<{ accessToken: string; refreshToken: string }>('/auth/refresh', {
+      method: 'POST',
+      body: JSON.stringify({ refreshToken }),
+    });
+    saveTokens(response.accessToken, response.refreshToken);
+    return response;
+  },
+
+  async forgotPassword(email: string) {
+    return request<{ message: string }>('/auth/forgot-password', {
       method: 'POST',
       body: JSON.stringify({ email }),
-    }),
+    });
+  },
 
-  resetPassword: (token: string, newPassword: string) =>
-    request('/auth/reset-password', {
+  async resetPassword(token: string, newPassword: string) {
+    return request<void>('/auth/reset-password', {
       method: 'POST',
       body: JSON.stringify({ token, newPassword }),
-    }),
+    });
+  },
+
+  hasValidSession(): boolean {
+    return !!getAccessToken();
+  },
 };
 
-// ==========================================
-// Community API (Public endpoints for marketing)
-// ==========================================
+// ============================================================
+// TASK API
+// ============================================================
+export interface Task {
+  id: string;
+  title: string;
+  description?: string;
+  status: 'TODO' | 'IN_PROGRESS' | 'DONE' | 'BLOCKED';
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  storyPoints: number;
+  dueDate?: string;
+  sprintId?: string;
+  epicId?: string;
+  lifeWheelAreaId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const taskApi = {
+  async getAll(filters?: { sprintId?: string; status?: string; epicId?: string }) {
+    const params = new URLSearchParams();
+    if (filters?.status) params.append('status', filters.status);
+    const query = params.toString() ? `?${params}` : '';
+    const result = await request<any>(`/tasks${query}`, { method: 'GET' }, true);
+    return result?.content || result || [];
+  },
+
+  async getById(id: string) {
+    return request<Task>(`/tasks/${id}`, { method: 'GET' }, true);
+  },
+
+  async create(data: Partial<Task>) {
+    return request<Task>('/tasks', { method: 'POST', body: JSON.stringify(data) }, true);
+  },
+
+  async update(id: string, data: Partial<Task>) {
+    return request<Task>(`/tasks/${id}`, { method: 'PUT', body: JSON.stringify(data) }, true);
+  },
+
+  async updateStatus(id: string, status: string) {
+    return request<Task>(`/tasks/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    }, true);
+  },
+
+  async delete(id: string) {
+    return request<void>(`/tasks/${id}`, { method: 'DELETE' }, true);
+  },
+
+  async getBySprintId(sprintId: string) {
+    return request<Task[]>(`/tasks/sprint/${sprintId}`, { method: 'GET' }, true);
+  },
+
+  async getBacklog() {
+    return request<Task[]>('/tasks/backlog', { method: 'GET' }, true);
+  },
+};
+
+// ============================================================
+// EPIC API
+// ============================================================
+export interface Epic {
+  id: string;
+  title: string;
+  description?: string;
+  status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
+  lifeWheelAreaId?: string;
+  color?: string;
+  icon?: string;
+  progress: number;
+  taskCount: number;
+  completedTaskCount: number;
+}
+
+export const epicApi = {
+  async getAll(status?: string) {
+    const query = status ? `?status=${status}` : '';
+    return request<Epic[]>(`/epics${query}`, { method: 'GET' }, true);
+  },
+
+  async getById(id: string) {
+    return request<Epic>(`/epics/${id}`, { method: 'GET' }, true);
+  },
+
+  async create(data: Partial<Epic>) {
+    return request<Epic>('/epics', { method: 'POST', body: JSON.stringify(data) }, true);
+  },
+
+  async update(id: string, data: Partial<Epic>) {
+    return request<Epic>(`/epics/${id}`, { method: 'PUT', body: JSON.stringify(data) }, true);
+  },
+
+  async delete(id: string) {
+    return request<void>(`/epics/${id}`, { method: 'DELETE' }, true);
+  },
+};
+
+// ============================================================
+// SPRINT API
+// ============================================================
+export interface Sprint {
+  id: string;
+  name: string;
+  number: number;
+  startDate: string;
+  endDate: string;
+  status: 'PLANNED' | 'ACTIVE' | 'COMPLETED';
+  goal?: string;
+  velocity?: number;
+  plannedPoints: number;
+  completedPoints: number;
+}
+
+export const sprintApi = {
+  async getAll(year?: number) {
+    const query = year ? `?year=${year}` : '';
+    return request<Sprint[]>(`/sprints${query}`, { method: 'GET' }, true);
+  },
+
+  async getCurrent() {
+    return request<Sprint>('/sprints/current', { method: 'GET' }, true);
+  },
+
+  async getUpcoming(limit = 4) {
+    return request<Sprint[]>(`/sprints/upcoming?limit=${limit}`, { method: 'GET' }, true);
+  },
+
+  async getById(id: string) {
+    return request<Sprint>(`/sprints/${id}`, { method: 'GET' }, true);
+  },
+
+  async activate(id: string) {
+    return request<Sprint>(`/sprints/${id}/activate`, { method: 'POST' }, true);
+  },
+};
+
+// ============================================================
+// CHALLENGE API
+// ============================================================
+export interface Challenge {
+  id: string;
+  title: string;
+  description?: string;
+  type: 'STREAK' | 'COUNTER' | 'TIMER';
+  targetValue: number;
+  currentValue: number;
+  status: 'ACTIVE' | 'COMPLETED' | 'FAILED' | 'PAUSED';
+  startDate: string;
+  endDate?: string;
+  currentStreak: number;
+  longestStreak: number;
+  lifeWheelAreaId?: string;
+}
+
+export const challengeApi = {
+  async getAll(status?: string) {
+    const query = status ? `?status=${status}` : '';
+    return request<Challenge[]>(`/challenges${query}`, { method: 'GET' }, true);
+  },
+
+  async getActive() {
+    return request<Challenge[]>('/challenges/active', { method: 'GET' }, true);
+  },
+
+  async getById(id: string) {
+    return request<Challenge>(`/challenges/${id}`, { method: 'GET' }, true);
+  },
+
+  async create(data: Partial<Challenge>) {
+    return request<Challenge>('/challenges', { method: 'POST', body: JSON.stringify(data) }, true);
+  },
+
+  async update(id: string, data: Partial<Challenge>) {
+    return request<Challenge>(`/challenges/${id}`, { method: 'PUT', body: JSON.stringify(data) }, true);
+  },
+
+  async delete(id: string) {
+    return request<void>(`/challenges/${id}`, { method: 'DELETE' }, true);
+  },
+
+  async logEntry(challengeId: string, data: { value: number | boolean; note?: string; date: string }) {
+    return request<any>(`/challenges/${challengeId}/entries`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }, true);
+  },
+
+  async getTemplates(lifeWheelAreaId?: string) {
+    const query = lifeWheelAreaId ? `?lifeWheelAreaId=${lifeWheelAreaId}` : '';
+    return request<any[]>(`/challenges/templates${query}`, { method: 'GET' }, true);
+  },
+};
+
+// ============================================================
+// COMMUNITY API
+// ============================================================
+export interface CommunityMember {
+  id: string;
+  userId: string;
+  displayName: string;
+  avatar: string;
+  bio?: string;
+  level: number;
+  levelTitle: string;
+  reputationPoints: number;
+  badges: string[];
+  role: string;
+  joinedAt: string;
+  isOnline: boolean;
+}
+
+export interface Article {
+  id: string;
+  title: string;
+  summary: string;
+  content: string;
+  category: string;
+  author: { name: string; avatar: string };
+  readTime: number;
+  likeCount: number;
+  commentCount: number;
+  imageUrl?: string;
+  isFeatured: boolean;
+  createdAt: string;
+}
+
+export interface Story {
+  id: string;
+  title: string;
+  story: string;
+  category: string;
+  author: CommunityMember;
+  likeCount: number;
+  celebrateCount: number;
+  commentCount: number;
+  metrics?: { label: string; value: string }[];
+  createdAt: string;
+}
+
+export interface Question {
+  id: string;
+  title: string;
+  body: string;
+  tags: string[];
+  author: CommunityMember;
+  upvoteCount: number;
+  answerCount: number;
+  status: 'OPEN' | 'ANSWERED' | 'CLOSED';
+  createdAt: string;
+}
 
 export const communityApi = {
-  getPublicStats: () => request<any>('/community/public/stats'),
-  
-  getPublicLeaderboard: (period: 'weekly' | 'monthly' | 'all_time' = 'weekly') =>
-    request<any[]>(`/community/public/leaderboard?period=${period}`),
-  
-  getPublicStories: (page = 0, size = 10) =>
-    request<any>(`/community/public/stories?page=${page}&size=${size}`),
-  
-  getPublicActivity: (limit = 20) =>
-    request<any[]>(`/community/public/activity?limit=${limit}`),
+  async getCurrentMember() {
+    return request<CommunityMember>('/community/members/me', { method: 'GET' }, true);
+  },
 
-  // Authenticated endpoints
-  getHome: () => request<any>('/community/home', {}, true),
-  
-  getMembers: (query?: string) =>
-    request<any[]>(`/community/members/search${query ? `?q=${query}` : ''}`, {}, true),
-  
-  postStory: (data: any) =>
-    request('/community/stories', { method: 'POST', body: JSON.stringify(data) }, true),
+  async getMemberById(id: string) {
+    return request<CommunityMember>(`/community/members/${id}`, { method: 'GET' }, true);
+  },
+
+  async getHome() {
+    return request<any>('/community/home', { method: 'GET' }, true);
+  },
+
+  // Articles
+  async getArticles(params?: { category?: string; page?: number; size?: number }) {
+    const queryParams = new URLSearchParams();
+    if (params?.category) queryParams.append('category', params.category);
+    if (params?.page !== undefined) queryParams.append('page', params.page.toString());
+    if (params?.size) queryParams.append('size', params.size.toString());
+    const query = queryParams.toString() ? `?${queryParams}` : '';
+    return request<PaginatedResponse<Article>>(`/community/articles${query}`, { method: 'GET' }, true);
+  },
+
+  async getArticleById(id: string) {
+    return request<Article>(`/community/articles/${id}`, { method: 'GET' }, true);
+  },
+
+  async getFeaturedArticle() {
+    return request<Article>('/community/articles/featured', { method: 'GET' }, true);
+  },
+
+  async toggleArticleLike(id: string) {
+    return request<{ liked: boolean; likeCount: number }>(`/community/articles/${id}/toggle-like`, { method: 'POST' }, true);
+  },
+
+  // Stories
+  async getStories(params?: { category?: string; page?: number; size?: number }) {
+    const queryParams = new URLSearchParams();
+    if (params?.category) queryParams.append('category', params.category);
+    if (params?.page !== undefined) queryParams.append('page', params.page.toString());
+    if (params?.size) queryParams.append('size', params.size.toString());
+    const query = queryParams.toString() ? `?${queryParams}` : '';
+    return request<PaginatedResponse<Story>>(`/community/stories${query}`, { method: 'GET' }, true);
+  },
+
+  async getStoryById(id: string) {
+    return request<Story>(`/community/stories/${id}`, { method: 'GET' }, true);
+  },
+
+  async createStory(data: { title: string; story: string; category: string; lifeWheelAreaId?: string; metrics?: { label: string; value: string }[] }) {
+    return request<Story>('/community/stories', { method: 'POST', body: JSON.stringify(data) }, true);
+  },
+
+  async toggleStoryLike(id: string) {
+    return request<{ liked: boolean; likeCount: number }>(`/community/stories/${id}/toggle-like`, { method: 'POST' }, true);
+  },
+
+  // Questions
+  async getQuestions(params?: { status?: string; tag?: string; page?: number; size?: number }) {
+    const queryParams = new URLSearchParams();
+    if (params?.status) queryParams.append('status', params.status);
+    if (params?.tag) queryParams.append('tag', params.tag);
+    if (params?.page !== undefined) queryParams.append('page', params.page.toString());
+    if (params?.size) queryParams.append('size', params.size.toString());
+    const query = queryParams.toString() ? `?${queryParams}` : '';
+    return request<PaginatedResponse<Question>>(`/community/questions${query}`, { method: 'GET' }, true);
+  },
+
+  async getQuestionById(id: string) {
+    return request<Question>(`/community/questions/${id}`, { method: 'GET' }, true);
+  },
+
+  async createQuestion(data: { title: string; body: string; tags: string[] }) {
+    return request<Question>('/community/questions', { method: 'POST', body: JSON.stringify(data) }, true);
+  },
+
+  async toggleQuestionUpvote(id: string) {
+    return request<{ upvoted: boolean; upvoteCount: number }>(`/community/questions/${id}/toggle-upvote`, { method: 'POST' }, true);
+  },
+
+  // Leaderboard
+  async getLeaderboard(period: 'weekly' | 'monthly' | 'all_time', category: string) {
+    return request<any[]>(`/community/leaderboard?period=${period}&category=${category}`, { method: 'GET' }, true);
+  },
+
+  // Templates
+  async getTemplates(params?: { type?: string; page?: number; size?: number }) {
+    const queryParams = new URLSearchParams();
+    if (params?.type) queryParams.append('type', params.type);
+    if (params?.page !== undefined) queryParams.append('page', params.page.toString());
+    if (params?.size) queryParams.append('size', params.size.toString());
+    const query = queryParams.toString() ? `?${queryParams}` : '';
+    return request<PaginatedResponse<any>>(`/community/templates${query}`, { method: 'GET' }, true);
+  },
+
+  async getFeaturedTemplates() {
+    return request<any[]>('/community/templates/featured', { method: 'GET' }, true);
+  },
+
+  // Activity
+  async getActivityFeed(page = 0, size = 20) {
+    return request<PaginatedResponse<any>>(`/community/activity?page=${page}&size=${size}`, { method: 'GET' }, true);
+  },
+
+  // Polls
+  async getActivePoll() {
+    return request<any>('/community/polls/active', { method: 'GET' }, true);
+  },
+
+  async votePoll(pollId: string, optionId: string) {
+    return request<any>(`/community/polls/${pollId}/vote`, {
+      method: 'POST',
+      body: JSON.stringify({ optionId }),
+    }, true);
+  },
+
+  // Search
+  async search(query: string, types?: string[]) {
+    const queryParams = new URLSearchParams();
+    queryParams.append('q', query);
+    if (types?.length) queryParams.append('types', types.join(','));
+    return request<any>(`/community/search?${queryParams}`, { method: 'GET' }, true);
+  },
+
+  // Wiki
+  async getWikiEntries(category?: string) {
+    const query = category ? `?category=${category}` : '';
+    return request<any[]>(`/community/wiki${query}`, { method: 'GET' }, true);
+  },
+
+  async searchWiki(term: string) {
+    return request<any[]>(`/community/wiki/search?q=${encodeURIComponent(term)}`, { method: 'GET' }, true);
+  },
+
+  // Release Notes
+  async getReleaseNotes(page = 0, size = 10) {
+    return request<PaginatedResponse<any>>(`/community/release-notes?page=${page}&size=${size}`, { method: 'GET' }, true);
+  },
 };
 
-// ==========================================
-// Tasks API
-// ==========================================
+// ============================================================
+// NOTIFICATION API
+// ============================================================
+export interface Notification {
+  id: string;
+  type: string;
+  category: string;
+  priority: string;
+  title: string;
+  content: string;
+  isRead: boolean;
+  readAt: string | null;
+  isPinned: boolean;
+  isArchived: boolean;
+  icon: string;
+  deepLink: string | null;
+  createdAt: string;
+}
 
-export const tasksApi = {
-  getAll: (sprintId?: string) =>
-    request<any[]>(`/tasks${sprintId ? `?sprintId=${sprintId}` : ''}`, {}, true),
-  
-  getById: (id: string) => request<any>(`/tasks/${id}`, {}, true),
-  
-  create: (data: any) =>
-    request('/tasks', { method: 'POST', body: JSON.stringify(data) }, true),
-  
-  update: (id: string, data: any) =>
-    request(`/tasks/${id}`, { method: 'PUT', body: JSON.stringify(data) }, true),
-  
-  delete: (id: string) =>
-    request(`/tasks/${id}`, { method: 'DELETE' }, true),
+export const notificationApi = {
+  async getAll(page = 0, size = 20) {
+    return request<PaginatedResponse<Notification>>(`/notifications?page=${page}&size=${size}`, { method: 'GET' }, true);
+  },
+
+  async getGrouped() {
+    return request<{ today: Notification[]; yesterday: Notification[]; thisWeek: Notification[]; older: Notification[] }>('/notifications/grouped', { method: 'GET' }, true);
+  },
+
+  async getUnreadCount() {
+    return request<{ total: number; byCategory: Record<string, number> }>('/notifications/unread-count', { method: 'GET' }, true);
+  },
+
+  async markAsRead(id: string) {
+    return request<Notification>(`/notifications/${id}/read`, { method: 'PUT' }, true);
+  },
+
+  async markAllAsRead() {
+    return request<void>('/notifications/read-all', { method: 'PUT' }, true);
+  },
+
+  async delete(id: string) {
+    return request<void>(`/notifications/${id}`, { method: 'DELETE' }, true);
+  },
+
+  async getPreferences() {
+    return request<any>('/notifications/preferences', { method: 'GET' }, true);
+  },
+
+  async updatePreferences(data: any) {
+    return request<any>('/notifications/preferences', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }, true);
+  },
 };
 
-// ==========================================
-// Sprints API
-// ==========================================
+// ============================================================
+// ESSENTIA API
+// ============================================================
+export interface Book {
+  id: string;
+  title: string;
+  author: string;
+  summary: string;
+  category: string;
+  difficulty: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+  coverImageUrl: string;
+  cardCount: number;
+  readTime: number;
+  rating: number;
+  ratingCount: number;
+}
 
-export const sprintsApi = {
-  getAll: () => request<any[]>('/sprints', {}, true),
-  getCurrent: () => request<any>('/sprints/current', {}, true),
-  getById: (id: string) => request<any>(`/sprints/${id}`, {}, true),
+export const essentiaApi = {
+  async getAllBooks() {
+    return request<Book[]>('/essentia/books', { method: 'GET' }, true);
+  },
+
+  async getBookById(id: string) {
+    return request<Book>(`/essentia/books/${id}`, { method: 'GET' }, true);
+  },
+
+  async getBooksByCategory(category: string) {
+    return request<Book[]>(`/essentia/books/category/${category}`, { method: 'GET' }, true);
+  },
+
+  async getPopularBooks() {
+    return request<Book[]>('/essentia/books/popular', { method: 'GET' }, true);
+  },
+
+  async getTopRatedBooks() {
+    return request<Book[]>('/essentia/books/top-rated', { method: 'GET' }, true);
+  },
+
+  async getUserProgress() {
+    return request<any[]>('/essentia/progress', { method: 'GET' }, true);
+  },
+
+  async startBook(bookId: string) {
+    return request<any>(`/essentia/books/${bookId}/start`, { method: 'POST' }, true);
+  },
+
+  async updateProgress(bookId: string, cardIndex: number) {
+    return request<any>(`/essentia/books/${bookId}/progress?cardIndex=${cardIndex}`, { method: 'PUT' }, true);
+  },
+
+  async toggleFavorite(bookId: string) {
+    return request<any>(`/essentia/books/${bookId}/toggle-favorite`, { method: 'POST' }, true);
+  },
 };
 
-// ==========================================
-// Challenges API
-// ==========================================
+// ============================================================
+// MINDSET API
+// ============================================================
+export const mindsetApi = {
+  async getAllContent() {
+    return request<any[]>('/mindset/content', { method: 'GET' }, true);
+  },
 
-export const challengesApi = {
-  getAll: () => request<any[]>('/challenges', {}, true),
-  getById: (id: string) => request<any>(`/challenges/${id}`, {}, true),
-  join: (id: string) => request(`/challenges/${id}/join`, { method: 'POST' }, true),
-  logEntry: (id: string, data: any) =>
-    request(`/challenges/${id}/entries`, { method: 'POST', body: JSON.stringify(data) }, true),
+  async getContentByDimension(dimensionTag: string) {
+    return request<any[]>(`/mindset/content/dimension/${dimensionTag}`, { method: 'GET' }, true);
+  },
+
+  async getContentByTone(tone: string) {
+    return request<any[]>(`/mindset/content/tone/${tone}`, { method: 'GET' }, true);
+  },
+
+  async getFavorites() {
+    return request<any[]>('/mindset/content/favorites', { method: 'GET' }, true);
+  },
+
+  async toggleFavorite(id: string) {
+    return request<any>(`/mindset/content/${id}/toggle-favorite`, { method: 'POST' }, true);
+  },
+
+  async getAllThemes() {
+    return request<any[]>('/mindset/themes', { method: 'GET' }, true);
+  },
 };
 
-// ==========================================
-// Admin API (New endpoints)
-// ==========================================
+// ============================================================
+// SENSAI API
+// ============================================================
+export const sensaiApi = {
+  async getVelocityMetrics() {
+    return request<any>('/sensai/velocity/metrics', { method: 'GET' }, true);
+  },
 
+  async getCurrentSprintHealth() {
+    return request<any>('/sensai/sprints/current/health', { method: 'GET' }, true);
+  },
+
+  async getTodayStandup() {
+    return request<any>('/sensai/standup/today', { method: 'GET' }, true);
+  },
+
+  async completeStandup(data: any) {
+    return request<any>('/sensai/standup/complete', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }, true);
+  },
+
+  async getActiveInterventions() {
+    return request<any[]>('/sensai/interventions/active', { method: 'GET' }, true);
+  },
+
+  async getLifeWheelMetrics() {
+    return request<any>('/sensai/lifewheel/metrics', { method: 'GET' }, true);
+  },
+
+  async getSettings() {
+    return request<any>('/sensai/settings', { method: 'GET' }, true);
+  },
+
+  async updateSettings(settings: any) {
+    return request<any>('/sensai/settings', {
+      method: 'PUT',
+      body: JSON.stringify(settings),
+    }, true);
+  },
+
+  async getAnalytics(period: string) {
+    return request<any>(`/sensai/analytics?period=${period}`, { method: 'GET' }, true);
+  },
+};
+
+// ============================================================
+// TASK TEMPLATE API
+// ============================================================
+export interface TaskTemplate {
+  id: string;
+  name: string;
+  description: string;
+  storyPoints: number;
+  lifeWheelAreaId?: string;
+  eisenhowerQuadrant?: string;
+  isGlobal: boolean;
+  isFavorite: boolean;
+  usageCount: number;
+  averageRating: number;
+  tags: string[];
+}
+
+export const taskTemplateApi = {
+  async getAll() {
+    return requestRaw<TaskTemplate[]>('/templates', { method: 'GET' }, true);
+  },
+
+  async getGlobal() {
+    return requestRaw<TaskTemplate[]>('/templates/global', { method: 'GET' }, true);
+  },
+
+  async getUserTemplates() {
+    return requestRaw<TaskTemplate[]>('/templates/user', { method: 'GET' }, true);
+  },
+
+  async getFavorites() {
+    return requestRaw<TaskTemplate[]>('/templates/favorites', { method: 'GET' }, true);
+  },
+
+  async search(query: string) {
+    return requestRaw<TaskTemplate[]>(`/templates/search?q=${encodeURIComponent(query)}`, { method: 'GET' }, true);
+  },
+
+  async getById(id: string) {
+    return requestRaw<TaskTemplate>(`/templates/${id}`, { method: 'GET' }, true);
+  },
+
+  async create(data: Partial<TaskTemplate>) {
+    return requestRaw<TaskTemplate>('/templates', { method: 'POST', body: JSON.stringify(data) }, true);
+  },
+
+  async update(id: string, data: Partial<TaskTemplate>) {
+    return requestRaw<TaskTemplate>(`/templates/${id}`, { method: 'PUT', body: JSON.stringify(data) }, true);
+  },
+
+  async delete(id: string) {
+    return requestRaw<void>(`/templates/${id}`, { method: 'DELETE' }, true);
+  },
+
+  async toggleFavorite(id: string) {
+    return requestRaw<any>(`/templates/${id}/favorite`, { method: 'POST' }, true);
+  },
+
+  async rate(id: string, rating: number) {
+    return requestRaw<any>(`/templates/${id}/rate`, {
+      method: 'POST',
+      body: JSON.stringify({ rating }),
+    }, true);
+  },
+
+  async clone(id: string) {
+    return requestRaw<TaskTemplate>(`/templates/${id}/clone`, { method: 'POST' }, true);
+  },
+};
+
+// ============================================================
+// ADMIN API
+// ============================================================
 export const adminApi = {
-  // Dashboard
-  getDashboardStats: () => request<any>('/admin/dashboard/stats', {}, true),
-  
-  // Users
-  getUsers: (page = 0, size = 20, search?: string) =>
-    request<any>(`/admin/users?page=${page}&size=${size}${search ? `&search=${search}` : ''}`, {}, true),
-  
-  getUserById: (id: string) => request<any>(`/admin/users/${id}`, {}, true),
-  
-  updateUserRole: (id: string, role: string) =>
-    request(`/admin/users/${id}/role`, { method: 'PUT', body: JSON.stringify({ role }) }, true),
-  
-  // Marketing Content
-  getMarketingContent: () => request<any[]>('/admin/marketing/content', {}, true),
-  
-  updateMarketingContent: (id: string, data: any) =>
-    request(`/admin/marketing/content/${id}`, { method: 'PUT', body: JSON.stringify(data) }, true),
-  
-  // Analytics (merged into admin)
-  getAnalytics: (period: 'day' | 'week' | 'month' = 'week') =>
-    request<any>(`/admin/analytics?period=${period}`, {}, true),
+  // Site Content
+  async getAllSiteContent() {
+    return request<any[]>('/admin/content/site', { method: 'GET' }, true);
+  },
+
+  async getSiteContent(key: string) {
+    return request<any>(`/admin/content/site/${key}`, { method: 'GET' }, true);
+  },
+
+  async createSiteContent(data: any) {
+    return request<any>('/admin/content/site', { method: 'POST', body: JSON.stringify(data) }, true);
+  },
+
+  async updateSiteContent(key: string, data: any) {
+    return request<any>(`/admin/content/site/${key}`, { method: 'PUT', body: JSON.stringify(data) }, true);
+  },
+
+  // Features
+  async getAllFeatures() {
+    return request<any[]>('/admin/content/features', { method: 'GET' }, true);
+  },
+
+  async createFeature(data: any) {
+    return request<any>('/admin/content/features', { method: 'POST', body: JSON.stringify(data) }, true);
+  },
+
+  async updateFeature(id: string, data: any) {
+    return request<any>(`/admin/content/features/${id}`, { method: 'PUT', body: JSON.stringify(data) }, true);
+  },
+
+  async deleteFeature(id: string) {
+    return request<void>(`/admin/content/features/${id}`, { method: 'DELETE' }, true);
+  },
+
+  // Testimonials
+  async getAllTestimonials() {
+    return request<any[]>('/admin/content/testimonials', { method: 'GET' }, true);
+  },
+
+  async createTestimonial(data: any) {
+    return request<any>('/admin/content/testimonials', { method: 'POST', body: JSON.stringify(data) }, true);
+  },
+
+  async updateTestimonial(id: string, data: any) {
+    return request<any>(`/admin/content/testimonials/${id}`, { method: 'PUT', body: JSON.stringify(data) }, true);
+  },
+
+  async deleteTestimonial(id: string) {
+    return request<void>(`/admin/content/testimonials/${id}`, { method: 'DELETE' }, true);
+  },
+
+  // FAQs
+  async getAllFaqs() {
+    return request<any[]>('/admin/content/faqs', { method: 'GET' }, true);
+  },
+
+  async createFaq(data: any) {
+    return request<any>('/admin/content/faqs', { method: 'POST', body: JSON.stringify(data) }, true);
+  },
+
+  async updateFaq(id: string, data: any) {
+    return request<any>(`/admin/content/faqs/${id}`, { method: 'PUT', body: JSON.stringify(data) }, true);
+  },
+
+  async deleteFaq(id: string) {
+    return request<void>(`/admin/content/faqs/${id}`, { method: 'DELETE' }, true);
+  },
+
+  // Pricing
+  async getAllPricing() {
+    return request<any[]>('/admin/content/pricing', { method: 'GET' }, true);
+  },
+
+  async createPricing(data: any) {
+    return request<any>('/admin/content/pricing', { method: 'POST', body: JSON.stringify(data) }, true);
+  },
+
+  async updatePricing(id: string, data: any) {
+    return request<any>(`/admin/content/pricing/${id}`, { method: 'PUT', body: JSON.stringify(data) }, true);
+  },
+
+  async deletePricing(id: string) {
+    return request<void>(`/admin/content/pricing/${id}`, { method: 'DELETE' }, true);
+  },
+
+  // Users Management (for CRM)
+  async getAllUsers(params?: { page?: number; size?: number; subscriptionTier?: string }) {
+    const queryParams = new URLSearchParams();
+    if (params?.page !== undefined) queryParams.append('page', params.page.toString());
+    if (params?.size) queryParams.append('size', params.size.toString());
+    if (params?.subscriptionTier) queryParams.append('subscriptionTier', params.subscriptionTier);
+    const query = queryParams.toString() ? `?${queryParams}` : '';
+    return request<PaginatedResponse<User>>(`/admin/users${query}`, { method: 'GET' }, true);
+  },
+
+  async getUserById(id: string) {
+    return request<User>(`/admin/users/${id}`, { method: 'GET' }, true);
+  },
+
+  async updateUserTier(id: string, tier: string) {
+    return request<User>(`/admin/users/${id}/tier`, {
+      method: 'PATCH',
+      body: JSON.stringify({ subscriptionTier: tier }),
+    }, true);
+  },
+
+  // Global Templates Management
+  async getGlobalTemplates(params?: { page?: number; size?: number }) {
+    const queryParams = new URLSearchParams();
+    if (params?.page !== undefined) queryParams.append('page', params.page.toString());
+    if (params?.size) queryParams.append('size', params.size.toString());
+    const query = queryParams.toString() ? `?${queryParams}` : '';
+    return requestRaw<TaskTemplate[]>(`/admin/templates${query}`, { method: 'GET' }, true);
+  },
+
+  async createGlobalTemplate(data: any) {
+    return requestRaw<TaskTemplate>('/admin/templates', { method: 'POST', body: JSON.stringify(data) }, true);
+  },
+
+  async updateGlobalTemplate(id: string, data: any) {
+    return requestRaw<TaskTemplate>(`/admin/templates/${id}`, { method: 'PUT', body: JSON.stringify(data) }, true);
+  },
+
+  async deleteGlobalTemplate(id: string) {
+    return requestRaw<void>(`/admin/templates/${id}`, { method: 'DELETE' }, true);
+  },
+
+  async bulkCreateTemplates(templates: any[]) {
+    return requestRaw<{ created: number; errors: any[] }>('/admin/templates/bulk', {
+      method: 'POST',
+      body: JSON.stringify({ templates }),
+    }, true);
+  },
+
+  // Analytics
+  async getRevenueStats(period: 'week' | 'month' | 'quarter' | 'year') {
+    return request<any>(`/admin/analytics/revenue?period=${period}`, { method: 'GET' }, true);
+  },
+
+  async getSubscriberStats() {
+    return request<any>('/admin/analytics/subscribers', { method: 'GET' }, true);
+  },
+
+  async getUsageStats(period: 'week' | 'month' | 'quarter' | 'year') {
+    return request<any>(`/admin/analytics/usage?period=${period}`, { method: 'GET' }, true);
+  },
+};
+
+// ============================================================
+// FAMILY API
+// ============================================================
+export const familyApi = {
+  async getMyFamily() {
+    return request<any>('/families/me', { method: 'GET' }, true);
+  },
+
+  async createFamily(data: { name: string }) {
+    return request<any>('/families', { method: 'POST', body: JSON.stringify(data) }, true);
+  },
+
+  async updateFamily(familyId: string, data: any) {
+    return request<any>(`/families/${familyId}`, { method: 'PUT', body: JSON.stringify(data) }, true);
+  },
+
+  async joinFamily(inviteCode: string) {
+    return request<any>('/families/join', {
+      method: 'POST',
+      body: JSON.stringify({ inviteCode }),
+    }, true);
+  },
+
+  async leaveFamily() {
+    return request<void>('/families/leave', { method: 'POST' }, true);
+  },
+
+  async getMembers(familyId: string) {
+    return request<any[]>(`/families/${familyId}/members`, { method: 'GET' }, true);
+  },
+
+  async inviteMember(familyId: string, data: { email: string; role: string }) {
+    return request<any>(`/families/${familyId}/members/invite`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }, true);
+  },
+
+  async removeMember(familyId: string, memberId: string) {
+    return request<void>(`/families/${familyId}/members/${memberId}`, { method: 'DELETE' }, true);
+  },
+};
+
+// Export configuration
+export const apiConfig = {
+  baseUrl: API_BASE_URL,
+  apiUrl: API_V1,
 };
