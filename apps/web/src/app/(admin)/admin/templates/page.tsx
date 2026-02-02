@@ -34,7 +34,7 @@ export default function TemplatesPage() {
     icon: '📋',
     color: '#3B82F6',
     tags: [],
-    suggestedSprint: null,
+    suggestedSprint: undefined,
   });
 
   // Fetch templates
@@ -107,7 +107,7 @@ export default function TemplatesPage() {
       icon: '📋',
       color: '#3B82F6',
       tags: [],
-      suggestedSprint: null,
+      suggestedSprint: undefined,
     });
   };
 
@@ -580,7 +580,7 @@ export default function TemplatesPage() {
                   onChange={(e) =>
                     setFormData({
                       ...formData,
-                      suggestedSprint: e.target.value || null,
+                      suggestedSprint: (e.target.value as 'CURRENT' | 'NEXT' | 'BACKLOG') || undefined,
                     })
                   }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
