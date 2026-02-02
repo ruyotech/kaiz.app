@@ -11,13 +11,13 @@ type SortOrder = 'asc' | 'desc';
 export default function TemplatesPage() {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<TemplateType | 'all'>('all');
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  
+
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
@@ -38,9 +38,9 @@ export default function TemplatesPage() {
   });
 
   // Fetch templates
-  const { data: templates = [], isLoading, error } = useQuery({
+  const { data: templates = [], isLoading, error } = useQuery<AdminTaskTemplate[]>({
     queryKey: ['admin-templates'],
-    queryFn: adminApi.getGlobalTemplates,
+    queryFn: () => adminApi.getGlobalTemplates(),
   });
 
   // Create mutation
@@ -84,14 +84,14 @@ export default function TemplatesPage() {
 
   // Bulk create mutation
   const bulkCreateMutation = useMutation({
-    mutationFn: (templates: CreateTemplateRequest[]) => 
+    mutationFn: (templates: CreateTemplateRequest[]) =>
       adminApi.bulkCreateTemplates(templates),
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['admin-templates'] });
       setIsBulkUploadModalOpen(false);
       setBulkUploadJson('');
       setBulkUploadError('');
-      alert(`Bulk upload complete: ${result.successCount} created, ${result.failureCount} failed`);
+      alert(`Bulk upload complete: ${result.successCount} created, ${result.failedCount} failed`);
     },
     onError: (error: Error) => {
       setBulkUploadError(error.message);
@@ -212,7 +212,7 @@ export default function TemplatesPage() {
     try {
       const parsed = JSON.parse(bulkUploadJson);
       const templates = Array.isArray(parsed) ? parsed : [parsed];
-      
+
       // Validate structure
       for (const t of templates) {
         if (!t.name || !t.type) {
@@ -222,7 +222,7 @@ export default function TemplatesPage() {
           throw new Error('Template type must be "TASK" or "EVENT"');
         }
       }
-      
+
       bulkCreateMutation.mutate(templates);
     } catch (e) {
       setBulkUploadError(e instanceof Error ? e.message : 'Invalid JSON format');
@@ -232,7 +232,7 @@ export default function TemplatesPage() {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     const reader = new FileReader();
     reader.onload = (event) => {
       const content = event.target?.result as string;
@@ -421,11 +421,10 @@ export default function TemplatesPage() {
                 </td>
                 <td className="px-4 py-3">
                   <span
-                    className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      template.type === 'TASK'
+                    className={`px-2 py-1 rounded-full text-xs font-medium ${template.type === 'TASK'
                         ? 'bg-blue-100 text-blue-700'
                         : 'bg-green-100 text-green-700'
-                    }`}
+                      }`}
                   >
                     {template.type}
                   </span>
@@ -613,8 +612,8 @@ export default function TemplatesPage() {
                 {createMutation.isPending || updateMutation.isPending
                   ? 'Saving...'
                   : isEditModalOpen
-                  ? 'Update'
-                  : 'Create'}
+                    ? 'Update'
+                    : 'Create'}
               </button>
             </div>
           </div>
