@@ -195,4 +195,46 @@ public class AdminDtos {
       Boolean popular,
       Integer displayOrder,
       Boolean active) {}
+
+  // ============ Article DTOs ============
+
+  public record ArticleResponse(
+      UUID id,
+      String slug,
+      String title,
+      String summary,
+      String content,
+      String coverImageUrl,
+      String author,
+      List<String> tags,
+      String category,
+      String status,
+      Instant publishedAt,
+      boolean featured,
+      Integer viewCount,
+      Instant createdAt,
+      Instant updatedAt) {}
+
+  public record CreateArticleRequest(
+      @NotBlank(message = "Slug is required") String slug,
+      @NotBlank(message = "Title is required") String title,
+      String summary,
+      String content,
+      String coverImageUrl,
+      String author,
+      List<String> tags,
+      String category,
+      String status,
+      boolean featured) {}
+
+  public record UpdateArticleRequest(
+      String title,
+      String summary,
+      String content,
+      String coverImageUrl,
+      String author,
+      List<String> tags,
+      String category,
+      String status,
+      Boolean featured) {}
 }

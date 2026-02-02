@@ -2,11 +2,13 @@ package app.kaiz.admin.application;
 
 import app.kaiz.admin.application.dto.AdminDtos.*;
 import app.kaiz.admin.domain.AboutFeature;
+import app.kaiz.admin.domain.AdminArticle;
 import app.kaiz.admin.domain.Faq;
 import app.kaiz.admin.domain.PricingTier;
 import app.kaiz.admin.domain.SiteContent;
 import app.kaiz.admin.domain.Testimonial;
 import app.kaiz.admin.infrastructure.AboutFeatureRepository;
+import app.kaiz.admin.infrastructure.AdminArticleRepository;
 import app.kaiz.admin.infrastructure.FaqRepository;
 import app.kaiz.admin.infrastructure.PricingTierRepository;
 import app.kaiz.admin.infrastructure.SiteContentRepository;
@@ -31,6 +33,7 @@ public class AdminContentService {
   private final TestimonialRepository testimonialRepository;
   private final FaqRepository faqRepository;
   private final PricingTierRepository pricingTierRepository;
+  private final AdminArticleRepository articleRepository;
   private final ObjectMapper objectMapper;
 
   // ============ Site Content Methods ============
@@ -443,6 +446,102 @@ public class AdminContentService {
     } catch (JsonProcessingException e) {
       throw new RuntimeException("Failed to serialize to JSON", e);
     }
+  }
+
+  // ============ Article Methods ============
+
+  @Transactional(readOnly = true)
+  public List<ArticleResponse> getAllArticles() {
+    return articleRepository.findAll().stream()
+        .sorted(java.util.Comparator.comparing(AdminArticle::getCreatedAt).reversed())
+        .map(this::toArticleResponse)
+        .toList();
+  }
+
+  @Transactional(readOnly = true)
+  public ArticleResponse getArticleBySlug(String slug) {
+    return articleRepository
+        .findBySlug(slug)
+        .map(this::toArticleResponse)
+        .orElseThrow(() -> new ResourceNotFoundException("Article not found: " + slug));
+  }
+
+  @Transactional
+  public ArticleResponse createArticle(CreateArticleRequest request) {
+    if (articleRepository.existsBySlug(request.slug())) {
+      throw new BadRequestException("Article with slug already exists: " + request.slug());
+    }
+
+    AdminArticle article =
+        AdminArticle.builder()
+            .slug(request.slug())
+            .title(request.title())
+            .summary(request.summary())
+            .content(request.content())
+            .coverImageUrl(request.coverImageUrl())
+            .author(request.author())
+            .tags(toJson(request.tags()))
+            .category(request.category())
+            .status(request.status())
+            .featured(request.featured())
+            .publishedAt(request.status().equals("PUBLISHED") ? java.time.Instant.now() : null)
+            .build();
+
+    return toArticleResponse(articleRepository.save(article));
+  }
+
+  @Transactional
+  public ArticleResponse updateArticle(UUID id, UpdateArticleRequest request) {
+    AdminArticle article =
+        articleRepository
+            .findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Article not found: " + id));
+
+    if (request.title() != null) article.setTitle(request.title());
+    if (request.summary() != null) article.setSummary(request.summary());
+    if (request.content() != null) article.setContent(request.content());
+    if (request.coverImageUrl() != null) article.setCoverImageUrl(request.coverImageUrl());
+    if (request.author() != null) article.setAuthor(request.author());
+    if (request.tags() != null) article.setTags(toJson(request.tags()));
+    if (request.category() != null) article.setCategory(request.category());
+
+    if (request.status() != null && !request.status().equals(article.getStatus())) {
+      article.setStatus(request.status());
+      if ("PUBLISHED".equals(request.status()) && article.getPublishedAt() == null) {
+        article.setPublishedAt(java.time.Instant.now());
+      }
+    }
+
+    if (request.featured() != null) article.setFeatured(request.featured());
+
+    return toArticleResponse(articleRepository.save(article));
+  }
+
+  @Transactional
+  public void deleteArticle(UUID id) {
+    if (!articleRepository.existsById(id)) {
+      throw new ResourceNotFoundException("Article not found: " + id);
+    }
+    articleRepository.deleteById(id);
+  }
+
+  private ArticleResponse toArticleResponse(AdminArticle article) {
+    return new ArticleResponse(
+        article.getId(),
+        article.getSlug(),
+        article.getTitle(),
+        article.getSummary(),
+        article.getContent(),
+        article.getCoverImageUrl(),
+        article.getAuthor(),
+        fromJson(article.getTags(), new TypeReference<List<String>>() {}),
+        article.getCategory(),
+        article.getStatus(),
+        article.getPublishedAt(),
+        article.isFeatured(),
+        article.getViewCount(),
+        article.getCreatedAt(),
+        article.getUpdatedAt());
   }
 
   private <T> T fromJson(String json, TypeReference<T> typeRef) {

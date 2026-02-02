@@ -186,4 +186,40 @@ public class AdminContentController {
     adminContentService.deletePricingTier(id);
     return ResponseEntity.ok(ApiResponse.success(null));
   }
+
+  // ============ Article Endpoints ============
+
+  @GetMapping("/articles")
+  @Operation(summary = "Get all articles")
+  public ResponseEntity<ApiResponse<List<ArticleResponse>>> getAllArticles() {
+    return ResponseEntity.ok(ApiResponse.success(adminContentService.getAllArticles()));
+  }
+
+  @GetMapping("/articles/{slug}")
+  @Operation(summary = "Get article by slug")
+  public ResponseEntity<ApiResponse<ArticleResponse>> getArticleBySlug(@PathVariable String slug) {
+    return ResponseEntity.ok(ApiResponse.success(adminContentService.getArticleBySlug(slug)));
+  }
+
+  @PostMapping("/articles")
+  @Operation(summary = "Create new article")
+  public ResponseEntity<ApiResponse<ArticleResponse>> createArticle(
+      @Valid @RequestBody CreateArticleRequest request) {
+    return ResponseEntity.status(HttpStatus.CREATED)
+        .body(ApiResponse.success(adminContentService.createArticle(request)));
+  }
+
+  @PutMapping("/articles/{id}")
+  @Operation(summary = "Update article")
+  public ResponseEntity<ApiResponse<ArticleResponse>> updateArticle(
+      @PathVariable UUID id, @Valid @RequestBody UpdateArticleRequest request) {
+    return ResponseEntity.ok(ApiResponse.success(adminContentService.updateArticle(id, request)));
+  }
+
+  @DeleteMapping("/articles/{id}")
+  @Operation(summary = "Delete article")
+  public ResponseEntity<ApiResponse<Void>> deleteArticle(@PathVariable UUID id) {
+    adminContentService.deleteArticle(id);
+    return ResponseEntity.ok(ApiResponse.success(null));
+  }
 }

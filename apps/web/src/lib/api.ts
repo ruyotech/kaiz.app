@@ -1176,6 +1176,49 @@ export interface BulkOperationResponse {
   createdTemplates: AdminTaskTemplate[] | null;
 }
 
+export interface ArticleResponse {
+  id: string;
+  slug: string;
+  title: string;
+  summary: string;
+  content: string;
+  coverImageUrl: string;
+  author: string;
+  tags: string[];
+  category: string;
+  status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+  publishedAt: string | null;
+  featured: boolean;
+  viewCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateArticleRequest {
+  slug: string;
+  title: string;
+  summary?: string;
+  content?: string;
+  coverImageUrl?: string;
+  author?: string;
+  tags?: string[];
+  category?: string;
+  status?: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+  featured?: boolean;
+}
+
+export interface UpdateArticleRequest {
+  title?: string;
+  summary?: string;
+  content?: string;
+  coverImageUrl?: string;
+  author?: string;
+  tags?: string[];
+  category?: string;
+  status?: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+  featured?: boolean;
+}
+
 // ============================================================
 // ADMIN API
 // ============================================================
@@ -1263,6 +1306,27 @@ export const adminApi = {
 
   async deletePricing(id: string) {
     return request<void>(`/admin/content/pricing/${id}`, { method: 'DELETE' }, true);
+  },
+
+  // Articles
+  async getAllArticles() {
+    return request<any[]>('/admin/content/articles', { method: 'GET' }, true);
+  },
+
+  async getArticleBySlug(slug: string) {
+    return request<any>(`/admin/content/articles/${slug}`, { method: 'GET' }, true);
+  },
+
+  async createArticle(data: any) {
+    return request<any>('/admin/content/articles', { method: 'POST', body: JSON.stringify(data) }, true);
+  },
+
+  async updateArticle(id: string, data: any) {
+    return request<any>(`/admin/content/articles/${id}`, { method: 'PUT', body: JSON.stringify(data) }, true);
+  },
+
+  async deleteArticle(id: string) {
+    return request<void>(`/admin/content/articles/${id}`, { method: 'DELETE' }, true);
   },
 
   // Users Management (for CRM)
