@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { adminApi } from '@/lib/api';
+import { adminApi, User, PaginatedResponse } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import {
   Users,
@@ -22,119 +22,92 @@ import {
   MessageSquare,
   CreditCard,
   Star,
+  TrendingUp,
+  AlertCircle,
 } from 'lucide-react';
 
-type SubscriberFilter = 'all' | 'active' | 'trial' | 'churned' | 'leads';
+type SubscriberFilter = 'all' | 'FREE' | 'PREMIUM' | 'ENTERPRISE';
+
+// Map User to display format
+interface DisplaySubscriber {
+  id: string;
+  fullName: string;
+  email: string;
+  plan: string;
+  status: 'ACTIVE' | 'TRIAL' | 'CHURNED';
+  subscriptionTier: string;
+  joinedAt: string;
+  lastActive: string;
+  totalSpent: number;
+  tags: string[];
+  avatarUrl: string | null;
+}
+
+function mapUserToSubscriber(user: User): DisplaySubscriber {
+  // Map subscription tier to user-friendly plan names
+  const planMap: Record<string, string> = {
+    'FREE': 'Free',
+    'PREMIUM': 'Pro Monthly',
+    'ENTERPRISE': 'Enterprise',
+  };
+
+  // Determine status based on subscription tier
+  const status: 'ACTIVE' | 'TRIAL' | 'CHURNED' =
+    user.subscriptionTier === 'FREE' ? 'TRIAL' : 'ACTIVE';
+
+  return {
+    id: user.id,
+    fullName: user.fullName,
+    email: user.email,
+    plan: planMap[user.subscriptionTier] || user.subscriptionTier,
+    status,
+    subscriptionTier: user.subscriptionTier,
+    joinedAt: user.createdAt || '',
+    lastActive: user.createdAt || '', // Use createdAt as fallback
+    totalSpent: user.subscriptionTier === 'PREMIUM' ? 29 : user.subscriptionTier === 'ENTERPRISE' ? 99 : 0,
+    tags: user.subscriptionTier === 'PREMIUM' ? ['Premium'] : user.subscriptionTier === 'ENTERPRISE' ? ['Enterprise', 'Priority Support'] : [],
+    avatarUrl: user.avatarUrl,
+  };
+}
 
 export default function AdminSubscribersPage() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<SubscriberFilter>('all');
-  const [selectedUser, setSelectedUser] = useState<any>(null);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [tierFilter, setTierFilter] = useState<SubscriberFilter>('all');
+  const [selectedUser, setSelectedUser] = useState<DisplaySubscriber | null>(null);
+  const [currentPage, setCurrentPage] = useState(0);
   const itemsPerPage = 10;
 
-  // Fetch subscribers
-  const { data: subscribersData, isLoading } = useQuery({
-    queryKey: ['adminSubscribers', currentPage, statusFilter],
-    queryFn: () => adminApi.getAllUsers({ 
-      page: currentPage, 
-      size: 10,
-      subscriptionTier: statusFilter === 'all' ? undefined : statusFilter 
+  // Fetch subscribers from backend
+  const { data: subscribersData, isLoading, error } = useQuery<PaginatedResponse<User>>({
+    queryKey: ['adminSubscribers', currentPage, tierFilter],
+    queryFn: () => adminApi.getAllUsers({
+      page: currentPage,
+      size: itemsPerPage,
+      subscriptionTier: tierFilter === 'all' ? undefined : tierFilter
     }),
     staleTime: 30000,
   });
 
-  const subscribers = subscribersData?.content || [];
+  // Map backend users to display format
+  const subscribers: DisplaySubscriber[] = (subscribersData?.content || []).map(mapUserToSubscriber);
 
-  // Mock data for display
-  const mockSubscribers = [
-    {
-      id: '1',
-      fullName: 'John Smith',
-      email: 'john@example.com',
-      plan: 'Pro Annual',
-      status: 'ACTIVE',
-      joinedAt: '2024-01-15',
-      lastActive: '2024-02-01',
-      totalSpent: 288,
-      tags: ['Power User', 'Beta Tester'],
-    },
-    {
-      id: '2',
-      fullName: 'Sarah Wilson',
-      email: 'sarah@example.com',
-      plan: 'Pro Monthly',
-      status: 'ACTIVE',
-      joinedAt: '2024-01-20',
-      lastActive: '2024-02-01',
-      totalSpent: 60,
-      tags: ['Early Adopter'],
-    },
-    {
-      id: '3',
-      fullName: 'Mike Johnson',
-      email: 'mike@example.com',
-      plan: 'Free',
-      status: 'TRIAL',
-      joinedAt: '2024-01-28',
-      lastActive: '2024-01-30',
-      totalSpent: 0,
-      tags: ['Lead'],
-    },
-    {
-      id: '4',
-      fullName: 'Emily Davis',
-      email: 'emily@example.com',
-      plan: 'Pro Annual',
-      status: 'CHURNED',
-      joinedAt: '2023-06-15',
-      lastActive: '2023-12-01',
-      totalSpent: 288,
-      tags: [],
-    },
-    {
-      id: '5',
-      fullName: 'Alex Brown',
-      email: 'alex@example.com',
-      plan: 'Family',
-      status: 'ACTIVE',
-      joinedAt: '2024-01-10',
-      lastActive: '2024-02-01',
-      totalSpent: 144,
-      tags: ['Family Plan'],
-    },
-  ];
-
-  const displaySubscribers = subscribers.length > 0 ? subscribers : mockSubscribers;
-
-  // Filter subscribers
-  const filteredSubscribers = displaySubscribers.filter((sub: any) => {
-    const matchesSearch =
-      !searchQuery ||
-      sub.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  // Filter by search query (client-side)
+  const filteredSubscribers = subscribers.filter((sub) => {
+    if (!searchQuery) return true;
+    return sub.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       sub.email?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus =
-      statusFilter === 'all' ||
-      (statusFilter === 'active' && sub.status === 'ACTIVE') ||
-      (statusFilter === 'trial' && sub.status === 'TRIAL') ||
-      (statusFilter === 'churned' && sub.status === 'CHURNED') ||
-      (statusFilter === 'leads' && (sub.plan === 'Free' || sub.status === 'TRIAL'));
-    return matchesSearch && matchesStatus;
   });
 
-  // Pagination
-  const totalPages = Math.ceil(filteredSubscribers.length / itemsPerPage);
-  const paginatedSubscribers = filteredSubscribers.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  // Use backend pagination info
+  const totalPages = subscribersData?.totalPages || 1;
+  const totalElements = subscribersData?.totalElements || 0;
 
-  // Stats
+  // Stats - calculate from current page data and total
   const stats = {
-    total: displaySubscribers.length,
-    active: displaySubscribers.filter((s: any) => s.status === 'ACTIVE').length,
-    trial: displaySubscribers.filter((s: any) => s.status === 'TRIAL').length,
-    churned: displaySubscribers.filter((s: any) => s.status === 'CHURNED').length,
+    total: totalElements,
+    premium: subscribers.filter(s => s.subscriptionTier === 'PREMIUM').length,
+    enterprise: subscribers.filter(s => s.subscriptionTier === 'ENTERPRISE').length,
+    free: subscribers.filter(s => s.subscriptionTier === 'FREE').length,
   };
 
   return (
@@ -156,10 +129,18 @@ export default function AdminSubscribersPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Total Users" value={stats.total} color="text-blue-400" bgColor="bg-blue-500/10" />
-        <StatCard label="Active" value={stats.active} color="text-green-400" bgColor="bg-green-500/10" />
-        <StatCard label="Trial" value={stats.trial} color="text-yellow-400" bgColor="bg-yellow-500/10" />
-        <StatCard label="Churned" value={stats.churned} color="text-red-400" bgColor="bg-red-500/10" />
+        <StatCard label="Premium" value={stats.premium} color="text-green-400" bgColor="bg-green-500/10" />
+        <StatCard label="Enterprise" value={stats.enterprise} color="text-purple-400" bgColor="bg-purple-500/10" />
+        <StatCard label="Free" value={stats.free} color="text-yellow-400" bgColor="bg-yellow-500/10" />
       </div>
+
+      {/* Error State */}
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 text-red-400" />
+          <span className="text-red-300">Failed to load subscribers. Please try again.</span>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
@@ -175,20 +156,20 @@ export default function AdminSubscribersPage() {
           />
         </div>
 
-        {/* Status filter */}
+        {/* Subscription Tier filter */}
         <div className="flex items-center gap-2">
-          {(['all', 'active', 'trial', 'leads', 'churned'] as const).map((filter) => (
+          {(['all', 'FREE', 'PREMIUM', 'ENTERPRISE'] as const).map((filter) => (
             <button
               key={filter}
-              onClick={() => setStatusFilter(filter)}
+              onClick={() => { setTierFilter(filter); setCurrentPage(0); }}
               className={cn(
                 'px-3 py-2 rounded-lg text-sm font-medium transition-all capitalize',
-                statusFilter === filter
+                tierFilter === filter
                   ? 'bg-primary text-white'
                   : 'bg-white/5 text-slate-400 hover:bg-white/10'
               )}
             >
-              {filter}
+              {filter === 'all' ? 'All' : filter.toLowerCase()}
             </button>
           ))}
         </div>
@@ -213,7 +194,7 @@ export default function AdminSubscribersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {paginatedSubscribers.map((sub: any) => (
+                {filteredSubscribers.map((sub) => (
                   <SubscriberRow
                     key={sub.id}
                     subscriber={sub}
@@ -228,24 +209,24 @@ export default function AdminSubscribersPage() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between p-4 border-t border-white/10">
               <div className="text-sm text-slate-400">
-                Showing {(currentPage - 1) * itemsPerPage + 1} to{' '}
-                {Math.min(currentPage * itemsPerPage, filteredSubscribers.length)} of{' '}
-                {filteredSubscribers.length}
+                Showing {currentPage * itemsPerPage + 1} to{' '}
+                {Math.min((currentPage + 1) * itemsPerPage, totalElements)} of{' '}
+                {totalElements}
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+                  disabled={currentPage === 0}
                   className="p-2 rounded-lg hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
                 <span className="text-sm">
-                  Page {currentPage} of {totalPages}
+                  Page {currentPage + 1} of {totalPages}
                 </span>
                 <button
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
+                  disabled={currentPage === totalPages - 1}
                   className="p-2 rounded-lg hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ChevronRight className="w-4 h-4" />

@@ -1,12 +1,20 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi, AdminTaskTemplate, CreateTemplateRequest, UpdateTemplateRequest } from '@/lib/api';
 
 type TemplateType = 'TASK' | 'EVENT';
 type SortField = 'name' | 'rating' | 'usageCount' | 'createdAt';
 type SortOrder = 'asc' | 'desc';
+type BulkUploadMode = 'csv' | 'json';
+
+interface ParsedTemplate {
+  data: Partial<CreateTemplateRequest>;
+  errors: string[];
+  isValid: boolean;
+  rowNumber: number;
+}
 
 export default function TemplatesPage() {
   const queryClient = useQueryClient();
@@ -18,12 +26,18 @@ export default function TemplatesPage() {
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
+
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<AdminTaskTemplate | null>(null);
   const [bulkUploadJson, setBulkUploadJson] = useState('');
   const [bulkUploadError, setBulkUploadError] = useState('');
+  const [bulkUploadMode, setBulkUploadMode] = useState<BulkUploadMode>('csv');
+  const [parsedTemplates, setParsedTemplates] = useState<ParsedTemplate[]>([]);
+  const [showPreview, setShowPreview] = useState(false);
+  const [csvContent, setCsvContent] = useState('');
+
 
   // Form state for create/edit
   const [formData, setFormData] = useState<Partial<CreateTemplateRequest>>({
@@ -229,6 +243,129 @@ export default function TemplatesPage() {
     }
   };
 
+  // CSV Template Generator
+  const downloadCsvTemplate = () => {
+    const headers = ['name', 'description', 'type', 'defaultStoryPoints', 'icon', 'color', 'tags', 'suggestedSprint'];
+    const sampleRows = [
+      ['Morning Workout', '30 minute exercise routine', 'TASK', '3', '🏋️', '#EF4444', 'health,fitness', 'CURRENT'],
+      ['Weekly Planning', 'Plan the week ahead', 'TASK', '2', '📅', '#3B82F6', 'productivity,planning', 'NEXT'],
+      ['Team Standup', 'Daily team sync meeting', 'EVENT', '1', '👥', '#10B981', 'meetings,team', 'BACKLOG'],
+    ];
+    const csvContent = [headers.join(','), ...sampleRows.map(row => row.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'template_bulk_upload.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // CSV Parser
+  const parseCSV = (content: string): ParsedTemplate[] => {
+    const lines = content.split('\n').filter(line => line.trim());
+    if (lines.length < 2) return [];
+
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+    const results: ParsedTemplate[] = [];
+
+    for (let i = 1; i < lines.length; i++) {
+      const values = parseCSVLine(lines[i]);
+      const errors: string[] = [];
+      const data: Partial<CreateTemplateRequest> = {};
+
+      // Map CSV columns to template fields
+      headers.forEach((header, idx) => {
+        const value = values[idx]?.trim() || '';
+        switch (header) {
+          case 'name':
+            data.name = value;
+            if (!value) errors.push('Name is required');
+            break;
+          case 'description':
+            data.description = value;
+            break;
+          case 'type':
+            if (value && !['TASK', 'EVENT'].includes(value.toUpperCase())) {
+              errors.push('Type must be TASK or EVENT');
+            } else if (!value) {
+              errors.push('Type is required');
+            } else {
+              data.type = value.toUpperCase() as 'TASK' | 'EVENT';
+            }
+            break;
+          case 'defaultstorypoints':
+          case 'storypoints':
+          case 'points':
+            const points = parseInt(value);
+            if (value && isNaN(points)) {
+              errors.push('Story points must be a number');
+            } else if (value) {
+              data.defaultStoryPoints = points;
+            }
+            break;
+          case 'icon':
+            data.icon = value || '📋';
+            break;
+          case 'color':
+            if (value && !/^#[0-9A-Fa-f]{6}$/.test(value)) {
+              errors.push('Color must be hex format (e.g., #3B82F6)');
+            } else {
+              data.color = value || '#3B82F6';
+            }
+            break;
+          case 'tags':
+            data.tags = value ? value.split(/[;,]/).map(t => t.trim()).filter(Boolean) : [];
+            break;
+          case 'suggestedsprint':
+          case 'sprint':
+            if (value && !['CURRENT', 'NEXT', 'BACKLOG'].includes(value.toUpperCase())) {
+              errors.push('Sprint must be CURRENT, NEXT, or BACKLOG');
+            } else if (value) {
+              data.suggestedSprint = value.toUpperCase() as 'CURRENT' | 'NEXT' | 'BACKLOG';
+            }
+            break;
+        }
+      });
+
+      results.push({
+        data,
+        errors,
+        isValid: errors.length === 0,
+        rowNumber: i + 1,
+      });
+    }
+
+    return results;
+  };
+
+  // Helper to parse CSV line (handles quoted values)
+  const parseCSVLine = (line: string): string[] => {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        result.push(current);
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    result.push(current);
+    return result;
+  };
+
+  // Validation summary
+  const validationSummary = useMemo(() => {
+    const valid = parsedTemplates.filter(t => t.isValid).length;
+    const invalid = parsedTemplates.filter(t => !t.isValid).length;
+    return { valid, invalid, total: parsedTemplates.length };
+  }, [parsedTemplates]);
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -236,9 +373,46 @@ export default function TemplatesPage() {
     const reader = new FileReader();
     reader.onload = (event) => {
       const content = event.target?.result as string;
-      setBulkUploadJson(content);
+      const isCSV = file.name.endsWith('.csv');
+
+      if (isCSV) {
+        setCsvContent(content);
+        setBulkUploadMode('csv');
+        const parsed = parseCSV(content);
+        setParsedTemplates(parsed);
+        setShowPreview(true);
+        setBulkUploadError('');
+      } else {
+        setBulkUploadJson(content);
+        setBulkUploadMode('json');
+        setShowPreview(false);
+      }
     };
     reader.readAsText(file);
+  };
+
+  const handleCsvUpload = () => {
+    const validTemplates = parsedTemplates
+      .filter(t => t.isValid)
+      .map(t => t.data as CreateTemplateRequest);
+
+    if (validTemplates.length === 0) {
+      setBulkUploadError('No valid templates to upload. Please fix errors and try again.');
+      return;
+    }
+
+    bulkCreateMutation.mutate(validTemplates);
+  };
+
+  const resetBulkUpload = () => {
+    setIsBulkUploadModalOpen(false);
+    setBulkUploadJson('');
+    setBulkUploadError('');
+    setCsvContent('');
+    setParsedTemplates([]);
+    setShowPreview(false);
+    setBulkUploadMode('csv');
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const getSortIcon = (field: SortField) => {
@@ -422,8 +596,8 @@ export default function TemplatesPage() {
                 <td className="px-4 py-3">
                   <span
                     className={`px-2 py-1 rounded-full text-xs font-medium ${template.type === 'TASK'
-                        ? 'bg-blue-100 text-blue-700'
-                        : 'bg-green-100 text-green-700'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'bg-green-100 text-green-700'
                       }`}
                   >
                     {template.type}
@@ -585,10 +759,9 @@ export default function TemplatesPage() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">None</option>
-                  <option value="MORNING">Morning</option>
-                  <option value="AFTERNOON">Afternoon</option>
-                  <option value="EVENING">Evening</option>
-                  <option value="ANYTIME">Anytime</option>
+                  <option value="CURRENT">Current Sprint</option>
+                  <option value="NEXT">Next Sprint</option>
+                  <option value="BACKLOG">Backlog</option>
                 </select>
               </div>
             </div>
@@ -623,35 +796,139 @@ export default function TemplatesPage() {
       {/* Bulk Upload Modal */}
       {isBulkUploadModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b">
-              <h2 className="text-xl font-bold text-gray-900">Bulk Upload Templates</h2>
-              <p className="text-gray-500 mt-1">Upload multiple templates at once via JSON</p>
+          <div className="bg-white rounded-lg w-full max-w-4xl mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="p-6 border-b flex justify-between items-start">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Bulk Upload Templates</h2>
+                <p className="text-gray-500 mt-1">Upload multiple templates via CSV or JSON</p>
+              </div>
+              <button
+                onClick={downloadCsvTemplate}
+                className="px-4 py-2 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors flex items-center gap-2"
+              >
+                📥 Download CSV Template
+              </button>
             </div>
-            <div className="p-6 space-y-4">
+
+            {/* Mode Tabs */}
+            <div className="px-6 pt-4 border-b">
+              <div className="flex gap-4">
+                <button
+                  onClick={() => { setBulkUploadMode('csv'); setShowPreview(false); setParsedTemplates([]); }}
+                  className={`pb-3 px-1 border-b-2 font-medium text-sm transition-colors ${bulkUploadMode === 'csv'
+                      ? 'border-purple-600 text-purple-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                    }`}
+                >
+                  📊 CSV Upload (Recommended)
+                </button>
+                <button
+                  onClick={() => { setBulkUploadMode('json'); setShowPreview(false); setParsedTemplates([]); }}
+                  className={`pb-3 px-1 border-b-2 font-medium text-sm transition-colors ${bulkUploadMode === 'json'
+                      ? 'border-purple-600 text-purple-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                    }`}
+                >
+                  {'{ }'} JSON Upload (Advanced)
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-4 overflow-y-auto flex-1">
+              {/* File Upload */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Upload JSON File
+                  Upload {bulkUploadMode.toUpperCase()} File
                 </label>
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".json"
+                  accept={bulkUploadMode === 'csv' ? '.csv' : '.json'}
                   onChange={handleFileUpload}
-                  className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
                 />
               </div>
-              <div className="text-center text-gray-500">or paste JSON below</div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  JSON Content
-                </label>
-                <textarea
-                  value={bulkUploadJson}
-                  onChange={(e) => setBulkUploadJson(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-                  rows={12}
-                  placeholder={`[
+
+              {/* CSV Preview Mode */}
+              {bulkUploadMode === 'csv' && showPreview && parsedTemplates.length > 0 && (
+                <div className="space-y-4">
+                  {/* Validation Summary */}
+                  <div className="flex gap-4">
+                    <div className="flex-1 bg-green-50 border border-green-200 rounded-lg p-4">
+                      <div className="text-2xl font-bold text-green-700">{validationSummary.valid}</div>
+                      <div className="text-sm text-green-600">Valid rows</div>
+                    </div>
+                    <div className="flex-1 bg-red-50 border border-red-200 rounded-lg p-4">
+                      <div className="text-2xl font-bold text-red-700">{validationSummary.invalid}</div>
+                      <div className="text-sm text-red-600">Rows with errors</div>
+                    </div>
+                    <div className="flex-1 bg-gray-50 border border-gray-200 rounded-lg p-4">
+                      <div className="text-2xl font-bold text-gray-700">{validationSummary.total}</div>
+                      <div className="text-sm text-gray-600">Total rows</div>
+                    </div>
+                  </div>
+
+                  {/* Preview Table */}
+                  <div className="border rounded-lg overflow-hidden">
+                    <div className="max-h-64 overflow-y-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-50 sticky top-0">
+                          <tr>
+                            <th className="px-3 py-2 text-left text-gray-500">Row</th>
+                            <th className="px-3 py-2 text-left text-gray-500">Status</th>
+                            <th className="px-3 py-2 text-left text-gray-500">Name</th>
+                            <th className="px-3 py-2 text-left text-gray-500">Type</th>
+                            <th className="px-3 py-2 text-left text-gray-500">Points</th>
+                            <th className="px-3 py-2 text-left text-gray-500">Errors</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                          {parsedTemplates.map((t) => (
+                            <tr key={t.rowNumber} className={t.isValid ? 'bg-white' : 'bg-red-50'}>
+                              <td className="px-3 py-2 text-gray-500">#{t.rowNumber}</td>
+                              <td className="px-3 py-2">
+                                {t.isValid ? (
+                                  <span className="text-green-600">✓</span>
+                                ) : (
+                                  <span className="text-red-600">✗</span>
+                                )}
+                              </td>
+                              <td className="px-3 py-2 font-medium">{t.data.name || '-'}</td>
+                              <td className="px-3 py-2">
+                                <span className={`px-2 py-0.5 rounded text-xs ${t.data.type === 'TASK' ? 'bg-blue-100 text-blue-700' :
+                                    t.data.type === 'EVENT' ? 'bg-green-100 text-green-700' :
+                                      'bg-gray-100 text-gray-500'
+                                  }`}>
+                                  {t.data.type || 'N/A'}
+                                </span>
+                              </td>
+                              <td className="px-3 py-2">{t.data.defaultStoryPoints || '-'}</td>
+                              <td className="px-3 py-2 text-red-600 text-xs">
+                                {t.errors.join(', ') || '-'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* JSON Mode */}
+              {bulkUploadMode === 'json' && (
+                <>
+                  <div className="text-center text-gray-500">or paste JSON below</div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      JSON Content
+                    </label>
+                    <textarea
+                      value={bulkUploadJson}
+                      onChange={(e) => setBulkUploadJson(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                      rows={10}
+                      placeholder={`[
   {
     "name": "Morning Workout",
     "description": "30 minute exercise routine",
@@ -662,55 +939,63 @@ export default function TemplatesPage() {
     "tags": ["health", "fitness"]
   }
 ]`}
-                />
-              </div>
+                    />
+                  </div>
+                </>
+              )}
+
               {bulkUploadError && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-sm">
                   {bulkUploadError}
                 </div>
               )}
+
+              {/* Help Section */}
               <div className="bg-gray-50 rounded-lg p-4">
-                <h4 className="font-medium text-gray-900 mb-2">Required Fields:</h4>
-                <ul className="text-sm text-gray-600 space-y-1">
-                  <li>
-                    <code className="bg-gray-200 px-1 rounded">name</code> - Template name
-                  </li>
-                  <li>
-                    <code className="bg-gray-200 px-1 rounded">type</code> - &quot;TASK&quot; or
-                    &quot;EVENT&quot;
-                  </li>
-                </ul>
-                <h4 className="font-medium text-gray-900 mb-2 mt-3">Optional Fields:</h4>
-                <ul className="text-sm text-gray-600 space-y-1">
-                  <li>
-                    <code className="bg-gray-200 px-1 rounded">description</code>,{' '}
-                    <code className="bg-gray-200 px-1 rounded">defaultStoryPoints</code>,{' '}
-                    <code className="bg-gray-200 px-1 rounded">icon</code>,{' '}
-                    <code className="bg-gray-200 px-1 rounded">color</code>,{' '}
-                    <code className="bg-gray-200 px-1 rounded">tags</code>,{' '}
-                    <code className="bg-gray-200 px-1 rounded">suggestedSprint</code>
-                  </li>
-                </ul>
+                <h4 className="font-medium text-gray-900 mb-2">Column Reference:</h4>
+                <div className="grid grid-cols-2 gap-2 text-sm text-gray-600">
+                  <div><code className="bg-gray-200 px-1 rounded">name</code> - Required</div>
+                  <div><code className="bg-gray-200 px-1 rounded">type</code> - TASK or EVENT (required)</div>
+                  <div><code className="bg-gray-200 px-1 rounded">description</code> - Optional</div>
+                  <div><code className="bg-gray-200 px-1 rounded">defaultStoryPoints</code> - Number</div>
+                  <div><code className="bg-gray-200 px-1 rounded">icon</code> - Emoji</div>
+                  <div><code className="bg-gray-200 px-1 rounded">color</code> - Hex (#RRGGBB)</div>
+                  <div><code className="bg-gray-200 px-1 rounded">tags</code> - Comma-separated</div>
+                  <div><code className="bg-gray-200 px-1 rounded">suggestedSprint</code> - CURRENT/NEXT/BACKLOG</div>
+                </div>
               </div>
             </div>
-            <div className="p-6 border-t bg-gray-50 flex justify-end gap-3">
+
+            <div className="p-6 border-t bg-gray-50 flex justify-between">
               <button
-                onClick={() => {
-                  setIsBulkUploadModalOpen(false);
-                  setBulkUploadJson('');
-                  setBulkUploadError('');
-                }}
+                onClick={resetBulkUpload}
                 className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
               >
                 Cancel
               </button>
-              <button
-                onClick={handleBulkUpload}
-                disabled={!bulkUploadJson || bulkCreateMutation.isPending}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
-              >
-                {bulkCreateMutation.isPending ? 'Uploading...' : 'Upload Templates'}
-              </button>
+              <div className="flex gap-3">
+                {bulkUploadMode === 'csv' && showPreview && validationSummary.invalid > 0 && (
+                  <span className="flex items-center text-sm text-amber-600">
+                    ⚠️ {validationSummary.invalid} rows will be skipped
+                  </span>
+                )}
+                <button
+                  onClick={bulkUploadMode === 'csv' ? handleCsvUpload : handleBulkUpload}
+                  disabled={
+                    (bulkUploadMode === 'csv' && validationSummary.valid === 0) ||
+                    (bulkUploadMode === 'json' && !bulkUploadJson) ||
+                    bulkCreateMutation.isPending
+                  }
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {bulkCreateMutation.isPending
+                    ? 'Uploading...'
+                    : bulkUploadMode === 'csv' && showPreview
+                      ? `Upload ${validationSummary.valid} Valid Templates`
+                      : 'Upload Templates'
+                  }
+                </button>
+              </div>
             </div>
           </div>
         </div>
