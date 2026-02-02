@@ -1,7 +1,6 @@
 package app.kaiz.tasks.api;
 
 import app.kaiz.tasks.application.TaskTemplateService;
-import app.kaiz.tasks.application.dto.AdminTemplateDto;
 import app.kaiz.tasks.application.dto.AdminTemplateDto.*;
 import app.kaiz.tasks.application.dto.TaskTemplateDto;
 import app.kaiz.tasks.application.dto.TaskTemplateDto.*;

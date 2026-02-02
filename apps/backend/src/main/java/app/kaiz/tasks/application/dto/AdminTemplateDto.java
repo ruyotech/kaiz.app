@@ -9,13 +9,11 @@ import java.util.UUID;
 public class AdminTemplateDto {
 
   public record BulkCreateTemplatesRequest(
-      @NotEmpty(message = "Templates list cannot be empty")
-          @Valid
+      @NotEmpty(message = "Templates list cannot be empty") @Valid
           List<TaskTemplateDto.CreateTaskTemplateRequest> templates) {}
 
   public record BulkUpdateTemplatesRequest(
-      @NotEmpty(message = "Templates list cannot be empty")
-          @Valid
+      @NotEmpty(message = "Templates list cannot be empty") @Valid
           List<BulkUpdateItem> templates) {}
 
   public record BulkUpdateItem(

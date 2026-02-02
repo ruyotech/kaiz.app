@@ -27,7 +27,8 @@ const navigation = [
   { name: 'Templates', href: '/admin/templates', icon: FileText },
   { name: 'Subscribers', href: '/admin/subscribers', icon: Users },
   { name: 'Community', href: '/admin/community', icon: MessageSquare },
-  { name: 'Revenue', href: '/admin/revenue', icon: TrendingUp },
+  { name: 'CRM', href: '/admin/crm', icon: TrendingUp },
+  { name: 'Revenue', href: '/admin/revenue', icon: CreditCard },
   { name: 'Content', href: '/admin/content', icon: BookOpen },
   { name: 'Settings', href: '/admin/settings', icon: Settings },
 ];

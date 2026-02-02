@@ -40,29 +40,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
       String token = extractToken(request);
 
       if (StringUtils.hasText(token) && jwtTokenProvider.validateToken(token)) {
-        
+
         // Check if it's an admin token
         if (jwtTokenProvider.isAdminToken(token)) {
           UUID adminId = jwtTokenProvider.getUserIdFromToken(token);
           String email = jwtTokenProvider.getEmailFromToken(token);
           String adminRole = jwtTokenProvider.getAdminRole(token);
-          
+
           List<SimpleGrantedAuthority> authorities = new ArrayList<>();
           authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
           // Add specific admin role (SUPER_ADMIN, ADMIN, SUPPORT, MARKETING)
           if (adminRole != null) {
             authorities.add(new SimpleGrantedAuthority("ROLE_" + adminRole));
           }
-          
+
           UsernamePasswordAuthenticationToken authentication =
               new UsernamePasswordAuthenticationToken(adminId.toString(), null, authorities);
-          
+
           authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
           SecurityContextHolder.getContext().setAuthentication(authentication);
-          
+
           // Set adminId as request attribute for controllers
           request.setAttribute("adminId", adminId);
-          
+
           log.debug("Authenticated admin: {} with role: {}", email, adminRole);
         }
         // Regular user access token

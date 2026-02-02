@@ -402,7 +402,7 @@ export const adminAuthApi = {
   async getCurrentAdmin(): Promise<AdminUser> {
     const url = `${API_V1}/admin/auth/me`;
     const token = getAdminAccessToken();
-    
+
     const response = await fetch(url, {
       method: 'GET',
       headers: {
@@ -410,7 +410,7 @@ export const adminAuthApi = {
         'Authorization': token ? `Bearer ${token}` : '',
       },
     });
-    
+
     const data = await response.json();
     if (!response.ok || data.success === false) {
       throw new ApiError(data.message || 'Failed to get admin', response.status);
@@ -1343,6 +1343,197 @@ export const adminApi = {
 
   async getUsageStats(period: 'week' | 'month' | 'quarter' | 'year') {
     return request<any>(`/admin/analytics/usage?period=${period}`, { method: 'GET' }, true);
+  },
+};
+
+// ============================================================
+// CRM TYPES
+// ============================================================
+export interface Lead {
+  id: string;
+  email: string;
+  fullName: string | null;
+  phone: string | null;
+  company: string | null;
+  jobTitle: string | null;
+  status: 'NEW' | 'CONTACTED' | 'QUALIFIED' | 'PROPOSAL' | 'NEGOTIATION' | 'WON' | 'LOST' | 'NURTURING';
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  lifecycleStage: 'SUBSCRIBER' | 'LEAD' | 'MARKETING_QUALIFIED' | 'SALES_QUALIFIED' | 'OPPORTUNITY' | 'CUSTOMER' | 'EVANGELIST';
+  source: string | null;
+  leadScore: number;
+  assignedToName: string | null;
+  lastActivityAt: string | null;
+  createdAt: string;
+  isConverted: boolean;
+}
+
+export interface LeadDetail extends Lead {
+  assignedToId: string | null;
+  notes: string | null;
+  tags: string[];
+  firstContactAt: string | null;
+  convertedAt: string | null;
+  recentActivities: LeadActivity[];
+  pendingTasks: LeadTask[];
+}
+
+export interface LeadActivity {
+  id: string;
+  activityType: 'CALL' | 'EMAIL' | 'MEETING' | 'NOTE' | 'TASK' | 'STATUS_CHANGE' | 'DEMO' | 'FOLLOW_UP' | 'OTHER';
+  title: string;
+  description: string | null;
+  performedByName: string | null;
+  performedAt: string;
+}
+
+export interface LeadTask {
+  id: string;
+  title: string;
+  description: string | null;
+  taskType: 'CALL' | 'EMAIL' | 'MEETING' | 'FOLLOW_UP' | 'DEMO' | 'OTHER';
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  assignedToName: string | null;
+  dueDate: string | null;
+  isCompleted: boolean;
+}
+
+export interface CrmStats {
+  totalLeads: number;
+  newLeads: number;
+  qualifiedLeads: number;
+  wonLeads: number;
+  lostLeads: number;
+  conversionsLast30Days: number;
+  conversionRate: number;
+  leadsBySource: Record<string, number>;
+  leadsByStatus: Record<string, number>;
+}
+
+export interface CreateLeadRequest {
+  email: string;
+  fullName?: string;
+  phone?: string;
+  company?: string;
+  jobTitle?: string;
+  source?: string;
+  priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  notes?: string;
+  tags?: string[];
+  assignedToId?: string;
+}
+
+export interface UpdateLeadRequest {
+  fullName?: string;
+  phone?: string;
+  company?: string;
+  jobTitle?: string;
+  status?: Lead['status'];
+  priority?: Lead['priority'];
+  lifecycleStage?: Lead['lifecycleStage'];
+  notes?: string;
+  tags?: string[];
+  assignedToId?: string;
+}
+
+// ============================================================
+// CRM API
+// ============================================================
+export const crmApi = {
+  // Leads CRUD
+  async getLeads(params?: {
+    page?: number;
+    size?: number;
+    status?: Lead['status'];
+    source?: string;
+    assignedTo?: string;
+    sortBy?: string;
+    sortDir?: 'asc' | 'desc';
+  }) {
+    const searchParams = new URLSearchParams();
+    if (params?.page !== undefined) searchParams.set('page', params.page.toString());
+    if (params?.size !== undefined) searchParams.set('size', params.size.toString());
+    if (params?.status) searchParams.set('status', params.status);
+    if (params?.source) searchParams.set('source', params.source);
+    if (params?.assignedTo) searchParams.set('assignedTo', params.assignedTo);
+    if (params?.sortBy) searchParams.set('sortBy', params.sortBy);
+    if (params?.sortDir) searchParams.set('sortDir', params.sortDir);
+    const query = searchParams.toString();
+    return adminRequest<{ data: Lead[]; meta: { page: number; size: number; total: number; totalPages: number } }>(
+      `/admin/crm/leads${query ? `?${query}` : ''}`,
+      { method: 'GET' }
+    );
+  },
+
+  async searchLeads(query: string, page = 0, size = 20) {
+    return adminRequest<{ data: Lead[]; meta: { page: number; size: number; total: number; totalPages: number } }>(
+      `/admin/crm/leads/search?q=${encodeURIComponent(query)}&page=${page}&size=${size}`,
+      { method: 'GET' }
+    );
+  },
+
+  async getLeadById(id: string) {
+    return adminRequest<{ data: LeadDetail }>(`/admin/crm/leads/${id}`, { method: 'GET' });
+  },
+
+  async createLead(data: CreateLeadRequest) {
+    return adminRequest<{ data: Lead }>('/admin/crm/leads', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async updateLead(id: string, data: UpdateLeadRequest) {
+    return adminRequest<{ data: Lead }>(`/admin/crm/leads/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async deleteLead(id: string) {
+    return adminRequest<void>(`/admin/crm/leads/${id}`, { method: 'DELETE' });
+  },
+
+  // Activities
+  async addActivity(leadId: string, data: { activityType: LeadActivity['activityType']; title: string; description?: string }) {
+    return adminRequest<{ data: LeadActivity }>(`/admin/crm/leads/${leadId}/activities`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Tasks
+  async addTask(leadId: string, data: {
+    title: string;
+    description?: string;
+    taskType?: LeadTask['taskType'];
+    dueDate?: string;
+    priority?: Lead['priority'];
+  }) {
+    return adminRequest<{ data: LeadTask }>(`/admin/crm/leads/${leadId}/tasks`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Conversion
+  async convertLead(id: string, conversionValue?: number) {
+    return adminRequest<{ data: Lead }>(`/admin/crm/leads/${id}/convert`, {
+      method: 'POST',
+      body: JSON.stringify({ conversionValue }),
+    });
+  },
+
+  // Stats & Dashboard
+  async getStats() {
+    return adminRequest<{ data: CrmStats }>('/admin/crm/stats', { method: 'GET' });
+  },
+
+  async getRecentLeads() {
+    return adminRequest<{ data: Lead[] }>('/admin/crm/leads/recent', { method: 'GET' });
+  },
+
+  async getHighPriorityLeads() {
+    return adminRequest<{ data: Lead[] }>('/admin/crm/leads/high-priority', { method: 'GET' });
   },
 };
 

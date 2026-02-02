@@ -6,17 +6,14 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
+import java.time.Instant;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.Instant;
-
-/**
- * Admin users are internal team members, completely separate from customer users.
- */
+/** Admin users are internal team members, completely separate from customer users. */
 @Entity
 @Table(name = "admin_users")
 @Getter

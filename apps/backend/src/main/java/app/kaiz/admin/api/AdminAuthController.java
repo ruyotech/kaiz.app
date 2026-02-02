@@ -10,12 +10,11 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import java.util.UUID;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/admin/auth")
@@ -26,18 +25,13 @@ public class AdminAuthController {
 
   @PostMapping("/login")
   public ResponseEntity<ApiResponse<AdminAuthResponse>> login(
-      @Valid @RequestBody LoginRequest request,
-      HttpServletRequest httpRequest) {
+      @Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
 
     String deviceInfo = httpRequest.getHeader("User-Agent");
     String ipAddress = getClientIp(httpRequest);
 
-    AdminAuthResponse response = adminAuthService.login(
-        request.getEmail(),
-        request.getPassword(),
-        deviceInfo,
-        ipAddress
-    );
+    AdminAuthResponse response =
+        adminAuthService.login(request.getEmail(), request.getPassword(), deviceInfo, ipAddress);
 
     return ResponseEntity.ok(ApiResponse.success(response));
   }
@@ -51,8 +45,7 @@ public class AdminAuthController {
   }
 
   @PostMapping("/logout")
-  public ResponseEntity<ApiResponse<Void>> logout(
-      @Valid @RequestBody LogoutRequest request) {
+  public ResponseEntity<ApiResponse<Void>> logout(@Valid @RequestBody LogoutRequest request) {
 
     adminAuthService.logout(request.getRefreshToken());
     return ResponseEntity.ok(ApiResponse.success(null));
@@ -63,8 +56,7 @@ public class AdminAuthController {
       @RequestAttribute(name = "adminId", required = false) UUID adminId) {
 
     if (adminId == null) {
-      return ResponseEntity.status(401)
-          .body(ApiResponse.error("Admin authentication required"));
+      return ResponseEntity.status(401).body(ApiResponse.error("Admin authentication required"));
     }
 
     AdminDto admin = adminAuthService.getCurrentAdmin(adminId);
@@ -79,16 +71,15 @@ public class AdminAuthController {
 
     // Simple protection - in production use a more secure mechanism
     if (!"KAIZ_ADMIN_SETUP_2026".equals(setupKey)) {
-      return ResponseEntity.status(403)
-          .body(ApiResponse.error("Invalid setup key"));
+      return ResponseEntity.status(403).body(ApiResponse.error("Invalid setup key"));
     }
 
-    AdminDto admin = adminAuthService.createAdmin(
-        request.getEmail(),
-        request.getPassword(),
-        request.getFullName(),
-        AdminUser.AdminRole.valueOf(request.getRole())
-    );
+    AdminDto admin =
+        adminAuthService.createAdmin(
+            request.getEmail(),
+            request.getPassword(),
+            request.getFullName(),
+            AdminUser.AdminRole.valueOf(request.getRole()));
 
     return ResponseEntity.ok(ApiResponse.success(admin));
   }
