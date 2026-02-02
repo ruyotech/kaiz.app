@@ -185,7 +185,8 @@ async function triggerAuthExpiration(): Promise<void> {
 async function request<T>(
     endpoint: string,
     options: RequestInit = {},
-    requiresAuth: boolean = false
+    requiresAuth: boolean = false,
+    suppressErrorLog: boolean = false // Don't log error for expected 404s
 ): Promise<T> {
     const url = `${API_V1}${endpoint}`;
     
@@ -236,7 +237,10 @@ async function request<T>(
                 throw new AuthExpiredError();
             }
             
-            console.error('🌐 API Error:', data);
+            // Only log error if not suppressed (used for expected 404s like no family membership)
+            if (!suppressErrorLog) {
+                console.error('🌐 API Error:', data);
+            }
             throw new ApiError(
                 getErrorMessage(data.error),
                 response.status,
@@ -2899,16 +2903,18 @@ export const familyApi = {
 
     /**
      * Get current user's family
+     * Note: 404 is expected if user has no family - we suppress error logging
      */
     async getMyFamily(): Promise<FamilyResponse> {
-        return request<FamilyResponse>('/families/me', { method: 'GET' }, true);
+        return request<FamilyResponse>('/families/me', { method: 'GET' }, true, true);
     },
 
     /**
      * Get current user's membership info
+     * Note: 404 is expected if user has no family - we suppress error logging
      */
     async getMyMembership(): Promise<FamilyMembershipResponse> {
-        return request<FamilyMembershipResponse>('/families/me/membership', { method: 'GET' }, true);
+        return request<FamilyMembershipResponse>('/families/me/membership', { method: 'GET' }, true, true);
     },
 
     /**
