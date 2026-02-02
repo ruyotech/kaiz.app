@@ -1,568 +1,721 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { adminApi } from '@/lib/api';
-import { cn } from '@/lib/utils';
-import {
-  Plus,
-  Search,
-  Filter,
-  Edit3,
-  Trash2,
-  Copy,
-  MoreHorizontal,
-  FileText,
-  X,
-  Upload,
-  Download,
-  Eye,
-  CheckCircle2,
-  Clock,
-} from 'lucide-react';
+import { adminApi, AdminTaskTemplate, CreateTemplateRequest, UpdateTemplateRequest } from '@/lib/api';
 
-type TemplateStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+type TemplateType = 'TASK' | 'EVENT';
+type SortField = 'name' | 'rating' | 'usageCount' | 'createdAt';
+type SortOrder = 'asc' | 'desc';
 
-export default function AdminTemplatesPage() {
+export default function TemplatesPage() {
   const queryClient = useQueryClient();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<TemplateStatus | 'all'>('all');
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState<any>(null);
-  const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const [searchTerm, setSearchTerm] = useState('');
+  const [typeFilter, setTypeFilter] = useState<TemplateType | 'all'>('all');
+  const [sortField, setSortField] = useState<SortField>('name');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<AdminTaskTemplate | null>(null);
+  const [bulkUploadJson, setBulkUploadJson] = useState('');
+  const [bulkUploadError, setBulkUploadError] = useState('');
+
+  // Form state for create/edit
+  const [formData, setFormData] = useState<Partial<CreateTemplateRequest>>({
+    name: '',
+    description: '',
+    type: 'TASK',
+    defaultStoryPoints: 1,
+    icon: '📋',
+    color: '#3B82F6',
+    tags: [],
+    suggestedSprint: null,
+  });
 
   // Fetch templates
-  const { data: templatesData, isLoading } = useQuery({
-    queryKey: ['adminTemplates'],
-    queryFn: () => adminApi.getGlobalTemplates(),
-    staleTime: 30000,
+  const { data: templates = [], isLoading, error } = useQuery({
+    queryKey: ['admin-templates'],
+    queryFn: adminApi.getGlobalTemplates,
   });
 
-  // Create template mutation
+  // Create mutation
   const createMutation = useMutation({
-    mutationFn: (data: any) => adminApi.createGlobalTemplate(data),
+    mutationFn: adminApi.createGlobalTemplate,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['adminTemplates'] });
-      setShowCreateModal(false);
+      queryClient.invalidateQueries({ queryKey: ['admin-templates'] });
+      setIsCreateModalOpen(false);
+      resetForm();
     },
   });
 
-  // Update template mutation
+  // Update mutation
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => adminApi.updateGlobalTemplate(id, data),
+    mutationFn: ({ id, data }: { id: string; data: UpdateTemplateRequest }) =>
+      adminApi.updateGlobalTemplate(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['adminTemplates'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-templates'] });
+      setIsEditModalOpen(false);
       setEditingTemplate(null);
+      resetForm();
     },
   });
 
-  // Delete template mutation
+  // Delete mutation
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => adminApi.deleteGlobalTemplate(id),
+    mutationFn: adminApi.deleteGlobalTemplate,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['adminTemplates'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-templates'] });
     },
   });
 
-  const templates = templatesData || [];
-
-  // Filter templates
-  const filteredTemplates = templates.filter((template: any) => {
-    const matchesSearch =
-      !searchQuery ||
-      template.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      template.description?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || template.status === statusFilter;
-    return matchesSearch && matchesStatus;
+  // Bulk delete mutation
+  const bulkDeleteMutation = useMutation({
+    mutationFn: adminApi.bulkDeleteTemplates,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-templates'] });
+      setSelectedIds(new Set());
+    },
   });
 
-  // Mock data for display
-  const mockTemplates = filteredTemplates.length > 0 ? filteredTemplates : [
-    {
-      id: '1',
-      title: 'Morning Routine Template',
-      description: 'A comprehensive morning routine for productivity',
-      category: 'DAILY_ROUTINES',
-      status: 'PUBLISHED',
-      usageCount: 1234,
-      createdAt: new Date().toISOString(),
+  // Bulk create mutation
+  const bulkCreateMutation = useMutation({
+    mutationFn: (templates: CreateTemplateRequest[]) => 
+      adminApi.bulkCreateTemplates(templates),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-templates'] });
+      setIsBulkUploadModalOpen(false);
+      setBulkUploadJson('');
+      setBulkUploadError('');
+      alert(`Bulk upload complete: ${result.successCount} created, ${result.failureCount} failed`);
     },
-    {
-      id: '2',
-      title: 'Weekly Planning Sprint',
-      description: 'Plan your week with this agile-inspired template',
-      category: 'WEEKLY_PLANNING',
-      status: 'PUBLISHED',
-      usageCount: 867,
-      createdAt: new Date().toISOString(),
+    onError: (error: Error) => {
+      setBulkUploadError(error.message);
     },
-    {
-      id: '3',
-      title: '30-Day Fitness Challenge',
-      description: 'Build a consistent workout habit',
-      category: 'FITNESS',
-      status: 'DRAFT',
-      usageCount: 0,
-      createdAt: new Date().toISOString(),
-    },
-  ];
+  });
 
-  const displayTemplates = filteredTemplates.length > 0 ? filteredTemplates : mockTemplates;
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      description: '',
+      type: 'TASK',
+      defaultStoryPoints: 1,
+      icon: '📋',
+      color: '#3B82F6',
+      tags: [],
+      suggestedSprint: null,
+    });
+  };
 
-  return (
-    <div className="space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">Global Templates</h1>
-          <p className="text-slate-400 text-sm mt-1">
-            {displayTemplates.length} templates • Manage and publish templates for users
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setShowBulkUploadModal(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 font-medium transition-all"
-          >
-            <Upload className="w-4 h-4" />
-            Bulk Upload
-          </button>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-white font-medium transition-all"
-          >
-            <Plus className="w-4 h-4" />
-            New Template
-          </button>
-        </div>
-      </div>
+  // Filter and sort templates
+  const filteredTemplates = templates
+    .filter((template) => {
+      const matchesSearch =
+        template.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (template.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
+      const matchesType = typeFilter === 'all' || template.type === typeFilter;
+      return matchesSearch && matchesType;
+    })
+    .sort((a, b) => {
+      let comparison = 0;
+      switch (sortField) {
+        case 'name':
+          comparison = a.name.localeCompare(b.name);
+          break;
+        case 'rating':
+          comparison = (a.rating || 0) - (b.rating || 0);
+          break;
+        case 'usageCount':
+          comparison = (a.usageCount || 0) - (b.usageCount || 0);
+          break;
+        case 'createdAt':
+          comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+          break;
+      }
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        {/* Search */}
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-          <input
-            type="text"
-            placeholder="Search templates..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-800/50 border border-white/10 rounded-lg pl-9 pr-4 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
-          />
-        </div>
-
-        {/* Status filter */}
-        <div className="flex items-center gap-2">
-          {(['all', 'PUBLISHED', 'DRAFT', 'ARCHIVED'] as const).map((status) => (
-            <button
-              key={status}
-              onClick={() => setStatusFilter(status)}
-              className={cn(
-                'px-3 py-2 rounded-lg text-sm font-medium transition-all',
-                statusFilter === status
-                  ? 'bg-primary text-white'
-                  : 'bg-white/5 text-slate-400 hover:bg-white/10'
-              )}
-            >
-              {status === 'all' ? 'All' : status}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Templates Table */}
-      {isLoading ? (
-        <TemplatesSkeleton />
-      ) : (
-        <div className="bg-slate-900/50 rounded-xl border border-white/10 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-white/10 text-left">
-                  <th className="px-4 py-3 text-sm font-medium text-slate-400">Template</th>
-                  <th className="px-4 py-3 text-sm font-medium text-slate-400">Category</th>
-                  <th className="px-4 py-3 text-sm font-medium text-slate-400">Status</th>
-                  <th className="px-4 py-3 text-sm font-medium text-slate-400">Usage</th>
-                  <th className="px-4 py-3 text-sm font-medium text-slate-400">Created</th>
-                  <th className="px-4 py-3 text-sm font-medium text-slate-400">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {displayTemplates.map((template: any) => (
-                  <TemplateRow
-                    key={template.id}
-                    template={template}
-                    onEdit={() => setEditingTemplate(template)}
-                    onDelete={() => deleteMutation.mutate(template.id)}
-                    onDuplicate={() => {
-                      // Duplicate logic
-                    }}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Create/Edit Modal */}
-      {(showCreateModal || editingTemplate) && (
-        <TemplateModal
-          template={editingTemplate}
-          onClose={() => {
-            setShowCreateModal(false);
-            setEditingTemplate(null);
-          }}
-          onSave={(data) => {
-            if (editingTemplate) {
-              updateMutation.mutate({ id: editingTemplate.id, data });
-            } else {
-              createMutation.mutate(data);
-            }
-          }}
-          isLoading={createMutation.isPending || updateMutation.isPending}
-        />
-      )}
-
-      {/* Bulk Upload Modal */}
-      {showBulkUploadModal && (
-        <BulkUploadModal onClose={() => setShowBulkUploadModal(false)} />
-      )}
-    </div>
-  );
-}
-
-function TemplateRow({
-  template,
-  onEdit,
-  onDelete,
-  onDuplicate,
-}: {
-  template: any;
-  onEdit: () => void;
-  onDelete: () => void;
-  onDuplicate: () => void;
-}) {
-  const [showMenu, setShowMenu] = useState(false);
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'PUBLISHED':
-        return 'text-green-400 bg-green-500/20';
-      case 'DRAFT':
-        return 'text-yellow-400 bg-yellow-500/20';
-      default:
-        return 'text-slate-400 bg-slate-500/20';
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('asc');
     }
   };
 
-  return (
-    <tr className="hover:bg-white/5 transition-colors">
-      <td className="px-4 py-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-primary/20 text-primary flex items-center justify-center">
-            <FileText className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="font-medium">{template.title}</div>
-            <div className="text-sm text-slate-500 line-clamp-1">{template.description}</div>
-          </div>
-        </div>
-      </td>
-      <td className="px-4 py-3">
-        <span className="text-sm text-slate-400">{template.category?.replace('_', ' ')}</span>
-      </td>
-      <td className="px-4 py-3">
-        <span className={cn('text-xs px-2 py-1 rounded-full', getStatusColor(template.status))}>
-          {template.status}
-        </span>
-      </td>
-      <td className="px-4 py-3">
-        <span className="text-sm">{(template.usageCount || 0).toLocaleString()}</span>
-      </td>
-      <td className="px-4 py-3">
-        <span className="text-sm text-slate-400">
-          {template.createdAt ? new Date(template.createdAt).toLocaleDateString() : '-'}
-        </span>
-      </td>
-      <td className="px-4 py-3">
-        <div className="relative">
-          <button
-            onClick={() => setShowMenu(!showMenu)}
-            className="p-2 rounded-lg hover:bg-white/10 transition-colors"
-          >
-            <MoreHorizontal className="w-4 h-4 text-slate-400" />
-          </button>
-          {showMenu && (
-            <>
-              <div className="fixed inset-0" onClick={() => setShowMenu(false)} />
-              <div className="absolute right-0 top-full mt-1 w-36 bg-slate-800 border border-white/10 rounded-lg shadow-lg z-10">
-                <button
-                  onClick={() => {
-                    onEdit();
-                    setShowMenu(false);
-                  }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:bg-white/5"
-                >
-                  <Edit3 className="w-4 h-4" /> Edit
-                </button>
-                <button
-                  onClick={() => {
-                    onDuplicate();
-                    setShowMenu(false);
-                  }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:bg-white/5"
-                >
-                  <Copy className="w-4 h-4" /> Duplicate
-                </button>
-                <button
-                  onClick={() => {
-                    setShowMenu(false);
-                  }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:bg-white/5"
-                >
-                  <Eye className="w-4 h-4" /> Preview
-                </button>
-                <button
-                  onClick={() => {
-                    onDelete();
-                    setShowMenu(false);
-                  }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-white/5"
-                >
-                  <Trash2 className="w-4 h-4" /> Delete
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      </td>
-    </tr>
-  );
-}
-
-function TemplateModal({
-  template,
-  onClose,
-  onSave,
-  isLoading,
-}: {
-  template: any;
-  onClose: () => void;
-  onSave: (data: any) => void;
-  isLoading: boolean;
-}) {
-  const [formData, setFormData] = useState({
-    title: template?.title || '',
-    description: template?.description || '',
-    category: template?.category || 'DAILY_ROUTINES',
-    status: template?.status || 'DRAFT',
-    content: template?.content || '',
-  });
-
-  const categories = [
-    'DAILY_ROUTINES',
-    'WEEKLY_PLANNING',
-    'GOAL_SETTING',
-    'HABIT_TRACKING',
-    'FITNESS',
-    'MINDFULNESS',
-    'PRODUCTIVITY',
-    'LEARNING',
-  ];
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave(formData);
+  const handleSelectAll = () => {
+    if (selectedIds.size === filteredTemplates.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredTemplates.map((t) => t.id)));
+    }
   };
 
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-900 rounded-xl border border-white/10 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-4 border-b border-white/10">
-          <h2 className="text-lg font-semibold">{template ? 'Edit Template' : 'New Template'}</h2>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/5">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
-          {/* Title */}
-          <div>
-            <label className="block text-sm font-medium mb-1">Title</label>
-            <input
-              type="text"
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
-              placeholder="Template title"
-              required
-            />
-          </div>
+  const handleSelectOne = (id: string) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
 
-          {/* Description */}
-          <div>
-            <label className="block text-sm font-medium mb-1">Description</label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 min-h-[80px]"
-              placeholder="Describe what this template is for..."
-            />
-          </div>
+  const handleCreate = () => {
+    if (!formData.name) return;
+    createMutation.mutate(formData as CreateTemplateRequest);
+  };
 
-          {/* Category & Status */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Category</label>
-              <select
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
-              >
-                {categories.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat.replace('_', ' ')}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Status</label>
-              <select
-                value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
-              >
-                <option value="DRAFT">Draft</option>
-                <option value="PUBLISHED">Published</option>
-                <option value="ARCHIVED">Archived</option>
-              </select>
-            </div>
-          </div>
+  const handleEdit = (template: AdminTaskTemplate) => {
+    setEditingTemplate(template);
+    setFormData({
+      name: template.name,
+      description: template.description || '',
+      type: template.type,
+      defaultStoryPoints: template.defaultStoryPoints || 1,
+      icon: template.icon || '📋',
+      color: template.color || '#3B82F6',
+      tags: template.tags || [],
+      suggestedSprint: template.suggestedSprint,
+    });
+    setIsEditModalOpen(true);
+  };
 
-          {/* Content/Tasks */}
-          <div>
-            <label className="block text-sm font-medium mb-1">Template Content (JSON)</label>
-            <textarea
-              value={formData.content}
-              onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-              className="w-full bg-slate-800/50 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 min-h-[200px] font-mono text-sm"
-              placeholder='{"tasks": [{"title": "Task 1", "storyPoints": 2}]}'
-            />
-          </div>
+  const handleUpdate = () => {
+    if (!editingTemplate || !formData.name) return;
+    updateMutation.mutate({
+      id: editingTemplate.id,
+      data: formData as UpdateTemplateRequest,
+    });
+  };
 
-          {/* Submit */}
-          <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 rounded-lg border border-white/10 text-slate-300 hover:bg-white/5 transition-all"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isLoading || !formData.title}
-              className="flex-1 px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-white font-medium transition-all disabled:opacity-50"
-            >
-              {isLoading ? 'Saving...' : template ? 'Save Changes' : 'Create Template'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
+  const handleDelete = (id: string) => {
+    if (confirm('Are you sure you want to delete this template?')) {
+      deleteMutation.mutate(id);
+    }
+  };
 
-function BulkUploadModal({ onClose }: { onClose: () => void }) {
-  const [file, setFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
+  const handleBulkDelete = () => {
+    if (selectedIds.size === 0) return;
+    if (confirm(`Are you sure you want to delete ${selectedIds.size} templates?`)) {
+      bulkDeleteMutation.mutate(Array.from(selectedIds));
+    }
+  };
 
-  const handleUpload = async () => {
+  const handleBulkUpload = () => {
+    setBulkUploadError('');
+    try {
+      const parsed = JSON.parse(bulkUploadJson);
+      const templates = Array.isArray(parsed) ? parsed : [parsed];
+      
+      // Validate structure
+      for (const t of templates) {
+        if (!t.name || !t.type) {
+          throw new Error('Each template must have at least "name" and "type" fields');
+        }
+        if (!['TASK', 'EVENT'].includes(t.type)) {
+          throw new Error('Template type must be "TASK" or "EVENT"');
+        }
+      }
+      
+      bulkCreateMutation.mutate(templates);
+    } catch (e) {
+      setBulkUploadError(e instanceof Error ? e.message : 'Invalid JSON format');
+    }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (!file) return;
-    setIsUploading(true);
-    // Simulate upload
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    setIsUploading(false);
-    onClose();
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      setBulkUploadJson(content);
+    };
+    reader.readAsText(file);
   };
 
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) return '↕️';
+    return sortOrder === 'asc' ? '↑' : '↓';
+  };
+
+  // Stats
+  const taskCount = templates.filter((t) => t.type === 'TASK').length;
+  const eventCount = templates.filter((t) => t.type === 'EVENT').length;
+  const totalUsage = templates.reduce((sum, t) => sum + (t.usageCount || 0), 0);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+        Error loading templates: {error instanceof Error ? error.message : 'Unknown error'}
+      </div>
+    );
+  }
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-900 rounded-xl border border-white/10 w-full max-w-md">
-        <div className="flex items-center justify-between p-4 border-b border-white/10">
-          <h2 className="text-lg font-semibold">Bulk Upload Templates</h2>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/5">
-            <X className="w-5 h-5" />
-          </button>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Global Templates</h1>
+          <p className="text-gray-600 mt-1">Manage system-wide task and event templates</p>
         </div>
-        <div className="p-4 space-y-4">
-          {/* Upload area */}
-          <div className="border-2 border-dashed border-white/10 rounded-lg p-8 text-center">
-            <Upload className="w-12 h-12 text-slate-500 mx-auto mb-4" />
-            <p className="text-slate-400 mb-2">
-              Drag and drop a JSON file, or click to browse
-            </p>
-            <input
-              type="file"
-              accept=".json"
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
-              className="hidden"
-              id="file-upload"
-            />
-            <label
-              htmlFor="file-upload"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 cursor-pointer transition-all"
-            >
-              Select File
-            </label>
-            {file && (
-              <p className="text-sm text-primary mt-2">{file.name}</p>
-            )}
-          </div>
-
-          {/* Download sample */}
-          <button className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 transition-all">
-            <Download className="w-4 h-4" />
-            Download Sample JSON
+        <div className="flex gap-3">
+          <button
+            onClick={() => setIsBulkUploadModalOpen(true)}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+          >
+            📤 Bulk Upload
           </button>
-
-          {/* Submit */}
-          <div className="flex gap-3 pt-2">
-            <button
-              onClick={onClose}
-              className="flex-1 px-4 py-2 rounded-lg border border-white/10 text-slate-300 hover:bg-white/5 transition-all"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleUpload}
-              disabled={!file || isUploading}
-              className="flex-1 px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-white font-medium transition-all disabled:opacity-50"
-            >
-              {isUploading ? 'Uploading...' : 'Upload'}
-            </button>
-          </div>
+          <button
+            onClick={() => {
+              resetForm();
+              setIsCreateModalOpen(true);
+            }}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            + Add Template
+          </button>
         </div>
       </div>
-    </div>
-  );
-}
 
-function TemplatesSkeleton() {
-  return (
-    <div className="bg-slate-900/50 rounded-xl border border-white/10 overflow-hidden">
-      <div className="p-4 space-y-4">
-        {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="flex items-center gap-4 animate-pulse">
-            <div className="w-10 h-10 rounded-lg bg-slate-700" />
-            <div className="flex-1">
-              <div className="h-4 bg-slate-700 rounded w-1/3" />
-              <div className="h-3 bg-slate-700 rounded w-1/2 mt-2" />
+      {/* Stats Row */}
+      <div className="grid grid-cols-4 gap-4">
+        <div className="bg-white rounded-lg border p-4">
+          <div className="text-2xl font-bold text-gray-900">{templates.length}</div>
+          <div className="text-sm text-gray-500">Total Templates</div>
+        </div>
+        <div className="bg-white rounded-lg border p-4">
+          <div className="text-2xl font-bold text-blue-600">{taskCount}</div>
+          <div className="text-sm text-gray-500">Task Templates</div>
+        </div>
+        <div className="bg-white rounded-lg border p-4">
+          <div className="text-2xl font-bold text-green-600">{eventCount}</div>
+          <div className="text-sm text-gray-500">Event Templates</div>
+        </div>
+        <div className="bg-white rounded-lg border p-4">
+          <div className="text-2xl font-bold text-purple-600">{totalUsage}</div>
+          <div className="text-sm text-gray-500">Total Usage</div>
+        </div>
+      </div>
+
+      {/* Filters and Search */}
+      <div className="flex items-center gap-4 bg-white p-4 rounded-lg border">
+        <input
+          type="text"
+          placeholder="Search templates..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        />
+        <select
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value as TemplateType | 'all')}
+          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="all">All Types</option>
+          <option value="TASK">Tasks</option>
+          <option value="EVENT">Events</option>
+        </select>
+        {selectedIds.size > 0 && (
+          <button
+            onClick={handleBulkDelete}
+            disabled={bulkDeleteMutation.isPending}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+          >
+            🗑️ Delete Selected ({selectedIds.size})
+          </button>
+        )}
+      </div>
+
+      {/* Templates Table */}
+      <div className="bg-white rounded-lg border overflow-hidden">
+        <table className="w-full">
+          <thead className="bg-gray-50 border-b">
+            <tr>
+              <th className="px-4 py-3 text-left">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.size === filteredTemplates.length && filteredTemplates.length > 0}
+                  onChange={handleSelectAll}
+                  className="rounded"
+                />
+              </th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Rank</th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Icon</th>
+              <th
+                className="px-4 py-3 text-left text-sm font-medium text-gray-500 cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('name')}
+              >
+                Name {getSortIcon('name')}
+              </th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Type</th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Points</th>
+              <th
+                className="px-4 py-3 text-left text-sm font-medium text-gray-500 cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('rating')}
+              >
+                Rating {getSortIcon('rating')}
+              </th>
+              <th
+                className="px-4 py-3 text-left text-sm font-medium text-gray-500 cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('usageCount')}
+              >
+                Usage {getSortIcon('usageCount')}
+              </th>
+              <th
+                className="px-4 py-3 text-left text-sm font-medium text-gray-500 cursor-pointer hover:bg-gray-100"
+                onClick={() => handleSort('createdAt')}
+              >
+                Created {getSortIcon('createdAt')}
+              </th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            {filteredTemplates.map((template, index) => (
+              <tr key={template.id} className="hover:bg-gray-50">
+                <td className="px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(template.id)}
+                    onChange={() => handleSelectOne(template.id)}
+                    className="rounded"
+                  />
+                </td>
+                <td className="px-4 py-3">
+                  <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 text-gray-600 font-medium text-sm">
+                    #{index + 1}
+                  </span>
+                </td>
+                <td className="px-4 py-3">
+                  <span
+                    className="inline-flex items-center justify-center w-10 h-10 rounded-lg text-xl"
+                    style={{ backgroundColor: template.color || '#E5E7EB' }}
+                  >
+                    {template.icon || '📋'}
+                  </span>
+                </td>
+                <td className="px-4 py-3">
+                  <div className="font-medium text-gray-900">{template.name}</div>
+                  {template.description && (
+                    <div className="text-sm text-gray-500 truncate max-w-xs">
+                      {template.description}
+                    </div>
+                  )}
+                </td>
+                <td className="px-4 py-3">
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      template.type === 'TASK'
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'bg-green-100 text-green-700'
+                    }`}
+                  >
+                    {template.type}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-gray-600">{template.defaultStoryPoints || '-'}</td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-1">
+                    <span className="text-yellow-500">⭐</span>
+                    <span className="text-gray-600">
+                      {template.rating?.toFixed(1) || '0.0'}
+                    </span>
+                    <span className="text-gray-400 text-xs">({template.ratingCount || 0})</span>
+                  </div>
+                </td>
+                <td className="px-4 py-3 text-gray-600">{template.usageCount || 0}</td>
+                <td className="px-4 py-3 text-gray-500 text-sm">
+                  {new Date(template.createdAt).toLocaleDateString()}
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleEdit(template)}
+                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      title="Edit"
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      onClick={() => handleDelete(template.id)}
+                      disabled={deleteMutation.isPending}
+                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                      title="Delete"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {filteredTemplates.length === 0 && (
+          <div className="text-center py-12 text-gray-500">
+            {searchTerm || typeFilter !== 'all'
+              ? 'No templates match your filters'
+              : 'No templates yet. Create your first template!'}
+          </div>
+        )}
+      </div>
+
+      {/* Create/Edit Modal */}
+      {(isCreateModalOpen || isEditModalOpen) && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b">
+              <h2 className="text-xl font-bold text-gray-900">
+                {isEditModalOpen ? 'Edit Template' : 'Create Template'}
+              </h2>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  placeholder="Template name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  rows={3}
+                  placeholder="Template description"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Type *</label>
+                  <select
+                    value={formData.type}
+                    onChange={(e) => setFormData({ ...formData, type: e.target.value as TemplateType })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="TASK">Task</option>
+                    <option value="EVENT">Event</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Story Points</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={formData.defaultStoryPoints}
+                    onChange={(e) =>
+                      setFormData({ ...formData, defaultStoryPoints: parseInt(e.target.value) || 1 })
+                    }
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Icon</label>
+                  <input
+                    type="text"
+                    value={formData.icon}
+                    onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="📋"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Color</label>
+                  <input
+                    type="color"
+                    value={formData.color}
+                    onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                    className="w-full h-10 border border-gray-300 rounded-lg cursor-pointer"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tags (comma-separated)
+                </label>
+                <input
+                  type="text"
+                  value={formData.tags?.join(', ') || ''}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      tags: e.target.value.split(',').map((t) => t.trim()).filter(Boolean),
+                    })
+                  }
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  placeholder="productivity, work, health"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Suggested Sprint
+                </label>
+                <select
+                  value={formData.suggestedSprint || ''}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      suggestedSprint: e.target.value || null,
+                    })
+                  }
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">None</option>
+                  <option value="MORNING">Morning</option>
+                  <option value="AFTERNOON">Afternoon</option>
+                  <option value="EVENING">Evening</option>
+                  <option value="ANYTIME">Anytime</option>
+                </select>
+              </div>
+            </div>
+            <div className="p-6 border-t bg-gray-50 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setIsCreateModalOpen(false);
+                  setIsEditModalOpen(false);
+                  setEditingTemplate(null);
+                  resetForm();
+                }}
+                className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={isEditModalOpen ? handleUpdate : handleCreate}
+                disabled={!formData.name || createMutation.isPending || updateMutation.isPending}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+              >
+                {createMutation.isPending || updateMutation.isPending
+                  ? 'Saving...'
+                  : isEditModalOpen
+                  ? 'Update'
+                  : 'Create'}
+              </button>
             </div>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
+
+      {/* Bulk Upload Modal */}
+      {isBulkUploadModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b">
+              <h2 className="text-xl font-bold text-gray-900">Bulk Upload Templates</h2>
+              <p className="text-gray-500 mt-1">Upload multiple templates at once via JSON</p>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Upload JSON File
+                </label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".json"
+                  onChange={handleFileUpload}
+                  className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                />
+              </div>
+              <div className="text-center text-gray-500">or paste JSON below</div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  JSON Content
+                </label>
+                <textarea
+                  value={bulkUploadJson}
+                  onChange={(e) => setBulkUploadJson(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                  rows={12}
+                  placeholder={`[
+  {
+    "name": "Morning Workout",
+    "description": "30 minute exercise routine",
+    "type": "TASK",
+    "defaultStoryPoints": 3,
+    "icon": "🏋️",
+    "color": "#EF4444",
+    "tags": ["health", "fitness"]
+  }
+]`}
+                />
+              </div>
+              {bulkUploadError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-sm">
+                  {bulkUploadError}
+                </div>
+              )}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h4 className="font-medium text-gray-900 mb-2">Required Fields:</h4>
+                <ul className="text-sm text-gray-600 space-y-1">
+                  <li>
+                    <code className="bg-gray-200 px-1 rounded">name</code> - Template name
+                  </li>
+                  <li>
+                    <code className="bg-gray-200 px-1 rounded">type</code> - &quot;TASK&quot; or
+                    &quot;EVENT&quot;
+                  </li>
+                </ul>
+                <h4 className="font-medium text-gray-900 mb-2 mt-3">Optional Fields:</h4>
+                <ul className="text-sm text-gray-600 space-y-1">
+                  <li>
+                    <code className="bg-gray-200 px-1 rounded">description</code>,{' '}
+                    <code className="bg-gray-200 px-1 rounded">defaultStoryPoints</code>,{' '}
+                    <code className="bg-gray-200 px-1 rounded">icon</code>,{' '}
+                    <code className="bg-gray-200 px-1 rounded">color</code>,{' '}
+                    <code className="bg-gray-200 px-1 rounded">tags</code>,{' '}
+                    <code className="bg-gray-200 px-1 rounded">suggestedSprint</code>
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <div className="p-6 border-t bg-gray-50 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setIsBulkUploadModalOpen(false);
+                  setBulkUploadJson('');
+                  setBulkUploadError('');
+                }}
+                className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBulkUpload}
+                disabled={!bulkUploadJson || bulkCreateMutation.isPending}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
+              >
+                {bulkCreateMutation.isPending ? 'Uploading...' : 'Upload Templates'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

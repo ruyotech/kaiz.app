@@ -215,6 +215,54 @@ async function requestRaw<T>(
   }
 }
 
+// Admin-specific request helper that uses admin token
+async function adminRequest<T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const url = `${API_V1}${endpoint}`;
+
+  const token = getAdminAccessToken();
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+  };
+
+  try {
+    const response = await fetch(url, { ...options, headers });
+
+    if (response.status === 204) {
+      return undefined as T;
+    }
+
+    const text = await response.text();
+    if (!text) return undefined as T;
+
+    const data = JSON.parse(text);
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        clearAdminTokens();
+        throw new ApiError('Admin session expired. Please log in again.', 401);
+      }
+      throw new ApiError(data?.message || data?.error || 'Request failed', response.status);
+    }
+
+    // Handle wrapped response {success: true, data: ...}
+    if (data && typeof data === 'object' && 'success' in data && data.data !== undefined) {
+      return data.data as T;
+    }
+
+    return data as T;
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw new ApiError('Unable to connect to server', 0, 'NETWORK_ERROR');
+  }
+}
+
 // ============================================================
 // AUTH API
 // ============================================================
@@ -1038,6 +1086,97 @@ export const taskTemplateApi = {
 };
 
 // ============================================================
+// ADMIN TEMPLATE TYPES
+// ============================================================
+export interface AdminTaskTemplate {
+  id: string;
+  name: string;
+  description: string;
+  type: 'TASK' | 'EVENT';
+  creatorType: 'SYSTEM' | 'USER';
+  userId: string | null;
+  defaultStoryPoints: number;
+  defaultLifeWheelAreaId: string | null;
+  defaultEisenhowerQuadrantId: string | null;
+  defaultDuration: number | null;
+  defaultLocation: string | null;
+  isAllDay: boolean;
+  defaultAttendees: string[];
+  isRecurring: boolean;
+  recurrencePattern: {
+    frequency: string;
+    interval: number;
+    endDate: string | null;
+  } | null;
+  suggestedSprint: 'CURRENT' | 'NEXT' | 'BACKLOG';
+  rating: number;
+  ratingCount: number;
+  usageCount: number;
+  icon: string;
+  color: string;
+  tags: string[];
+  isFavorite: boolean;
+  userRating: number | null;
+  userTags: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateTemplateRequest {
+  name: string;
+  description?: string;
+  type?: 'TASK' | 'EVENT';
+  defaultStoryPoints?: number;
+  defaultLifeWheelAreaId?: string;
+  defaultEisenhowerQuadrantId?: string;
+  defaultDuration?: number;
+  defaultLocation?: string;
+  isAllDay?: boolean;
+  defaultAttendees?: string[];
+  isRecurring?: boolean;
+  recurrencePattern?: {
+    frequency: string;
+    interval: number;
+    endDate?: string;
+  };
+  suggestedSprint?: 'CURRENT' | 'NEXT' | 'BACKLOG';
+  icon?: string;
+  color?: string;
+  tags?: string[];
+}
+
+export interface UpdateTemplateRequest {
+  name?: string;
+  description?: string;
+  type?: 'TASK' | 'EVENT';
+  defaultStoryPoints?: number;
+  defaultLifeWheelAreaId?: string;
+  defaultEisenhowerQuadrantId?: string;
+  defaultDuration?: number;
+  defaultLocation?: string;
+  isAllDay?: boolean;
+  defaultAttendees?: string[];
+  isRecurring?: boolean;
+  recurrencePattern?: {
+    frequency: string;
+    interval: number;
+    endDate?: string;
+  };
+  suggestedSprint?: 'CURRENT' | 'NEXT' | 'BACKLOG';
+  icon?: string;
+  color?: string;
+  tags?: string[];
+}
+
+export interface BulkOperationResponse {
+  totalRequested: number;
+  successCount: number;
+  failedCount: number;
+  errors: { identifier: string; error: string }[];
+  createdTemplates: AdminTaskTemplate[] | null;
+}
+
+// ============================================================
 // ADMIN API
 // ============================================================
 export const adminApi = {
@@ -1153,26 +1292,44 @@ export const adminApi = {
     if (params?.page !== undefined) queryParams.append('page', params.page.toString());
     if (params?.size) queryParams.append('size', params.size.toString());
     const query = queryParams.toString() ? `?${queryParams}` : '';
-    return requestRaw<TaskTemplate[]>(`/admin/templates${query}`, { method: 'GET' }, true);
+    return adminRequest<AdminTaskTemplate[]>(`/admin/templates${query}`, { method: 'GET' });
   },
 
-  async createGlobalTemplate(data: any) {
-    return requestRaw<TaskTemplate>('/admin/templates', { method: 'POST', body: JSON.stringify(data) }, true);
+  async getGlobalTemplateById(id: string) {
+    return adminRequest<AdminTaskTemplate>(`/admin/templates/${id}`, { method: 'GET' });
   },
 
-  async updateGlobalTemplate(id: string, data: any) {
-    return requestRaw<TaskTemplate>(`/admin/templates/${id}`, { method: 'PUT', body: JSON.stringify(data) }, true);
+  async createGlobalTemplate(data: CreateTemplateRequest) {
+    return adminRequest<AdminTaskTemplate>('/admin/templates', { method: 'POST', body: JSON.stringify(data) });
+  },
+
+  async updateGlobalTemplate(id: string, data: UpdateTemplateRequest) {
+    return adminRequest<AdminTaskTemplate>(`/admin/templates/${id}`, { method: 'PUT', body: JSON.stringify(data) });
   },
 
   async deleteGlobalTemplate(id: string) {
-    return requestRaw<void>(`/admin/templates/${id}`, { method: 'DELETE' }, true);
+    return adminRequest<void>(`/admin/templates/${id}`, { method: 'DELETE' });
   },
 
-  async bulkCreateTemplates(templates: any[]) {
-    return requestRaw<{ created: number; errors: any[] }>('/admin/templates/bulk', {
+  async bulkCreateTemplates(templates: CreateTemplateRequest[]) {
+    return adminRequest<BulkOperationResponse>('/admin/templates/bulk', {
       method: 'POST',
       body: JSON.stringify({ templates }),
-    }, true);
+    });
+  },
+
+  async bulkUpdateTemplates(templates: { id: string; data: UpdateTemplateRequest }[]) {
+    return adminRequest<BulkOperationResponse>('/admin/templates/bulk', {
+      method: 'PUT',
+      body: JSON.stringify({ templates }),
+    });
+  },
+
+  async bulkDeleteTemplates(ids: string[]) {
+    return adminRequest<BulkOperationResponse>('/admin/templates/bulk', {
+      method: 'DELETE',
+      body: JSON.stringify({ ids }),
+    });
   },
 
   // Analytics

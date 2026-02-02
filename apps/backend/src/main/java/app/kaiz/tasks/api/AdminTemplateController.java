@@ -1,6 +1,8 @@
 package app.kaiz.tasks.api;
 
 import app.kaiz.tasks.application.TaskTemplateService;
+import app.kaiz.tasks.application.dto.AdminTemplateDto;
+import app.kaiz.tasks.application.dto.AdminTemplateDto.*;
 import app.kaiz.tasks.application.dto.TaskTemplateDto;
 import app.kaiz.tasks.application.dto.TaskTemplateDto.*;
 import io.swagger.v3.oas.annotations.Operation;
@@ -36,6 +38,12 @@ public class AdminTemplateController {
     return ResponseEntity.ok(taskTemplateService.getAllSystemTemplates());
   }
 
+  @GetMapping("/{id}")
+  @Operation(summary = "Get system template by ID", description = "Get a specific global template")
+  public ResponseEntity<TaskTemplateDto> getSystemTemplateById(@PathVariable UUID id) {
+    return ResponseEntity.ok(taskTemplateService.getSystemTemplateById(id));
+  }
+
   @PostMapping
   @Operation(
       summary = "Create system template",
@@ -59,5 +67,35 @@ public class AdminTemplateController {
   public ResponseEntity<Void> deleteSystemTemplate(@PathVariable UUID id) {
     taskTemplateService.deleteSystemTemplate(id);
     return ResponseEntity.noContent().build();
+  }
+
+  @PostMapping("/bulk")
+  @Operation(
+      summary = "Bulk create system templates",
+      description = "Create multiple global templates at once")
+  public ResponseEntity<BulkOperationResponse> bulkCreateTemplates(
+      @Valid @RequestBody BulkCreateTemplatesRequest request) {
+    BulkOperationResponse response = taskTemplateService.bulkCreateSystemTemplates(request);
+    return ResponseEntity.ok(response);
+  }
+
+  @PutMapping("/bulk")
+  @Operation(
+      summary = "Bulk update system templates",
+      description = "Update multiple global templates at once")
+  public ResponseEntity<BulkOperationResponse> bulkUpdateTemplates(
+      @Valid @RequestBody BulkUpdateTemplatesRequest request) {
+    BulkOperationResponse response = taskTemplateService.bulkUpdateSystemTemplates(request);
+    return ResponseEntity.ok(response);
+  }
+
+  @DeleteMapping("/bulk")
+  @Operation(
+      summary = "Bulk delete system templates",
+      description = "Delete multiple global templates at once")
+  public ResponseEntity<BulkOperationResponse> bulkDeleteTemplates(
+      @Valid @RequestBody BulkDeleteTemplatesRequest request) {
+    BulkOperationResponse response = taskTemplateService.bulkDeleteSystemTemplates(request);
+    return ResponseEntity.ok(response);
   }
 }

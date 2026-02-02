@@ -387,6 +387,16 @@ public class TaskTemplateService {
         taskTemplateRepository.findByCreatorType(CreatorType.SYSTEM));
   }
 
+  public TaskTemplateDto getSystemTemplateById(UUID templateId) {
+    TaskTemplate template =
+        taskTemplateRepository
+            .findById(templateId)
+            .filter(t -> t.getCreatorType() == CreatorType.SYSTEM)
+            .orElseThrow(
+                () -> new ResourceNotFoundException("SystemTemplate", templateId.toString()));
+    return sdlcMapper.toTaskTemplateDto(template);
+  }
+
   @Transactional
   public TaskTemplateDto createSystemTemplate(CreateTaskTemplateRequest request) {
     TaskTemplate template =
@@ -500,6 +510,78 @@ public class TaskTemplateService {
             .orElseThrow(
                 () -> new ResourceNotFoundException("SystemTemplate", templateId.toString()));
     taskTemplateRepository.delete(template);
+  }
+
+  @Transactional
+  public app.kaiz.tasks.application.dto.AdminTemplateDto.BulkOperationResponse
+      bulkCreateSystemTemplates(
+          app.kaiz.tasks.application.dto.AdminTemplateDto.BulkCreateTemplatesRequest request) {
+    List<TaskTemplateDto> created = new ArrayList<>();
+    List<app.kaiz.tasks.application.dto.AdminTemplateDto.BulkOperationError> errors =
+        new ArrayList<>();
+
+    for (int i = 0; i < request.templates().size(); i++) {
+      CreateTaskTemplateRequest templateRequest = request.templates().get(i);
+      try {
+        TaskTemplateDto createdTemplate = createSystemTemplate(templateRequest);
+        created.add(createdTemplate);
+      } catch (Exception e) {
+        errors.add(
+            new app.kaiz.tasks.application.dto.AdminTemplateDto.BulkOperationError(
+                templateRequest.name() != null ? templateRequest.name() : "Template " + (i + 1),
+                e.getMessage()));
+      }
+    }
+
+    return new app.kaiz.tasks.application.dto.AdminTemplateDto.BulkOperationResponse(
+        request.templates().size(), created.size(), errors.size(), errors, created);
+  }
+
+  @Transactional
+  public app.kaiz.tasks.application.dto.AdminTemplateDto.BulkOperationResponse
+      bulkUpdateSystemTemplates(
+          app.kaiz.tasks.application.dto.AdminTemplateDto.BulkUpdateTemplatesRequest request) {
+    List<TaskTemplateDto> updated = new ArrayList<>();
+    List<app.kaiz.tasks.application.dto.AdminTemplateDto.BulkOperationError> errors =
+        new ArrayList<>();
+
+    for (app.kaiz.tasks.application.dto.AdminTemplateDto.BulkUpdateItem item :
+        request.templates()) {
+      try {
+        TaskTemplateDto updatedTemplate = updateSystemTemplate(item.id(), item.data());
+        updated.add(updatedTemplate);
+      } catch (Exception e) {
+        errors.add(
+            new app.kaiz.tasks.application.dto.AdminTemplateDto.BulkOperationError(
+                item.id().toString(), e.getMessage()));
+      }
+    }
+
+    return new app.kaiz.tasks.application.dto.AdminTemplateDto.BulkOperationResponse(
+        request.templates().size(), updated.size(), errors.size(), errors, updated);
+  }
+
+  @Transactional
+  public app.kaiz.tasks.application.dto.AdminTemplateDto.BulkOperationResponse
+      bulkDeleteSystemTemplates(
+          app.kaiz.tasks.application.dto.AdminTemplateDto.BulkDeleteTemplatesRequest request) {
+    List<app.kaiz.tasks.application.dto.AdminTemplateDto.BulkOperationError> errors =
+        new ArrayList<>();
+    int successCount = 0;
+
+    for (UUID id : request.ids()) {
+      try {
+        deleteSystemTemplate(id);
+        successCount++;
+      } catch (Exception e) {
+        errors.add(
+            new app.kaiz.tasks.application.dto.AdminTemplateDto.BulkOperationError(
+                id.toString(), e.getMessage()));
+      }
+    }
+
+    return new app.kaiz.tasks.application.dto.AdminTemplateDto.BulkOperationResponse(
+        request.ids().size(), successCount, errors.size(), errors, null);
   }
 
   // ============ Helper Methods ============
