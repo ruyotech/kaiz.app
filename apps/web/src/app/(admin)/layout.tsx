@@ -20,12 +20,13 @@ import {
   BookOpen,
   MessageSquare,
   Bell,
-}from 'lucide-react';
+} from 'lucide-react';
 
 const navigation = [
   { name: 'Overview', href: '/admin', icon: LayoutDashboard },
   { name: 'Templates', href: '/admin/templates', icon: FileText },
   { name: 'Subscribers', href: '/admin/subscribers', icon: Users },
+  { name: 'Community', href: '/admin/community', icon: MessageSquare },
   { name: 'Revenue', href: '/admin/revenue', icon: TrendingUp },
   { name: 'Content', href: '/admin/content', icon: BookOpen },
   { name: 'Settings', href: '/admin/settings', icon: Settings },
