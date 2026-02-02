@@ -4,6 +4,8 @@ import type {
   FAQ,
   PricingTier,
   SiteSettings,
+  KnowledgeCategory,
+  KnowledgeItem,
 } from '@/types/content';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
@@ -385,5 +387,223 @@ function mapPricingTierToApiPricing(tier: Partial<PricingTier>): any {
     popular: tier.highlighted ?? false,
     displayOrder: tier.order || 0,
     active: tier.isActive ?? true,
+  };
+}
+
+// ============ Knowledge Hub API ============
+
+// Admin Knowledge Hub API
+export async function getAdminKnowledgeCategories(token: string): Promise<KnowledgeCategory[]> {
+  return fetchApi<KnowledgeCategory[]>('/api/v1/admin/knowledge/categories', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function createKnowledgeCategory(
+  token: string,
+  category: Partial<KnowledgeCategory>
+): Promise<KnowledgeCategory> {
+  return fetchApi<KnowledgeCategory>('/api/v1/admin/knowledge/categories', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify(category),
+  });
+}
+
+export async function updateKnowledgeCategory(
+  token: string,
+  id: string,
+  category: Partial<KnowledgeCategory>
+): Promise<KnowledgeCategory> {
+  return fetchApi<KnowledgeCategory>(`/api/v1/admin/knowledge/categories/${id}`, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify(category),
+  });
+}
+
+export async function deleteKnowledgeCategory(token: string, id: string): Promise<void> {
+  await fetchApi(`/api/v1/admin/knowledge/categories/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function getAdminKnowledgeItems(
+  token: string,
+  options?: { search?: string; categoryId?: string }
+): Promise<KnowledgeItem[]> {
+  const params = new URLSearchParams();
+  if (options?.search) params.append('search', options.search);
+  if (options?.categoryId) params.append('categoryId', options.categoryId);
+  const query = params.toString() ? `?${params.toString()}` : '';
+
+  const items = await fetchApi<any[]>(`/api/v1/admin/knowledge/items${query}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return items.map(mapApiKnowledgeItemToItem);
+}
+
+export async function getAdminKnowledgeItem(token: string, id: string): Promise<KnowledgeItem> {
+  const item = await fetchApi<any>(`/api/v1/admin/knowledge/items/${id}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return mapApiKnowledgeItemToItem(item);
+}
+
+export async function createKnowledgeItem(
+  token: string,
+  item: Partial<KnowledgeItem>
+): Promise<KnowledgeItem> {
+  const apiItem = mapKnowledgeItemToApi(item);
+  const created = await fetchApi<any>('/api/v1/admin/knowledge/items', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify(apiItem),
+  });
+  return mapApiKnowledgeItemToItem(created);
+}
+
+export async function updateKnowledgeItem(
+  token: string,
+  id: string,
+  item: Partial<KnowledgeItem>
+): Promise<KnowledgeItem> {
+  const apiItem = mapKnowledgeItemToApi(item);
+  const updated = await fetchApi<any>(`/api/v1/admin/knowledge/items/${id}`, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify(apiItem),
+  });
+  return mapApiKnowledgeItemToItem(updated);
+}
+
+export async function deleteKnowledgeItem(token: string, id: string): Promise<void> {
+  await fetchApi(`/api/v1/admin/knowledge/items/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function updateKnowledgeItemStatus(
+  token: string,
+  id: string,
+  status: string
+): Promise<void> {
+  await fetchApi(`/api/v1/admin/knowledge/items/${id}/status`, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ status }),
+  });
+}
+
+export async function bulkImportKnowledgeItems(
+  token: string,
+  items: Partial<KnowledgeItem>[]
+): Promise<KnowledgeItem[]> {
+  const apiItems = items.map(mapKnowledgeItemToApi);
+  const imported = await fetchApi<any[]>('/api/v1/admin/knowledge/items/bulk', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify(apiItems),
+  });
+  return imported.map(mapApiKnowledgeItemToItem);
+}
+
+// Public Knowledge Hub API
+export async function getPublicKnowledgeCategories(): Promise<KnowledgeCategory[]> {
+  try {
+    return await fetchApi<KnowledgeCategory[]>('/api/v1/public/knowledge/categories');
+  } catch (error) {
+    console.error('Failed to fetch knowledge categories:', error);
+    return [];
+  }
+}
+
+export async function getPublicKnowledgeItems(
+  options?: { search?: string; categoryId?: string }
+): Promise<KnowledgeItem[]> {
+  try {
+    const params = new URLSearchParams();
+    if (options?.search) params.append('search', options.search);
+    if (options?.categoryId) params.append('categoryId', options.categoryId);
+    const query = params.toString() ? `?${params.toString()}` : '';
+
+    const items = await fetchApi<any[]>(`/api/v1/public/knowledge/items${query}`);
+    return items.map(mapApiKnowledgeItemToItem);
+  } catch (error) {
+    console.error('Failed to fetch knowledge items:', error);
+    return [];
+  }
+}
+
+export async function getFeaturedKnowledgeItems(): Promise<KnowledgeItem[]> {
+  try {
+    const items = await fetchApi<any[]>('/api/v1/public/knowledge/items/featured');
+    return items.map(mapApiKnowledgeItemToItem);
+  } catch (error) {
+    console.error('Failed to fetch featured knowledge items:', error);
+    return [];
+  }
+}
+
+export async function recordKnowledgeItemView(id: string): Promise<void> {
+  try {
+    await fetchApi(`/api/v1/public/knowledge/items/${id}/view`, { method: 'POST' });
+  } catch (error) {
+    console.error('Failed to record view:', error);
+  }
+}
+
+export async function recordKnowledgeItemHelpful(id: string): Promise<void> {
+  try {
+    await fetchApi(`/api/v1/public/knowledge/items/${id}/helpful`, { method: 'POST' });
+  } catch (error) {
+    console.error('Failed to record helpful:', error);
+  }
+}
+
+// Knowledge Hub mappers
+function mapApiKnowledgeItemToItem(api: any): KnowledgeItem {
+  return {
+    id: api.id,
+    categoryId: api.categoryId,
+    categoryName: api.categoryName,
+    slug: api.slug,
+    title: api.title,
+    summary: api.summary || '',
+    content: api.content || '',
+    difficulty: api.difficulty || 'BEGINNER',
+    readTimeMinutes: api.readTimeMinutes || 2,
+    tags: typeof api.tags === 'string' ? JSON.parse(api.tags || '[]') : (api.tags || []),
+    icon: api.icon || '📚',
+    status: api.status || 'DRAFT',
+    featured: api.featured ?? false,
+    viewCount: api.viewCount || 0,
+    helpfulCount: api.helpfulCount || 0,
+    displayOrder: api.displayOrder || 0,
+    searchKeywords: api.searchKeywords,
+    createdAt: api.createdAt || new Date().toISOString(),
+    updatedAt: api.updatedAt || new Date().toISOString(),
+    createdBy: api.createdBy,
+    updatedBy: api.updatedBy,
+  };
+}
+
+function mapKnowledgeItemToApi(item: Partial<KnowledgeItem>): any {
+  return {
+    categoryId: item.categoryId,
+    slug: item.slug,
+    title: item.title,
+    summary: item.summary,
+    content: item.content,
+    difficulty: item.difficulty || 'BEGINNER',
+    readTimeMinutes: item.readTimeMinutes || 2,
+    tags: Array.isArray(item.tags) ? JSON.stringify(item.tags) : item.tags,
+    icon: item.icon || '📚',
+    status: item.status || 'DRAFT',
+    featured: item.featured ?? false,
+    displayOrder: item.displayOrder || 0,
+    searchKeywords: item.searchKeywords,
   };
 }

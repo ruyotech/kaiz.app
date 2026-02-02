@@ -93,6 +93,45 @@ export interface PricingTier {
   isActive: boolean;
 }
 
+// Knowledge Hub Types
+export interface KnowledgeCategory {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  icon: string;
+  color: string;
+  displayOrder: number;
+  status: 'ACTIVE' | 'INACTIVE';
+  itemCount: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface KnowledgeItem {
+  id: string;
+  categoryId: string;
+  categoryName?: string;
+  slug: string;
+  title: string;
+  summary: string;
+  content: string;
+  difficulty: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+  readTimeMinutes: number;
+  tags: string[];
+  icon: string;
+  status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+  featured: boolean;
+  viewCount: number;
+  helpfulCount: number;
+  displayOrder: number;
+  searchKeywords?: string;
+  createdAt: string;
+  updatedAt: string;
+  createdBy?: string;
+  updatedBy?: string;
+}
+
 export interface SiteSettings {
   siteName: string;
   siteDescription: string;
