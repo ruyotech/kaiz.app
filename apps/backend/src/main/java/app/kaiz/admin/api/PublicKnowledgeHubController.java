@@ -38,7 +38,8 @@ public class PublicKnowledgeHubController {
                         category,
                         "timestamp",
                         System.currentTimeMillis())))
-        .orElse(ResponseEntity.notFound().build());
+        .orElse(ResponseEntity.status(404).body(
+            Map.of("success", false, "error", "Category not found", "timestamp", System.currentTimeMillis())));
   }
 
   @GetMapping("/items")
@@ -73,7 +74,8 @@ public class PublicKnowledgeHubController {
             item ->
                 ResponseEntity.ok(
                     Map.of("success", true, "data", item, "timestamp", System.currentTimeMillis())))
-        .orElse(ResponseEntity.notFound().build());
+        .orElse(ResponseEntity.status(404).body(
+            Map.of("success", false, "error", "Knowledge item not found", "timestamp", System.currentTimeMillis())));
   }
 
   @PostMapping("/items/{id}/view")

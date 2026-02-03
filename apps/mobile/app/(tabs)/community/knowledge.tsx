@@ -384,7 +384,7 @@ export default function KnowledgeHubScreen() {
                                     }}
                                     onPress={() => router.push({
                                         pathname: '/community/knowledge-item',
-                                        params: { id: item.id }
+                                        params: { slug: item.slug }
                                     } as any)}
                                 >
                                     <View className="flex-row items-start">

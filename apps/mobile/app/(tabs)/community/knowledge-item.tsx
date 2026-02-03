@@ -23,7 +23,7 @@ interface KnowledgeItem {
 
 export default function KnowledgeItemScreen() {
     const router = useRouter();
-    const { id } = useLocalSearchParams<{ id: string }>();
+    const { slug } = useLocalSearchParams<{ slug: string }>();
     const { colors, isDark } = useThemeContext();
     const [item, setItem] = useState<KnowledgeItem | null>(null);
     const [loading, setLoading] = useState(true);
@@ -31,16 +31,18 @@ export default function KnowledgeItemScreen() {
 
     useEffect(() => {
         loadItem();
-    }, [id]);
+    }, [slug]);
 
     const loadItem = async () => {
-        if (!id) return;
+        if (!slug) return;
         setLoading(true);
         try {
-            const data = await communityApi.getKnowledgeItemById(id);
+            const data = await communityApi.getKnowledgeItemBySlug(slug);
             setItem(data);
-            // Record view
-            await communityApi.recordKnowledgeItemView(id);
+            // Record view using the item's ID
+            if (data?.id) {
+                await communityApi.recordKnowledgeItemView(data.id);
+            }
         } catch (error) {
             console.error('Failed to load knowledge item:', error);
         } finally {
@@ -49,13 +51,11 @@ export default function KnowledgeItemScreen() {
     };
 
     const handleMarkHelpful = async () => {
-        if (!id || markedHelpful) return;
+        if (!item?.id || markedHelpful) return;
         try {
-            await communityApi.markKnowledgeItemHelpful(id);
+            await communityApi.markKnowledgeItemHelpful(item.id);
             setMarkedHelpful(true);
-            if (item) {
-                setItem({ ...item, helpfulCount: item.helpfulCount + 1 });
-            }
+            setItem({ ...item, helpfulCount: item.helpfulCount + 1 });
         } catch (error) {
             console.error('Failed to mark as helpful:', error);
         }

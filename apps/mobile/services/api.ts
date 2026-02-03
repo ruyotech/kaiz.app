@@ -2154,10 +2154,10 @@ export const communityApi = {
     },
 
     /**
-     * Get knowledge item by ID
+     * Get knowledge item by slug
      */
-    async getKnowledgeItemById(id: string): Promise<any> {
-        return request<any>(`/public/knowledge/items/${id}`, { method: 'GET' });
+    async getKnowledgeItemBySlug(slug: string): Promise<any> {
+        return request<any>(`/public/knowledge/items/${slug}`, { method: 'GET' });
     },
 
     /**
