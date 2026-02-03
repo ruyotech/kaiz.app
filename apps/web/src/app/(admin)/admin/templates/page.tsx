@@ -9,17 +9,16 @@ type SortField = 'name' | 'rating' | 'usageCount' | 'createdAt';
 type SortOrder = 'asc' | 'desc';
 type BulkUploadMode = 'csv' | 'json';
 
-// Life Wheel Areas matching backend
+// Life Wheel Areas matching backend database (lw-1 through lw-8)
 const LIFE_WHEEL_AREAS = [
-  { id: 'life-health', name: 'Health', icon: '💪' },
-  { id: 'life-career', name: 'Career', icon: '💼' },
-  { id: 'life-finance', name: 'Finance', icon: '💰' },
-  { id: 'life-family', name: 'Family', icon: '👨‍👩‍👧‍👦' },
-  { id: 'life-romance', name: 'Romance', icon: '❤️' },
-  { id: 'life-friends', name: 'Friends', icon: '👥' },
-  { id: 'life-growth', name: 'Growth', icon: '📚' },
-  { id: 'life-fun', name: 'Fun', icon: '🎉' },
-  { id: 'life-environment', name: 'Environment', icon: '🌍' },
+  { id: 'lw-1', name: 'Health & Fitness', icon: '💪' },
+  { id: 'lw-2', name: 'Career & Work', icon: '💼' },
+  { id: 'lw-3', name: 'Finance & Money', icon: '💰' },
+  { id: 'lw-4', name: 'Personal Growth', icon: '📚' },
+  { id: 'lw-5', name: 'Relationships & Family', icon: '❤️' },
+  { id: 'lw-6', name: 'Social Life', icon: '👥' },
+  { id: 'lw-7', name: 'Fun & Recreation', icon: '🎮' },
+  { id: 'lw-8', name: 'Environment & Home', icon: '🏡' },
 ];
 
 
@@ -258,11 +257,11 @@ export default function TemplatesPage() {
 
   // CSV Template Generator
   const downloadCsvTemplate = () => {
-    const headers = ['name', 'description', 'type', 'defaultStoryPoints', 'icon', 'color', 'tags', 'suggestedSprint'];
+    const headers = ['name', 'description', 'type', 'lifeWheelAreaId', 'icon', 'color', 'tags'];
     const sampleRows = [
-      ['Morning Workout', '30 minute exercise routine', 'TASK', '3', '🏋️', '#EF4444', 'health,fitness', 'CURRENT'],
-      ['Weekly Planning', 'Plan the week ahead', 'TASK', '2', '📅', '#3B82F6', 'productivity,planning', 'NEXT'],
-      ['Team Standup', 'Daily team sync meeting', 'EVENT', '1', '👥', '#10B981', 'meetings,team', 'BACKLOG'],
+      ['Morning Workout', 'Start your day with exercise', 'TASK', 'lw-1', '🏋️', '#10B981', 'health,fitness'],
+      ['Weekly Planning', 'Plan the week ahead', 'TASK', 'lw-2', '📅', '#3B82F6', 'productivity,planning'],
+      ['Team Standup', 'Daily team sync meeting', 'EVENT', 'lw-2', '👥', '#3B82F6', 'meetings,team'],
     ];
     const csvContent = [headers.join(','), ...sampleRows.map(row => row.join(','))].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -307,14 +306,11 @@ export default function TemplatesPage() {
               data.type = value.toUpperCase() as 'TASK' | 'EVENT';
             }
             break;
-          case 'defaultstorypoints':
-          case 'storypoints':
-          case 'points':
-            const points = parseInt(value);
-            if (value && isNaN(points)) {
-              errors.push('Story points must be a number');
-            } else if (value) {
-              data.defaultStoryPoints = points;
+          case 'lifewheelareaid':
+          case 'lifewheel':
+          case 'area':
+            if (value) {
+              data.defaultLifeWheelAreaId = value;
             }
             break;
           case 'icon':
@@ -330,14 +326,7 @@ export default function TemplatesPage() {
           case 'tags':
             data.tags = value ? value.split(/[;,]/).map(t => t.trim()).filter(Boolean) : [];
             break;
-          case 'suggestedsprint':
-          case 'sprint':
-            if (value && !['CURRENT', 'NEXT', 'BACKLOG'].includes(value.toUpperCase())) {
-              errors.push('Sprint must be CURRENT, NEXT, or BACKLOG');
-            } else if (value) {
-              data.suggestedSprint = value.toUpperCase() as 'CURRENT' | 'NEXT' | 'BACKLOG';
-            }
-            break;
+
         }
       });
 
@@ -553,7 +542,6 @@ export default function TemplatesPage() {
               </th>
               <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Type</th>
               <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Life Wheel</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Points</th>
               <th
                 className="px-4 py-3 text-left text-sm font-medium text-gray-500 cursor-pointer hover:bg-gray-100"
                 onClick={() => handleSort('rating')}
@@ -627,7 +615,6 @@ export default function TemplatesPage() {
                     <span className="text-gray-400 text-sm">-</span>
                   )}
                 </td>
-                <td className="px-4 py-3 text-gray-600">{template.defaultStoryPoints || '-'}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-1">
                     <span className="text-yellow-500">⭐</span>
@@ -896,7 +883,7 @@ export default function TemplatesPage() {
                             <th className="px-3 py-2 text-left text-gray-500">Status</th>
                             <th className="px-3 py-2 text-left text-gray-500">Name</th>
                             <th className="px-3 py-2 text-left text-gray-500">Type</th>
-                            <th className="px-3 py-2 text-left text-gray-500">Points</th>
+                            <th className="px-3 py-2 text-left text-gray-500">Life Wheel</th>
                             <th className="px-3 py-2 text-left text-gray-500">Errors</th>
                           </tr>
                         </thead>
@@ -920,7 +907,7 @@ export default function TemplatesPage() {
                                   {t.data.type || 'N/A'}
                                 </span>
                               </td>
-                              <td className="px-3 py-2">{t.data.defaultStoryPoints || '-'}</td>
+                              <td className="px-3 py-2">{LIFE_WHEEL_AREAS.find(a => a.id === t.data.defaultLifeWheelAreaId)?.name || t.data.defaultLifeWheelAreaId || '-'}</td>
                               <td className="px-3 py-2 text-red-600 text-xs">
                                 {t.errors.join(', ') || '-'}
                               </td>
@@ -949,11 +936,11 @@ export default function TemplatesPage() {
                       placeholder={`[
   {
     "name": "Morning Workout",
-    "description": "30 minute exercise routine",
+    "description": "Start your day with exercise",
     "type": "TASK",
-    "defaultStoryPoints": 3,
+    "defaultLifeWheelAreaId": "lw-1",
     "icon": "🏋️",
-    "color": "#EF4444",
+    "color": "#10B981",
     "tags": ["health", "fitness"]
   }
 ]`}
@@ -974,12 +961,11 @@ export default function TemplatesPage() {
                 <div className="grid grid-cols-2 gap-2 text-sm text-gray-600">
                   <div><code className="bg-gray-200 px-1 rounded">name</code> - Required</div>
                   <div><code className="bg-gray-200 px-1 rounded">type</code> - TASK or EVENT (required)</div>
-                  <div><code className="bg-gray-200 px-1 rounded">description</code> - Optional</div>
-                  <div><code className="bg-gray-200 px-1 rounded">defaultStoryPoints</code> - Number</div>
+                  <div><code className="bg-gray-200 px-1 rounded">description</code> - Usage guide (optional)</div>
+                  <div><code className="bg-gray-200 px-1 rounded">lifeWheelAreaId</code> - lw-1 to lw-8</div>
                   <div><code className="bg-gray-200 px-1 rounded">icon</code> - Emoji</div>
                   <div><code className="bg-gray-200 px-1 rounded">color</code> - Hex (#RRGGBB)</div>
                   <div><code className="bg-gray-200 px-1 rounded">tags</code> - Comma-separated</div>
-                  <div><code className="bg-gray-200 px-1 rounded">suggestedSprint</code> - CURRENT/NEXT/BACKLOG</div>
                 </div>
               </div>
             </div>
