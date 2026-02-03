@@ -728,7 +728,7 @@ export default function TemplatesPage() {
                   type="text"
                   value={formData.name || ''}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                   placeholder="Template name"
                 />
               </div>
@@ -737,7 +737,7 @@ export default function TemplatesPage() {
                 <textarea
                   value={formData.description || ''}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                   rows={3}
                   placeholder="Template description"
                 />
@@ -750,7 +750,7 @@ export default function TemplatesPage() {
                   <select
                     value={formData.type || 'TASK'}
                     onChange={(e) => setFormData({ ...formData, type: e.target.value as TemplateType })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                   >
                     <option value="TASK">Task</option>
                     <option value="EVENT">Event</option>
@@ -766,7 +766,7 @@ export default function TemplatesPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, defaultStoryPoints: parseInt(e.target.value) || 1 })
                     }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                   />
                 </div>
               </div>
@@ -780,7 +780,7 @@ export default function TemplatesPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, defaultLifeWheelAreaId: e.target.value || undefined })
                     }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                   >
                     <option value="">Select area...</option>
                     {LIFE_WHEEL_AREAS.map((area) => (
@@ -797,7 +797,7 @@ export default function TemplatesPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, defaultEisenhowerQuadrantId: e.target.value || undefined })
                     }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                   >
                     <option value="">Select quadrant...</option>
                     {EISENHOWER_QUADRANTS.map((q) => (
@@ -817,7 +817,7 @@ export default function TemplatesPage() {
                     type="text"
                     value={formData.icon || ''}
                     onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                     placeholder="📋"
                   />
                 </div>
@@ -846,7 +846,7 @@ export default function TemplatesPage() {
                       tags: e.target.value.split(',').map((t) => t.trim()).filter(Boolean),
                     })
                   }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                   placeholder="productivity, work, health"
                 />
               </div>
@@ -864,7 +864,7 @@ export default function TemplatesPage() {
                       suggestedSprint: (e.target.value as 'CURRENT' | 'NEXT' | 'BACKLOG') || undefined,
                     })
                   }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                 >
                   <option value="">None</option>
                   <option value="CURRENT">Current Sprint</option>
@@ -888,7 +888,7 @@ export default function TemplatesPage() {
                         onChange={(e) =>
                           setFormData({ ...formData, defaultDuration: parseInt(e.target.value) || undefined })
                         }
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                         placeholder="60"
                       />
                     </div>
@@ -910,7 +910,7 @@ export default function TemplatesPage() {
                       type="text"
                       value={formData.defaultLocation || ''}
                       onChange={(e) => setFormData({ ...formData, defaultLocation: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                       placeholder="Meeting room, Office, Zoom..."
                     />
                   </div>
@@ -927,7 +927,7 @@ export default function TemplatesPage() {
                           defaultAttendees: e.target.value.split(',').map((t) => t.trim()).filter(Boolean),
                         })
                       }
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                       placeholder="team@company.com, manager@company.com"
                     />
                   </div>
@@ -969,7 +969,7 @@ export default function TemplatesPage() {
                             },
                           })
                         }
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                       >
                         <option value="DAILY">Daily</option>
                         <option value="WEEKLY">Weekly</option>
@@ -994,7 +994,7 @@ export default function TemplatesPage() {
                             },
                           })
                         }
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                       />
                     </div>
                   </div>
