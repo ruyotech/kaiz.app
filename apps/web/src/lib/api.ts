@@ -249,8 +249,12 @@ async function adminRequest<T>(
       throw new ApiError(data?.message || data?.error || 'Request failed', response.status);
     }
 
-    // Handle wrapped response {success: true, data: ...}
+    // Handle wrapped response {success: true, data: ..., meta?: ...}
     if (data && typeof data === 'object' && 'success' in data && data.data !== undefined) {
+      // If there's a meta field (for paginated responses), return {data, meta}
+      if (data.meta) {
+        return { data: data.data, meta: data.meta } as T;
+      }
       return data.data as T;
     }
 
@@ -1536,18 +1540,18 @@ export const crmApi = {
   },
 
   async getLeadById(id: string) {
-    return adminRequest<{ data: LeadDetail }>(`/admin/crm/leads/${id}`, { method: 'GET' });
+    return adminRequest<LeadDetail>(`/admin/crm/leads/${id}`, { method: 'GET' });
   },
 
   async createLead(data: CreateLeadRequest) {
-    return adminRequest<{ data: Lead }>('/admin/crm/leads', {
+    return adminRequest<Lead>('/admin/crm/leads', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   },
 
   async updateLead(id: string, data: UpdateLeadRequest) {
-    return adminRequest<{ data: Lead }>(`/admin/crm/leads/${id}`, {
+    return adminRequest<Lead>(`/admin/crm/leads/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
@@ -1559,7 +1563,7 @@ export const crmApi = {
 
   // Activities
   async addActivity(leadId: string, data: { activityType: LeadActivity['activityType']; title: string; description?: string }) {
-    return adminRequest<{ data: LeadActivity }>(`/admin/crm/leads/${leadId}/activities`, {
+    return adminRequest<LeadActivity>(`/admin/crm/leads/${leadId}/activities`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -1573,7 +1577,7 @@ export const crmApi = {
     dueDate?: string;
     priority?: Lead['priority'];
   }) {
-    return adminRequest<{ data: LeadTask }>(`/admin/crm/leads/${leadId}/tasks`, {
+    return adminRequest<LeadTask>(`/admin/crm/leads/${leadId}/tasks`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -1581,7 +1585,7 @@ export const crmApi = {
 
   // Conversion
   async convertLead(id: string, conversionValue?: number) {
-    return adminRequest<{ data: Lead }>(`/admin/crm/leads/${id}/convert`, {
+    return adminRequest<Lead>(`/admin/crm/leads/${id}/convert`, {
       method: 'POST',
       body: JSON.stringify({ conversionValue }),
     });
@@ -1589,15 +1593,15 @@ export const crmApi = {
 
   // Stats & Dashboard
   async getStats() {
-    return adminRequest<{ data: CrmStats }>('/admin/crm/stats', { method: 'GET' });
+    return adminRequest<CrmStats>('/admin/crm/stats', { method: 'GET' });
   },
 
   async getRecentLeads() {
-    return adminRequest<{ data: Lead[] }>('/admin/crm/leads/recent', { method: 'GET' });
+    return adminRequest<Lead[]>('/admin/crm/leads/recent', { method: 'GET' });
   },
 
   async getHighPriorityLeads() {
-    return adminRequest<{ data: Lead[] }>('/admin/crm/leads/high-priority', { method: 'GET' });
+    return adminRequest<Lead[]>('/admin/crm/leads/high-priority', { method: 'GET' });
   },
 };
 

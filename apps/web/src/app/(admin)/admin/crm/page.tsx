@@ -38,9 +38,9 @@ export default function CrmPage() {
                 crmApi.getRecentLeads(),
                 crmApi.getHighPriorityLeads(),
             ]);
-            setStats(statsRes.data);
-            setRecentLeads(recentRes.data || []);
-            setHighPriorityLeads(priorityRes.data || []);
+            setStats(statsRes);
+            setRecentLeads(recentRes || []);
+            setHighPriorityLeads(priorityRes || []);
         } catch (err) {
             console.error('Failed to load CRM data:', err);
             setError('Failed to load CRM data');
