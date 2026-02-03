@@ -12,6 +12,7 @@ export default function PomodoroLayout() {
       <Stack.Screen name="index" />
       <Stack.Screen name="settings" />
       <Stack.Screen name="history" />
+      <Stack.Screen name="analytics" />
     </Stack>
   );
 }

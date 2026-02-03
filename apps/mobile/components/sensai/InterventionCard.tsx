@@ -130,8 +130,8 @@ export function InterventionCard({
                             />
                         </View>
                         <View className="flex-row justify-between mt-2">
-                            <Text className="text-xs text-gray-500">{t('sensai.standup.dayOfSprint', { current: data.dayOfSprint, total: data.totalDays })}</Text>
-                            <Text className="text-xs text-gray-500">{data.remainingPoints} {t('common.pts')} {t('common.remaining').toLowerCase()}</Text>
+                            <Text className="text-xs text-gray-500">{t('sensai.standup.dayOfSprint', { current: data.dayOfSprint ?? 1, total: data.totalDays ?? 14 })}</Text>
+                            <Text className="text-xs text-gray-500">{data.remainingPoints ?? 0} {t('common.pts')} {t('common.remaining').toLowerCase()}</Text>
                         </View>
                     </View>
                 );

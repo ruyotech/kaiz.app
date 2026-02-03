@@ -120,7 +120,7 @@ export const MORE_MENUS: Record<AppContext, MoreMenuItem[]> = {
     pomodoro: [
         { nameKey: 'settings.title', icon: 'cog', route: '/(tabs)/pomodoro/settings' },
         { nameKey: 'navigation.moreMenu.history', icon: 'history', route: '/(tabs)/pomodoro/history' },
-        { nameKey: 'navigation.moreMenu.focusAnalytics', icon: 'chart-line', route: '/(tabs)/reports?tab=focus' },
+        { nameKey: 'navigation.moreMenu.focusAnalytics', icon: 'chart-line', route: '/(tabs)/pomodoro/analytics' },
     ],
     bills: [
         { nameKey: 'navigation.moreMenu.categories', icon: 'tag-multiple', route: '/(tabs)/bills/categories' },

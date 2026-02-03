@@ -337,13 +337,15 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
                 size: DEFAULT_PAGE_SIZE,
             });
             
+            const content = response?.content || [];
+            
             set(state => ({
                 questions: loadMore 
-                    ? [...questions, ...response.content] 
-                    : response.content,
+                    ? [...(questions || []), ...content] 
+                    : content,
                 questionsPagination: {
                     page,
-                    hasMore: response.hasNext,
+                    hasMore: response?.hasNext ?? false,
                     isLoadingMore: false,
                 },
                 filters: { 
@@ -355,6 +357,7 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
             }));
         } catch (error) {
             set({ 
+                questions: loadMore ? questions : [],
                 error: handleApiError(error), 
                 loading: false,
                 questionsPagination: { 
@@ -455,13 +458,15 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
                 size: DEFAULT_PAGE_SIZE,
             });
             
+            const content = response?.content || [];
+            
             set(state => ({
                 templates: loadMore 
-                    ? [...templates, ...response.content] 
-                    : response.content,
+                    ? [...(templates || []), ...content] 
+                    : content,
                 templatesPagination: {
                     page,
-                    hasMore: response.hasNext,
+                    hasMore: response?.hasNext ?? false,
                     isLoadingMore: false,
                 },
                 filters: type 
@@ -471,6 +476,7 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
             }));
         } catch (error) {
             set({ 
+                templates: loadMore ? templates : [],
                 error: handleApiError(error), 
                 loading: false,
                 templatesPagination: { 

@@ -89,12 +89,12 @@ export function SprintHealthCard({ health, compact = false }: SprintHealthCardPr
                     <View className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: colors.backgroundSecondary }}>
                         <View 
                             className="h-full rounded-full"
-                            style={{ width: `${Math.min(health.completionPercentage, 100)}%`, backgroundColor: style.iconColor }}
+                            style={{ width: `${Math.min(health.completionPercentage ?? 0, 100)}%`, backgroundColor: style.iconColor }}
                         />
                     </View>
                 </View>
                 <Text className="text-sm font-bold" style={{ color: colors.text }}>
-                    {health.completionPercentage}%
+                    {health.completionPercentage ?? 0}%
                 </Text>
             </View>
         );
@@ -126,7 +126,7 @@ export function SprintHealthCard({ health, compact = false }: SprintHealthCardPr
                     </View>
                 </View>
                 <View className="items-end">
-                    <Text className="text-2xl font-bold" style={{ color: colors.text }}>{health.completionPercentage}%</Text>
+                    <Text className="text-2xl font-bold" style={{ color: colors.text }}>{health.completionPercentage ?? 0}%</Text>
                     <Text className="text-xs" style={{ color: colors.textSecondary }}>{t('common.complete')}</Text>
                 </View>
             </View>
@@ -136,13 +136,13 @@ export function SprintHealthCard({ health, compact = false }: SprintHealthCardPr
                 <View className="h-3 rounded-full overflow-hidden" style={{ backgroundColor: colors.backgroundSecondary }}>
                     <View 
                         className="h-full rounded-full"
-                        style={{ width: `${Math.min(health.completionPercentage, 100)}%`, backgroundColor: style.iconColor }}
+                        style={{ width: `${Math.min(health.completionPercentage ?? 0, 100)}%`, backgroundColor: style.iconColor }}
                     />
                 </View>
                 {/* Expected Progress Marker */}
                 <View 
                     className="absolute h-3 w-0.5"
-                    style={{ left: `${health.expectedPercentage}%`, top: 0, backgroundColor: colors.textTertiary }}
+                    style={{ left: `${health.expectedPercentage ?? 0}%`, top: 0, backgroundColor: colors.textTertiary }}
                 />
             </View>
 
@@ -151,19 +151,19 @@ export function SprintHealthCard({ health, compact = false }: SprintHealthCardPr
                 <View className="flex-1 items-center" style={{ borderRightWidth: 1, borderRightColor: colors.border }}>
                     <Text className="text-xs" style={{ color: colors.textSecondary }}>{t('common.day')}</Text>
                     <Text className="text-lg font-bold" style={{ color: colors.text }}>
-                        {health.dayOfSprint}/{health.totalDays}
+                        {health.dayOfSprint ?? 1}/{health.totalDays ?? 14}
                     </Text>
                 </View>
                 <View className="flex-1 items-center" style={{ borderRightWidth: 1, borderRightColor: colors.border }}>
                     <Text className="text-xs" style={{ color: colors.textSecondary }}>{t('common.completed')}</Text>
                     <Text className="text-lg font-bold" style={{ color: colors.text }}>
-                        {health.completedPoints} {t('common.pts')}
+                        {health.completedPoints ?? 0} {t('common.pts')}
                     </Text>
                 </View>
                 <View className="flex-1 items-center">
                     <Text className="text-xs" style={{ color: colors.textSecondary }}>{t('common.remaining')}</Text>
                     <Text className="text-lg font-bold" style={{ color: colors.text }}>
-                        {health.remainingPoints} {t('common.pts')}
+                        {health.remainingPoints ?? 0} {t('common.pts')}
                     </Text>
                 </View>
             </View>

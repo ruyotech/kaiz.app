@@ -40,11 +40,12 @@ export default function TemplatesScreen() {
         setRefreshing(false);
     };
     
+    const safeTemplates = templates || [];
     const filteredTemplates = selectedFilter === 'all'
-        ? templates
-        : templates.filter(t => t.lifeWheelAreaId === selectedFilter);
+        ? safeTemplates
+        : safeTemplates.filter(t => t.lifeWheelAreaId === selectedFilter);
     
-    const sortedTemplates = [...filteredTemplates].sort((a, b) => b.popularityScore - a.popularityScore);
+    const sortedTemplates = [...filteredTemplates].sort((a, b) => (b.popularityScore ?? 0) - (a.popularityScore ?? 0));
     
     const handleStartChallenge = async (template: ChallengeTemplate) => {
         try {

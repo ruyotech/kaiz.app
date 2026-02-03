@@ -18,9 +18,15 @@ export default function QuestionsScreen() {
     
     const { questions, fetchQuestions, postQuestion, upvoteQuestion, loading } = useCommunityStore();
 
+    // Convert lowercase status to uppercase for backend API
+    const getApiStatus = (status: string) => {
+        if (status === 'all') return undefined;
+        return status.toUpperCase(); // 'open' -> 'OPEN', 'answered' -> 'ANSWERED'
+    };
+
     useEffect(() => {
         fetchQuestions(
-            selectedStatus === 'all' ? undefined : selectedStatus,
+            getApiStatus(selectedStatus),
             selectedTag || undefined
         );
     }, [selectedStatus, selectedTag]);
@@ -28,7 +34,7 @@ export default function QuestionsScreen() {
     const onRefresh = async () => {
         setRefreshing(true);
         await fetchQuestions(
-            selectedStatus === 'all' ? undefined : selectedStatus,
+            getApiStatus(selectedStatus),
             selectedTag || undefined
         );
         setRefreshing(false);

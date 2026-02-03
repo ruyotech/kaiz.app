@@ -58,9 +58,9 @@ export const useChallengeStore = create<ChallengeState>((set, get) => ({
         set({ loading: true, error: null });
         try {
             const templates = await challengeApi.getTemplates(lifeWheelAreaId) as ChallengeTemplate[];
-            set({ templates, loading: false });
+            set({ templates: templates || [], loading: false });
         } catch (error) {
-            set({ error: 'Failed to fetch templates', loading: false });
+            set({ templates: [], error: 'Failed to fetch templates', loading: false });
         }
     },
 

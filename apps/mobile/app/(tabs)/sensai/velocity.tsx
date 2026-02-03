@@ -37,8 +37,9 @@ export default function VelocityScreen() {
     };
 
     const chartHeight = 150;
-    const maxVelocity = velocityMetrics 
-        ? Math.max(...velocityMetrics.velocityHistory.map(v => Math.max(v.committedPoints, v.completedPoints)), 1)
+    const velocityHistory = velocityMetrics?.velocityHistory || [];
+    const maxVelocity = velocityHistory.length > 0
+        ? Math.max(...velocityHistory.map(v => Math.max(v.committedPoints, v.completedPoints)), 1)
         : 1;
 
     // Velocity tips with translations
@@ -93,7 +94,7 @@ export default function VelocityScreen() {
                     <Text className="text-lg font-bold text-gray-900 mb-4">{t('sensai.velocity.sprintHistory')}</Text>
                     
                     {/* Chart */}
-                    {velocityMetrics && velocityMetrics.velocityHistory.length > 0 && (
+                    {velocityHistory.length > 0 && (
                         <View className="bg-white rounded-xl p-4 border border-gray-100 mb-4">
                             <View className="flex-row items-center mb-4">
                                 <View className="flex-row items-center mr-6">
@@ -107,7 +108,7 @@ export default function VelocityScreen() {
                             </View>
                             
                             <View className="flex-row items-end justify-between" style={{ height: chartHeight }}>
-                                {velocityMetrics.velocityHistory.slice(-8).map((sprint, index) => {
+                                {velocityHistory.slice(-8).map((sprint, index) => {
                                     const committedHeight = (sprint.committedPoints / maxVelocity) * chartHeight;
                                     const completedHeight = (sprint.completedPoints / maxVelocity) * chartHeight;
                                     
@@ -134,7 +135,7 @@ export default function VelocityScreen() {
                     )}
 
                     {/* Sprint Details List */}
-                    {velocityMetrics?.velocityHistory.slice().reverse().map((sprint) => (
+                    {velocityHistory.slice().reverse().map((sprint) => (
                         <View 
                             key={sprint.sprintId}
                             className="bg-white rounded-xl p-4 border border-gray-100 mb-3"

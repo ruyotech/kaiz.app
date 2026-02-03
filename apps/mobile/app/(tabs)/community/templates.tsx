@@ -37,24 +37,25 @@ export default function TemplatesScreen() {
         setRefreshing(false);
     };
 
-    const filteredTemplates = templates
+    const safeTemplates = templates || [];
+    const filteredTemplates = safeTemplates
         .filter(t => {
             if (searchQuery) {
                 const query = searchQuery.toLowerCase();
-                return t.name.toLowerCase().includes(query) || 
-                       t.description.toLowerCase().includes(query) ||
-                       t.tags.some(tag => tag.toLowerCase().includes(query));
+                return (t.name || '').toLowerCase().includes(query) || 
+                       (t.description || '').toLowerCase().includes(query) ||
+                       (t.tags || []).some(tag => tag.toLowerCase().includes(query));
             }
             return true;
         })
         .sort((a, b) => {
             switch (sortBy) {
                 case 'popular':
-                    return b.downloadCount - a.downloadCount;
+                    return (b.downloadCount ?? 0) - (a.downloadCount ?? 0);
                 case 'rating':
-                    return b.rating - a.rating;
+                    return (b.rating ?? 0) - (a.rating ?? 0);
                 case 'newest':
-                    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+                    return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
                 default:
                     return 0;
             }

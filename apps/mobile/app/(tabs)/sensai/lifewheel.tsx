@@ -39,13 +39,16 @@ export default function LifeWheelScreen() {
         await addRecoveryTask(task);
     };
 
-    const getBalanceStatus = (score: number) => {
-        if (score >= 70) return { label: 'Well Balanced', color: 'text-green-600', bg: 'bg-green-50' };
-        if (score >= 50) return { label: 'Moderate', color: 'text-amber-600', bg: 'bg-amber-50' };
+    const getBalanceStatus = (score: number | undefined) => {
+        const safeScore = score ?? 0;
+        if (safeScore >= 70) return { label: 'Well Balanced', color: 'text-green-600', bg: 'bg-green-50' };
+        if (safeScore >= 50) return { label: 'Moderate', color: 'text-amber-600', bg: 'bg-amber-50' };
         return { label: 'Needs Attention', color: 'text-red-600', bg: 'bg-red-50' };
     };
 
-    const status = lifeWheelMetrics ? getBalanceStatus(lifeWheelMetrics.balanceScore) : null;
+    const balanceScore = lifeWheelMetrics?.balanceScore ?? 0;
+    const dimensions = lifeWheelMetrics?.dimensions || [];
+    const status = lifeWheelMetrics ? getBalanceStatus(balanceScore) : null;
 
     return (
         <SafeAreaView className="flex-1 bg-gray-50" edges={['top']}>
@@ -71,7 +74,7 @@ export default function LifeWheelScreen() {
                             <View>
                                 <Text className="text-sm text-gray-600">Balance Score</Text>
                                 <Text className={`text-3xl font-bold ${status.color}`}>
-                                    {lifeWheelMetrics.balanceScore}/100
+                                    {balanceScore.toFixed(0)}/100
                                 </Text>
                             </View>
                             <View className={`px-3 py-1 rounded-full ${status.bg} border border-current`}>
@@ -92,7 +95,7 @@ export default function LifeWheelScreen() {
                 <View className="px-4 mt-6">
                     <Text className="text-lg font-bold text-gray-900 mb-4">Dimensions</Text>
                     
-                    {lifeWheelMetrics?.dimensions.map((dim) => {
+                    {dimensions.map((dim) => {
                         const lwDim = LIFE_WHEEL_DIMENSIONS.find(d => d.id === dim.dimension);
                         
                         return (
@@ -130,7 +133,7 @@ export default function LifeWheelScreen() {
                                     </View>
                                     <View className="items-end">
                                         <Text className="text-lg font-bold text-gray-900">
-                                            {dim.percentageOfTotal.toFixed(0)}%
+                                            {(dim.percentageOfTotal ?? 0).toFixed(0)}%
                                         </Text>
                                         <View className="flex-row items-center">
                                             <MaterialCommunityIcons 

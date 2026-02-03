@@ -150,7 +150,7 @@ export function StandupCard({ standup, sprintHealth, onStartStandup, onViewStand
                     <View className="flex-row items-center justify-between mb-2">
                         <Text className="text-sm" style={{ color: colors.textSecondary }}>{t('sensai.standup.sprintProgress')}</Text>
                         <Text className="text-sm font-semibold" style={{ color: colors.text }}>
-                            {t('sensai.standup.dayOfSprint', { current: sprintHealth.dayOfSprint, total: sprintHealth.totalDays })}
+                            {t('sensai.standup.dayOfSprint', { current: sprintHealth.dayOfSprint ?? 1, total: sprintHealth.totalDays ?? 14 })}
                         </Text>
                     </View>
                     <View 

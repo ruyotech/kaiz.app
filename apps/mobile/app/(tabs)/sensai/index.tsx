@@ -213,7 +213,7 @@ export default function SensAIDashboard() {
                             style={{ color: colors.text }}
                         >{t('sprints.sprintCeremonies')}</Text>
                         <TouchableOpacity
-                            onPress={() => router.push('/(tabs)/sensai/ceremonies' as any)}
+                            onPress={() => router.push('/(tabs)/sensai/planning' as any)}
                         >
                             <Text className="text-sm font-medium" style={{ color: colors.primary }}>{t('common.viewAll')}</Text>
                         </TouchableOpacity>
