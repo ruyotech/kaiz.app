@@ -114,6 +114,16 @@ public class SensAIService {
         .orElse(null);
   }
 
+  public DailyStandupDto.GetStandupResponse getTodayStandupWithHealth(UUID userId) {
+    DailyStandupDto standup = getTodayStandup(userId);
+    boolean hasCompletedToday = standup != null && standup.completedAt() != null && !standup.isSkipped();
+    
+    // Get current sprint health - use "current" as sprintId for active sprint
+    VelocityDto.SprintHealth sprintHealth = getSprintHealth(userId, "current");
+    
+    return new DailyStandupDto.GetStandupResponse(standup, hasCompletedToday, sprintHealth);
+  }
+
   public List<DailyStandupDto> getStandupHistory(
       UUID userId, LocalDate startDate, LocalDate endDate) {
     return mapper.toStandupDtos(

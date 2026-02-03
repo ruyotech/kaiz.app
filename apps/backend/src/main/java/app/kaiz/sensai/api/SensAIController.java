@@ -53,10 +53,10 @@ public class SensAIController {
   @GetMapping("/standup/today")
   @Operation(
       summary = "Get today's standup",
-      description = "Get the standup for today if it exists")
-  public ResponseEntity<ApiResponse<DailyStandupDto>> getTodayStandup(@CurrentUser UUID userId) {
-    DailyStandupDto standup = sensAIService.getTodayStandup(userId);
-    return ResponseEntity.ok(ApiResponse.success(standup));
+      description = "Get the standup for today if it exists, along with sprint health")
+  public ResponseEntity<ApiResponse<DailyStandupDto.GetStandupResponse>> getTodayStandup(@CurrentUser UUID userId) {
+    DailyStandupDto.GetStandupResponse response = sensAIService.getTodayStandupWithHealth(userId);
+    return ResponseEntity.ok(ApiResponse.success(response));
   }
 
   @GetMapping("/standup/history")

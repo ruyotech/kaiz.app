@@ -43,4 +43,10 @@ public record DailyStandupDto(
       double averageMood,
       double averageEnergy,
       int currentStreak) {}
+
+  /** Response for getting today's standup with sprint health. */
+  public record GetStandupResponse(
+      DailyStandupDto standup,
+      boolean hasCompletedToday,
+      VelocityDto.SprintHealth sprintHealth) {}
 }
