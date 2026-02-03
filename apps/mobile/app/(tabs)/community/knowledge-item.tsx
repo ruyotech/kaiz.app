@@ -241,9 +241,9 @@ export default function KnowledgeItemScreen() {
                 </View>
 
                 {/* Tags */}
-                {item.tags && item.tags.length > 0 && (
+                {item.tags && (
                     <View className="flex-row flex-wrap gap-2 mb-4">
-                        {item.tags.map((tag: string, index: number) => (
+                        {(typeof item.tags === 'string' ? JSON.parse(item.tags || '[]') : item.tags).filter((t: string) => t).map((tag: string, index: number) => (
                             <View 
                                 key={index}
                                 className="px-3 py-1 rounded-full"
