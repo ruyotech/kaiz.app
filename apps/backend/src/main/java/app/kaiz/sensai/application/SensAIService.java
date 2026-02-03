@@ -346,7 +346,7 @@ public class SensAIService {
 
     if (record == null) {
       return new VelocityDto.SprintHealth(
-          sprintId, 0, 14, 14, 0, 0, 0, 0, 0, 100, "low", List.of(), "Sprint not started yet.");
+          sprintId, 0, 14, 14, 0, 0, 0, 0, 0, 100, "low", "on_track", List.of(), "Sprint not started yet.");
     }
 
     int totalDays =
@@ -375,6 +375,18 @@ public class SensAIService {
     // Calculate health score
     int healthScore = calculateHealthScore(record, daysElapsed, totalDays, projectedCompletion);
     String riskLevel = healthScore >= 70 ? "low" : healthScore >= 40 ? "medium" : "high";
+    
+    // Map to UI health status
+    String healthStatus;
+    if (projectedCompletion >= 110) {
+      healthStatus = "ahead";
+    } else if (healthScore >= 70) {
+      healthStatus = "on_track";
+    } else if (healthScore >= 40) {
+      healthStatus = "at_risk";
+    } else {
+      healthStatus = "behind";
+    }
 
     List<String> riskFactors =
         identifyRiskFactors(record, daysElapsed, totalDays, projectedCompletion);
@@ -392,6 +404,7 @@ public class SensAIService {
         Math.round(projectedCompletion * 10) / 10.0,
         healthScore,
         riskLevel,
+        healthStatus,
         riskFactors,
         assessment);
   }

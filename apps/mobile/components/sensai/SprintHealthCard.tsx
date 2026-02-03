@@ -21,6 +21,11 @@ export function SprintHealthCard({ health, compact = false }: SprintHealthCardPr
     const { t } = useTranslation();
     const { colors } = useThemeContext();
     
+    // Return null if health data is missing
+    if (!health || !health.healthStatus) {
+        return null;
+    }
+    
     const STATUS_STYLES = {
         on_track: {
             bg: 'bg-green-50',

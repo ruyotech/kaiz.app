@@ -57,6 +57,8 @@ public record VelocityDto(
       int healthScore,
       /** Risk level: low, medium, high */
       String riskLevel,
+      /** Health status for UI: on_track, at_risk, behind, ahead */
+      String healthStatus,
       List<String> riskFactors,
       String coachAssessment) {}
 
