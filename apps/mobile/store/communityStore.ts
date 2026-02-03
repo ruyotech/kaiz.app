@@ -56,6 +56,13 @@ interface CommunityState {
     releaseNotes: ReleaseNote[];
     wikiEntries: WikiEntry[];
     
+    // Knowledge Hub (Wiki / Feature Documentation)
+    knowledgeCategories: any[];
+    knowledgeItems: any[];
+    featuredKnowledgeItems: any[];
+    selectedKnowledgeCategory: string | null;
+    knowledgeLoading: boolean;
+    
     // Q&A
     questions: CommunityQuestion[];
     currentQuestion: CommunityQuestion | null;
@@ -123,6 +130,12 @@ interface CommunityState {
     fetchFeatureRequests: () => Promise<void>;
     fetchReceivedCompliments: () => Promise<void>;
     
+    // Knowledge Hub Actions
+    fetchKnowledgeCategories: () => Promise<void>;
+    fetchKnowledgeItems: (categoryId?: string, search?: string) => Promise<void>;
+    fetchFeaturedKnowledgeItems: () => Promise<void>;
+    setSelectedKnowledgeCategory: (categoryId: string | null) => void;
+    
     // Actions - User Interactions
     upvoteQuestion: (questionId: string) => Promise<void>;
     upvoteAnswer: (answerId: string) => Promise<void>;
@@ -188,6 +201,14 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
     featuredArticle: null,
     releaseNotes: [],
     wikiEntries: [],
+    
+    // Knowledge Hub initial state
+    knowledgeCategories: [],
+    knowledgeItems: [],
+    featuredKnowledgeItems: [],
+    selectedKnowledgeCategory: null,
+    knowledgeLoading: false,
+    
     questions: [],
     currentQuestion: null,
     answers: [],
@@ -1211,6 +1232,46 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
             });
             throw error;
         }
+    },
+    
+    // ==========================================
+    // Knowledge Hub Actions
+    // ==========================================
+    
+    fetchKnowledgeCategories: async () => {
+        set({ knowledgeLoading: true });
+        try {
+            const categories = await communityApi.getKnowledgeCategories();
+            set({ knowledgeCategories: categories, knowledgeLoading: false });
+        } catch (error) {
+            set({ error: handleApiError(error), knowledgeLoading: false });
+        }
+    },
+    
+    fetchKnowledgeItems: async (categoryId, search) => {
+        set({ knowledgeLoading: true });
+        try {
+            const items = await communityApi.getKnowledgeItems({
+                categoryId: categoryId || undefined,
+                search: search || undefined,
+            });
+            set({ knowledgeItems: items, knowledgeLoading: false });
+        } catch (error) {
+            set({ error: handleApiError(error), knowledgeLoading: false });
+        }
+    },
+    
+    fetchFeaturedKnowledgeItems: async () => {
+        try {
+            const items = await communityApi.getFeaturedKnowledgeItems();
+            set({ featuredKnowledgeItems: items });
+        } catch (error) {
+            set({ error: handleApiError(error) });
+        }
+    },
+    
+    setSelectedKnowledgeCategory: (categoryId) => {
+        set({ selectedKnowledgeCategory: categoryId });
     },
     
     // ==========================================

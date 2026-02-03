@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, TouchableOpacity, Image, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, RefreshControl, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -25,15 +25,40 @@ export default function KnowledgeHubScreen() {
     const [refreshing, setRefreshing] = useState(false);
     const [activeTab, setActiveTab] = useState<'articles' | 'wiki' | 'releases'>('articles');
     
-    const { articles, fetchArticles, loading } = useCommunityStore();
+    const { 
+        articles, 
+        fetchArticles, 
+        loading,
+        // Knowledge Hub
+        knowledgeCategories,
+        knowledgeItems,
+        knowledgeLoading,
+        selectedKnowledgeCategory,
+        fetchKnowledgeCategories,
+        fetchKnowledgeItems,
+        setSelectedKnowledgeCategory,
+    } = useCommunityStore();
 
     useEffect(() => {
         fetchArticles(selectedCategory === 'all' ? undefined : selectedCategory);
     }, [selectedCategory]);
 
+    // Load knowledge hub data when wiki tab is active
+    useEffect(() => {
+        if (activeTab === 'wiki') {
+            fetchKnowledgeCategories();
+            fetchKnowledgeItems(selectedKnowledgeCategory || undefined);
+        }
+    }, [activeTab, selectedKnowledgeCategory]);
+
     const onRefresh = async () => {
         setRefreshing(true);
-        await fetchArticles(selectedCategory === 'all' ? undefined : selectedCategory);
+        if (activeTab === 'articles') {
+            await fetchArticles(selectedCategory === 'all' ? undefined : selectedCategory);
+        } else if (activeTab === 'wiki') {
+            await fetchKnowledgeCategories();
+            await fetchKnowledgeItems(selectedKnowledgeCategory || undefined);
+        }
         setRefreshing(false);
     };
 
@@ -61,14 +86,15 @@ export default function KnowledgeHubScreen() {
         return { bg: isDark ? style.bgDark : style.bgLight, text: isDark ? style.textDark : style.textLight };
     };
 
-    // Mock wiki entries
-    const wikiEntries = [
-        { term: 'Sprint', definition: 'A one-week cycle for planning and executing tasks', category: 'glossary' },
-        { term: 'Velocity', definition: 'Your average completed story points per sprint', category: 'glossary' },
-        { term: 'Eisenhower Matrix', definition: 'A prioritization framework with 4 quadrants', category: 'glossary' },
-        { term: 'Life Wheel', definition: 'The 9 dimensions that make up a balanced life', category: 'glossary' },
-        { term: 'Epic', definition: 'A large goal broken into multiple sprint tasks', category: 'glossary' },
-    ];
+    const getDifficultyStyle = (difficulty: string) => {
+        const styles: Record<string, { bgLight: string; bgDark: string; textLight: string; textDark: string }> = {
+            BEGINNER: { bgLight: '#DCFCE7', bgDark: 'rgba(34, 197, 94, 0.2)', textLight: '#15803D', textDark: '#86EFAC' },
+            INTERMEDIATE: { bgLight: '#FEF3C7', bgDark: 'rgba(245, 158, 11, 0.2)', textLight: '#B45309', textDark: '#FCD34D' },
+            ADVANCED: { bgLight: '#FEE2E2', bgDark: 'rgba(239, 68, 68, 0.2)', textLight: '#B91C1C', textDark: '#FCA5A5' },
+        };
+        const style = styles[difficulty] || styles.BEGINNER;
+        return { bg: isDark ? style.bgDark : style.bgLight, text: isDark ? style.textDark : style.textLight };
+    };
 
     // Mock release notes
     const releaseNotes = [
@@ -269,49 +295,139 @@ export default function KnowledgeHubScreen() {
             )}
 
             {activeTab === 'wiki' && (
-                <ScrollView className="flex-1" contentContainerStyle={{ padding: 16 }}>
+                <ScrollView 
+                    className="flex-1" 
+                    contentContainerStyle={{ padding: 16 }}
+                    refreshControl={
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                    }
+                >
+                    {/* Category Filter for Wiki */}
+                    {knowledgeCategories.length > 0 && (
+                        <ScrollView 
+                            horizontal 
+                            showsHorizontalScrollIndicator={false}
+                            style={{ marginBottom: 16 }}
+                            contentContainerStyle={{ gap: 8 }}
+                        >
+                            <TouchableOpacity
+                                className="px-4 py-2 rounded-full"
+                                style={{
+                                    backgroundColor: !selectedKnowledgeCategory ? '#9333EA' : colors.backgroundSecondary
+                                }}
+                                onPress={() => setSelectedKnowledgeCategory(null)}
+                            >
+                                <Text 
+                                    className="text-sm font-medium"
+                                    style={{ color: !selectedKnowledgeCategory ? '#fff' : colors.textSecondary }}
+                                >
+                                    All
+                                </Text>
+                            </TouchableOpacity>
+                            {knowledgeCategories.map((cat: any) => (
+                                <TouchableOpacity
+                                    key={cat.id}
+                                    className="flex-row items-center px-4 py-2 rounded-full"
+                                    style={{
+                                        backgroundColor: selectedKnowledgeCategory === cat.id ? '#9333EA' : colors.backgroundSecondary
+                                    }}
+                                    onPress={() => setSelectedKnowledgeCategory(cat.id)}
+                                >
+                                    <Text className="mr-1">{cat.icon}</Text>
+                                    <Text 
+                                        className="text-sm font-medium"
+                                        style={{
+                                            color: selectedKnowledgeCategory === cat.id ? '#fff' : colors.textSecondary
+                                        }}
+                                    >
+                                        {cat.name}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    )}
+                    
                     <Text className="text-sm mb-4" style={{ color: colors.textSecondary }}>
-                        Quick reference for Kaiz concepts and terminology
+                        Learn how to use all Kaiz features effectively
                     </Text>
                     
-                    {wikiEntries.map((entry, index) => (
-                        <TouchableOpacity 
-                            key={index}
-                            className="rounded-xl p-4 mb-3"
-                            style={{ 
-                                backgroundColor: colors.card,
-                                borderWidth: 1,
-                                borderColor: colors.border,
-                                shadowColor: '#000',
-                                shadowOffset: { width: 0, height: 1 },
-                                shadowOpacity: 0.05,
-                                shadowRadius: 2,
-                            }}
-                        >
-                            <View className="flex-row items-start">
-                                <View 
-                                    className="w-10 h-10 rounded-xl items-center justify-center mr-3"
-                                    style={{ backgroundColor: isDark ? 'rgba(147, 51, 234, 0.2)' : '#F3E8FF' }}
+                    {knowledgeLoading ? (
+                        <View className="py-8 items-center">
+                            <ActivityIndicator color="#9333EA" />
+                            <Text className="mt-2 text-sm" style={{ color: colors.textSecondary }}>Loading...</Text>
+                        </View>
+                    ) : knowledgeItems.length === 0 ? (
+                        <View className="py-8 items-center">
+                            <MaterialCommunityIcons name="book-open-page-variant-outline" size={48} color={colors.textTertiary} />
+                            <Text className="mt-2 text-base font-medium" style={{ color: colors.textSecondary }}>
+                                No knowledge items found
+                            </Text>
+                            <Text className="text-sm mt-1" style={{ color: colors.textTertiary }}>
+                                Content is being added soon!
+                            </Text>
+                        </View>
+                    ) : (
+                        knowledgeItems.map((item: any) => {
+                            const diffStyle = getDifficultyStyle(item.difficulty);
+                            return (
+                                <TouchableOpacity 
+                                    key={item.id}
+                                    className="rounded-xl p-4 mb-3"
+                                    style={{ 
+                                        backgroundColor: colors.card,
+                                        borderWidth: 1,
+                                        borderColor: colors.border,
+                                        shadowColor: '#000',
+                                        shadowOffset: { width: 0, height: 1 },
+                                        shadowOpacity: 0.05,
+                                        shadowRadius: 2,
+                                    }}
+                                    onPress={() => router.push({
+                                        pathname: '/community/knowledge-item',
+                                        params: { id: item.id }
+                                    } as any)}
                                 >
-                                    <MaterialCommunityIcons name="book-open-page-variant" size={20} color="#9333EA" />
-                                </View>
-                                <View className="flex-1">
-                                    <Text className="text-base font-semibold mb-1" style={{ color: colors.text }}>
-                                        {entry.term}
-                                    </Text>
-                                    <Text className="text-sm" style={{ color: colors.textSecondary }}>
-                                        {entry.definition}
-                                    </Text>
-                                </View>
-                                <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
-                            </View>
-                        </TouchableOpacity>
-                    ))}
-                    
-                    <TouchableOpacity className="flex-row items-center justify-center py-4">
-                        <MaterialCommunityIcons name="plus-circle" size={20} color="#9333EA" />
-                        <Text className="font-medium ml-2" style={{ color: '#9333EA' }}>View All Terms</Text>
-                    </TouchableOpacity>
+                                    <View className="flex-row items-start">
+                                        <View 
+                                            className="w-10 h-10 rounded-xl items-center justify-center mr-3"
+                                            style={{ backgroundColor: isDark ? 'rgba(147, 51, 234, 0.2)' : '#F3E8FF' }}
+                                        >
+                                            <Text className="text-xl">{item.icon || '📚'}</Text>
+                                        </View>
+                                        <View className="flex-1">
+                                            <View className="flex-row items-center flex-wrap gap-2 mb-1">
+                                                <Text className="text-base font-semibold" style={{ color: colors.text }}>
+                                                    {item.title}
+                                                </Text>
+                                                {item.featured && (
+                                                    <View className="bg-yellow-100 px-2 py-0.5 rounded-full">
+                                                        <Text className="text-xs text-yellow-700">⭐ Featured</Text>
+                                                    </View>
+                                                )}
+                                            </View>
+                                            <Text className="text-sm mb-2" style={{ color: colors.textSecondary }} numberOfLines={2}>
+                                                {item.summary}
+                                            </Text>
+                                            <View className="flex-row items-center gap-2">
+                                                <View style={{ backgroundColor: diffStyle.bg }} className="px-2 py-0.5 rounded-full">
+                                                    <Text className="text-xs font-medium" style={{ color: diffStyle.text }}>
+                                                        {item.difficulty}
+                                                    </Text>
+                                                </View>
+                                                <Text className="text-xs" style={{ color: colors.textTertiary }}>
+                                                    🕐 {item.readTimeMinutes || 2} min
+                                                </Text>
+                                                <Text className="text-xs" style={{ color: colors.textTertiary }}>
+                                                    👀 {item.viewCount || 0}
+                                                </Text>
+                                            </View>
+                                        </View>
+                                        <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
+                                    </View>
+                                </TouchableOpacity>
+                            );
+                        })
+                    )}
                 </ScrollView>
             )}
 

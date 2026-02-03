@@ -2126,6 +2126,54 @@ export const communityApi = {
         return request<CommunityHomeResponse>('/community/home', { method: 'GET' }, true);
     },
 
+    // ========== Knowledge Hub (Public Knowledge Items) ==========
+
+    /**
+     * Get knowledge categories
+     */
+    async getKnowledgeCategories(): Promise<any[]> {
+        return request<any[]>('/public/knowledge/categories', { method: 'GET' });
+    },
+
+    /**
+     * Get knowledge items with optional filters
+     */
+    async getKnowledgeItems(params?: { search?: string; categoryId?: string }): Promise<any[]> {
+        const queryParams = new URLSearchParams();
+        if (params?.search) queryParams.append('search', params.search);
+        if (params?.categoryId) queryParams.append('categoryId', params.categoryId);
+        const query = queryParams.toString() ? `?${queryParams.toString()}` : '';
+        return request<any[]>(`/public/knowledge/items${query}`, { method: 'GET' });
+    },
+
+    /**
+     * Get featured knowledge items
+     */
+    async getFeaturedKnowledgeItems(): Promise<any[]> {
+        return request<any[]>('/public/knowledge/items/featured', { method: 'GET' });
+    },
+
+    /**
+     * Get knowledge item by ID
+     */
+    async getKnowledgeItemById(id: string): Promise<any> {
+        return request<any>(`/public/knowledge/items/${id}`, { method: 'GET' });
+    },
+
+    /**
+     * Record knowledge item view
+     */
+    async recordKnowledgeItemView(id: string): Promise<void> {
+        return request<void>(`/public/knowledge/items/${id}/view`, { method: 'POST' });
+    },
+
+    /**
+     * Mark knowledge item as helpful
+     */
+    async markKnowledgeItemHelpful(id: string): Promise<void> {
+        return request<void>(`/public/knowledge/items/${id}/helpful`, { method: 'POST' });
+    },
+
     // ========== Knowledge Hub (Articles) ==========
 
     /**
@@ -2133,7 +2181,8 @@ export const communityApi = {
      */
     async getArticles(params?: { category?: string; page?: number; size?: number }): Promise<PaginatedResponse<any>> {
         const queryParams = new URLSearchParams();
-        if (params?.category) queryParams.append('category', params.category);
+        // Convert category to UPPERCASE for backend enum compatibility
+        if (params?.category) queryParams.append('category', params.category.toUpperCase());
         if (params?.page !== undefined) queryParams.append('page', params.page.toString());
         if (params?.size) queryParams.append('size', params.size.toString());
         const query = queryParams.toString() ? `?${queryParams.toString()}` : '';

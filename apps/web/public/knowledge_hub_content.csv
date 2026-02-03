@@ -1,0 +1,592 @@
+category_slug,slug,title,summary,content,difficulty,read_time_minutes,tags,icon,status,featured,display_order,search_keywords
+agile-methodology,what-is-agile,What is Agile?,"Agile is a methodology that transformed software development — and now your life.","## Agile: The System Behind World-Class Teams
+
+Agile is the methodology that companies like Apple, Google, Spotify, and Amazon use to ship world-class products every week.
+
+### Core Principles:
+- **Work in short, focused cycles** (Sprints)
+- **Commit only to what you can deliver**
+- **Measure everything**
+- **Improve continuously**
+- **Adapt quickly when things change**
+
+### Why Agile for Life?
+
+Your life is the most important product you'll ever build. Traditional approaches fail because endless to-do lists never end, vague annual goals fade by February, and reactive firefighting replaces proactive planning.
+
+**Kaiz applies Agile to your personal life** — bringing structure, measurement, and continuous improvement to everything you do.",BEGINNER,3,"agile,methodology,basics",🏃,PUBLISHED,true,1,agile methodology scrum kanban sprint planning productivity
+agile-methodology,agile-vs-traditional,Agile vs Traditional Planning,"Why fixed annual goals fail and iterative cycles succeed.","## The Problem with Traditional Planning
+
+### Annual Goals Approach:
+- Set big goals in January
+- Forget them by March
+- Feel guilty in December
+- Repeat
+
+### The Agile Alternative:
+Instead of planning a year ahead, plan one week at a time with continuous feedback and adaptation.
+
+### The 52-Sprint Year
+With weekly sprints, you get **52 opportunities to improve** instead of waiting a full year to see if your plan worked.",BEGINNER,2,"agile,planning,goals",📊,PUBLISHED,false,2,agile traditional waterfall planning goals annual quarterly
+sprint-planning,what-is-sprint,What is a Sprint?,"A sprint is a fixed time cycle (usually 1 week) for focused execution.","## Sprints: Your Weekly Execution Cycle
+
+A **Sprint** is a fixed time period where you commit to completing a specific set of tasks.
+
+### In Kaiz:
+- **Duration**: 1 week (Sunday to Saturday)
+- **Start**: Sprint Planning (Sunday)
+- **Daily**: Quick standups
+- **End**: Review & Retrospective
+
+### Key Principles:
+1. **Fixed timeframe** - No extensions
+2. **Protected scope** - Don't add mid-sprint
+3. **Clear commitment** - Know what's in/out
+4. **Team velocity** - Track capacity over time",BEGINNER,3,"sprint,weekly,planning",📅,PUBLISHED,true,1,sprint week cycle planning execution
+sprint-planning,creating-your-first-sprint,Creating Your First Sprint,"Step-by-step guide to planning your weekly sprint.","## Your First Sprint Planning Session
+
+### Step 1: Review Your Backlog
+Look at all pending tasks and upcoming commitments.
+
+### Step 2: Check Your Calendar
+Block time for fixed commitments (meetings, appointments).
+
+### Step 3: Estimate Your Capacity
+How many hours of productive work can you realistically do?
+
+### Step 4: Select Sprint Tasks
+Pull tasks from your backlog that fit your capacity.
+
+### Step 5: Commit
+Lock your sprint. You're ready to execute!
+
+**Pro Tip:** Start with 60% capacity in your first few sprints. It's better to under-commit and over-deliver.",BEGINNER,4,"sprint,planning,guide",📝,PUBLISHED,false,2,first sprint create planning start begin
+sprint-planning,sprint-review-retro,Sprint Review & Retrospective,"How to close your sprint and improve for next week.","## End Your Sprint Strong
+
+### Sprint Review (What happened?)
+- What tasks did you complete?
+- What tasks didn't get done?
+- Any blockers or surprises?
+
+### Sprint Retrospective (How to improve?)
+Ask yourself:
+- **What went well?** Keep doing it
+- **What could improve?** Experiment next sprint
+- **What will I try?** One concrete change
+
+### The Improvement Loop
+Every week, make one small improvement. Over 52 weeks, that's 52 improvements that compound into massive change.",INTERMEDIATE,3,"sprint,review,retrospective",🔄,PUBLISHED,false,3,review retrospective improvement close sprint
+task-management,creating-effective-tasks,Creating Effective Tasks,"Master the art of clear, actionable task creation.","## Write Tasks That Get Done
+
+### The SMART Task Formula:
+- **Specific**: Exactly what needs doing
+- **Measurable**: You know when it's done
+- **Actionable**: Starts with a verb
+- **Realistic**: Completable in one session
+- **Time-bound**: Has a clear deadline
+
+### Examples:
+❌ Bad: 'Work on project'
+✅ Good: 'Write introduction section of proposal (30 min)'
+
+❌ Bad: 'Exercise more'
+✅ Good: 'Complete 20-minute HIIT workout'
+
+### Task Breakdown Rule
+If a task takes more than 2 hours, break it down into smaller subtasks.",BEGINNER,2,"task,creation,productivity",✅,PUBLISHED,true,1,task create add new effective smart
+task-management,task-status-workflow,Understanding Task Status,"Learn the task lifecycle: To Do → In Progress → Done.","## The Task Journey
+
+### To Do
+Tasks waiting to be started. Your backlog.
+
+### In Progress
+Currently working on. Keep this list small (1-3 items).
+
+### Done
+Completed tasks. Celebrate these wins!
+
+### Why Status Matters
+- Visualize your progress
+- Identify bottlenecks
+- Stay focused on what's actually 'in progress'
+
+**Pro Tip:** Working on too many tasks at once slows everything down. Focus on finishing, not starting.",BEGINNER,2,"task,status,workflow",🔄,PUBLISHED,false,2,task status progress done workflow
+task-management,task-priorities,Setting Task Priorities,"How to decide what to work on first.","## The Priority System
+
+### High Priority 🔴
+- Urgent and important
+- Deadlines today/tomorrow
+- Blocking other work
+
+### Medium Priority 🟡
+- Important but not urgent
+- Due this week
+- Part of active sprint
+
+### Low Priority 🟢
+- Nice to have
+- No pressing deadline
+- Can be moved to later
+
+### The Eisenhower Connection
+Kaiz integrates with the Eisenhower Matrix to help you automatically categorize by urgency and importance.",BEGINNER,3,"priority,urgency,important",🎯,PUBLISHED,false,3,priority high low medium urgent important
+eisenhower-matrix,what-is-eisenhower,What is the Eisenhower Matrix?,"A prioritization framework that separates urgent from important.","## The Eisenhower Decision Matrix
+
+President Eisenhower said: 'What is important is seldom urgent and what is urgent is seldom important.'
+
+### The Four Quadrants:
+
+**Q1: Do First (Urgent + Important)**
+Crises, deadlines, emergencies
+
+**Q2: Schedule (Not Urgent + Important)**
+Planning, relationships, learning, health
+
+**Q3: Delegate (Urgent + Not Important)**
+Interruptions, some meetings, some emails
+
+**Q4: Eliminate (Not Urgent + Not Important)**
+Time wasters, distractions, busywork
+
+### The Secret
+Most people live in Q1 and Q3 (reactive). High performers spend most time in Q2 (proactive).",BEGINNER,3,"eisenhower,priority,matrix",🎯,PUBLISHED,true,1,eisenhower matrix priority urgent important quadrant
+eisenhower-matrix,quadrant-strategies,Strategies for Each Quadrant,"How to handle tasks based on their Eisenhower classification.","## Working the Matrix
+
+### Quadrant 1: Do First
+- Handle immediately
+- Time-block if needed
+- Prevent by better Q2 planning
+
+### Quadrant 2: Schedule
+- This is your GROWTH zone
+- Schedule dedicated time
+- Protect from interruptions
+- Most important long-term
+
+### Quadrant 3: Delegate
+- Automate if possible
+- Batch similar tasks
+- Set boundaries
+- Question if truly necessary
+
+### Quadrant 4: Eliminate
+- Just say no
+- Delete, unsubscribe, block
+- Recognize time thieves
+- Free up capacity for Q2",INTERMEDIATE,4,"eisenhower,strategy,quadrant",💡,PUBLISHED,false,2,quadrant strategy handle prioritize
+sensai-coach,meet-sensai,Meet SensAI - Your AI Coach,"Your personal AI Scrum Master who helps you stay on track.","## SensAI: Your AI Life Coach
+
+SensAI is like having a personal Scrum Master dedicated to your success.
+
+### What SensAI Does:
+- **Morning Standups**: Quick check-ins to plan your day
+- **Smart Interventions**: Notices when you're struggling
+- **Weekly Retrospectives**: Helps you reflect and improve
+- **Adaptive Coaching**: Learns your patterns over time
+
+### SensAI Personality
+Choose your coaching style:
+- 🏋️ Coach mode: Motivating and pushing
+- 🧘 Zen mode: Calm and supportive
+- 🎯 Direct mode: Straight to the point
+
+SensAI adapts to you, not the other way around.",BEGINNER,3,"sensai,ai,coach",🤖,PUBLISHED,true,1,sensai ai coach assistant scrum master
+sensai-coach,daily-standup,Daily Standups with SensAI,"Start each day with a focused 2-minute check-in.","## The Power of Daily Standups
+
+### The Three Questions:
+1. **What did you accomplish yesterday?**
+2. **What will you work on today?**
+3. **Any blockers or concerns?**
+
+### Why It Works
+- Creates accountability
+- Identifies problems early
+- Maintains momentum
+- Takes just 2 minutes
+
+### How to Use
+SensAI prompts you each morning. Respond honestly - the more context you give, the better SensAI can help you.",BEGINNER,2,"standup,daily,routine",☀️,PUBLISHED,false,2,standup daily morning routine check
+sensai-coach,sensai-interventions,SensAI Interventions,"How SensAI helps when you're falling behind.","## Smart Interventions
+
+SensAI monitors your progress and steps in when needed.
+
+### Types of Interventions:
+
+**🔔 Gentle Reminder**
+'Hey, you have 3 tasks due today. Want to plan them out?'
+
+**⚡ Energy Boost**
+'I noticed you've been crushing it this morning! Keep that momentum going.'
+
+**🆘 Struggle Alert**
+'This task has been in progress for 3 days. Should we break it down?'
+
+**🎉 Celebration**
+'Sprint goal achieved! You completed 15 tasks this week!'
+
+### Customization
+You control how often and when SensAI reaches out. Find your balance.",INTERMEDIATE,3,"intervention,notification,help",🛟,PUBLISHED,false,3,intervention alert notification help support
+pomodoro-focus,pomodoro-basics,The Pomodoro Technique,"25 minutes of focus + 5 minute break = Deep work magic.","## Pomodoro: Focus in Bursts
+
+The Pomodoro Technique is a time management method developed by Francesco Cirillo.
+
+### How It Works:
+1. **Choose a task**
+2. **Set timer for 25 minutes**
+3. **Work until timer rings**
+4. **Take 5-minute break**
+5. **Every 4 pomodoros, take longer break (15-30 min)**
+
+### Why 25 Minutes?
+- Short enough to maintain intensity
+- Long enough to make progress
+- Creates urgency without stress
+
+### The Science
+Our brains aren't designed for sustained focus. Strategic breaks improve total output.",BEGINNER,2,"pomodoro,focus,timer",🍅,PUBLISHED,true,1,pomodoro timer focus technique tomato 25 minutes
+pomodoro-focus,focus-session-tips,Maximizing Your Focus Sessions,"Pro tips for getting the most out of deep work.","## Level Up Your Focus
+
+### Before You Start:
+- Clear your workspace
+- Close unnecessary tabs
+- Put phone in another room
+- Tell people you're unavailable
+
+### During Focus Time:
+- One task only
+- No checking messages
+- Note distractions, handle later
+- Trust the process
+
+### If You Get Interrupted:
+The 2-minute rule: If it takes less than 2 minutes, do it. Otherwise, write it down and return to focus.
+
+### Post-Session:
+- Mark pomodoro complete
+- Take a real break
+- Move your body
+- Let your mind wander",INTERMEDIATE,3,"focus,productivity,tips",🎯,PUBLISHED,false,2,focus deep work concentration tips productivity
+pomodoro-focus,break-optimization,Taking Better Breaks,"Not all breaks are created equal. Here's how to recharge.","## The Art of the Break
+
+### Good Breaks:
+- Walk around
+- Stretch
+- Look at distant objects
+- Drink water
+- Chat briefly with someone
+- Step outside
+
+### Bad Breaks:
+- Scroll social media
+- Check email
+- Start another task
+- Watch videos
+- Online shopping
+
+### Why It Matters
+Good breaks restore energy. Bad breaks drain it.
+
+### The 5-Minute Challenge
+Can you take a 5-minute break WITHOUT looking at a screen? Try it.",BEGINNER,2,"break,rest,recharge",☕,PUBLISHED,false,3,break rest recharge relax productivity
+life-wheel,life-wheel-intro,The Wheel of Life,"Balance 9 dimensions for a fulfilling life.","## The Wheel of Life Framework
+
+The Wheel of Life helps you see your life holistically across 9 key dimensions.
+
+### The 9 Dimensions:
+1. 🏃 **Health & Fitness**
+2. 💭 **Mental & Emotional**
+3. 👨‍👩‍👧 **Family & Relationships**
+4. 💑 **Romance & Partnership**
+5. 👥 **Social & Friends**
+6. 💼 **Career & Business**
+7. 💰 **Financial**
+8. 🌱 **Personal Growth**
+9. 🎨 **Fun & Recreation**
+
+### How to Use It:
+Rate each dimension 1-10 regularly. Look for imbalances and set goals to improve low-scoring areas.",BEGINNER,3,"life-wheel,balance,dimensions",🎡,PUBLISHED,true,1,life wheel balance dimension assessment
+life-wheel,rating-dimensions,How to Rate Your Life Dimensions,"A guide to honest self-assessment.","## Honest Self-Assessment
+
+### For Each Dimension, Ask:
+
+**Health & Fitness (1-10)**
+How's my energy? Exercise? Sleep? Diet?
+
+**Mental & Emotional (1-10)**
+Stress levels? Mental clarity? Emotional regulation?
+
+**Family & Relationships (1-10)**
+Quality time? Communication? Support given/received?
+
+**Career & Business (1-10)**
+Fulfillment? Progress? Skills development?
+
+**Financial (1-10)**
+Security? Savings? Debt? Financial goals progress?
+
+### Tips for Honest Rating:
+- Rate how you FEEL, not how you SHOULD feel
+- Compare to YOUR ideal, not others
+- 5 is average, not failing
+- Re-rate weekly to track changes",INTERMEDIATE,4,"assessment,rating,self-reflection",📊,PUBLISHED,false,2,rating assessment dimension score evaluate
+epics-goals,what-is-epic,What is an Epic?,"Large goals that span multiple sprints.","## Epics: Your Big Picture Goals
+
+An **Epic** is a large objective that can't be completed in a single sprint. It's broken down into smaller tasks spread across multiple weeks.
+
+### Examples:
+- 🏃 'Run a marathon' (3-month epic)
+- 📚 'Read 12 books this year' (annual epic)
+- 💼 'Launch side business' (6-month epic)
+- 🏠 'Renovate kitchen' (2-month epic)
+
+### Epic vs Task:
+| | Epic | Task |
+|---|---|---|
+| Duration | Weeks to months | Hours to days |
+| Scope | Multiple sprints | Single sprint |
+| Completion | Gradual progress | Binary done/not done |
+
+### The Power of Epics
+Epics turn overwhelming goals into manageable weekly chunks.",BEGINNER,3,"epic,goals,long-term",🏔️,PUBLISHED,true,1,epic goal long term objective big picture
+epics-goals,breaking-down-epics,Breaking Down Epics into Tasks,"How to make big goals achievable week by week.","## From Overwhelming to Achievable
+
+### The Decomposition Process:
+
+**1. Define the End State**
+What does 'done' look like for this epic?
+
+**2. Identify Major Milestones**
+What are the key checkpoints?
+
+**3. Break into Sprint-Sized Chunks**
+What can you do THIS WEEK?
+
+**4. Create Specific Tasks**
+Use SMART criteria for each task.
+
+### Example: 'Write a Book' Epic
+
+**Milestones:**
+- Outline complete
+- First draft
+- Editing
+- Publication
+
+**This Week's Tasks:**
+- Brainstorm 10 chapter ideas (30 min)
+- Create chapter outline template (20 min)
+- Write chapter 1 outline (1 hour)",INTERMEDIATE,4,"epic,breakdown,planning",📋,PUBLISHED,false,2,breakdown decompose split tasks epic milestones
+calendar-integration,sync-calendar,Syncing Your Calendar,"Connect Google, Apple, or Outlook calendars with Kaiz.","## Calendar Integration
+
+### Why Sync?
+- See all commitments in one place
+- Automatic time blocking for tasks
+- Avoid double-booking
+- Realistic sprint capacity
+
+### Supported Calendars:
+- ✅ Google Calendar
+- ✅ Apple Calendar (iCloud)
+- ✅ Microsoft Outlook
+
+### How to Connect:
+1. Go to Settings → Integrations
+2. Select your calendar provider
+3. Authorize access
+4. Choose which calendars to sync
+
+### Privacy Note:
+Kaiz only reads event times and titles. Your calendar data stays private.",BEGINNER,2,"calendar,sync,integration",📆,PUBLISHED,true,1,calendar sync google apple outlook integration
+calendar-integration,time-blocking,Time Blocking with Kaiz,"Automatically schedule focus time for your tasks.","## Time Blocking Made Easy
+
+### What is Time Blocking?
+Assigning specific calendar slots to specific tasks.
+
+### Kaiz Auto-Blocking:
+When you add a task with a time estimate, Kaiz can automatically find an open slot in your calendar.
+
+### Benefits:
+- Turns intentions into appointments
+- Protects focus time from meetings
+- Creates realistic daily schedules
+- Reduces decision fatigue
+
+### Best Practices:
+- Block morning for deep work
+- Leave buffer between blocks
+- Include breaks
+- Review and adjust weekly",INTERMEDIATE,3,"time-blocking,calendar,scheduling",⏰,PUBLISHED,false,2,time blocking schedule calendar plan
+challenges-gamification,intro-challenges,Introduction to Challenges,"Turn your goals into games with streaks and challenges.","## Gamify Your Growth
+
+Challenges turn boring habits into exciting games.
+
+### How Challenges Work:
+1. Set a specific goal (e.g., 'Meditate daily')
+2. Define the duration (7, 21, or 30 days)
+3. Track your streak
+4. Earn rewards and badges
+
+### Types of Challenges:
+- 🔥 **Streak Challenges**: Don't break the chain
+- 📊 **Target Challenges**: Hit a specific number
+- 👥 **Social Challenges**: Compete with friends
+- 🎯 **Sprint Challenges**: Complete within sprint
+
+### The Psychology
+Challenges tap into our natural desire for achievement and progress visualization.",BEGINNER,3,"challenges,gamification,streaks",🏆,PUBLISHED,true,1,challenge gamification streak game badge
+challenges-gamification,building-streaks,Building Unbreakable Streaks,"Psychology and tactics for maintaining long streaks.","## The Streak Mindset
+
+### Why Streaks Work:
+- Loss aversion: We hate breaking chains
+- Visual progress: See your commitment
+- Identity building: 'I'm someone who does X daily'
+
+### Starting a Streak:
+- Choose something tiny
+- Attach to existing habit
+- Track immediately
+- Never miss twice
+
+### Protecting Your Streak:
+- Have a minimum viable version
+- Prepare for obstacles
+- Use skip days wisely (some challenges allow)
+- Celebrate milestones
+
+### Recovery:
+Broke a streak? Start fresh immediately. Past streaks still count as practice.",INTERMEDIATE,3,"streak,habit,consistency",🔥,PUBLISHED,false,2,streak habit daily consistency chain
+essentia-library,what-is-essentia,What is Essentia?,"Your personal library of book summaries and wisdom cards.","## Essentia: Knowledge at Your Fingertips
+
+Essentia distills wisdom from top books into digestible knowledge cards.
+
+### What You Get:
+- 📖 **Book Summaries**: Key insights from bestsellers
+- 🃏 **Knowledge Cards**: Single concepts to review
+- 🎯 **Action Items**: Practical applications
+- 📚 **Personal Library**: Save your favorites
+
+### How to Use:
+1. Browse by category or search
+2. Read summaries in 5-10 minutes
+3. Save cards for later review
+4. Apply insights to your sprints
+
+### Categories:
+Productivity, Leadership, Psychology, Finance, Health, Relationships, and more.",BEGINNER,2,"essentia,books,knowledge",📚,PUBLISHED,true,1,essentia book summary knowledge library wisdom
+motivation-engine,daily-motivation,Daily Motivation System,"Start each day with curated inspiration.","## Fuel Your Day
+
+### The Motivation Engine:
+Every day, Kaiz delivers:
+- 💬 **Quote of the Day**: Wisdom from great minds
+- 💪 **Affirmation**: Positive self-talk
+- 🎯 **Focus Reminder**: Today's top priority
+
+### Customization:
+- Choose your themes (success, calm, growth, etc.)
+- Set delivery time
+- Save favorites to collection
+- Share with friends
+
+### The Science:
+Starting the day with positive input primes your brain for productive thinking.",BEGINNER,2,"motivation,quotes,inspiration",💪,PUBLISHED,true,1,motivation quote inspiration daily affirmation
+command-center,universal-inbox,The Universal Inbox,"Capture everything in one place, process later.","## Command Center: Your Digital Inbox
+
+### The Problem:
+Ideas, tasks, and commitments come from everywhere. They get lost in notes, messages, and memory.
+
+### The Solution:
+Command Center is your universal capture point.
+
+### How It Works:
+1. **Capture**: Dump everything into Command Center
+2. **Process**: Review and categorize
+3. **Organize**: Move to the right place
+4. **Execute**: Work from organized lists
+
+### What to Capture:
+- Task ideas
+- Notes from meetings
+- Things to research
+- Ideas for someday
+- Anything on your mind",BEGINNER,3,"command-center,inbox,capture",📥,PUBLISHED,true,1,command center inbox capture gtd processing
+command-center,ai-task-creation,AI-Powered Task Creation,"Let AI help you turn notes into actionable tasks.","## Smart Task Creation
+
+### How It Works:
+Paste any text into Command Center, and AI suggests:
+- Extracted tasks
+- Recommended priorities
+- Time estimates
+- Relevant epic connections
+
+### Example Input:
+'Need to call mom about birthday party, also finish the quarterly report by Friday, and look into gym memberships'
+
+### AI Output:
+- ✅ Call mom about birthday party (15 min, Personal)
+- ✅ Finish quarterly report (2 hours, Work, Due: Friday)
+- ✅ Research gym memberships (30 min, Health)
+
+### Tips:
+- Be specific in your notes
+- Include deadlines when known
+- Review AI suggestions before accepting",INTERMEDIATE,3,"ai,automation,smart",🤖,PUBLISHED,false,2,ai smart task creation automation nlp
+family-workspace,family-intro,Family Workspace Overview,"Manage household tasks together.","## Family Productivity
+
+### What is Family Workspace?
+A shared space where family members can:
+- Assign tasks to each other
+- Track household chores
+- Plan family activities
+- Share calendars
+
+### Use Cases:
+- 🏠 Household chore rotation
+- 📅 Family event planning
+- 🎒 Kids' activity tracking
+- 🛒 Shared shopping lists
+
+### Privacy:
+Each family member has their own personal space too. You choose what to share.",BEGINNER,2,"family,shared,household",👨‍👩‍👧‍👦,PUBLISHED,true,1,family household shared workspace kids
+notifications-reminders,smart-notifications,Smart Notifications,"Get reminded at the right time, not all the time.","## Notifications That Work
+
+### The Problem:
+Too many notifications = All notifications ignored
+
+### Kaiz's Approach:
+- **Smart Timing**: Notify when you're most likely to act
+- **Batching**: Group similar notifications
+- **Priority Filtering**: Urgent now, others later
+- **Quiet Hours**: Respect your downtime
+
+### Notification Types:
+- 🔔 Task reminders
+- 📅 Sprint events
+- 🎯 Goal progress
+- 💪 Motivation nudges
+- 🏆 Achievement celebrations
+
+### Customization:
+Control frequency, timing, and types in Settings → Notifications.",BEGINNER,2,"notifications,reminders,alerts",🔔,PUBLISHED,true,1,notification reminder alert push smart
+settings-security,privacy-data,Privacy & Data Security,"How we protect your information.","## Your Data, Your Control
+
+### What We Store:
+- Tasks and sprints
+- Progress metrics
+- Preferences
+
+### What We DON'T Store:
+- Calendar content (only synced locally)
+- Payment details (handled by payment provider)
+- Browsing history
+
+### Security Measures:
+- 🔐 End-to-end encryption
+- 🏢 SOC 2 compliant infrastructure
+- 🔑 Two-factor authentication option
+- 📤 Data export anytime
+
+### Your Rights:
+- Access your data
+- Export your data
+- Delete your data
+- Control sharing",BEGINNER,2,"privacy,security,data",🔒,PUBLISHED,true,1,privacy security data protection encryption

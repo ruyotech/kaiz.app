@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import type { KnowledgeCategory, KnowledgeItem } from '@/types/content';
@@ -11,9 +11,30 @@ import {
     updateKnowledgeItem,
     deleteKnowledgeItem,
     updateKnowledgeItemStatus,
+    bulkImportKnowledgeItems,
 } from '@/lib/api/content';
 
 import '@/app/(admin)/admin/content/knowledge-hub/styles.css';
+
+// Bulk Upload Types
+interface ParsedKnowledgeItem {
+    categorySlug: string;
+    slug: string;
+    title: string;
+    summary: string;
+    content: string;
+    difficulty: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+    readTimeMinutes: number;
+    tags: string[];
+    icon: string;
+    status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+    featured: boolean;
+    displayOrder: number;
+    searchKeywords: string;
+    errors: string[];
+}
+
+type BulkUploadMode = 'none' | 'csv' | 'preview';
 
 interface ItemFormData {
     categoryId: string;
@@ -59,6 +80,30 @@ const statusConfig = {
     ARCHIVED: { label: 'Archived', color: '#ef4444', bg: '#fee2e2' },
 };
 
+// CSV headers for knowledge items template
+const CSV_HEADERS = [
+    'category_slug',
+    'slug',
+    'title',
+    'summary',
+    'content',
+    'difficulty',
+    'read_time_minutes',
+    'tags',
+    'icon',
+    'status',
+    'featured',
+    'display_order',
+    'search_keywords',
+];
+
+// Sample CSV rows for template
+const CSV_SAMPLE_ROWS = [
+    ['sensai', 'getting-started-with-sensai', 'Getting Started with SensAI', 'Learn the basics of your AI life coach', 'SensAI is your personal AI assistant that helps you stay on track with your goals...', 'BEGINNER', '3', 'sensai,ai,coaching', '🤖', 'PUBLISHED', 'true', '1', 'sensai beginner introduction'],
+    ['task', 'creating-effective-tasks', 'Creating Effective Tasks', 'Master the art of task creation', 'Good task management starts with clear, actionable tasks. Here\'s how to create them...', 'BEGINNER', '2', 'task,productivity', '✅', 'PUBLISHED', 'false', '2', 'task create new'],
+    ['pomodoro', 'mastering-focus-time', 'Mastering Focus Time', 'Use Pomodoro technique for deep work', 'The Pomodoro Technique is a time management method that uses a timer...', 'INTERMEDIATE', '4', 'pomodoro,focus,productivity', '🍅', 'DRAFT', 'false', '1', 'pomodoro timer focus'],
+];
+
 export default function KnowledgeHubPage() {
     const router = useRouter();
     const { data: session } = useSession();
@@ -73,7 +118,198 @@ export default function KnowledgeHubPage() {
     const [isSaving, setIsSaving] = useState(false);
     const [tagsInput, setTagsInput] = useState('');
 
+    // Bulk upload state
+    const [bulkUploadMode, setBulkUploadMode] = useState<BulkUploadMode>('none');
+    const [parsedItems, setParsedItems] = useState<ParsedKnowledgeItem[]>([]);
+    const [isBulkImporting, setIsBulkImporting] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
     const token = (session as any)?.accessToken || '';
+
+    // CSV parsing functions
+    const parseCSVLine = (line: string): string[] => {
+        const result: string[] = [];
+        let current = '';
+        let inQuotes = false;
+
+        for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            if (char === '"') {
+                if (inQuotes && line[i + 1] === '"') {
+                    current += '"';
+                    i++;
+                } else {
+                    inQuotes = !inQuotes;
+                }
+            } else if (char === ',' && !inQuotes) {
+                result.push(current.trim());
+                current = '';
+            } else {
+                current += char;
+            }
+        }
+        result.push(current.trim());
+        return result;
+    };
+
+    const parseCSV = (content: string): ParsedKnowledgeItem[] => {
+        const lines = content.split(/\r?\n/).filter(line => line.trim());
+        if (lines.length < 2) return [];
+
+        const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase().replace(/['"]/g, ''));
+        const items: ParsedKnowledgeItem[] = [];
+
+        for (let i = 1; i < lines.length; i++) {
+            const values = parseCSVLine(lines[i]);
+            const errors: string[] = [];
+
+            const getValue = (header: string): string => {
+                const index = headers.indexOf(header);
+                return index >= 0 && values[index] ? values[index].replace(/^["']|["']$/g, '') : '';
+            };
+
+            const categorySlug = getValue('category_slug');
+            const slug = getValue('slug');
+            const title = getValue('title');
+            const summary = getValue('summary');
+            const content = getValue('content');
+            const difficulty = getValue('difficulty').toUpperCase() as 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+            const readTimeMinutes = parseInt(getValue('read_time_minutes')) || 2;
+            const tagsStr = getValue('tags');
+            const icon = getValue('icon') || '📚';
+            const status = getValue('status').toUpperCase() as 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+            const featured = getValue('featured').toLowerCase() === 'true';
+            const displayOrder = parseInt(getValue('display_order')) || 0;
+            const searchKeywords = getValue('search_keywords');
+
+            // Validation
+            if (!categorySlug) errors.push('Missing category_slug');
+            if (!slug) errors.push('Missing slug');
+            if (!title) errors.push('Missing title');
+            if (!summary) errors.push('Missing summary');
+            if (!['BEGINNER', 'INTERMEDIATE', 'ADVANCED'].includes(difficulty)) {
+                errors.push(`Invalid difficulty: ${difficulty}`);
+            }
+            if (!['DRAFT', 'PUBLISHED', 'ARCHIVED'].includes(status)) {
+                errors.push(`Invalid status: ${status}`);
+            }
+
+            // Find category ID from slug
+            const category = categories.find(c => c.slug === categorySlug);
+            if (!category && categorySlug) {
+                errors.push(`Unknown category: ${categorySlug}`);
+            }
+
+            items.push({
+                categorySlug,
+                slug,
+                title,
+                summary,
+                content,
+                difficulty: ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'].includes(difficulty) ? difficulty : 'BEGINNER',
+                readTimeMinutes,
+                tags: tagsStr ? tagsStr.split(',').map(t => t.trim()).filter(Boolean) : [],
+                icon,
+                status: ['DRAFT', 'PUBLISHED', 'ARCHIVED'].includes(status) ? status : 'DRAFT',
+                featured,
+                displayOrder,
+                searchKeywords,
+                errors,
+            });
+        }
+
+        return items;
+    };
+
+    const downloadCsvTemplate = () => {
+        const rows = [CSV_HEADERS, ...CSV_SAMPLE_ROWS];
+        const csvContent = rows
+            .map(row =>
+                row.map(cell => {
+                    const value = String(cell);
+                    if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+                        return `"${value.replace(/"/g, '""')}"`;
+                    }
+                    return value;
+                }).join(',')
+            )
+            .join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'knowledge_hub_template.csv';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const handleCsvUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const content = e.target?.result as string;
+            const items = parseCSV(content);
+            setParsedItems(items);
+            setBulkUploadMode('preview');
+        };
+        reader.readAsText(file);
+
+        // Reset file input
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    };
+
+    const handleBulkImport = async () => {
+        if (!token) return;
+
+        const validItems = parsedItems.filter(item => item.errors.length === 0);
+        if (validItems.length === 0) {
+            alert('No valid items to import');
+            return;
+        }
+
+        setIsBulkImporting(true);
+        try {
+            // Map category slugs to IDs
+            const itemsWithCategoryIds = validItems.map(item => {
+                const category = categories.find(c => c.slug === item.categorySlug);
+                return {
+                    categoryId: category?.id || '',
+                    slug: item.slug,
+                    title: item.title,
+                    summary: item.summary,
+                    content: item.content,
+                    difficulty: item.difficulty,
+                    readTimeMinutes: item.readTimeMinutes,
+                    tags: item.tags,
+                    icon: item.icon,
+                    status: item.status,
+                    featured: item.featured,
+                    displayOrder: item.displayOrder,
+                    searchKeywords: item.searchKeywords,
+                };
+            });
+
+            await bulkImportKnowledgeItems(token, itemsWithCategoryIds);
+            await loadData();
+            resetBulkUpload();
+            alert(`Successfully imported ${validItems.length} knowledge items!`);
+        } catch (error) {
+            console.error('Failed to bulk import:', error);
+            alert('Failed to import items. Check console for details.');
+        } finally {
+            setIsBulkImporting(false);
+        }
+    };
+
+    const resetBulkUpload = () => {
+        setBulkUploadMode('none');
+        setParsedItems([]);
+    };
 
     const loadData = useCallback(async () => {
         if (!token) return;
@@ -196,10 +432,34 @@ export default function KnowledgeHubPage() {
                             <p>Manage your KAIZ feature documentation</p>
                         </div>
                     </div>
-                    <button className="primary-button" onClick={() => handleOpenModal()}>
-                        <span>+</span> Add Knowledge Item
-                    </button>
+                    <div className="header-actions">
+                        <button
+                            className="secondary-button"
+                            onClick={downloadCsvTemplate}
+                            title="Download CSV template"
+                        >
+                            📥 Download Template
+                        </button>
+                        <button
+                            className="secondary-button"
+                            onClick={() => setBulkUploadMode('csv')}
+                        >
+                            📤 Bulk Upload
+                        </button>
+                        <button className="primary-button" onClick={() => handleOpenModal()}>
+                            <span>+</span> Add Item
+                        </button>
+                    </div>
                 </div>
+
+                {/* Hidden file input for CSV upload */}
+                <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".csv"
+                    onChange={handleCsvUpload}
+                    style={{ display: 'none' }}
+                />
             </div>
 
             {/* Stats Cards */}
@@ -475,6 +735,150 @@ export default function KnowledgeHubPage() {
                             </button>
                             <button className="primary-button" onClick={handleSave} disabled={isSaving}>
                                 {isSaving ? 'Saving...' : editingItem ? 'Update' : 'Create'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Bulk Upload Mode Selection Modal */}
+            {bulkUploadMode === 'csv' && (
+                <div className="modal-overlay" onClick={resetBulkUpload}>
+                    <div className="modal-content bulk-upload-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2>📤 Bulk Upload Knowledge Items</h2>
+                            <button className="modal-close" onClick={resetBulkUpload}>×</button>
+                        </div>
+                        <div className="modal-body">
+                            <div className="bulk-upload-info">
+                                <h3>CSV Format Instructions</h3>
+                                <p>Upload a CSV file with the following columns:</p>
+                                <ul className="csv-columns-list">
+                                    <li><code>category_slug</code> - Category identifier (e.g., sensai, task, epic, pomodoro)</li>
+                                    <li><code>slug</code> - URL-friendly identifier</li>
+                                    <li><code>title</code> - Knowledge item title</li>
+                                    <li><code>summary</code> - Brief description</li>
+                                    <li><code>content</code> - Full content (markdown supported)</li>
+                                    <li><code>difficulty</code> - BEGINNER, INTERMEDIATE, or ADVANCED</li>
+                                    <li><code>read_time_minutes</code> - Estimated read time</li>
+                                    <li><code>tags</code> - Comma-separated tags</li>
+                                    <li><code>icon</code> - Emoji icon</li>
+                                    <li><code>status</code> - DRAFT, PUBLISHED, or ARCHIVED</li>
+                                    <li><code>featured</code> - true or false</li>
+                                    <li><code>display_order</code> - Sort order number</li>
+                                    <li><code>search_keywords</code> - Additional search terms</li>
+                                </ul>
+                                <p className="template-note">
+                                    💡 <strong>Tip:</strong> Download the template to see the exact format with sample data.
+                                </p>
+                            </div>
+                            <div className="bulk-upload-actions">
+                                <button className="secondary-button" onClick={downloadCsvTemplate}>
+                                    📥 Download CSV Template
+                                </button>
+                                <button
+                                    className="primary-button"
+                                    onClick={() => fileInputRef.current?.click()}
+                                >
+                                    📂 Select CSV File
+                                </button>
+                            </div>
+                            <div className="available-categories">
+                                <h4>Available Category Slugs:</h4>
+                                <div className="category-slugs">
+                                    {categories.map(cat => (
+                                        <span key={cat.id} className="category-slug-tag">
+                                            {cat.icon} {cat.slug}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button className="secondary-button" onClick={resetBulkUpload}>
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Bulk Upload Preview Modal */}
+            {bulkUploadMode === 'preview' && (
+                <div className="modal-overlay" onClick={resetBulkUpload}>
+                    <div className="modal-content bulk-preview-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2>📋 Preview Import ({parsedItems.length} items)</h2>
+                            <button className="modal-close" onClick={resetBulkUpload}>×</button>
+                        </div>
+                        <div className="modal-body">
+                            <div className="import-summary">
+                                <div className="summary-stat valid">
+                                    ✅ Valid: {parsedItems.filter(i => i.errors.length === 0).length}
+                                </div>
+                                <div className="summary-stat invalid">
+                                    ❌ Invalid: {parsedItems.filter(i => i.errors.length > 0).length}
+                                </div>
+                            </div>
+                            <div className="parsed-items-list">
+                                {parsedItems.map((item, index) => (
+                                    <div
+                                        key={index}
+                                        className={`parsed-item ${item.errors.length > 0 ? 'has-errors' : 'valid'}`}
+                                    >
+                                        <div className="parsed-item-header">
+                                            <span className="parsed-item-icon">{item.icon}</span>
+                                            <span className="parsed-item-title">{item.title || `Row ${index + 1}`}</span>
+                                            <span className="parsed-item-category">{item.categorySlug}</span>
+                                            <span
+                                                className="badge"
+                                                style={{
+                                                    backgroundColor: difficultyConfig[item.difficulty]?.bg || '#f3f4f6',
+                                                    color: difficultyConfig[item.difficulty]?.color || '#6b7280',
+                                                }}
+                                            >
+                                                {item.difficulty}
+                                            </span>
+                                            <span
+                                                className="badge"
+                                                style={{
+                                                    backgroundColor: statusConfig[item.status]?.bg || '#f3f4f6',
+                                                    color: statusConfig[item.status]?.color || '#6b7280',
+                                                }}
+                                            >
+                                                {item.status}
+                                            </span>
+                                        </div>
+                                        {item.errors.length > 0 && (
+                                            <div className="parsed-item-errors">
+                                                {item.errors.map((error, ei) => (
+                                                    <span key={ei} className="error-tag">⚠️ {error}</span>
+                                                ))}
+                                            </div>
+                                        )}
+                                        <div className="parsed-item-summary">{item.summary}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button className="secondary-button" onClick={resetBulkUpload}>
+                                Cancel
+                            </button>
+                            <button
+                                className="secondary-button"
+                                onClick={() => setBulkUploadMode('csv')}
+                            >
+                                ← Back
+                            </button>
+                            <button
+                                className="primary-button"
+                                onClick={handleBulkImport}
+                                disabled={isBulkImporting || parsedItems.filter(i => i.errors.length === 0).length === 0}
+                            >
+                                {isBulkImporting
+                                    ? 'Importing...'
+                                    : `Import ${parsedItems.filter(i => i.errors.length === 0).length} Items`}
                             </button>
                         </div>
                     </div>

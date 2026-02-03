@@ -9,6 +9,27 @@ type SortField = 'name' | 'rating' | 'usageCount' | 'createdAt';
 type SortOrder = 'asc' | 'desc';
 type BulkUploadMode = 'csv' | 'json';
 
+// Life Wheel Areas matching backend
+const LIFE_WHEEL_AREAS = [
+  { id: 'life-health', name: 'Health', icon: '💪' },
+  { id: 'life-career', name: 'Career', icon: '💼' },
+  { id: 'life-finance', name: 'Finance', icon: '💰' },
+  { id: 'life-family', name: 'Family', icon: '👨‍👩‍👧‍👦' },
+  { id: 'life-romance', name: 'Romance', icon: '❤️' },
+  { id: 'life-friends', name: 'Friends', icon: '👥' },
+  { id: 'life-growth', name: 'Growth', icon: '📚' },
+  { id: 'life-fun', name: 'Fun', icon: '🎉' },
+  { id: 'life-environment', name: 'Environment', icon: '🌍' },
+];
+
+// Eisenhower Quadrants
+const EISENHOWER_QUADRANTS = [
+  { id: 'q1', name: 'Q1: Urgent & Important', icon: '🔴' },
+  { id: 'q2', name: 'Q2: Not Urgent & Important', icon: '🟢' },
+  { id: 'q3', name: 'Q3: Urgent & Not Important', icon: '🟡' },
+  { id: 'q4', name: 'Q4: Not Urgent & Not Important', icon: '⚪' },
+];
+
 interface ParsedTemplate {
   data: Partial<CreateTemplateRequest>;
   errors: string[];
@@ -39,16 +60,24 @@ export default function TemplatesPage() {
   const [csvContent, setCsvContent] = useState('');
 
 
-  // Form state for create/edit
+  // Form state for create/edit - includes ALL template fields
   const [formData, setFormData] = useState<Partial<CreateTemplateRequest>>({
     name: '',
     description: '',
     type: 'TASK',
     defaultStoryPoints: 1,
+    defaultLifeWheelAreaId: undefined,
+    defaultEisenhowerQuadrantId: undefined,
+    defaultDuration: undefined,
+    defaultLocation: '',
+    isAllDay: false,
+    defaultAttendees: [],
+    isRecurring: false,
+    recurrencePattern: undefined,
+    suggestedSprint: undefined,
     icon: '📋',
     color: '#3B82F6',
     tags: [],
-    suggestedSprint: undefined,
   });
 
   // Fetch templates
@@ -118,10 +147,18 @@ export default function TemplatesPage() {
       description: '',
       type: 'TASK',
       defaultStoryPoints: 1,
+      defaultLifeWheelAreaId: undefined,
+      defaultEisenhowerQuadrantId: undefined,
+      defaultDuration: undefined,
+      defaultLocation: '',
+      isAllDay: false,
+      defaultAttendees: [],
+      isRecurring: false,
+      recurrencePattern: undefined,
+      suggestedSprint: undefined,
       icon: '📋',
       color: '#3B82F6',
       tags: [],
-      suggestedSprint: undefined,
     });
   };
 
@@ -187,15 +224,28 @@ export default function TemplatesPage() {
 
   const handleEdit = (template: AdminTaskTemplate) => {
     setEditingTemplate(template);
+    // Populate ALL fields from the template
     setFormData({
       name: template.name,
       description: template.description || '',
       type: template.type,
       defaultStoryPoints: template.defaultStoryPoints || 1,
+      defaultLifeWheelAreaId: template.defaultLifeWheelAreaId || undefined,
+      defaultEisenhowerQuadrantId: template.defaultEisenhowerQuadrantId || undefined,
+      defaultDuration: template.defaultDuration || undefined,
+      defaultLocation: template.defaultLocation || '',
+      isAllDay: template.isAllDay || false,
+      defaultAttendees: template.defaultAttendees || [],
+      isRecurring: template.isRecurring || false,
+      recurrencePattern: template.recurrencePattern ? {
+        frequency: template.recurrencePattern.frequency,
+        interval: template.recurrencePattern.interval,
+        endDate: template.recurrencePattern.endDate ?? undefined
+      } : undefined,
+      suggestedSprint: template.suggestedSprint,
       icon: template.icon || '📋',
       color: template.color || '#3B82F6',
       tags: template.tags || [],
-      suggestedSprint: template.suggestedSprint,
     });
     setIsEditModalOpen(true);
   };
@@ -539,6 +589,7 @@ export default function TemplatesPage() {
                 Name {getSortIcon('name')}
               </th>
               <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Type</th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Life Wheel</th>
               <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">Points</th>
               <th
                 className="px-4 py-3 text-left text-sm font-medium text-gray-500 cursor-pointer hover:bg-gray-100"
@@ -603,6 +654,16 @@ export default function TemplatesPage() {
                     {template.type}
                   </span>
                 </td>
+                <td className="px-4 py-3">
+                  {template.defaultLifeWheelAreaId ? (
+                    <span className="text-sm">
+                      {LIFE_WHEEL_AREAS.find(a => a.id === template.defaultLifeWheelAreaId)?.icon || '🎯'}{' '}
+                      {LIFE_WHEEL_AREAS.find(a => a.id === template.defaultLifeWheelAreaId)?.name || template.defaultLifeWheelAreaId}
+                    </span>
+                  ) : (
+                    <span className="text-gray-400 text-sm">-</span>
+                  )}
+                </td>
                 <td className="px-4 py-3 text-gray-600">{template.defaultStoryPoints || '-'}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-1">
@@ -653,18 +714,19 @@ export default function TemplatesPage() {
       {/* Create/Edit Modal */}
       {(isCreateModalOpen || isEditModalOpen) && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b">
               <h2 className="text-xl font-bold text-gray-900">
                 {isEditModalOpen ? 'Edit Template' : 'Create Template'}
               </h2>
             </div>
             <div className="p-6 space-y-4">
+              {/* Basic Info */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
                 <input
                   type="text"
-                  value={formData.name}
+                  value={formData.name || ''}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   placeholder="Template name"
@@ -673,18 +735,20 @@ export default function TemplatesPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                 <textarea
-                  value={formData.description}
+                  value={formData.description || ''}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   rows={3}
                   placeholder="Template description"
                 />
               </div>
+
+              {/* Type and Story Points */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Type *</label>
                   <select
-                    value={formData.type}
+                    value={formData.type || 'TASK'}
                     onChange={(e) => setFormData({ ...formData, type: e.target.value as TemplateType })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   >
@@ -696,9 +760,9 @@ export default function TemplatesPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Story Points</label>
                   <input
                     type="number"
-                    min="0"
-                    max="100"
-                    value={formData.defaultStoryPoints}
+                    min="1"
+                    max="21"
+                    value={formData.defaultStoryPoints || 1}
                     onChange={(e) =>
                       setFormData({ ...formData, defaultStoryPoints: parseInt(e.target.value) || 1 })
                     }
@@ -706,12 +770,52 @@ export default function TemplatesPage() {
                   />
                 </div>
               </div>
+
+              {/* Life Wheel Area and Eisenhower Quadrant */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Life Wheel Area</label>
+                  <select
+                    value={formData.defaultLifeWheelAreaId || ''}
+                    onChange={(e) =>
+                      setFormData({ ...formData, defaultLifeWheelAreaId: e.target.value || undefined })
+                    }
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select area...</option>
+                    {LIFE_WHEEL_AREAS.map((area) => (
+                      <option key={area.id} value={area.id}>
+                        {area.icon} {area.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Eisenhower Quadrant</label>
+                  <select
+                    value={formData.defaultEisenhowerQuadrantId || ''}
+                    onChange={(e) =>
+                      setFormData({ ...formData, defaultEisenhowerQuadrantId: e.target.value || undefined })
+                    }
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select quadrant...</option>
+                    {EISENHOWER_QUADRANTS.map((q) => (
+                      <option key={q.id} value={q.id}>
+                        {q.icon} {q.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Icon and Color */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Icon</label>
                   <input
                     type="text"
-                    value={formData.icon}
+                    value={formData.icon || ''}
                     onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     placeholder="📋"
@@ -721,12 +825,14 @@ export default function TemplatesPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Color</label>
                   <input
                     type="color"
-                    value={formData.color}
+                    value={formData.color || '#3B82F6'}
                     onChange={(e) => setFormData({ ...formData, color: e.target.value })}
                     className="w-full h-10 border border-gray-300 rounded-lg cursor-pointer"
                   />
                 </div>
               </div>
+
+              {/* Tags */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Tags (comma-separated)
@@ -744,6 +850,8 @@ export default function TemplatesPage() {
                   placeholder="productivity, work, health"
                 />
               </div>
+
+              {/* Suggested Sprint */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Suggested Sprint
@@ -763,6 +871,134 @@ export default function TemplatesPage() {
                   <option value="NEXT">Next Sprint</option>
                   <option value="BACKLOG">Backlog</option>
                 </select>
+              </div>
+
+              {/* Event-specific fields */}
+              {formData.type === 'EVENT' && (
+                <div className="border-t pt-4 space-y-4">
+                  <h3 className="text-sm font-semibold text-gray-700">Event Settings</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Duration (minutes)</label>
+                      <input
+                        type="number"
+                        min="5"
+                        step="5"
+                        value={formData.defaultDuration || ''}
+                        onChange={(e) =>
+                          setFormData({ ...formData, defaultDuration: parseInt(e.target.value) || undefined })
+                        }
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        placeholder="60"
+                      />
+                    </div>
+                    <div className="flex items-center">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formData.isAllDay || false}
+                          onChange={(e) => setFormData({ ...formData, isAllDay: e.target.checked })}
+                          className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                        />
+                        <span className="text-sm font-medium text-gray-700">All Day Event</span>
+                      </label>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Default Location</label>
+                    <input
+                      type="text"
+                      value={formData.defaultLocation || ''}
+                      onChange={(e) => setFormData({ ...formData, defaultLocation: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      placeholder="Meeting room, Office, Zoom..."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Default Attendees (comma-separated emails)
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.defaultAttendees?.join(', ') || ''}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          defaultAttendees: e.target.value.split(',').map((t) => t.trim()).filter(Boolean),
+                        })
+                      }
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      placeholder="team@company.com, manager@company.com"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Recurrence settings */}
+              <div className="border-t pt-4 space-y-4">
+                <div className="flex items-center">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.isRecurring || false}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          isRecurring: e.target.checked,
+                          recurrencePattern: e.target.checked ? { frequency: 'DAILY', interval: 1 } : undefined,
+                        })
+                      }
+                      className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                    />
+                    <span className="text-sm font-medium text-gray-700">Recurring Template</span>
+                  </label>
+                </div>
+                {formData.isRecurring && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Frequency</label>
+                      <select
+                        value={formData.recurrencePattern?.frequency || 'DAILY'}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            recurrencePattern: {
+                              ...formData.recurrencePattern,
+                              frequency: e.target.value,
+                              interval: formData.recurrencePattern?.interval || 1,
+                            },
+                          })
+                        }
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="DAILY">Daily</option>
+                        <option value="WEEKLY">Weekly</option>
+                        <option value="BIWEEKLY">Bi-weekly</option>
+                        <option value="MONTHLY">Monthly</option>
+                        <option value="YEARLY">Yearly</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Every X times</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={formData.recurrencePattern?.interval || 1}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            recurrencePattern: {
+                              ...formData.recurrencePattern,
+                              frequency: formData.recurrencePattern?.frequency || 'DAILY',
+                              interval: parseInt(e.target.value) || 1,
+                            },
+                          })
+                        }
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
             <div className="p-6 border-t bg-gray-50 flex justify-end gap-3">
