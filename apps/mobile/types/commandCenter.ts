@@ -301,7 +301,8 @@ export interface DraftActionResponse {
 // Helper Functions
 // ============================================================================
 
-export function getDraftTypeDisplayName(type: DraftType): string {
+export function getDraftTypeDisplayName(type: DraftType | null | undefined): string {
+  if (!type) return 'Item';
   const names: Record<DraftType, string> = {
     TASK: 'Task',
     CHALLENGE: 'Challenge',
@@ -311,10 +312,11 @@ export function getDraftTypeDisplayName(type: DraftType): string {
     EPIC: 'Epic',
     GOAL: 'Goal',
   };
-  return names[type] || type;
+  return names[type] || String(type) || 'Item';
 }
 
-export function getDraftTypeIcon(type: DraftType): string {
+export function getDraftTypeIcon(type: DraftType | null | undefined): string {
+  if (!type) return 'file-document-outline';
   const icons: Record<DraftType, string> = {
     TASK: 'checkbox-marked-circle-outline',
     CHALLENGE: 'trophy-outline',
@@ -327,7 +329,8 @@ export function getDraftTypeIcon(type: DraftType): string {
   return icons[type] || 'file-document-outline';
 }
 
-export function getDraftTypeColor(type: DraftType): string {
+export function getDraftTypeColor(type: DraftType | null | undefined): string {
+  if (!type) return '#6B7280';
   const colors: Record<DraftType, string> = {
     TASK: '#3B82F6', // blue
     CHALLENGE: '#F59E0B', // amber

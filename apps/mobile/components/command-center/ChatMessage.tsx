@@ -232,7 +232,7 @@ function DraftPreviewCard({ draft, onApprove, onReject, onEdit, onPress, isProce
             style={{ backgroundColor: typeColor + '20' }}
           >
             <Text className="text-xs font-medium" style={{ color: typeColor }}>
-              {Math.round(draft.confidence * 100)}% confident
+              {Math.round((draft.confidence ?? 0.8) * 100)}% confident
             </Text>
           </View>
         </View>
@@ -305,18 +305,19 @@ function DraftFields({ draft }: { draft: any }) {
   if (!draft) return null;
   
   const fields: Array<{ icon: string; label: string; value: string }> = [];
+  const draftType = (draft.type || '').toUpperCase();
   
-  if (draft.type === 'TASK') {
+  if (draftType === 'TASK') {
     if (draft.dueDate) fields.push({ icon: 'calendar', label: 'Due', value: formatDate(draft.dueDate) });
     if (draft.priority) fields.push({ icon: 'flag', label: 'Priority', value: draft.priority });
     if (draft.estimatedMinutes) fields.push({ icon: 'clock-outline', label: 'Time', value: `${draft.estimatedMinutes}min` });
-  } else if (draft.type === 'CHALLENGE') {
+  } else if (draftType === 'CHALLENGE') {
     if (draft.challengeType) fields.push({ icon: 'repeat', label: 'Type', value: draft.challengeType });
     if (draft.targetDays) fields.push({ icon: 'calendar-range', label: 'Duration', value: `${draft.targetDays} days` });
-  } else if (draft.type === 'EVENT') {
+  } else if (draftType === 'EVENT') {
     if (draft.startTime) fields.push({ icon: 'clock', label: 'Time', value: formatDateTime(draft.startTime) });
     if (draft.location) fields.push({ icon: 'map-marker', label: 'Location', value: draft.location });
-  } else if (draft.type === 'BILL') {
+  } else if (draftType === 'BILL') {
     if (draft.amount) fields.push({ icon: 'currency-usd', label: 'Amount', value: `$${draft.amount}` });
     if (draft.dueDate) fields.push({ icon: 'calendar', label: 'Due', value: formatDate(draft.dueDate) });
   }
