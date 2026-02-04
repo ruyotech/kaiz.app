@@ -103,6 +103,18 @@ function ProvidersTab() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<LlmProvider>>({});
   const [saving, setSaving] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    providerName: '',
+    displayName: '',
+    providerType: 'ANTHROPIC' as LlmProvider['providerType'],
+    apiBaseUrl: '',
+    apiKeyReference: '',
+    defaultModel: 'claude-3-5-sonnet-20241022',
+    maxTokens: 4096,
+    temperature: 0.7,
+    rateLimitRpm: 60,
+  });
 
   useEffect(() => {
     loadProviders();
@@ -176,6 +188,45 @@ function ProvidersTab() {
     setEditForm({});
   };
 
+  const handleCreateProvider = async () => {
+    try {
+      setSaving(true);
+      const token = getAdminAccessToken();
+      if (!token) return;
+      await commandCenterApi.createProvider(token, createForm);
+      setShowCreateModal(false);
+      setCreateForm({
+        providerName: '',
+        displayName: '',
+        providerType: 'ANTHROPIC',
+        apiBaseUrl: '',
+        apiKeyReference: '',
+        defaultModel: 'claude-3-5-sonnet-20241022',
+        maxTokens: 4096,
+        temperature: 0.7,
+        rateLimitRpm: 60,
+      });
+      loadProviders();
+    } catch (error) {
+      console.error('Failed to create provider:', error);
+      alert('Failed to create provider. Check console for details.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteProvider = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this provider?')) return;
+    try {
+      const token = getAdminAccessToken();
+      if (!token) return;
+      await commandCenterApi.deleteProvider(token, id);
+      loadProviders();
+    } catch (error) {
+      console.error('Failed to delete provider:', error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-6 flex items-center justify-center">
@@ -187,10 +238,19 @@ function ProvidersTab() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">LLM Providers</h2>
-        <p className="text-sm text-slate-400">
-          Configure AI model providers for Command Center
-        </p>
+        <div>
+          <h2 className="text-lg font-semibold">LLM Providers</h2>
+          <p className="text-sm text-slate-400">
+            Configure AI model providers for Command Center
+          </p>
+        </div>
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          Add Provider
+        </button>
       </div>
 
       <div className="space-y-4">
@@ -272,8 +332,16 @@ function ProvidersTab() {
                 <button
                   onClick={() => handleStartEdit(provider)}
                   className="p-2 rounded-lg hover:bg-white/5 text-slate-400 transition-colors"
+                  title="Edit"
                 >
                   <Edit2 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => handleDeleteProvider(provider.id)}
+                  className="p-2 rounded-lg hover:bg-red-500/10 text-red-400 transition-colors"
+                  title="Delete"
+                >
+                  <Trash2 className="w-4 h-4" />
                 </button>
               </div>
             </div>
@@ -379,6 +447,135 @@ function ProvidersTab() {
           </div>
         </div>
       </div>
+
+      {/* Create Provider Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-900 rounded-xl border border-white/10 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-white/10">
+              <h3 className="text-lg font-semibold">Add New LLM Provider</h3>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-slate-400 mb-1">Provider Name (unique key)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g., anthropic_primary"
+                    className="w-full px-3 py-2 bg-slate-800/50 border border-white/10 rounded-lg"
+                    value={createForm.providerName}
+                    onChange={(e) => setCreateForm({ ...createForm, providerName: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-slate-400 mb-1">Display Name</label>
+                  <input
+                    type="text"
+                    placeholder="e.g., Anthropic Claude"
+                    className="w-full px-3 py-2 bg-slate-800/50 border border-white/10 rounded-lg"
+                    value={createForm.displayName}
+                    onChange={(e) => setCreateForm({ ...createForm, displayName: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-slate-400 mb-1">Provider Type</label>
+                  <select
+                    className="w-full px-3 py-2 bg-slate-800/50 border border-white/10 rounded-lg"
+                    value={createForm.providerType}
+                    onChange={(e) => setCreateForm({ ...createForm, providerType: e.target.value as LlmProvider['providerType'] })}
+                  >
+                    <option value="ANTHROPIC">Anthropic (Claude)</option>
+                    <option value="OPENAI">OpenAI (GPT)</option>
+                    <option value="GOOGLE">Google (Gemini)</option>
+                    <option value="AZURE_OPENAI">Azure OpenAI</option>
+                    <option value="CUSTOM">Custom</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm text-slate-400 mb-1">Default Model</label>
+                  <input
+                    type="text"
+                    placeholder="e.g., claude-3-5-sonnet-20241022"
+                    className="w-full px-3 py-2 bg-slate-800/50 border border-white/10 rounded-lg"
+                    value={createForm.defaultModel}
+                    onChange={(e) => setCreateForm({ ...createForm, defaultModel: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">API Base URL (optional)</label>
+                <input
+                  type="text"
+                  placeholder="e.g., https://api.anthropic.com"
+                  className="w-full px-3 py-2 bg-slate-800/50 border border-white/10 rounded-lg"
+                  value={createForm.apiBaseUrl}
+                  onChange={(e) => setCreateForm({ ...createForm, apiBaseUrl: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">API Key Reference (GCP Secret name)</label>
+                <input
+                  type="text"
+                  placeholder="e.g., anthropic-api-key"
+                  className="w-full px-3 py-2 bg-slate-800/50 border border-white/10 rounded-lg"
+                  value={createForm.apiKeyReference}
+                  onChange={(e) => setCreateForm({ ...createForm, apiKeyReference: e.target.value })}
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm text-slate-400 mb-1">Max Tokens</label>
+                  <input
+                    type="number"
+                    className="w-full px-3 py-2 bg-slate-800/50 border border-white/10 rounded-lg"
+                    value={createForm.maxTokens}
+                    onChange={(e) => setCreateForm({ ...createForm, maxTokens: parseInt(e.target.value) })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-slate-400 mb-1">Temperature</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="2"
+                    className="w-full px-3 py-2 bg-slate-800/50 border border-white/10 rounded-lg"
+                    value={createForm.temperature}
+                    onChange={(e) => setCreateForm({ ...createForm, temperature: parseFloat(e.target.value) })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-slate-400 mb-1">Rate Limit (RPM)</label>
+                  <input
+                    type="number"
+                    className="w-full px-3 py-2 bg-slate-800/50 border border-white/10 rounded-lg"
+                    value={createForm.rateLimitRpm}
+                    onChange={(e) => setCreateForm({ ...createForm, rateLimitRpm: parseInt(e.target.value) })}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="p-6 border-t border-white/10 flex justify-end gap-3">
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="px-4 py-2 rounded-lg hover:bg-white/5"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateProvider}
+                disabled={saving || !createForm.providerName || !createForm.displayName}
+                className="px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2"
+              >
+                {saving && <RefreshCw className="w-4 h-4 animate-spin" />}
+                Create Provider
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -727,7 +924,10 @@ function AttachmentsTab() {
     try {
       setUploading(true);
       const token = getAdminAccessToken();
-      if (!token) return;
+      if (!token) {
+        alert('Not authenticated. Please log in again.');
+        return;
+      }
 
       // Determine attachment type from file
       let attachmentType: 'IMAGE' | 'AUDIO' | 'PDF' | 'DOCUMENT' = 'DOCUMENT';
@@ -741,7 +941,7 @@ function AttachmentsTab() {
           attachmentName: file.name,
           attachmentType: attachmentType,
           mimeType: file.type,
-          fileSizeBytes: file.size,
+          description: '',
           useCase: 'general',
         },
         file
@@ -749,6 +949,7 @@ function AttachmentsTab() {
       loadAttachments();
     } catch (error) {
       console.error('Failed to upload attachment:', error);
+      alert(`Failed to upload: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setUploading(false);
       if (fileInputRef.current) {

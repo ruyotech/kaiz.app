@@ -191,7 +191,20 @@ export async function createTestAttachment(
   file?: File
 ): Promise<TestAttachment> {
   const formData = new FormData();
-  formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+  
+  // Create metadata blob with proper content type
+  const metadataBlob = new Blob([JSON.stringify({
+    attachmentName: metadata.attachmentName,
+    attachmentType: metadata.attachmentType,
+    mimeType: metadata.mimeType,
+    description: metadata.description || '',
+    useCase: metadata.useCase || 'general',
+    expectedOutput: null,
+    displayOrder: null,
+  })], { type: 'application/json' });
+  
+  formData.append('metadata', metadataBlob);
+  
   if (file) {
     formData.append('file', file);
   }
@@ -200,13 +213,18 @@ export async function createTestAttachment(
     `${API_BASE_URL}/api/v1/admin/command-center/test-attachments`,
     {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { 
+        Authorization: `Bearer ${token}`,
+        // Note: Don't set Content-Type for FormData, browser sets it with boundary
+      },
       body: formData,
     }
   );
 
   if (!response.ok) {
-    throw new Error(`API Error: ${response.status} ${response.statusText}`);
+    const errorText = await response.text();
+    console.error('Upload error response:', errorText);
+    throw new Error(`API Error: ${response.status} ${response.statusText} - ${errorText}`);
   }
 
   const result: ApiResponse<TestAttachment> = await response.json();
