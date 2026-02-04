@@ -36,8 +36,7 @@ public class TestAttachment {
     @Column(name = "file_url")
     private String fileUrl;
 
-    @Lob
-    @Column(name = "file_data")
+    @Column(name = "file_data", columnDefinition = "BYTEA")
     private byte[] fileData;
 
     @Column(name = "mime_type", nullable = false)
