@@ -2,11 +2,13 @@
  * PendingDraftCard - Compact card for pending AI-generated drafts
  *
  * Displays in the Create screen's pending approval section with inline actions.
+ * Tap on card to view full details in the draft detail screen.
  */
 
 import React from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import {
     DraftPreview,
     getDraftTitle,
@@ -30,6 +32,7 @@ export function PendingDraftCard({
     onPress,
     isLoading = false,
 }: PendingDraftCardProps) {
+    const router = useRouter();
     const title = getDraftTitle(draft.draft);
     const typeIcon = getDraftTypeIcon(draft.draftType);
     const typeColor = getDraftTypeColor(draft.draftType);
@@ -40,9 +43,21 @@ export function PendingDraftCard({
     const now = new Date();
     const hoursRemaining = Math.max(0, Math.floor((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60)));
 
+    // Navigate to draft detail screen
+    const handleCardPress = () => {
+        if (onPress) {
+            onPress(draft);
+        } else {
+            router.push({
+                pathname: '/(tabs)/command-center/draft-detail',
+                params: { draft: JSON.stringify(draft) },
+            });
+        }
+    };
+
     return (
         <TouchableOpacity
-            onPress={() => onPress?.(draft)}
+            onPress={handleCardPress}
             disabled={isLoading}
             className="bg-white rounded-xl p-4 mb-3 shadow-sm border border-gray-100"
             style={{ opacity: isLoading ? 0.6 : 1 }}
@@ -97,7 +112,10 @@ export function PendingDraftCard({
             <View className="flex-row gap-2">
                 {/* Reject Button */}
                 <TouchableOpacity
-                    onPress={() => onReject(draft.id)}
+                    onPress={(e) => {
+                        e.stopPropagation?.();
+                        onReject(draft.id);
+                    }}
                     disabled={isLoading}
                     className="flex-1 flex-row items-center justify-center py-2 rounded-lg border border-red-200 bg-red-50"
                 >
@@ -111,9 +129,22 @@ export function PendingDraftCard({
                     )}
                 </TouchableOpacity>
 
+                {/* View Details Button */}
+                <TouchableOpacity
+                    onPress={handleCardPress}
+                    disabled={isLoading}
+                    className="flex-1 flex-row items-center justify-center py-2 rounded-lg border border-gray-200 bg-gray-50"
+                >
+                    <MaterialCommunityIcons name="eye-outline" size={16} color="#6B7280" />
+                    <Text className="text-sm font-medium text-gray-600 ml-1">Details</Text>
+                </TouchableOpacity>
+
                 {/* Approve Button */}
                 <TouchableOpacity
-                    onPress={() => onApprove(draft.id)}
+                    onPress={(e) => {
+                        e.stopPropagation?.();
+                        onApprove(draft.id);
+                    }}
                     disabled={isLoading}
                     className="flex-1 flex-row items-center justify-center py-2 rounded-lg"
                     style={{ backgroundColor: typeColor }}

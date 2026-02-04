@@ -4,15 +4,17 @@
  */
 
 import React from 'react';
-import { View, Text, ActivityIndicator, Image } from 'react-native';
+import { View, Text, ActivityIndicator, Image, Pressable, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { ChatMessage as ChatMessageType, getDraftTypeDisplayName, getDraftTypeIcon, getDraftTypeColor } from '../../types/commandCenter';
+import { useRouter } from 'expo-router';
+import { ChatMessage as ChatMessageType, DraftPreview, getDraftTypeDisplayName, getDraftTypeIcon, getDraftTypeColor } from '../../types/commandCenter';
 
 interface ChatMessageProps {
   message: ChatMessageType;
   onDraftApprove?: () => void;
   onDraftReject?: () => void;
   onDraftEdit?: () => void;
+  onDraftPress?: (draft: DraftPreview) => void;
   isProcessing?: boolean;
 }
 
@@ -21,6 +23,7 @@ export function ChatMessage({
   onDraftApprove, 
   onDraftReject, 
   onDraftEdit,
+  onDraftPress,
   isProcessing 
 }: ChatMessageProps) {
   if (message.role === 'system') {
@@ -37,6 +40,7 @@ export function ChatMessage({
       onDraftApprove={onDraftApprove}
       onDraftReject={onDraftReject}
       onDraftEdit={onDraftEdit}
+      onDraftPress={onDraftPress}
       isProcessing={isProcessing}
     />
   );
@@ -92,6 +96,7 @@ interface AssistantMessageProps {
   onDraftApprove?: () => void;
   onDraftReject?: () => void;
   onDraftEdit?: () => void;
+  onDraftPress?: (draft: DraftPreview) => void;
   isProcessing?: boolean;
 }
 
@@ -100,6 +105,7 @@ function AssistantMessage({
   onDraftApprove, 
   onDraftReject, 
   onDraftEdit,
+  onDraftPress,
   isProcessing 
 }: AssistantMessageProps) {
   return (
@@ -127,6 +133,7 @@ function AssistantMessage({
             onApprove={onDraftApprove}
             onReject={onDraftReject}
             onEdit={onDraftEdit}
+            onPress={onDraftPress}
             isProcessing={isProcessing}
           />
         ) : message.clarification ? (
@@ -174,116 +181,122 @@ interface DraftPreviewCardProps {
   onApprove?: () => void;
   onReject?: () => void;
   onEdit?: () => void;
+  onPress?: (draft: DraftPreview) => void;
   isProcessing?: boolean;
 }
 
-function DraftPreviewCard({ draft, onApprove, onReject, onEdit, isProcessing }: DraftPreviewCardProps) {
+function DraftPreviewCard({ draft, onApprove, onReject, onEdit, onPress, isProcessing }: DraftPreviewCardProps) {
+  const router = useRouter();
+  
   if (!draft) return null;
   
   const typeColor = getDraftTypeColor(draft.draftType);
   const typeIcon = getDraftTypeIcon(draft.draftType);
   const typeName = getDraftTypeDisplayName(draft.draftType);
   
+  // Navigate to draft detail screen when card is pressed
+  const handleCardPress = () => {
+    if (onPress) {
+      onPress(draft);
+    } else {
+      // Default navigation to draft detail screen
+      router.push({
+        pathname: '/(tabs)/command-center/draft-detail',
+        params: { draft: JSON.stringify(draft) },
+      });
+    }
+  };
+  
   return (
-    <View className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm max-w-full">
-      {/* Header */}
-      <View 
-        className="px-4 py-3 flex-row items-center"
-        style={{ backgroundColor: typeColor + '15' }}
-      >
+    <Pressable onPress={handleCardPress} disabled={isProcessing}>
+      <View className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm max-w-full">
+        {/* Header */}
         <View 
-          className="w-10 h-10 rounded-xl items-center justify-center"
-          style={{ backgroundColor: typeColor + '25' }}
+          className="px-4 py-3 flex-row items-center"
+          style={{ backgroundColor: typeColor + '15' }}
         >
-          <MaterialCommunityIcons name={typeIcon as any} size={20} color={typeColor} />
-        </View>
-        <View className="flex-1 ml-3">
-          <Text className="text-sm text-gray-500">{typeName}</Text>
-          <Text className="text-base font-semibold text-gray-900" numberOfLines={1}>
-            {draft.title}
-          </Text>
-        </View>
-        <View 
-          className="px-2 py-1 rounded-full"
-          style={{ backgroundColor: typeColor + '20' }}
-        >
-          <Text className="text-xs font-medium" style={{ color: typeColor }}>
-            {Math.round(draft.confidence * 100)}% confident
-          </Text>
-        </View>
-      </View>
-      
-      {/* Content */}
-      <View className="px-4 py-3">
-        {draft.description && (
-          <Text className="text-gray-600 text-sm mb-3" numberOfLines={3}>
-            {draft.description}
-          </Text>
-        )}
-        
-        {/* Draft-specific fields */}
-        <DraftFields draft={draft.draft} />
-        
-        {/* AI Reasoning */}
-        {draft.reasoning && (
-          <View className="mt-3 pt-3 border-t border-gray-100">
-            <View className="flex-row items-center mb-1">
-              <MaterialCommunityIcons name="lightbulb-outline" size={14} color="#8B5CF6" />
-              <Text className="text-xs font-medium text-purple-600 ml-1">AI Reasoning</Text>
-            </View>
-            <Text className="text-xs text-gray-500">{draft.reasoning}</Text>
+          <View 
+            className="w-10 h-10 rounded-xl items-center justify-center"
+            style={{ backgroundColor: typeColor + '25' }}
+          >
+            <MaterialCommunityIcons name={typeIcon as any} size={20} color={typeColor} />
           </View>
-        )}
+          <View className="flex-1 ml-3">
+            <Text className="text-sm text-gray-500">{typeName}</Text>
+            <Text className="text-base font-semibold text-gray-900" numberOfLines={1}>
+              {draft.title}
+            </Text>
+          </View>
+          <View 
+            className="px-2 py-1 rounded-full"
+            style={{ backgroundColor: typeColor + '20' }}
+          >
+            <Text className="text-xs font-medium" style={{ color: typeColor }}>
+              {Math.round(draft.confidence * 100)}% confident
+            </Text>
+          </View>
+        </View>
         
-        {/* Suggestions */}
-        {draft.suggestions && draft.suggestions.length > 0 && (
-          <View className="mt-2 flex-row flex-wrap gap-1">
-            {draft.suggestions.map((s, i) => (
-              <View key={i} className="bg-purple-50 rounded-full px-2 py-1">
-                <Text className="text-xs text-purple-600">{s}</Text>
+        {/* Content */}
+        <View className="px-4 py-3">
+          {draft.description && (
+            <Text className="text-gray-600 text-sm mb-3" numberOfLines={3}>
+              {draft.description}
+            </Text>
+          )}
+          
+          {/* Draft-specific fields */}
+          <DraftFields draft={draft.draft} />
+          
+          {/* AI Reasoning */}
+          {draft.reasoning && (
+            <View className="mt-3 pt-3 border-t border-gray-100">
+              <View className="flex-row items-center mb-1">
+                <MaterialCommunityIcons name="lightbulb-outline" size={14} color="#8B5CF6" />
+                <Text className="text-xs font-medium text-purple-600 ml-1">AI Reasoning</Text>
               </View>
-            ))}
-          </View>
-        )}
-      </View>
-      
-      {/* Actions */}
-      <View className="px-4 py-3 border-t border-gray-100 flex-row gap-2">
-        <TouchableOpacity
-          onPress={onReject}
-          disabled={isProcessing}
-          className="flex-1 bg-gray-100 rounded-xl py-3 items-center"
-        >
-          <Text className="text-gray-600 font-medium">Reject</Text>
-        </TouchableOpacity>
+              <Text className="text-xs text-gray-500" numberOfLines={2}>{draft.reasoning}</Text>
+            </View>
+          )}
+        </View>
         
-        {onEdit && (
+        {/* Quick Actions - Simplified for new flow */}
+        <View className="px-4 py-3 border-t border-gray-100 flex-row gap-2">
           <TouchableOpacity
-            onPress={onEdit}
+            onPress={(e) => {
+              e.stopPropagation?.();
+              onReject?.();
+            }}
             disabled={isProcessing}
             className="flex-1 bg-gray-100 rounded-xl py-3 items-center"
           >
-            <Text className="text-gray-600 font-medium">Edit</Text>
+            <Text className="text-gray-600 font-medium">Reject</Text>
           </TouchableOpacity>
-        )}
+          
+          <TouchableOpacity
+            onPress={handleCardPress}
+            disabled={isProcessing}
+            className="flex-1 rounded-xl py-3 items-center flex-row justify-center"
+            style={{ backgroundColor: typeColor }}
+          >
+            {isProcessing ? (
+              <ActivityIndicator size="small" color="white" />
+            ) : (
+              <>
+                <MaterialCommunityIcons name="check" size={18} color="white" />
+                <Text className="text-white font-semibold ml-1">Create</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
         
-        <TouchableOpacity
-          onPress={onApprove}
-          disabled={isProcessing}
-          className="flex-1 rounded-xl py-3 items-center flex-row justify-center"
-          style={{ backgroundColor: typeColor }}
-        >
-          {isProcessing ? (
-            <ActivityIndicator size="small" color="white" />
-          ) : (
-            <>
-              <MaterialCommunityIcons name="check" size={18} color="white" />
-              <Text className="text-white font-semibold ml-1">Create</Text>
-            </>
-          )}
-        </TouchableOpacity>
+        {/* Tap for more options hint */}
+        <View className="px-4 pb-3 flex-row items-center justify-center">
+          <MaterialCommunityIcons name="gesture-tap" size={14} color="#9CA3AF" />
+          <Text className="text-gray-400 text-xs ml-1">Tap card for more options</Text>
+        </View>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -371,8 +384,6 @@ function SystemMessage({ message }: { message: ChatMessageType }) {
 // ============================================================================
 // Helpers
 // ============================================================================
-
-import { TouchableOpacity } from 'react-native';
 
 function getAttachmentIcon(type: string): any {
   switch (type) {

@@ -282,7 +282,6 @@ export default function PendingDraftsScreen() {
           title="Pending Approvals"
           subtitle="Review AI-generated items"
           showBack
-          onBack={() => router.back()}
         />
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color={colors.primary} />
@@ -300,7 +299,6 @@ export default function PendingDraftsScreen() {
         title="Pending Approvals"
         subtitle={`${drafts.length} item${drafts.length !== 1 ? 's' : ''} awaiting review`}
         showBack
-        onBack={() => router.back()}
         rightAction={
           drafts.length > 0 ? (
             <TouchableOpacity
