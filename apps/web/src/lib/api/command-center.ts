@@ -209,9 +209,13 @@ export async function createTestAttachment(
     formData.append('file', file);
   }
 
-  const response = await fetch(
-    `${API_BASE_URL}/api/v1/admin/command-center/test-attachments`,
-    {
+  const url = `${API_BASE_URL}/api/v1/admin/command-center/test-attachments`;
+  console.log('Upload URL:', url);
+  console.log('Token present:', !!token);
+  console.log('Token length:', token?.length);
+  console.log('Token prefix:', token?.substring(0, 50) + '...');
+
+  const response = await fetch(url, {
       method: 'POST',
       headers: { 
         Authorization: `Bearer ${token}`,
@@ -221,10 +225,13 @@ export async function createTestAttachment(
     }
   );
 
+  console.log('Response status:', response.status);
+  console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
   if (!response.ok) {
     const errorText = await response.text();
     console.error('Upload error response:', errorText);
-    throw new Error(`API Error: ${response.status} ${response.statusText} - ${errorText}`);
+    throw new Error(`API Error: ${response.status} - ${errorText}`);
   }
 
   const result: ApiResponse<TestAttachment> = await response.json();

@@ -25,14 +25,13 @@ export interface SystemPrompt {
   promptName: string;
   promptCategory:
     | 'COMMAND_CENTER'
-    | 'SMART_INPUT'
-    | 'DRAFT_GENERATION'
-    | 'CLARIFICATION'
+    | 'SENSAI_CHAT'
     | 'IMAGE_ANALYSIS'
     | 'VOICE_TRANSCRIPTION'
+    | 'DRAFT_GENERATION'
+    | 'CLARIFICATION'
     | 'TASK_SUGGESTION'
     | 'CHALLENGE_SUGGESTION'
-    | 'SENSAI_CHAT'
     | 'CUSTOM';
   promptContent: string;
   variables?: string; // JSON array string

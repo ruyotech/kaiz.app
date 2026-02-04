@@ -605,11 +605,13 @@ function PromptsTab() {
   const categories: Array<'ALL' | SystemPrompt['promptCategory']> = [
     'ALL',
     'COMMAND_CENTER',
-    'SMART_INPUT',
-    'DRAFT_GENERATION',
+    'SENSAI_CHAT',
     'IMAGE_ANALYSIS',
     'VOICE_TRANSCRIPTION',
-    'SENSAI_CHAT',
+    'DRAFT_GENERATION',
+    'CLARIFICATION',
+    'TASK_SUGGESTION',
+    'CHALLENGE_SUGGESTION',
   ];
 
   useEffect(() => {

@@ -38,6 +38,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     try {
       String token = extractToken(request);
+      String uri = request.getRequestURI();
+      
+      // Log for admin endpoints
+      if (uri.contains("/admin/")) {
+        log.info("Processing admin request: {} - Token present: {}", uri, StringUtils.hasText(token));
+      }
 
       if (StringUtils.hasText(token) && jwtTokenProvider.validateToken(token)) {
 
@@ -63,7 +69,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
           // Set adminId as request attribute for controllers
           request.setAttribute("adminId", adminId);
 
-          log.debug("Authenticated admin: {} with role: {}", email, adminRole);
+          log.info("Authenticated admin: {} with role: {} for {}", email, adminRole, uri);
         }
         // Regular user access token
         else if (jwtTokenProvider.isAccessToken(token)) {
@@ -78,10 +84,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
           SecurityContextHolder.getContext().setAuthentication(authentication);
 
           log.debug("Authenticated user: {}", email);
+        } else {
+          log.info("Token is neither admin nor access token for {}", uri);
         }
+      } else if (StringUtils.hasText(token)) {
+        log.info("Token validation failed for {}", uri);
       }
     } catch (Exception e) {
-      log.debug("Could not set user authentication: {}", e.getMessage());
+      log.warn("Could not set user authentication for {}: {}", request.getRequestURI(), e.getMessage());
     }
 
     filterChain.doFilter(request, response);
