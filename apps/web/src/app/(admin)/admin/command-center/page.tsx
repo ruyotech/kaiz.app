@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import { useAdminAuthStore } from '@/store/admin-auth-store';
+import { getAdminAccessToken } from '@/lib/api';
 import {
   Bot,
   Brain,
@@ -40,7 +40,6 @@ type Tab = 'providers' | 'prompts' | 'attachments' | 'settings' | 'flags';
 
 export default function CommandCenterAdminPage() {
   const [activeTab, setActiveTab] = useState<Tab>('providers');
-  const { getAccessToken } = useAdminAuthStore();
 
   const tabs = [
     { id: 'providers' as Tab, label: 'LLM Providers', icon: Brain },
@@ -106,7 +105,6 @@ function ProvidersTab() {
   const [providers, setProviders] = useState<LlmProvider[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const { getAccessToken } = useAdminAuthStore();
 
   useEffect(() => {
     loadProviders();
@@ -114,7 +112,7 @@ function ProvidersTab() {
 
   const loadProviders = async () => {
     try {
-      const token = getAccessToken();
+      const token = getAdminAccessToken();
       if (!token) return;
       const data = await commandCenterApi.getAllProviders(token);
       setProviders(data);
@@ -127,7 +125,7 @@ function ProvidersTab() {
 
   const handleSetDefault = async (id: string) => {
     try {
-      const token = getAccessToken();
+      const token = getAdminAccessToken();
       if (!token) return;
       await commandCenterApi.setDefaultProvider(token, id);
       loadProviders();
@@ -138,7 +136,7 @@ function ProvidersTab() {
 
   const handleToggleActive = async (provider: LlmProvider) => {
     try {
-      const token = getAccessToken();
+      const token = getAdminAccessToken();
       if (!token) return;
       await commandCenterApi.updateProvider(token, provider.id, {
         isActive: !provider.isActive,
@@ -321,7 +319,6 @@ function PromptsTab() {
   const [loading, setLoading] = useState(true);
   const [editingPrompt, setEditingPrompt] = useState<SystemPrompt | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
-  const { getAccessToken } = useAdminAuthStore();
 
   const categories = [
     'ALL',
@@ -339,7 +336,7 @@ function PromptsTab() {
 
   const loadPrompts = async () => {
     try {
-      const token = getAccessToken();
+      const token = getAdminAccessToken();
       if (!token) return;
       const data = await commandCenterApi.getAllPrompts(token);
       setPrompts(data);
@@ -451,7 +448,6 @@ function AttachmentsTab() {
   const [attachments, setAttachments] = useState<TestAttachment[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const { getAccessToken } = useAdminAuthStore();
 
   useEffect(() => {
     loadAttachments();
@@ -459,7 +455,7 @@ function AttachmentsTab() {
 
   const loadAttachments = async () => {
     try {
-      const token = getAccessToken();
+      const token = getAdminAccessToken();
       if (!token) return;
       const data = await commandCenterApi.getAllTestAttachments(token);
       setAttachments(data);
@@ -601,7 +597,6 @@ function SettingsTab() {
   const [settings, setSettings] = useState<CommandCenterSetting[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const { getAccessToken } = useAdminAuthStore();
 
   useEffect(() => {
     loadSettings();
@@ -609,7 +604,7 @@ function SettingsTab() {
 
   const loadSettings = async () => {
     try {
-      const token = getAccessToken();
+      const token = getAdminAccessToken();
       if (!token) return;
       const data = await commandCenterApi.getAllSettings(token);
       setSettings(data);
@@ -701,7 +696,6 @@ function SettingsTab() {
 function FeatureFlagsTab() {
   const [flags, setFlags] = useState<FeatureFlag[]>([]);
   const [loading, setLoading] = useState(true);
-  const { getAccessToken } = useAdminAuthStore();
 
   useEffect(() => {
     loadFlags();
@@ -709,7 +703,7 @@ function FeatureFlagsTab() {
 
   const loadFlags = async () => {
     try {
-      const token = getAccessToken();
+      const token = getAdminAccessToken();
       if (!token) return;
       const data = await commandCenterApi.getAllFeatureFlags(token);
       setFlags(data);
@@ -722,7 +716,7 @@ function FeatureFlagsTab() {
 
   const handleToggle = async (flag: FeatureFlag) => {
     try {
-      const token = getAccessToken();
+      const token = getAdminAccessToken();
       if (!token) return;
       await commandCenterApi.updateFeatureFlag(token, flag.flagKey, {
         isEnabled: !flag.isEnabled,
