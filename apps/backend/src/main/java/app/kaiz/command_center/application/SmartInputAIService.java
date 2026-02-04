@@ -1,5 +1,7 @@
 package app.kaiz.command_center.application;
 
+import app.kaiz.admin.domain.TestAttachment;
+import app.kaiz.admin.repository.TestAttachmentRepository;
 import app.kaiz.command_center.api.dto.ClarificationAnswersRequest;
 import app.kaiz.command_center.api.dto.SmartInputRequest;
 import app.kaiz.command_center.api.dto.SmartInputResponse;
@@ -36,6 +38,8 @@ public class SmartInputAIService {
   private final ObjectMapper objectMapper;
   private final String systemPrompt;
   private final Duration draftExpirationDuration;
+  private final TestAttachmentRepository testAttachmentRepository;
+  private final CommandCenterAIService commandCenterAIService;
 
   // In-memory session storage (use Redis in production)
   private final Map<UUID, ConversationSession> sessions = new ConcurrentHashMap<>();
@@ -43,10 +47,14 @@ public class SmartInputAIService {
   public SmartInputAIService(
       AnthropicChatModel chatModel,
       ObjectMapper objectMapper,
+      TestAttachmentRepository testAttachmentRepository,
+      CommandCenterAIService commandCenterAIService,
       @Value("${kaiz.command-center.draft-expiration-hours:24}") int expirationHours) {
 
     this.chatModel = chatModel;
     this.objectMapper = objectMapper;
+    this.testAttachmentRepository = testAttachmentRepository;
+    this.commandCenterAIService = commandCenterAIService;
     this.systemPrompt = CommandCenterSystemPrompt.SYSTEM_PROMPT;
     this.draftExpirationDuration = Duration.ofHours(expirationHours);
   }
@@ -153,8 +161,31 @@ public class SmartInputAIService {
       prompt.append("\n\nAttachments:");
       for (var attachment : request.attachments()) {
         prompt.append("\n- Type: ").append(attachment.mimeType());
-        if (attachment.extractedText() != null) {
-          prompt.append(", Extracted text: \"").append(attachment.extractedText()).append("\"");
+        
+        String extractedText = attachment.extractedText();
+        
+        // Handle test attachment - fetch image and extract text via OCR
+        if (attachment.isTestAttachment()) {
+          try {
+            TestAttachment testAttachment = testAttachmentRepository
+                .findById(attachment.testAttachmentId())
+                .orElse(null);
+            
+            if (testAttachment != null && testAttachment.getFileData() != null) {
+              log.info("Processing test attachment image via OCR: {}", testAttachment.getAttachmentName());
+              extractedText = commandCenterAIService.extractTextFromImage(
+                  testAttachment.getFileData(),
+                  testAttachment.getMimeType()
+              );
+              log.info("OCR extracted text: {}", extractedText);
+            }
+          } catch (Exception e) {
+            log.error("Failed to process test attachment for OCR", e);
+          }
+        }
+        
+        if (extractedText != null) {
+          prompt.append(", Extracted text: \"").append(extractedText).append("\"");
         }
         if (attachment.metadata() != null) {
           prompt.append(", Metadata: ").append(attachment.metadata());

@@ -718,6 +718,11 @@ export function CustomTabBar() {
     // Check if we're on the Command Center screen
     const isOnCommandCenter = pathname.includes('/command-center');
 
+    // Hide custom input on Command Center since it has its own input
+    if (isOnCommandCenter) {
+        return null;
+    }
+
     return (
         <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}

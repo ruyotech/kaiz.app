@@ -136,6 +136,42 @@ public class CommandCenterAIService {
   }
 
   /**
+   * Extract text from image bytes using Claude Vision API. Supports handwritten notes, documents,
+   * receipts, calendar screenshots, etc.
+   *
+   * @param imageBytes The image bytes
+   * @param contentType The MIME type of the image
+   * @return Extracted text from the image
+   */
+  public String extractTextFromImage(byte[] imageBytes, String contentType) {
+    log.info("🔍 [OCR] Extracting text from image bytes, contentType: {}", contentType);
+
+    MimeType mimeType = getMimeTypeForImage(contentType);
+    if (mimeType == null) {
+      log.warn("🔍 [OCR] Unsupported image type: {}", contentType);
+      return null;
+    }
+
+    var imageResource = new ByteArrayResource(imageBytes);
+    var media = new Media(mimeType, imageResource);
+    var userMessage = UserMessage.builder().text(OCR_PROMPT).media(media).build();
+
+    try {
+      var prompt = new Prompt(List.of(userMessage));
+      var response = chatModel.call(prompt);
+      String extractedText = response.getResult().getOutput().getText();
+
+      log.info(
+          "🔍 [OCR] Extracted {} characters from image bytes",
+          extractedText != null ? extractedText.length() : 0);
+      return extractedText;
+    } catch (Exception e) {
+      log.error("🔍 [OCR] Error extracting text from image bytes: {}", e.getMessage(), e);
+      return null;
+    }
+  }
+
+  /**
    * Extract text from an image using Claude Vision API. Supports handwritten notes, documents,
    * receipts, calendar screenshots, etc.
    *

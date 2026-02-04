@@ -24,7 +24,8 @@ public record SmartInputRequest(
       long size,
       String base64Data,
       String extractedText,
-      Map<String, Object> metadata) {
+      Map<String, Object> metadata,
+      UUID testAttachmentId) {
 
     /** Check if this is an image attachment. */
     public boolean isImage() {
@@ -37,6 +38,11 @@ public record SmartInputRequest(
           && (mimeType.contains("pdf")
               || mimeType.contains("document")
               || mimeType.contains("text/"));
+    }
+
+    /** Check if this uses a test attachment from web admin. */
+    public boolean isTestAttachment() {
+      return testAttachmentId != null;
     }
   }
 

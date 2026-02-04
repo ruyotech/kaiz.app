@@ -1,250 +1,775 @@
-import { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, RefreshControl, Alert, ActivityIndicator } from 'react-native';
+/**
+ * Command Center Screen
+ * 
+ * AI-powered conversation interface for creating tasks, challenges, events, etc.
+ * - Supports text, image, voice, and file inputs
+ * - Uses admin-configured LLM providers and system prompts
+ * - Test attachments available for simulator testing
+ * - Drafts are created as pending for user approval
+ */
+
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableOpacity,
+  TextInput,
+  Alert,
+  Animated,
+  Pressable,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
+import { Audio } from 'expo-av';
+import { useRouter } from 'expo-router';
+
 import { Container } from '../../../components/layout/Container';
 import { ScreenHeader } from '../../../components/layout/ScreenHeader';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { ChatMessage, TestAttachmentPicker } from '../../../components/command-center';
 import { commandCenterService } from '../../../services/commandCenter';
-import { DraftPreview } from '../../../types/commandCenter';
-import { PendingDraftCard } from '../../../components/command-center';
+import { useThemeContext } from '../../../providers/ThemeProvider';
+import {
+  ChatMessage as ChatMessageType,
+  SmartInputAttachment,
+  TestAttachment,
+  DraftPreview,
+  getDraftTitle,
+  getDraftTypeDisplayName,
+} from '../../../types/commandCenter';
 
-const CREATE_OPTIONS = [
-    { id: 'task', icon: 'checkbox-marked-circle-outline', label: 'Task', color: '#3B82F6', route: '/(tabs)/sdlc/create-task' },
-    { id: 'challenge', icon: 'trophy-outline', label: 'Challenge', color: '#F59E0B', route: '/(tabs)/challenges/create' },
-    { id: 'event', icon: 'calendar-star', label: 'Event', color: '#06B6D4', route: '/(tabs)/command-center' },
-];
+// ============================================================================
+// Types
+// ============================================================================
+
+interface PendingAttachment {
+  id: string;
+  name: string;
+  type: 'image' | 'audio' | 'pdf' | 'document';
+  mimeType: string;
+  uri: string;
+  size?: number;
+  testAttachmentId?: string;
+}
+
+// ============================================================================
+// Main Screen
+// ============================================================================
 
 export default function CommandCenterScreen() {
-    const router = useRouter();
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const scrollViewRef = useRef<ScrollView>(null);
+  const { colors } = useThemeContext();
+  
+  // =========================================================================
+  // State
+  // =========================================================================
+  
+  const [messages, setMessages] = useState<ChatMessageType[]>([
+    {
+      id: '1',
+      role: 'assistant',
+      content: "Hey! I'm your SensAI assistant. Tell me what you'd like to create - a task, challenge, event, or anything else. You can also send images, files, or voice notes!",
+      timestamp: new Date(),
+    },
+  ]);
+  
+  const [inputText, setInputText] = useState('');
+  const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  
+  // Input options modal
+  const [showInputOptions, setShowInputOptions] = useState(false);
+  const [showTestAttachments, setShowTestAttachments] = useState(false);
+  
+  // Recording state
+  const [isRecording, setIsRecording] = useState(false);
+  const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const recordingAnimation = useRef(new Animated.Value(1)).current;
 
-    // Pending drafts state
-    const [pendingDrafts, setPendingDrafts] = useState<DraftPreview[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
-    const [refreshing, setRefreshing] = useState(false);
-    const [processingDraftId, setProcessingDraftId] = useState<string | null>(null);
+  // Test mode state (for simulator testing)
+  const [testModeEnabled, setTestModeEnabled] = useState(false);
+  const [testAttachments, setTestAttachments] = useState<TestAttachment[]>([]);
 
-    // Fetch pending drafts
-    const fetchPendingDrafts = useCallback(async () => {
-        try {
-            setIsLoading(true);
-            const response = await commandCenterService.getPendingDrafts();
-            if (response.success && response.data) {
-                setPendingDrafts(response.data);
-            }
-        } catch (error) {
-            console.error('Failed to fetch pending drafts:', error);
-        } finally {
-            setIsLoading(false);
-            setRefreshing(false);
+  // Pending drafts state (for header badge)
+  const [pendingDrafts, setPendingDrafts] = useState<DraftPreview[]>([]);
+  
+  // =========================================================================
+  // Effects
+  // =========================================================================
+
+  // Fetch pending drafts for badge
+  const fetchPendingDrafts = useCallback(async () => {
+    try {
+      const response = await commandCenterService.getPendingDrafts();
+      if (response.success && response.data) {
+        setPendingDrafts(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch pending drafts:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPendingDrafts();
+  }, [fetchPendingDrafts]);
+
+  // Fetch test attachments when test mode is enabled
+  useEffect(() => {
+    if (testModeEnabled && testAttachments.length === 0) {
+      commandCenterService.getTestAttachments().then(response => {
+        if (response.success && response.data) {
+          setTestAttachments(response.data);
         }
-    }, []);
+      });
+    }
+  }, [testModeEnabled, testAttachments.length]);
+  
+  // Auto-scroll to bottom
+  useEffect(() => {
+    setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 100);
+  }, [messages]);
 
-    // Fetch on mount and when screen is focused
-    useEffect(() => {
+  // Recording animation
+  useEffect(() => {
+    if (isRecording) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(recordingAnimation, {
+            toValue: 1.2,
+            duration: 500,
+            useNativeDriver: true,
+          }),
+          Animated.timing(recordingAnimation, {
+            toValue: 1,
+            duration: 500,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    } else {
+      recordingAnimation.setValue(1);
+    }
+  }, [isRecording]);
+
+  // =========================================================================
+  // Message Handlers
+  // =========================================================================
+
+  const sendMessage = useCallback(async () => {
+    const text = inputText.trim();
+    if (!text && attachments.length === 0) return;
+
+    // Add user message
+    const userMessage: ChatMessageType = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: text || '📎 Attachment',
+      timestamp: new Date(),
+      attachments: attachments.map(a => ({
+        id: a.id,
+        name: a.name,
+        type: a.type,
+        mimeType: a.mimeType,
+        uri: a.uri,
+        size: a.size,
+        testAttachmentId: a.testAttachmentId,
+      })),
+    };
+
+    // Add thinking message
+    const thinkingMessage: ChatMessageType = {
+      id: (Date.now() + 1).toString(),
+      role: 'assistant',
+      content: '',
+      timestamp: new Date(),
+      isThinking: true,
+    };
+
+    setMessages(prev => [...prev, userMessage, thinkingMessage]);
+    setInputText('');
+    setAttachments([]);
+    setIsProcessing(true);
+
+    try {
+      // Convert attachments to API format
+      const apiAttachments: SmartInputAttachment[] = attachments.map(a => ({
+        type: a.type,
+        uri: a.uri,
+        mimeType: a.mimeType,
+        name: a.name,
+        testAttachmentId: a.testAttachmentId,
+      }));
+
+      // Send to AI
+      const response = await commandCenterService.sendMessage(
+        text || null,
+        apiAttachments,
+        currentSessionId || undefined
+      );
+
+      if (response.success && response.data) {
+        const aiResponse = response.data;
+        setCurrentSessionId(aiResponse.sessionId);
+
+        if (aiResponse.draft) {
+          setCurrentDraftId(aiResponse.draft.id);
+          // Refresh pending drafts
+          fetchPendingDrafts();
+        }
+
+        // Replace thinking with response
+        const aiMessage: ChatMessageType = {
+          id: thinkingMessage.id,
+          role: 'assistant',
+          content: aiResponse.message,
+          timestamp: new Date(),
+          draft: aiResponse.draft,
+          clarification: aiResponse.clarification,
+        };
+
+        setMessages(prev =>
+          prev.map(m => (m.id === thinkingMessage.id ? aiMessage : m))
+        );
+      } else {
+        // Error message
+        const errorMessage: ChatMessageType = {
+          id: thinkingMessage.id,
+          role: 'assistant',
+          content: `Sorry, something went wrong: ${response.error || 'Unknown error'}`,
+          timestamp: new Date(),
+        };
+
+        setMessages(prev =>
+          prev.map(m => (m.id === thinkingMessage.id ? errorMessage : m))
+        );
+      }
+    } catch (error: any) {
+      console.error('Error sending message:', error);
+
+      const errorMessage: ChatMessageType = {
+        id: thinkingMessage.id,
+        role: 'assistant',
+        content: 'Sorry, I encountered an error. Please try again.',
+        timestamp: new Date(),
+      };
+
+      setMessages(prev =>
+        prev.map(m => (m.id === thinkingMessage.id ? errorMessage : m))
+      );
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [inputText, attachments, currentSessionId, fetchPendingDrafts]);
+
+  // =========================================================================
+  // Draft Actions
+  // =========================================================================
+
+  const handleApprove = useCallback(async () => {
+    if (!currentDraftId) return;
+
+    setIsProcessing(true);
+    try {
+      const response = await commandCenterService.approveDraft(currentDraftId);
+
+      if (response.success) {
+        const draftMessage = messages.find(m => m.draft?.id === currentDraftId);
+        const draftType = draftMessage?.draft?.draftType;
+        const title = draftMessage?.draft ? getDraftTitle(draftMessage.draft.draft) : 'Item';
+        const displayType = draftType ? getDraftTypeDisplayName(draftType) : 'Item';
+
+        // Success message
+        const successMessage: ChatMessageType = {
+          id: Date.now().toString(),
+          role: 'system',
+          content: `✅ ${displayType} "${title}" created successfully!`,
+          timestamp: new Date(),
+        };
+
+        // Follow-up message
+        const followUpMessage: ChatMessageType = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: `Great! Your ${displayType.toLowerCase()} has been created. Would you like to create something else?`,
+          timestamp: new Date(),
+        };
+
+        setMessages(prev => [...prev, successMessage, followUpMessage]);
+        setCurrentDraftId(null);
+        setCurrentSessionId(null);
+        // Refresh pending drafts
         fetchPendingDrafts();
-    }, [fetchPendingDrafts]);
+      } else {
+        Alert.alert('Error', response.error || 'Failed to create. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error approving draft:', error);
+      Alert.alert('Error', 'Failed to create. Please try again.');
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [currentDraftId, messages, fetchPendingDrafts]);
 
-    // Handle pull-to-refresh
-    const handleRefresh = useCallback(() => {
-        setRefreshing(true);
-        fetchPendingDrafts();
-    }, [fetchPendingDrafts]);
+  const handleReject = useCallback(async () => {
+    if (!currentDraftId) return;
 
-    // Handle approve draft
-    const handleApprove = useCallback(async (draftId: string) => {
-        setProcessingDraftId(draftId);
-        try {
-            const response = await commandCenterService.approveDraft(draftId);
-            if (response.success) {
-                // Remove from list
-                setPendingDrafts(prev => prev.filter(d => d.id !== draftId));
-            } else {
-                const errorMsg = typeof response.error === 'string'
-                    ? response.error
-                    : 'Failed to approve draft';
-                Alert.alert('Error', errorMsg);
-            }
-        } catch (error) {
-            console.error('Error approving draft:', error);
-            Alert.alert('Error', 'Failed to approve draft. Please try again.');
-        } finally {
-            setProcessingDraftId(null);
-        }
-    }, []);
+    setIsProcessing(true);
+    try {
+      await commandCenterService.rejectDraft(currentDraftId);
 
-    // Handle reject draft
-    const handleReject = useCallback(async (draftId: string) => {
-        setProcessingDraftId(draftId);
-        try {
-            const response = await commandCenterService.rejectDraft(draftId);
-            if (response.success) {
-                // Remove from list
-                setPendingDrafts(prev => prev.filter(d => d.id !== draftId));
-            } else {
-                const errorMsg = typeof response.error === 'string'
-                    ? response.error
-                    : 'Failed to reject draft';
-                Alert.alert('Error', errorMsg);
-            }
-        } catch (error) {
-            console.error('Error rejecting draft:', error);
-            Alert.alert('Error', 'Failed to reject draft. Please try again.');
-        } finally {
-            setProcessingDraftId(null);
-        }
-    }, []);
+      const rejectMessage: ChatMessageType = {
+        id: Date.now().toString(),
+        role: 'system',
+        content: '❌ Draft rejected',
+        timestamp: new Date(),
+      };
 
-    return (
-        <Container safeArea={false}>
-            <ScreenHeader
-                title="Create"
-                subtitle="AI-powered quick input"
-                showBack
-                useSafeArea={false}
+      const followUpMessage: ChatMessageType = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: "No problem! Tell me more about what you'd like to create, or try describing it differently.",
+        timestamp: new Date(),
+      };
+
+      setMessages(prev => [...prev, rejectMessage, followUpMessage]);
+      setCurrentDraftId(null);
+      // Refresh pending drafts
+      fetchPendingDrafts();
+    } catch (error) {
+      console.error('Error rejecting draft:', error);
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [currentDraftId, fetchPendingDrafts]);
+
+  // =========================================================================
+  // Attachment Handlers
+  // =========================================================================
+
+  const pickImage = useCallback(async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Permission Required', 'Please allow access to your photos.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.8,
+      allowsMultipleSelection: false,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0];
+      setAttachments(prev => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          name: asset.fileName || 'image.jpg',
+          type: 'image',
+          mimeType: asset.mimeType || 'image/jpeg',
+          uri: asset.uri,
+          size: asset.fileSize,
+        },
+      ]);
+    }
+    setShowInputOptions(false);
+  }, []);
+
+  const takePhoto = useCallback(async () => {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Permission Required', 'Please allow camera access.');
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0];
+      setAttachments(prev => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          name: 'photo.jpg',
+          type: 'image',
+          mimeType: 'image/jpeg',
+          uri: asset.uri,
+        },
+      ]);
+    }
+    setShowInputOptions(false);
+  }, []);
+
+  const pickDocument = useCallback(async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/pdf', 'text/*', 'application/msword'],
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const asset = result.assets[0];
+        setAttachments(prev => [
+          ...prev,
+          {
+            id: Date.now().toString(),
+            name: asset.name,
+            type: asset.mimeType?.includes('pdf') ? 'pdf' : 'document',
+            mimeType: asset.mimeType || 'application/octet-stream',
+            uri: asset.uri,
+            size: asset.size,
+          },
+        ]);
+      }
+    } catch (error) {
+      console.error('Error picking document:', error);
+    }
+    setShowInputOptions(false);
+  }, []);
+
+  const handleTestAttachmentSelect = useCallback((testAttachment: TestAttachment) => {
+    setAttachments(prev => [
+      ...prev,
+      {
+        id: Date.now().toString(),
+        name: testAttachment.attachmentName,
+        type: testAttachment.attachmentType.toLowerCase() as any,
+        mimeType: testAttachment.mimeType,
+        uri: testAttachment.fileUrl || '',
+        testAttachmentId: testAttachment.id,
+      },
+    ]);
+  }, []);
+
+  const removeAttachment = useCallback((id: string) => {
+    setAttachments(prev => prev.filter(a => a.id !== id));
+  }, []);
+
+  // Handle + button press - auto-add test attachment if test mode is on
+  const handlePlusPress = useCallback(() => {
+    if (testModeEnabled && testAttachments.length > 0) {
+      // Auto-add first test attachment
+      const testAttachment = testAttachments[0];
+      setAttachments(prev => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          name: testAttachment.attachmentName,
+          type: testAttachment.attachmentType.toLowerCase() as any,
+          mimeType: testAttachment.mimeType,
+          uri: testAttachment.fileUrl || '',
+          testAttachmentId: testAttachment.id,
+        },
+      ]);
+    } else {
+      setShowInputOptions(!showInputOptions);
+    }
+  }, [testModeEnabled, testAttachments, showInputOptions]);
+
+  // =========================================================================
+  // Voice Recording
+  // =========================================================================
+
+  const startRecording = useCallback(async () => {
+    try {
+      const permission = await Audio.requestPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('Permission Required', 'Please allow microphone access.');
+        return;
+      }
+
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
+      const { recording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+
+      setRecording(recording);
+      setIsRecording(true);
+    } catch (error) {
+      console.error('Failed to start recording:', error);
+      Alert.alert('Error', 'Failed to start recording.');
+    }
+  }, []);
+
+  const stopRecording = useCallback(async () => {
+    if (!recording) return;
+
+    try {
+      await recording.stopAndUnloadAsync();
+      const uri = recording.getURI();
+
+      if (uri) {
+        setAttachments(prev => [
+          ...prev,
+          {
+            id: Date.now().toString(),
+            name: 'voice_note.m4a',
+            type: 'audio',
+            mimeType: 'audio/m4a',
+            uri,
+          },
+        ]);
+      }
+    } catch (error) {
+      console.error('Failed to stop recording:', error);
+    } finally {
+      setRecording(null);
+      setIsRecording(false);
+    }
+  }, [recording]);
+
+  // =========================================================================
+  // Header Components
+  // =========================================================================
+
+  const HeaderRightActions = () => (
+    <View className="flex-row items-center">
+      {/* Test Mode Toggle */}
+      <Pressable
+        onPress={() => setTestModeEnabled(!testModeEnabled)}
+        className="mr-2"
+      >
+        <View 
+          className="w-9 h-9 rounded-full items-center justify-center" 
+          style={{ 
+            backgroundColor: testModeEnabled ? '#8B5CF620' : colors.card, 
+            borderWidth: 1, 
+            borderColor: testModeEnabled ? '#8B5CF6' : colors.border 
+          }}
+        >
+          <MaterialCommunityIcons 
+            name="test-tube" 
+            size={18} 
+            color={testModeEnabled ? '#8B5CF6' : colors.textSecondary} 
+          />
+        </View>
+      </Pressable>
+      {/* Pending Approval */}
+      <Pressable
+        onPress={() => {
+          // Could navigate to pending approvals screen or show modal
+        }}
+        className="relative mr-2"
+      >
+        <View className="w-9 h-9 rounded-full items-center justify-center" style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}>
+          <MaterialCommunityIcons name="clock-check-outline" size={20} color={colors.primary} />
+        </View>
+        {pendingDrafts.length > 0 && (
+          <View className="absolute -top-1 -right-1 min-w-5 h-5 bg-orange-500 rounded-full items-center justify-center px-1">
+            <Text className="text-white text-xs font-bold">
+              {pendingDrafts.length > 9 ? '9+' : pendingDrafts.length}
+            </Text>
+          </View>
+        )}
+      </Pressable>
+      {/* Close Button */}
+      <Pressable onPress={() => router.back()}>
+        <View className="w-9 h-9 rounded-full items-center justify-center" style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}>
+          <MaterialCommunityIcons name="close" size={20} color={colors.textSecondary} />
+        </View>
+      </Pressable>
+    </View>
+  );
+
+  // =========================================================================
+  // Render
+  // =========================================================================
+
+  return (
+    <Container safeArea={false}>
+      <ScreenHeader
+        title="Command Center"
+        subtitle={testModeEnabled ? "Test mode ON - + adds test file" : "AI-powered quick input"}
+        showBack={false}
+        useSafeArea={false}
+        showNotifications={false}
+        rightAction={<HeaderRightActions />}
+      />
+
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        className="flex-1"
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        {/* Messages */}
+        <ScrollView
+          ref={scrollViewRef}
+          className="flex-1"
+          contentContainerStyle={{ paddingVertical: 16 }}
+          keyboardShouldPersistTaps="handled"
+        >
+          {messages.map((message) => (
+            <ChatMessage
+              key={message.id}
+              message={message}
+              onDraftApprove={message.draft?.id === currentDraftId ? handleApprove : undefined}
+              onDraftReject={message.draft?.id === currentDraftId ? handleReject : undefined}
+              isProcessing={isProcessing}
             />
+          ))}
+        </ScrollView>
 
-            {/* Quick Create Cards */}
-            <ScrollView
-                className="flex-1 px-4 pt-4"
-                refreshControl={
-                    <RefreshControl
-                        refreshing={refreshing}
-                        onRefresh={handleRefresh}
-                        tintColor="#8B5CF6"
+        {/* Attachments Preview */}
+        {attachments.length > 0 && (
+          <View className="px-4 py-2 border-t border-gray-100 bg-gray-50">
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {attachments.map((att) => (
+                <View key={att.id} className="mr-2 relative">
+                  <View className="bg-blue-100 rounded-xl px-3 py-2 flex-row items-center">
+                    <MaterialCommunityIcons
+                      name={
+                        att.type === 'image' ? 'image' :
+                        att.type === 'audio' ? 'microphone' :
+                        att.type === 'pdf' ? 'file-pdf-box' : 'file-document'
+                      }
+                      size={16}
+                      color="#3B82F6"
                     />
-                }
-            >
-                {/* AI Chat - Primary CTA */}
-                <TouchableOpacity
-                    onPress={() => router.push('/(tabs)/command-center/chat' as any)}
-                    className="bg-gradient-to-r bg-purple-600 rounded-2xl p-5 mb-6 shadow-lg"
-                    style={{
-                        shadowColor: '#8B5CF6',
-                        shadowOffset: { width: 0, height: 4 },
-                        shadowOpacity: 0.3,
-                        shadowRadius: 8,
-                        elevation: 8,
-                    }}
-                >
-                    <View className="flex-row items-center">
-                        <View className="w-14 h-14 bg-white/20 rounded-2xl items-center justify-center mr-4">
-                            <MaterialCommunityIcons name="robot" size={28} color="white" />
-                        </View>
-                        <View className="flex-1">
-                            <Text className="text-xl font-bold text-white mb-1">AI Assistant</Text>
-                            <Text className="text-purple-100 text-sm">
-                                Describe what you want to create in natural language
-                            </Text>
-                        </View>
-                        <MaterialCommunityIcons name="chevron-right" size={24} color="rgba(255,255,255,0.7)" />
-                    </View>
-                    <View className="flex-row mt-4 pt-3 border-t border-white/20">
-                        <View className="flex-row items-center mr-4">
-                            <MaterialCommunityIcons name="microphone" size={16} color="rgba(255,255,255,0.8)" />
-                            <Text className="text-white/80 text-xs ml-1">Voice</Text>
-                        </View>
-                        <View className="flex-row items-center mr-4">
-                            <MaterialCommunityIcons name="image" size={16} color="rgba(255,255,255,0.8)" />
-                            <Text className="text-white/80 text-xs ml-1">Image</Text>
-                        </View>
-                        <View className="flex-row items-center">
-                            <MaterialCommunityIcons name="file-document" size={16} color="rgba(255,255,255,0.8)" />
-                            <Text className="text-white/80 text-xs ml-1">File</Text>
-                        </View>
-                    </View>
-                </TouchableOpacity>
-
-                <Text className="text-sm font-semibold text-gray-700 mb-3">Quick Create</Text>
-                <View className="flex-row gap-3 mb-6">
-                    {CREATE_OPTIONS.map((option) => (
-                        <TouchableOpacity
-                            key={option.id}
-                            onPress={() => router.push(option.route as any)}
-                            className="flex-1 bg-white rounded-2xl p-4 shadow-sm border border-gray-100 items-center"
-                        >
-                            <View
-                                className="w-12 h-12 rounded-2xl items-center justify-center mb-3"
-                                style={{ backgroundColor: option.color + '20' }}
-                            >
-                                <MaterialCommunityIcons
-                                    name={option.icon as any}
-                                    size={24}
-                                    color={option.color}
-                                />
-                            </View>
-                            <Text className="font-semibold text-gray-800 mb-1 text-center">{option.label}</Text>
-                        </TouchableOpacity>
-                    ))}
-                </View>
-
-                {/* AI Suggestions */}
-                <Text className="text-sm font-semibold text-gray-700 mb-3">AI Suggestions</Text>
-                <View className="bg-purple-50 rounded-2xl p-4 border border-purple-100 mb-4">
-                    <View className="flex-row items-center mb-3">
-                        <View className="w-8 h-8 bg-purple-100 rounded-full items-center justify-center mr-3">
-                            <MaterialCommunityIcons name="creation" size={16} color="#8B5CF6" />
-                        </View>
-                        <Text className="text-sm font-semibold text-gray-800">Smart Parse</Text>
-                    </View>
-                    <Text className="text-sm text-gray-600 leading-5">
-                        Use the + button below to access camera, gallery, file, or voice input. AI will automatically detect what you're creating.
+                    <Text className="text-blue-700 text-sm ml-2 max-w-24" numberOfLines={1}>
+                      {att.name}
                     </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => removeAttachment(att.id)}
+                    className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full items-center justify-center"
+                  >
+                    <MaterialCommunityIcons name="close" size={12} color="white" />
+                  </TouchableOpacity>
                 </View>
-
-                {/* Pending Approval Section */}
-                {isLoading && pendingDrafts.length === 0 ? (
-                    <View className="py-4 items-center">
-                        <ActivityIndicator size="small" color="#8B5CF6" />
-                        <Text className="text-sm text-gray-500 mt-2">Loading pending items...</Text>
-                    </View>
-                ) : pendingDrafts.length > 0 ? (
-                    <>
-                        <View className="flex-row items-center justify-between mb-3">
-                            <Text className="text-sm font-semibold text-gray-700">
-                                Pending Approval ({pendingDrafts.length})
-                            </Text>
-                            <TouchableOpacity onPress={handleRefresh}>
-                                <MaterialCommunityIcons name="refresh" size={18} color="#8B5CF6" />
-                            </TouchableOpacity>
-                        </View>
-                        {pendingDrafts.map((draft) => (
-                            <PendingDraftCard
-                                key={draft.id}
-                                draft={draft}
-                                onApprove={handleApprove}
-                                onReject={handleReject}
-                                isLoading={processingDraftId === draft.id}
-                            />
-                        ))}
-                    </>
-                ) : null}
-
-                {/* Recent Activity */}
-                <Text className="text-sm font-semibold text-gray-700 mb-3">Recent</Text>
-                <View className="bg-white rounded-xl p-4 mb-4 shadow-sm">
-                    <View className="flex-row items-center mb-2">
-                        <View className="w-8 h-8 bg-blue-100 rounded-full items-center justify-center mr-3">
-                            <MaterialCommunityIcons name="checkbox-marked-circle" size={16} color="#3B82F6" />
-                        </View>
-                        <View className="flex-1">
-                            <Text className="font-medium text-gray-800">Review designs</Text>
-                            <Text className="text-xs text-gray-500">2 min ago • Task</Text>
-                        </View>
-                    </View>
-                </View>
-
-                <View className="bg-white rounded-xl p-4 mb-20 shadow-sm">
-                    <View className="flex-row items-center mb-2">
-                        <View className="w-8 h-8 bg-amber-100 rounded-full items-center justify-center mr-3">
-                            <MaterialCommunityIcons name="trophy" size={16} color="#F59E0B" />
-                        </View>
-                        <View className="flex-1">
-                            <Text className="font-medium text-gray-800">Morning meditation streak</Text>
-                            <Text className="text-xs text-gray-500">10 min ago • Challenge</Text>
-                        </View>
-                    </View>
-                </View>
+              ))}
             </ScrollView>
-        </Container>
-    );
+          </View>
+        )}
+
+        {/* Input Area */}
+        <View
+          className="border-t border-gray-200 bg-white px-4 py-3"
+          style={{ paddingBottom: Math.max(insets.bottom, 12) }}
+        >
+          <View className="flex-row items-end gap-2">
+            {/* Attachment Button */}
+            <TouchableOpacity
+              onPress={handlePlusPress}
+              className="w-10 h-10 rounded-full items-center justify-center"
+              style={{ backgroundColor: testModeEnabled ? '#8B5CF620' : '#F3F4F6' }}
+            >
+              <MaterialCommunityIcons
+                name={testModeEnabled ? 'test-tube' : (showInputOptions ? 'close' : 'plus')}
+                size={24}
+                color={testModeEnabled ? '#8B5CF6' : '#6B7280'}
+              />
+            </TouchableOpacity>
+
+            {/* Text Input */}
+            <View className="flex-1 bg-gray-100 rounded-2xl px-4 py-2 max-h-32">
+              <TextInput
+                value={inputText}
+                onChangeText={setInputText}
+                placeholder="Describe what you want to create..."
+                placeholderTextColor="#9CA3AF"
+                multiline
+                className="text-base text-gray-800"
+                style={{ maxHeight: 100 }}
+                editable={!isProcessing}
+              />
+            </View>
+
+            {/* Send / Voice Button */}
+            {inputText.trim() || attachments.length > 0 || testModeEnabled ? (
+              <TouchableOpacity
+                onPress={sendMessage}
+                disabled={isProcessing || (!inputText.trim() && attachments.length === 0)}
+                className="w-10 h-10 rounded-full items-center justify-center"
+                style={{ 
+                  backgroundColor: (inputText.trim() || attachments.length > 0) ? '#9333EA' : '#D1D5DB'
+                }}
+              >
+                <MaterialCommunityIcons name="send" size={20} color="white" />
+              </TouchableOpacity>
+            ) : (
+              <Animated.View style={{ transform: [{ scale: recordingAnimation }] }}>
+                <TouchableOpacity
+                  onPressIn={startRecording}
+                  onPressOut={stopRecording}
+                  className={`w-10 h-10 rounded-full items-center justify-center ${
+                    isRecording ? 'bg-red-500' : 'bg-purple-600'
+                  }`}
+                >
+                  <MaterialCommunityIcons
+                    name={isRecording ? 'stop' : 'microphone'}
+                    size={20}
+                    color="white"
+                  />
+                </TouchableOpacity>
+              </Animated.View>
+            )}
+          </View>
+
+          {/* Input Options - only show when not in test mode */}
+          {showInputOptions && !testModeEnabled && (
+            <View className="flex-row gap-2 mt-3 pt-3 border-t border-gray-100">
+              <TouchableOpacity
+                onPress={takePhoto}
+                className="flex-1 bg-blue-50 rounded-xl py-3 items-center flex-row justify-center"
+              >
+                <MaterialCommunityIcons name="camera" size={20} color="#3B82F6" />
+                <Text className="text-blue-600 font-medium ml-2">Camera</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={pickImage}
+                className="flex-1 bg-green-50 rounded-xl py-3 items-center flex-row justify-center"
+              >
+                <MaterialCommunityIcons name="image" size={20} color="#10B981" />
+                <Text className="text-green-600 font-medium ml-2">Gallery</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={pickDocument}
+                className="flex-1 bg-orange-50 rounded-xl py-3 items-center flex-row justify-center"
+              >
+                <MaterialCommunityIcons name="file-document" size={20} color="#F97316" />
+                <Text className="text-orange-600 font-medium ml-2">File</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => {
+                  setShowInputOptions(false);
+                  setShowTestAttachments(true);
+                }}
+                className="flex-1 bg-purple-50 rounded-xl py-3 items-center flex-row justify-center"
+              >
+                <MaterialCommunityIcons name="test-tube" size={20} color="#8B5CF6" />
+                <Text className="text-purple-600 font-medium ml-2">Test</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </KeyboardAvoidingView>
+
+      {/* Test Attachments Picker */}
+      <TestAttachmentPicker
+        visible={showTestAttachments}
+        onClose={() => setShowTestAttachments(false)}
+        onSelect={handleTestAttachmentSelect}
+      />
+    </Container>
+  );
 }
