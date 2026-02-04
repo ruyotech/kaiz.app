@@ -64,6 +64,11 @@ const LIFE_WHEEL_AREAS: Record<string, { name: string; emoji: string; color: str
 };
 
 const EISENHOWER_QUADRANTS: Record<string, { name: string; description: string; color: string }> = {
+  'eq-1': { name: 'Do First', description: 'Urgent & Important', color: '#EF4444' },
+  'eq-2': { name: 'Schedule', description: 'Not Urgent & Important', color: '#3B82F6' },
+  'eq-3': { name: 'Delegate', description: 'Urgent & Not Important', color: '#F59E0B' },
+  'eq-4': { name: 'Eliminate', description: 'Not Urgent & Not Important', color: '#6B7280' },
+  // Legacy format support
   'q1': { name: 'Do First', description: 'Urgent & Important', color: '#EF4444' },
   'q2': { name: 'Schedule', description: 'Not Urgent & Important', color: '#3B82F6' },
   'q3': { name: 'Delegate', description: 'Urgent & Not Important', color: '#F59E0B' },

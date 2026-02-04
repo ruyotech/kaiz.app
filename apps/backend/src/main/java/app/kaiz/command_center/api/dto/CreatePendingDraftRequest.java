@@ -24,7 +24,7 @@ public record CreatePendingDraftRequest(
     @Schema(description = "Priority level", example = "MEDIUM") String priority,
     @Schema(description = "Story points (1-13 Fibonacci)", example = "5") Integer storyPoints,
     @Schema(description = "Estimated time in minutes", example = "60") Integer estimatedMinutes,
-    @Schema(description = "Eisenhower Quadrant ID", example = "q2") String eisenhowerQuadrantId,
+    @Schema(description = "Eisenhower Quadrant ID", example = "eq-2") String eisenhowerQuadrantId,
     @Schema(description = "Life Wheel Area ID", example = "lw-4") String lifeWheelAreaId,
     @Schema(description = "Category", example = "Work") String category,
     @Schema(description = "Tags", example = "[\"meeting\", \"team\"]") List<String> tags,

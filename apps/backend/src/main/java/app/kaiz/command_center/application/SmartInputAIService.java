@@ -258,16 +258,16 @@ public class SmartInputAIService {
 
     // Resolve eisenhower quadrant
     String quadrantId =
-        request.eisenhowerQuadrantId() != null ? request.eisenhowerQuadrantId() : "q2";
+        request.eisenhowerQuadrantId() != null ? request.eisenhowerQuadrantId() : "eq-2";
     EisenhowerQuadrant eisenhowerQuadrant =
         eisenhowerQuadrantRepository
             .findById(quadrantId)
             .orElseGet(
                 () ->
                     eisenhowerQuadrantRepository
-                        .findById("q2")
+                        .findById("eq-2")
                         .orElseThrow(
-                            () -> new ResourceNotFoundException("EisenhowerQuadrant", "q2")));
+                            () -> new ResourceNotFoundException("EisenhowerQuadrant", "eq-2")));
 
     // Determine if this is an event
     boolean isEvent = request.isEvent();
@@ -340,9 +340,9 @@ public class SmartInputAIService {
             .orElseGet(
                 () ->
                     eisenhowerQuadrantRepository
-                        .findById("q2")
+                        .findById("eq-2")
                         .orElseThrow(
-                            () -> new ResourceNotFoundException("EisenhowerQuadrant", "q2")));
+                            () -> new ResourceNotFoundException("EisenhowerQuadrant", "eq-2")));
 
     // Convert LocalDate to Instant for targetDate
     Instant targetDate = null;
@@ -387,8 +387,8 @@ public class SmartInputAIService {
     // Use Q2 (Schedule) for events by default
     EisenhowerQuadrant eisenhowerQuadrant =
         eisenhowerQuadrantRepository
-            .findById("q2")
-            .orElseThrow(() -> new ResourceNotFoundException("EisenhowerQuadrant", "q2"));
+            .findById("eq-2")
+            .orElseThrow(() -> new ResourceNotFoundException("EisenhowerQuadrant", "eq-2"));
 
     // Convert date and times to Instant
     Instant targetDate = null;
@@ -596,7 +596,7 @@ public class SmartInputAIService {
               draftNode.path("title").asText(""),
               draftNode.path("description").asText(""),
               draftNode.path("lifeWheelAreaId").asText("lw-4"),
-              draftNode.path("eisenhowerQuadrantId").asText("q2"),
+              draftNode.path("eisenhowerQuadrantId").asText("eq-2"),
               draftNode.path("storyPoints").asInt(3),
               draftNode.path("suggestedEpicId").asText(null),
               draftNode.path("suggestedSprintId").asText(null),
