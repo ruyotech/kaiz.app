@@ -21,6 +21,7 @@ import {
   MessageSquare,
   Bell,
   ChevronDown,
+  Bot,
 } from 'lucide-react';
 
 type NavItem = {
@@ -49,6 +50,7 @@ const navigation: NavItem[] = [
       { name: 'Pricing', href: '/admin/content/pricing' },
     ],
   },
+  { name: 'Command Center', href: '/admin/command-center', icon: Bot },
   { name: 'Settings', href: '/admin/settings', icon: Settings },
 ];
 
