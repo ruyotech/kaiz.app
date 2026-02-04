@@ -340,8 +340,10 @@ export function getDraftTypeColor(type: DraftType): string {
   return colors[type] || '#6B7280';
 }
 
-export function getDraftTitle(draft: DraftPreview['draft']): string {
-  if ('title' in draft) return draft.title;
+export function getDraftTitle(draft: DraftPreview['draft'] | null | undefined): string {
+  if (!draft || typeof draft !== 'object') return 'Untitled';
+  if ('title' in draft && draft.title) return draft.title;
+  if ('name' in draft && (draft as ChallengeDraft).name) return (draft as ChallengeDraft).name;
   return 'Untitled';
 }
 

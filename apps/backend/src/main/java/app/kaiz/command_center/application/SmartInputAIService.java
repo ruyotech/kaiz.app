@@ -36,7 +36,6 @@ public class SmartInputAIService {
 
   private final AnthropicChatModel chatModel;
   private final ObjectMapper objectMapper;
-  private final String systemPrompt;
   private final Duration draftExpirationDuration;
   private final TestAttachmentRepository testAttachmentRepository;
   private final CommandCenterAIService commandCenterAIService;
@@ -55,7 +54,6 @@ public class SmartInputAIService {
     this.objectMapper = objectMapper;
     this.testAttachmentRepository = testAttachmentRepository;
     this.commandCenterAIService = commandCenterAIService;
-    this.systemPrompt = CommandCenterSystemPrompt.SYSTEM_PROMPT;
     this.draftExpirationDuration = Duration.ofHours(expirationHours);
   }
 
@@ -65,7 +63,10 @@ public class SmartInputAIService {
     OriginalInput originalInput = captureOriginalInput(request);
 
     String userPrompt = buildUserPrompt(userId, request);
-    List<Message> messages = List.of(new SystemMessage(systemPrompt), new UserMessage(userPrompt));
+    // Get system prompt with current date context for proper date parsing ("tomorrow", "next week", etc.)
+    String tomorrowDate = LocalDate.now().plusDays(1).toString();
+    String currentSystemPrompt = CommandCenterSystemPrompt.getPromptWithDates(tomorrowDate);
+    List<Message> messages = List.of(new SystemMessage(currentSystemPrompt), new UserMessage(userPrompt));
 
     try {
       ChatResponse response = chatModel.call(new Prompt(messages));
