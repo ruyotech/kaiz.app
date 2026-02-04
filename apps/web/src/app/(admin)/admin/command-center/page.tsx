@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { getAdminAccessToken } from '@/lib/api';
 import {
@@ -9,18 +9,14 @@ import {
   FileText,
   Settings,
   ToggleLeft,
-  Key,
   Save,
   RefreshCw,
   Plus,
   Trash2,
   Edit2,
-  Check,
-  X,
   Upload,
   Download,
   Eye,
-  ChevronDown,
   AlertTriangle,
   Sparkles,
   Image,
@@ -105,6 +101,8 @@ function ProvidersTab() {
   const [providers, setProviders] = useState<LlmProvider[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<Partial<LlmProvider>>({});
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     loadProviders();
@@ -145,6 +143,37 @@ function ProvidersTab() {
     } catch (error) {
       console.error('Failed to toggle provider:', error);
     }
+  };
+
+  const handleStartEdit = (provider: LlmProvider) => {
+    setEditingId(provider.id);
+    setEditForm({
+      defaultModel: provider.defaultModel,
+      temperature: provider.temperature,
+      maxTokens: provider.maxTokens,
+      rateLimitRpm: provider.rateLimitRpm,
+    });
+  };
+
+  const handleSaveEdit = async (providerId: string) => {
+    try {
+      setSaving(true);
+      const token = getAdminAccessToken();
+      if (!token) return;
+      await commandCenterApi.updateProvider(token, providerId, editForm);
+      setEditingId(null);
+      setEditForm({});
+      loadProviders();
+    } catch (error) {
+      console.error('Failed to save provider:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditForm({});
   };
 
   if (loading) {
@@ -241,7 +270,7 @@ function ProvidersTab() {
                   <ToggleLeft className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => setEditingId(provider.id)}
+                  onClick={() => handleStartEdit(provider)}
                   className="p-2 rounded-lg hover:bg-white/5 text-slate-400 transition-colors"
                 >
                   <Edit2 className="w-4 h-4" />
@@ -255,38 +284,79 @@ function ProvidersTab() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs text-slate-500 mb-1">
-                      API Key Reference
+                      Default Model
                     </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="password"
-                        placeholder="Enter API key..."
-                        className="flex-1 px-3 py-2 bg-slate-800/50 border border-white/10 rounded-lg text-sm"
-                      />
-                      <button className="px-3 py-2 bg-primary/10 text-primary rounded-lg text-sm hover:bg-primary/20">
-                        <Key className="w-4 h-4" />
-                      </button>
-                    </div>
+                    <select
+                      className="w-full px-3 py-2 bg-slate-800/50 border border-white/10 rounded-lg text-sm"
+                      value={editForm.defaultModel || ''}
+                      onChange={(e) => setEditForm({ ...editForm, defaultModel: e.target.value })}
+                    >
+                      {provider.providerType === 'ANTHROPIC' && (
+                        <>
+                          <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
+                          <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
+                          <option value="claude-3-haiku-20240307">Claude 3 Haiku</option>
+                        </>
+                      )}
+                      {provider.providerType === 'OPENAI' && (
+                        <>
+                          <option value="gpt-4o">GPT-4o</option>
+                          <option value="gpt-4o-mini">GPT-4o Mini</option>
+                          <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                        </>
+                      )}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-xs text-slate-500 mb-1">
-                      Default Model
+                      Temperature
                     </label>
-                    <select className="w-full px-3 py-2 bg-slate-800/50 border border-white/10 rounded-lg text-sm">
-                      <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
-                      <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
-                      <option value="claude-3-haiku-20240307">Claude 3 Haiku</option>
-                    </select>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="2"
+                      className="w-full px-3 py-2 bg-slate-800/50 border border-white/10 rounded-lg text-sm"
+                      value={editForm.temperature ?? 0.7}
+                      onChange={(e) => setEditForm({ ...editForm, temperature: parseFloat(e.target.value) })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-slate-500 mb-1">
+                      Max Tokens
+                    </label>
+                    <input
+                      type="number"
+                      className="w-full px-3 py-2 bg-slate-800/50 border border-white/10 rounded-lg text-sm"
+                      value={editForm.maxTokens ?? 4096}
+                      onChange={(e) => setEditForm({ ...editForm, maxTokens: parseInt(e.target.value) })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-slate-500 mb-1">
+                      Rate Limit (RPM)
+                    </label>
+                    <input
+                      type="number"
+                      className="w-full px-3 py-2 bg-slate-800/50 border border-white/10 rounded-lg text-sm"
+                      value={editForm.rateLimitRpm ?? ''}
+                      onChange={(e) => setEditForm({ ...editForm, rateLimitRpm: parseInt(e.target.value) || undefined })}
+                    />
                   </div>
                 </div>
                 <div className="flex justify-end gap-2 mt-4">
                   <button
-                    onClick={() => setEditingId(null)}
+                    onClick={handleCancelEdit}
                     className="px-4 py-2 text-sm rounded-lg hover:bg-white/5"
                   >
                     Cancel
                   </button>
-                  <button className="px-4 py-2 text-sm rounded-lg bg-primary text-white hover:bg-primary/90">
+                  <button
+                    onClick={() => handleSaveEdit(provider.id)}
+                    disabled={saving}
+                    className="px-4 py-2 text-sm rounded-lg bg-primary text-white hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {saving && <RefreshCw className="w-3 h-3 animate-spin" />}
                     Save Changes
                   </button>
                 </div>
@@ -319,8 +389,23 @@ function PromptsTab() {
   const [loading, setLoading] = useState(true);
   const [editingPrompt, setEditingPrompt] = useState<SystemPrompt | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [formData, setFormData] = useState<{
+    promptKey: string;
+    promptName: string;
+    promptCategory: SystemPrompt['promptCategory'];
+    promptContent: string;
+    description: string;
+  }>({
+    promptKey: '',
+    promptName: '',
+    promptCategory: 'COMMAND_CENTER',
+    promptContent: '',
+    description: '',
+  });
 
-  const categories = [
+  const categories: Array<'ALL' | SystemPrompt['promptCategory']> = [
     'ALL',
     'COMMAND_CENTER',
     'SMART_INPUT',
@@ -347,10 +432,84 @@ function PromptsTab() {
     }
   };
 
+  const handleCreate = async () => {
+    try {
+      setSaving(true);
+      const token = getAdminAccessToken();
+      if (!token) return;
+      await commandCenterApi.createPrompt(token, formData);
+      setShowCreateModal(false);
+      resetForm();
+      loadPrompts();
+    } catch (error) {
+      console.error('Failed to create prompt:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUpdate = async () => {
+    if (!editingPrompt) return;
+    try {
+      setSaving(true);
+      const token = getAdminAccessToken();
+      if (!token) return;
+      await commandCenterApi.updatePrompt(token, editingPrompt.id, formData);
+      setEditingPrompt(null);
+      resetForm();
+      loadPrompts();
+    } catch (error) {
+      console.error('Failed to update prompt:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this prompt?')) return;
+    try {
+      const token = getAdminAccessToken();
+      if (!token) return;
+      await commandCenterApi.deletePrompt(token, id);
+      loadPrompts();
+    } catch (error) {
+      console.error('Failed to delete prompt:', error);
+    }
+  };
+
+  const handleEdit = (prompt: SystemPrompt) => {
+    setEditingPrompt(prompt);
+    setFormData({
+      promptKey: prompt.promptKey,
+      promptName: prompt.promptName,
+      promptCategory: prompt.promptCategory,
+      promptContent: prompt.promptContent,
+      description: prompt.description || '',
+    });
+  };
+
+  const resetForm = () => {
+    setFormData({
+      promptKey: '',
+      promptName: '',
+      promptCategory: 'COMMAND_CENTER' as SystemPrompt['promptCategory'],
+      promptContent: '',
+      description: '',
+    });
+  };
+
+  const closeModal = () => {
+    setShowCreateModal(false);
+    setEditingPrompt(null);
+    resetForm();
+  };
+
   const filteredPrompts =
     selectedCategory === 'ALL'
       ? prompts
       : prompts.filter((p) => p.promptCategory === selectedCategory);
+
+  const showModal = showCreateModal || editingPrompt;
 
   if (loading) {
     return (
@@ -364,7 +523,10 @@ function PromptsTab() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">System Prompts</h2>
-        <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+        >
           <Plus className="w-4 h-4" />
           Add Prompt
         </button>
@@ -383,7 +545,7 @@ function PromptsTab() {
                 : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800'
             )}
           >
-            {cat.replace('_', ' ')}
+            {cat.replace(/_/g, ' ')}
           </button>
         ))}
       </div>
@@ -423,13 +585,18 @@ function PromptsTab() {
                 </div>
                 <div className="flex items-center gap-2 ml-4">
                   <button
-                    onClick={() => setEditingPrompt(prompt)}
+                    onClick={() => handleEdit(prompt)}
                     className="p-2 rounded-lg hover:bg-white/5 text-slate-400 transition-colors"
+                    title="Edit"
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
-                  <button className="p-2 rounded-lg hover:bg-white/5 text-slate-400 transition-colors">
-                    <Eye className="w-4 h-4" />
+                  <button
+                    onClick={() => handleDelete(prompt.id)}
+                    className="p-2 rounded-lg hover:bg-red-500/10 text-red-400 transition-colors"
+                    title="Delete"
+                  >
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </div>
@@ -438,7 +605,93 @@ function PromptsTab() {
         )}
       </div>
 
-      {/* Edit Modal would go here */}
+      {/* Create/Edit Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-900 rounded-xl border border-white/10 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-white/10">
+              <h3 className="text-lg font-semibold">
+                {editingPrompt ? 'Edit Prompt' : 'Create New Prompt'}
+              </h3>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-slate-400 mb-1">Prompt Key</label>
+                  <input
+                    type="text"
+                    placeholder="e.g., smart_input_system"
+                    className="w-full px-3 py-2 bg-slate-800/50 border border-white/10 rounded-lg"
+                    value={formData.promptKey}
+                    onChange={(e) => setFormData({ ...formData, promptKey: e.target.value })}
+                    disabled={!!editingPrompt}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-slate-400 mb-1">Prompt Name</label>
+                  <input
+                    type="text"
+                    placeholder="e.g., Smart Input System Prompt"
+                    className="w-full px-3 py-2 bg-slate-800/50 border border-white/10 rounded-lg"
+                    value={formData.promptName}
+                    onChange={(e) => setFormData({ ...formData, promptName: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">Category</label>
+                <select
+                  className="w-full px-3 py-2 bg-slate-800/50 border border-white/10 rounded-lg"
+                  value={formData.promptCategory}
+                  onChange={(e) => setFormData({ ...formData, promptCategory: e.target.value as SystemPrompt['promptCategory'] })}
+                >
+                  {categories.filter(c => c !== 'ALL').map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat.replace(/_/g, ' ')}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">Description</label>
+                <input
+                  type="text"
+                  placeholder="Brief description of this prompt"
+                  className="w-full px-3 py-2 bg-slate-800/50 border border-white/10 rounded-lg"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">Prompt Content</label>
+                <textarea
+                  rows={12}
+                  placeholder="Enter the system prompt content..."
+                  className="w-full px-3 py-2 bg-slate-800/50 border border-white/10 rounded-lg font-mono text-sm"
+                  value={formData.promptContent}
+                  onChange={(e) => setFormData({ ...formData, promptContent: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="p-6 border-t border-white/10 flex justify-end gap-3">
+              <button
+                onClick={closeModal}
+                className="px-4 py-2 rounded-lg hover:bg-white/5"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={editingPrompt ? handleUpdate : handleCreate}
+                disabled={saving || !formData.promptKey || !formData.promptName || !formData.promptContent}
+                className="px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2"
+              >
+                {saving && <RefreshCw className="w-4 h-4 animate-spin" />}
+                {editingPrompt ? 'Save Changes' : 'Create Prompt'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -448,6 +701,7 @@ function AttachmentsTab() {
   const [attachments, setAttachments] = useState<TestAttachment[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadAttachments();
@@ -463,6 +717,55 @@ function AttachmentsTab() {
       console.error('Failed to load attachments:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploading(true);
+      const token = getAdminAccessToken();
+      if (!token) return;
+
+      // Determine attachment type from file
+      let attachmentType: 'IMAGE' | 'AUDIO' | 'PDF' | 'DOCUMENT' = 'DOCUMENT';
+      if (file.type.startsWith('image/')) attachmentType = 'IMAGE';
+      else if (file.type.startsWith('audio/')) attachmentType = 'AUDIO';
+      else if (file.type === 'application/pdf') attachmentType = 'PDF';
+
+      await commandCenterApi.createTestAttachment(
+        token,
+        {
+          attachmentName: file.name,
+          attachmentType: attachmentType,
+          mimeType: file.type,
+          fileSizeBytes: file.size,
+          useCase: 'general',
+        },
+        file
+      );
+      loadAttachments();
+    } catch (error) {
+      console.error('Failed to upload attachment:', error);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this attachment?')) return;
+    try {
+      const token = getAdminAccessToken();
+      if (!token) return;
+      await commandCenterApi.deleteTestAttachment(token, id);
+      loadAttachments();
+    } catch (error) {
+      console.error('Failed to delete attachment:', error);
     }
   };
 
@@ -501,14 +804,32 @@ function AttachmentsTab() {
             Pre-uploaded files for testing in simulator (no camera/mic access)
           </p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
-          <Upload className="w-4 h-4" />
-          Upload Attachment
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors disabled:opacity-50"
+        >
+          {uploading ? (
+            <RefreshCw className="w-4 h-4 animate-spin" />
+          ) : (
+            <Upload className="w-4 h-4" />
+          )}
+          {uploading ? 'Uploading...' : 'Upload Attachment'}
         </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*,audio/*,application/pdf"
+          className="hidden"
+          onChange={handleUpload}
+        />
       </div>
 
       {/* Upload Zone */}
-      <div className="border-2 border-dashed border-white/10 rounded-xl p-8 text-center hover:border-primary/30 transition-colors cursor-pointer">
+      <div
+        onClick={() => fileInputRef.current?.click()}
+        className="border-2 border-dashed border-white/10 rounded-xl p-8 text-center hover:border-primary/30 transition-colors cursor-pointer"
+      >
         <Upload className="w-12 h-12 mx-auto text-slate-400 mb-4" />
         <p className="text-slate-400">
           Drag & drop files here, or click to browse
@@ -552,7 +873,10 @@ function AttachmentsTab() {
                 <Download className="w-3 h-3" />
                 Download
               </button>
-              <button className="p-1.5 rounded-lg hover:bg-red-500/10 text-red-400">
+              <button
+                onClick={() => handleDelete(attachment.id)}
+                className="p-1.5 rounded-lg hover:bg-red-500/10 text-red-400"
+              >
                 <Trash2 className="w-3 h-3" />
               </button>
             </div>
@@ -597,6 +921,7 @@ function SettingsTab() {
   const [settings, setSettings] = useState<CommandCenterSetting[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [editedValues, setEditedValues] = useState<Record<string, string>>({});
 
   useEffect(() => {
     loadSettings();
@@ -608,6 +933,12 @@ function SettingsTab() {
       if (!token) return;
       const data = await commandCenterApi.getAllSettings(token);
       setSettings(data);
+      // Initialize edited values with current values
+      const initial: Record<string, string> = {};
+      data.forEach((s: CommandCenterSetting) => {
+        initial[s.id] = s.settingValue;
+      });
+      setEditedValues(initial);
     } catch (error) {
       console.error('Failed to load settings:', error);
     } finally {
@@ -615,10 +946,34 @@ function SettingsTab() {
     }
   };
 
+  const handleValueChange = (id: string, value: string) => {
+    setEditedValues({ ...editedValues, [id]: value });
+  };
+
   const handleSave = async () => {
     setSaving(true);
-    // TODO: Implement save
-    setTimeout(() => setSaving(false), 1000);
+    try {
+      const token = getAdminAccessToken();
+      if (!token) return;
+
+      // Update each setting that has changed
+      const promises = settings.map(async (setting) => {
+        const newValue = editedValues[setting.id];
+        if (newValue !== setting.settingValue) {
+          return commandCenterApi.updateSetting(token, setting.id, {
+            settingValue: newValue,
+          });
+        }
+        return Promise.resolve();
+      });
+
+      await Promise.all(promises);
+      loadSettings();
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (loading) {
@@ -656,7 +1011,7 @@ function SettingsTab() {
             <div className="flex items-center justify-between">
               <div>
                 <label className="font-medium">
-                  {setting.settingKey.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
+                  {setting.settingKey.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
                 </label>
                 <p className="text-sm text-slate-400 mt-0.5">{setting.description}</p>
               </div>
@@ -666,20 +1021,23 @@ function SettingsTab() {
                     <input
                       type="checkbox"
                       className="sr-only peer"
-                      defaultChecked={setting.settingValue === 'true'}
+                      checked={editedValues[setting.id] === 'true'}
+                      onChange={(e) => handleValueChange(setting.id, e.target.checked ? 'true' : 'false')}
                     />
                     <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                   </label>
                 ) : setting.settingType === 'NUMBER' ? (
                   <input
                     type="number"
-                    defaultValue={setting.settingValue}
+                    value={editedValues[setting.id] || ''}
+                    onChange={(e) => handleValueChange(setting.id, e.target.value)}
                     className="w-24 px-3 py-2 bg-slate-800/50 border border-white/10 rounded-lg text-right"
                   />
                 ) : (
                   <input
                     type={setting.isSecret ? 'password' : 'text'}
-                    defaultValue={setting.settingValue}
+                    value={editedValues[setting.id] || ''}
+                    onChange={(e) => handleValueChange(setting.id, e.target.value)}
                     className="w-64 px-3 py-2 bg-slate-800/50 border border-white/10 rounded-lg"
                   />
                 )}
