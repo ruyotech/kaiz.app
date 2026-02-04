@@ -84,6 +84,17 @@ function DetailField({ icon, label, value, color = '#6B7280' }: DetailFieldProps
 // ============================================================================
 
 function TaskDetailSection({ draft }: { draft: TaskDraft }) {
+  // Backend may return lifeWheelAreaId or lifeWheelArea
+  const lifeWheelDisplay = formatLifeWheelArea(
+    (draft as any).lifeWheelAreaId || draft.lifeWheelArea
+  );
+  // Backend may return eisenhowerQuadrantId or eisenhowerQuadrant
+  const quadrantDisplay = formatQuadrant(
+    (draft as any).eisenhowerQuadrantId || draft.eisenhowerQuadrant || ''
+  );
+  // Story points from backend
+  const storyPointsDisplay = formatStoryPoints((draft as any).storyPoints);
+  
   return (
     <>
       {draft.description && (
@@ -111,6 +122,12 @@ function TaskDetailSection({ draft }: { draft: TaskDraft }) {
           color={getPriorityColor(draft.priority)}
         />
         <DetailField 
+          icon="star-outline" 
+          label="Story Points" 
+          value={storyPointsDisplay}
+          color="#8B5CF6"
+        />
+        <DetailField 
           icon="clock-outline" 
           label="Estimated Time" 
           value={draft.estimatedMinutes ? `${draft.estimatedMinutes} minutes` : null}
@@ -125,13 +142,13 @@ function TaskDetailSection({ draft }: { draft: TaskDraft }) {
         <DetailField 
           icon="view-grid" 
           label="Eisenhower Quadrant" 
-          value={draft.eisenhowerQuadrant ? formatQuadrant(draft.eisenhowerQuadrant) : null}
+          value={quadrantDisplay || null}
           color="#F59E0B"
         />
         <DetailField 
           icon="chart-donut" 
           label="Life Wheel Area" 
-          value={draft.lifeWheelArea}
+          value={lifeWheelDisplay || null}
           color="#EC4899"
         />
         {draft.tags && draft.tags.length > 0 && (
@@ -389,11 +406,13 @@ export default function DraftDetailScreen() {
   const draft = useMemo<DraftPreview | null>(() => {
     try {
       if (params.draft) {
-        return JSON.parse(params.draft);
+        const parsed = JSON.parse(params.draft);
+        console.log('📋 [DraftDetail] Parsed draft:', JSON.stringify(parsed, null, 2));
+        return parsed;
       }
       return null;
     } catch (e) {
-      console.error('Failed to parse draft:', e);
+      console.error('❌ [DraftDetail] Failed to parse draft:', e);
       return null;
     }
   }, [params.draft]);
@@ -401,11 +420,13 @@ export default function DraftDetailScreen() {
   // State
   const [processingAction, setProcessingAction] = useState<ActionType | null>(null);
   
-  // Get type info
-  const typeColor = draft ? getDraftTypeColor(draft.draftType) : colors.primary;
-  const typeIcon = draft ? getDraftTypeIcon(draft.draftType) : 'file-document';
-  const typeName = draft ? getDraftTypeDisplayName(draft.draftType) : 'Item';
-  const title = draft ? getDraftTitle(draft.draft) : 'Draft';
+  // Get type info with safe defaults
+  const draftType = draft?.draftType || 'TASK';
+  const typeColor = getDraftTypeColor(draftType);
+  const typeIcon = getDraftTypeIcon(draftType);
+  const typeName = getDraftTypeDisplayName(draftType);
+  const title = draft ? (draft.title || getDraftTitle(draft.draft)) : 'Draft';
+  const confidence = draft?.confidence ?? 0.8;
   
   // =========================================================================
   // Actions
@@ -548,7 +569,7 @@ export default function DraftDetailScreen() {
               style={{ backgroundColor: typeColor + '20' }}
             >
               <Text className="text-sm font-semibold" style={{ color: typeColor }}>
-                {Math.round(draft.confidence * 100)}%
+                {Math.round(confidence * 100)}%
               </Text>
             </View>
           </View>
@@ -594,19 +615,19 @@ export default function DraftDetailScreen() {
             Details
           </Text>
           
-          {draft.draftType === 'TASK' && (
+          {draftType === 'TASK' && draft?.draft && (
             <TaskDetailSection draft={draft.draft as TaskDraft} />
           )}
-          {draft.draftType === 'CHALLENGE' && (
+          {draftType === 'CHALLENGE' && draft?.draft && (
             <ChallengeDetailSection draft={draft.draft as ChallengeDraft} />
           )}
-          {draft.draftType === 'EVENT' && (
+          {draftType === 'EVENT' && draft?.draft && (
             <EventDetailSection draft={draft.draft as EventDraft} />
           )}
-          {draft.draftType === 'BILL' && (
+          {draftType === 'BILL' && draft?.draft && (
             <BillDetailSection draft={draft.draft as BillDraft} />
           )}
-          {draft.draftType === 'NOTE' && (
+          {draftType === 'NOTE' && draft?.draft && (
             <NoteDetailSection draft={draft.draft as NoteDraft} />
           )}
         </View>
@@ -735,11 +756,50 @@ function getPriorityColor(priority?: string): string {
 }
 
 function formatQuadrant(quadrant: string): string {
-  switch (quadrant) {
-    case 'DO': return 'Do First (Urgent & Important)';
-    case 'SCHEDULE': return 'Schedule (Important, Not Urgent)';
-    case 'DELEGATE': return 'Delegate (Urgent, Not Important)';
-    case 'ELIMINATE': return 'Eliminate (Neither)';
-    default: return quadrant;
+  switch (quadrant?.toUpperCase()) {
+    case 'DO': case 'Q1': return 'Do First (Urgent & Important)';
+    case 'SCHEDULE': case 'Q2': return 'Schedule (Important, Not Urgent)';
+    case 'DELEGATE': case 'Q3': return 'Delegate (Urgent, Not Important)';
+    case 'ELIMINATE': case 'Q4': return 'Eliminate (Neither)';
+    default: return quadrant || '';
   }
+}
+
+function formatLifeWheelArea(areaId: string | undefined): string {
+  if (!areaId) return '';
+  
+  // Map backend IDs (lw-1, lw-2, etc.) to display names
+  const areaMap: Record<string, string> = {
+    'lw-1': 'Health & Fitness',
+    'lw-2': 'Career & Work',
+    'lw-3': 'Finance & Wealth',
+    'lw-4': 'Personal Growth',
+    'lw-5': 'Relationships',
+    'lw-6': 'Family',
+    'lw-7': 'Recreation & Fun',
+    'lw-8': 'Environment',
+    'life-health': 'Health & Fitness',
+    'life-career': 'Career & Work',
+    'life-finance': 'Finance & Wealth',
+    'life-growth': 'Personal Growth',
+    'life-relationships': 'Relationships',
+    'life-family': 'Family',
+    'life-recreation': 'Recreation & Fun',
+    'life-environment': 'Environment',
+  };
+  
+  return areaMap[areaId.toLowerCase()] || areaId;
+}
+
+function formatStoryPoints(points: number | undefined): string {
+  if (!points) return '';
+  const effort: Record<number, string> = {
+    1: '1 - Trivial',
+    2: '2 - Easy',
+    3: '3 - Small',
+    5: '5 - Medium',
+    8: '8 - Large',
+    13: '13 - Extra Large',
+  };
+  return effort[points] || `${points} points`;
 }

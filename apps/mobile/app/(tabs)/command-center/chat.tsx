@@ -183,24 +183,38 @@ export default function CommandCenterChatScreen() {
 
         // Transform backend response to frontend DraftPreview structure
         // Backend returns: { sessionId, status, intentDetected, confidenceScore, draft: {type, title, ...}, ... }
-        // Frontend expects: { draft: { id, draftType, status, confidence, title, draft: {type, title, ...}, ... } }
+        // Frontend expects: { id, draftType, status, confidence, title, draft: {type, title, ...}, ... }
         let draftPreview = null;
         if (aiResponse.draft && aiResponse.status === 'READY') {
           const rawDraft = aiResponse.draft;
-          const draftType = (aiResponse.intentDetected || rawDraft.type?.toUpperCase() || 'TASK') as any;
+          // Normalize draft type to uppercase
+          const normalizedType = (rawDraft.type || '').toUpperCase() || 'TASK';
+          const draftType = (aiResponse.intentDetected || normalizedType) as any;
+          
+          // Transform backend fields to frontend format
+          const transformedDraft = {
+            ...rawDraft,
+            type: normalizedType, // Ensure type is uppercase
+            // Map backend IDs to frontend display values
+            lifeWheelArea: rawDraft.lifeWheelAreaId || rawDraft.lifeWheelArea,
+            eisenhowerQuadrant: rawDraft.eisenhowerQuadrantId || rawDraft.eisenhowerQuadrant,
+          };
+          
           draftPreview = {
             id: aiResponse.sessionId, // Use sessionId as draft ID
             draftType: draftType,
             status: 'PENDING_APPROVAL' as const,
-            confidence: aiResponse.confidenceScore || 0.8,
+            confidence: Number(aiResponse.confidenceScore) || 0.8,
             title: rawDraft.title || rawDraft.name || 'Untitled',
             description: rawDraft.description,
-            draft: rawDraft,
+            draft: transformedDraft,
             reasoning: aiResponse.reasoning,
             suggestions: aiResponse.suggestions,
             expiresAt: aiResponse.expiresAt,
             createdAt: new Date().toISOString(),
           };
+          
+          console.log('📋 [DraftPreview] Created:', JSON.stringify(draftPreview, null, 2));
           setCurrentDraftId(aiResponse.sessionId);
         }
 
