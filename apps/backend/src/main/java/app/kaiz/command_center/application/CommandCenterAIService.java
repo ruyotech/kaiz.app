@@ -2,6 +2,9 @@ package app.kaiz.command_center.application;
 
 import app.kaiz.command_center.api.dto.CommandCenterAIResponse;
 import app.kaiz.command_center.api.dto.CommandCenterAIResponse.AttachmentSummary;
+import app.kaiz.command_center.application.AIConversationLogger.AttachmentInfo;
+import app.kaiz.command_center.application.AIConversationLogger.ConversationLog;
+import app.kaiz.command_center.application.AIConversationLogger.ProviderInfo;
 import app.kaiz.command_center.domain.*;
 import app.kaiz.command_center.infrastructure.PendingDraftRepository;
 import app.kaiz.identity.domain.User;
@@ -44,6 +47,7 @@ public class CommandCenterAIService {
   private final ObjectMapper objectMapper;
   private final PendingDraftRepository draftRepository;
   private final UserRepository userRepository;
+  private final AIConversationLogger aiLogger;
 
   // Draft expiration time (24 hours)
   private static final long DRAFT_EXPIRATION_HOURS = 24;
@@ -64,62 +68,96 @@ public class CommandCenterAIService {
       List<AttachmentSummary> attachmentSummaries,
       String voiceTranscription) {
 
-    log.info("🤖 [AI] Processing input for user: {}", userId);
+    // Start structured conversation logging
+    ConversationLog conversation = aiLogger.startConversation(userId, "SMART_INPUT");
 
-    // Build the user message combining all inputs
-    String userPrompt = buildUserPrompt(text, attachmentSummaries, voiceTranscription);
-    log.debug("🤖 [AI] User prompt: {}", userPrompt);
+    try {
+      // Log user input with structured format
+      List<AttachmentInfo> attachmentInfos = null;
+      if (attachmentSummaries != null && !attachmentSummaries.isEmpty()) {
+        attachmentInfos =
+            attachmentSummaries.stream()
+                .map(
+                    att ->
+                        new AttachmentInfo(
+                            att.name(),
+                            att.type(),
+                            att.mimeType(),
+                            att.size(),
+                            att.extractedText()))
+                .toList();
+      }
+      conversation.logInput(text, voiceTranscription, attachmentInfos);
 
-    // Get system prompt with current date context
-    String tomorrowDate = LocalDate.now().plusDays(1).format(DateTimeFormatter.ISO_LOCAL_DATE);
-    String systemPrompt = CommandCenterSystemPrompt.getPromptWithDates(tomorrowDate);
+      // Build the user message combining all inputs
+      String userPrompt = buildUserPrompt(text, attachmentSummaries, voiceTranscription);
+      conversation.logUserPrompt(userPrompt);
 
-    // Call Claude AI
-    String aiResponse = callClaude(systemPrompt, userPrompt);
-    log.debug("🤖 [AI] Raw response: {}", aiResponse);
+      // Get system prompt with current date context
+      String tomorrowDate = LocalDate.now().plusDays(1).format(DateTimeFormatter.ISO_LOCAL_DATE);
+      String systemPrompt = CommandCenterSystemPrompt.getPromptWithDates(tomorrowDate);
+      conversation.logSystemPrompt(systemPrompt, false); // Preview only, too long for full
 
-    // Parse the AI response
-    AIResponseParsed parsed = parseAIResponse(aiResponse);
+      // Log provider info
+      conversation.logProviderInfo(ProviderInfo.anthropic());
 
-    // Create and save the draft
-    User user =
-        userRepository
-            .findById(userId)
-            .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+      // Call Claude AI
+      long aiStartTime = System.currentTimeMillis();
+      String aiResponse = callClaudeInternal(systemPrompt, userPrompt);
+      long aiDuration = System.currentTimeMillis() - aiStartTime;
+      conversation.logAIResponse(aiResponse, aiDuration);
 
-    PendingDraft pendingDraft =
-        PendingDraft.builder()
-            .user(user)
-            .draftType(parsed.draft().type())
-            .draftContent(parsed.draft())
-            .confidenceScore(parsed.confidenceScore())
-            .aiReasoning(parsed.reasoning())
-            .originalInputText(text)
-            .voiceTranscription(voiceTranscription)
-            .attachmentCount(attachmentSummaries != null ? attachmentSummaries.size() : 0)
-            .processedAt(Instant.now())
-            .expiresAt(Instant.now().plus(DRAFT_EXPIRATION_HOURS, ChronoUnit.HOURS))
-            .build();
+      // Parse the AI response
+      AIResponseParsed parsed = parseAIResponse(aiResponse);
+      conversation.logParsedResult(
+          parsed.draft().type().name(), parsed.confidenceScore(), parsed.reasoning());
 
-    PendingDraft saved = draftRepository.save(pendingDraft);
-    log.info("🤖 [AI] Draft saved with ID: {}, type: {}", saved.getId(), parsed.draft().type());
+      // Create and save the draft
+      User user =
+          userRepository
+              .findById(userId)
+              .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
 
-    // Build response
-    return CommandCenterAIResponse.of(
-        saved.getId(),
-        parsed.draft().type(),
-        parsed.confidenceScore(),
-        parsed.draft(),
-        parsed.reasoning(),
-        parsed.suggestions(),
-        text,
-        attachmentSummaries,
-        voiceTranscription,
-        saved.getExpiresAt());
+      PendingDraft pendingDraft =
+          PendingDraft.builder()
+              .user(user)
+              .draftType(parsed.draft().type())
+              .draftContent(parsed.draft())
+              .confidenceScore(parsed.confidenceScore())
+              .aiReasoning(parsed.reasoning())
+              .originalInputText(text)
+              .voiceTranscription(voiceTranscription)
+              .attachmentCount(attachmentSummaries != null ? attachmentSummaries.size() : 0)
+              .processedAt(Instant.now())
+              .expiresAt(Instant.now().plus(DRAFT_EXPIRATION_HOURS, ChronoUnit.HOURS))
+              .build();
+
+      PendingDraft saved = draftRepository.save(pendingDraft);
+
+      // Complete conversation log
+      conversation.complete(saved.getId().toString(), parsed.draft().type().name());
+
+      // Build response
+      return CommandCenterAIResponse.of(
+          saved.getId(),
+          parsed.draft().type(),
+          parsed.confidenceScore(),
+          parsed.draft(),
+          parsed.reasoning(),
+          parsed.suggestions(),
+          text,
+          attachmentSummaries,
+          voiceTranscription,
+          saved.getExpiresAt());
+
+    } catch (Exception e) {
+      conversation.logError("PROCESS_INPUT", e.getMessage(), e);
+      throw e;
+    }
   }
 
-  /** Call Claude AI with the given prompts. */
-  private String callClaude(String systemPrompt, String userPrompt) {
+  /** Internal method to call Claude AI - logging is handled by caller. */
+  private String callClaudeInternal(String systemPrompt, String userPrompt) {
     try {
       var prompt =
           new Prompt(
@@ -130,7 +168,6 @@ public class CommandCenterAIService {
       var response = chatModel.call(prompt);
       return response.getResult().getOutput().getText();
     } catch (Exception e) {
-      log.error("🤖 [AI] Error calling Claude: {}", e.getMessage(), e);
       throw new AIProcessingException("Failed to process with AI: " + e.getMessage(), e);
     }
   }
@@ -144,29 +181,37 @@ public class CommandCenterAIService {
    * @return Extracted text from the image
    */
   public String extractTextFromImage(byte[] imageBytes, String contentType) {
-    log.info("🔍 [OCR] Extracting text from image bytes, contentType: {}", contentType);
-
-    MimeType mimeType = getMimeTypeForImage(contentType);
-    if (mimeType == null) {
-      log.warn("🔍 [OCR] Unsupported image type: {}", contentType);
-      return null;
-    }
-
-    var imageResource = new ByteArrayResource(imageBytes);
-    var media = new Media(mimeType, imageResource);
-    var userMessage = UserMessage.builder().text(OCR_PROMPT).media(media).build();
+    // Start OCR conversation log
+    ConversationLog conversation = aiLogger.startConversation(null, "OCR_EXTRACTION");
 
     try {
+      conversation.logOCRRequest(
+          "image_bytes", contentType, imageBytes != null ? imageBytes.length : 0);
+
+      MimeType mimeType = getMimeTypeForImage(contentType);
+      if (mimeType == null) {
+        log.warn("🔍 [OCR] Unsupported image type: {}", contentType);
+        return null;
+      }
+
+      conversation.logProviderInfo(ProviderInfo.anthropic());
+
+      var imageResource = new ByteArrayResource(imageBytes);
+      var media = new Media(mimeType, imageResource);
+      var userMessage = UserMessage.builder().text(OCR_PROMPT).media(media).build();
+
+      long startTime = System.currentTimeMillis();
       var prompt = new Prompt(List.of(userMessage));
       var response = chatModel.call(prompt);
       String extractedText = response.getResult().getOutput().getText();
+      long duration = System.currentTimeMillis() - startTime;
 
-      log.info(
-          "🔍 [OCR] Extracted {} characters from image bytes",
-          extractedText != null ? extractedText.length() : 0);
+      conversation.logOCRResponse(extractedText, duration);
+      conversation.complete(null, "OCR_RESULT");
+
       return extractedText;
     } catch (Exception e) {
-      log.error("🔍 [OCR] Error extracting text from image bytes: {}", e.getMessage(), e);
+      conversation.logError("OCR_EXTRACTION", e.getMessage(), e);
       return null;
     }
   }
@@ -180,34 +225,41 @@ public class CommandCenterAIService {
    * @throws IOException If the file cannot be read
    */
   public String extractTextFromImage(MultipartFile file) throws IOException {
-    log.info("🔍 [OCR] Extracting text from image: {}", file.getOriginalFilename());
-
-    // Determine MIME type
-    MimeType mimeType = getMimeTypeForImage(file.getContentType());
-    if (mimeType == null) {
-      log.warn("🔍 [OCR] Unsupported image type: {}", file.getContentType());
-      return null;
-    }
-
-    // Read image bytes and wrap in Resource
-    byte[] imageBytes = file.getBytes();
-    var imageResource = new ByteArrayResource(imageBytes);
-
-    // Create multimodal message with image using builder
-    var media = new Media(mimeType, imageResource);
-    var userMessage = UserMessage.builder().text(OCR_PROMPT).media(media).build();
+    // Start OCR conversation log
+    ConversationLog conversation = aiLogger.startConversation(null, "OCR_FILE_EXTRACTION");
 
     try {
+      conversation.logOCRRequest(file.getOriginalFilename(), file.getContentType(), file.getSize());
+
+      // Determine MIME type
+      MimeType mimeType = getMimeTypeForImage(file.getContentType());
+      if (mimeType == null) {
+        log.warn("🔍 [OCR] Unsupported image type: {}", file.getContentType());
+        return null;
+      }
+
+      conversation.logProviderInfo(ProviderInfo.anthropic());
+
+      // Read image bytes and wrap in Resource
+      byte[] imageBytes = file.getBytes();
+      var imageResource = new ByteArrayResource(imageBytes);
+
+      // Create multimodal message with image using builder
+      var media = new Media(mimeType, imageResource);
+      var userMessage = UserMessage.builder().text(OCR_PROMPT).media(media).build();
+
+      long startTime = System.currentTimeMillis();
       var prompt = new Prompt(List.of(userMessage));
       var response = chatModel.call(prompt);
       String extractedText = response.getResult().getOutput().getText();
+      long duration = System.currentTimeMillis() - startTime;
 
-      log.info(
-          "🔍 [OCR] Extracted {} characters from image",
-          extractedText != null ? extractedText.length() : 0);
+      conversation.logOCRResponse(extractedText, duration);
+      conversation.complete(null, "OCR_FILE_RESULT");
+
       return extractedText;
     } catch (Exception e) {
-      log.error("🔍 [OCR] Error extracting text from image: {}", e.getMessage(), e);
+      conversation.logError("OCR_FILE_EXTRACTION", e.getMessage(), e);
       return null;
     }
   }

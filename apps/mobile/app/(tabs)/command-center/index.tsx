@@ -564,7 +564,7 @@ export default function CommandCenterScreen() {
       {/* Pending Approval */}
       <Pressable
         onPress={() => {
-          // Could navigate to pending approvals screen or show modal
+          router.push('/(tabs)/command-center/pending');
         }}
         className="relative mr-2"
       >

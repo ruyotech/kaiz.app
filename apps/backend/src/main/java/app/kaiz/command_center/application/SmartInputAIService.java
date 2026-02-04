@@ -161,29 +161,29 @@ public class SmartInputAIService {
       prompt.append("\n\nAttachments:");
       for (var attachment : request.attachments()) {
         prompt.append("\n- Type: ").append(attachment.mimeType());
-        
+
         String extractedText = attachment.extractedText();
-        
+
         // Handle test attachment - fetch image and extract text via OCR
         if (attachment.isTestAttachment()) {
           try {
-            TestAttachment testAttachment = testAttachmentRepository
-                .findById(attachment.testAttachmentId())
-                .orElse(null);
-            
+            TestAttachment testAttachment =
+                testAttachmentRepository.findById(attachment.testAttachmentId()).orElse(null);
+
             if (testAttachment != null && testAttachment.getFileData() != null) {
-              log.info("Processing test attachment image via OCR: {}", testAttachment.getAttachmentName());
-              extractedText = commandCenterAIService.extractTextFromImage(
-                  testAttachment.getFileData(),
-                  testAttachment.getMimeType()
-              );
+              log.info(
+                  "Processing test attachment image via OCR: {}",
+                  testAttachment.getAttachmentName());
+              extractedText =
+                  commandCenterAIService.extractTextFromImage(
+                      testAttachment.getFileData(), testAttachment.getMimeType());
               log.info("OCR extracted text: {}", extractedText);
             }
           } catch (Exception e) {
             log.error("Failed to process test attachment for OCR", e);
           }
         }
-        
+
         if (extractedText != null) {
           prompt.append(", Extracted text: \"").append(extractedText).append("\"");
         }
