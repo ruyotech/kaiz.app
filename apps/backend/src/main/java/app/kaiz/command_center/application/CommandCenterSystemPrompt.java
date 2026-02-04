@@ -43,6 +43,13 @@ public final class CommandCenterSystemPrompt {
 
             When image content is described, identify the type and extract relevant data:
 
+            IMPORTANT: PRESERVE ALL EXTRACTED INFORMATION!
+            If you extract information that doesn't have a dedicated field in the chosen entity type
+            (e.g., location/attendees for TASK, meeting links, room numbers, phone numbers, etc.),
+            you MUST include that information in the "description" field.
+            Never discard extracted data - append it to description like:
+            "Description text here. Location: [location]. Attendees: [names]. Meeting Link: [url]."
+
             📅 CALENDAR/MEETING SCREENSHOTS (Outlook, Teams, Google Calendar):
                → Create EVENT with extracted: title, date, time, location, attendees
                → If info is complete: status = "READY"
@@ -95,37 +102,50 @@ public final class CommandCenterSystemPrompt {
             AVAILABLE ENTITY TYPES
             ═══════════════════════════════════════════════════════════════════════════════
 
+            IMPORTANT: Each entity has specific fields. For any extracted information that
+            doesn't fit into dedicated fields (location, attendees, links, room numbers, etc.),
+            ALWAYS include it in the "description" field. Never lose extracted data!
+
             1. TASK - A single actionable item for sprints
+               • Fields: title, description, lifeWheelAreaId, eisenhowerQuadrantId, storyPoints, dueDate, isRecurring
                • Has story points (effort estimate)
                • Has Eisenhower quadrant (priority)
                • Can belong to an Epic
                • Can have a due date
                • Can be recurring
+               • NOTE: No location/attendees fields - put these in description!
 
             2. EPIC - A larger goal containing multiple tasks
+               • Fields: title, description, lifeWheelAreaId, suggestedTasks, color, icon, startDate, endDate
                • Groups related tasks together
                • Has color and icon for visual identification
                • Example: "Get fit" (contains: buy gym clothes, sign up, create workout plan)
 
             3. CHALLENGE - A habit-building tracker (7-90 days)
+               • Fields: name, description, lifeWheelAreaId, metricType, targetValue, unit, duration, recurrence, graceDays
                • Daily/weekly habit tracking
                • Streak counting and grace days
                • Metric types: count, yesno, streak, time
                • SUGGEST THIS for fitness, health, learning goals!
                • Example: "40-day 10,000 steps challenge"
+               • NOTE: No location/attendees fields - put these in description!
 
             4. EVENT - A calendar-blocked time commitment
+               • Fields: title, description, lifeWheelAreaId, date, startTime, endTime, location, isAllDay, recurrence, attendees
                • Specific date and time
                • Can be all-day or time-bounded
                • Has location (optional)
+               • Has attendees list
                • Can be recurring (great for birthdays!)
 
             5. BILL - A financial item to track
+               • Fields: vendorName, amount, currency, dueDate, category, lifeWheelAreaId, isRecurring, recurrence, notes
                • Vendor, amount, due date
                • Can be recurring (monthly bills)
                • Always maps to Finance & Money life wheel area
 
             6. NOTE - A quick capture when intent is unclear
+               • Fields: title, content, lifeWheelAreaId, tags, clarifyingQuestions
                • Use as last resort
                • Include clarifying questions
 

@@ -71,6 +71,13 @@ export const commandCenterService = {
     console.log('💬 [CommandCenter] Text:', text);
     console.log('💬 [CommandCenter] Attachments:', attachments.length);
     console.log('💬 [CommandCenter] Session:', sessionId);
+    
+    // Debug: Log each attachment details
+    if (attachments.length > 0) {
+      attachments.forEach((att, i) => {
+        console.log(`💬 [CommandCenter] Attachment[${i}]:`, JSON.stringify(att));
+      });
+    }
 
     try {
       const headers = await getAuthHeaders();
@@ -81,6 +88,8 @@ export const commandCenterService = {
         attachments: attachments.length > 0 ? attachments : undefined,
         sessionId,
       };
+      
+      console.log('💬 [CommandCenter] Full request:', JSON.stringify(request, null, 2));
 
       const response = await fetch(`${API_BASE_URL}/api/v1/command-center/smart-input`, {
         method: 'POST',

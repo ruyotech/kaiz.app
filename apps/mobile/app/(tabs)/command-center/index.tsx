@@ -124,9 +124,14 @@ export default function CommandCenterScreen() {
   // Fetch test attachments when test mode is enabled
   useEffect(() => {
     if (testModeEnabled && testAttachments.length === 0) {
+      console.log('🧪 [TestMode] Fetching test attachments...');
       commandCenterService.getTestAttachments().then(response => {
+        console.log('🧪 [TestMode] Test attachments response:', JSON.stringify(response));
         if (response.success && response.data) {
+          console.log('🧪 [TestMode] Loaded', response.data.length, 'test attachments');
           setTestAttachments(response.data);
+        } else {
+          console.log('🧪 [TestMode] No test attachments found or error');
         }
       });
     }
@@ -167,6 +172,8 @@ export default function CommandCenterScreen() {
 
   const sendMessage = useCallback(async () => {
     const text = inputText.trim();
+    console.log('📤 [SendMessage] Called with text:', text, 'attachments:', attachments.length);
+    console.log('📤 [SendMessage] Attachments details:', JSON.stringify(attachments));
     if (!text && attachments.length === 0) return;
 
     // Add user message
@@ -459,25 +466,37 @@ export default function CommandCenterScreen() {
   }, []);
 
   // Handle + button press - auto-add test attachment if test mode is on
-  const handlePlusPress = useCallback(() => {
-    if (testModeEnabled && testAttachments.length > 0) {
-      // Auto-add first test attachment
-      const testAttachment = testAttachments[0];
-      setAttachments(prev => [
-        ...prev,
-        {
+  const handlePlusPress = useCallback(async () => {
+    console.log('🧪 [TestMode] + pressed, testModeEnabled:', testModeEnabled);
+    
+    if (testModeEnabled) {
+      // Fetch test attachment from web admin and add it
+      console.log('🧪 [TestMode] Fetching test attachment from web admin...');
+      const response = await commandCenterService.getTestAttachments();
+      console.log('🧪 [TestMode] Response:', JSON.stringify(response));
+      
+      if (response.success && response.data && response.data.length > 0) {
+        const testAttachment = response.data[0];
+        console.log('🧪 [TestMode] Adding test attachment:', testAttachment.attachmentName);
+        
+        const newAttachment = {
           id: Date.now().toString(),
           name: testAttachment.attachmentName,
           type: testAttachment.attachmentType.toLowerCase() as any,
           mimeType: testAttachment.mimeType,
           uri: testAttachment.fileUrl || '',
           testAttachmentId: testAttachment.id,
-        },
-      ]);
+        };
+        
+        setAttachments(prev => [...prev, newAttachment]);
+        Alert.alert('✅ Test Attachment Added', `File: ${testAttachment.attachmentName}`);
+      } else {
+        Alert.alert('❌ No Test Attachments', 'Upload a test file in Web Admin first.');
+      }
     } else {
       setShowInputOptions(!showInputOptions);
     }
-  }, [testModeEnabled, testAttachments, showInputOptions]);
+  }, [testModeEnabled, showInputOptions]);
 
   // =========================================================================
   // Voice Recording

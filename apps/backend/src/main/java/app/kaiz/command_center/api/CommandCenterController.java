@@ -60,6 +60,20 @@ public class CommandCenterController {
         "🧠 [Smart Input] Attachments: {}",
         request.attachments() != null ? request.attachments().size() : 0);
 
+    // Debug: Log each attachment details
+    if (request.attachments() != null && !request.attachments().isEmpty()) {
+      for (int i = 0; i < request.attachments().size(); i++) {
+        var att = request.attachments().get(i);
+        log.info(
+            "🧠 [Smart Input] Attachment[{}]: name={}, type={}, mimeType={}, testAttachmentId={}",
+            i,
+            att.name(),
+            att.type(),
+            att.mimeType(),
+            att.testAttachmentId());
+      }
+    }
+
     SmartInputResponse response = smartInputService.processInput(userId, request);
 
     log.info(

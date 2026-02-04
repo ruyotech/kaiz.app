@@ -211,7 +211,9 @@ public class SmartInputAIService {
       UUID sessionId, UUID userId, String aiContent, OriginalInput originalInput) {
 
     try {
-      JsonNode root = objectMapper.readTree(aiContent);
+      // Clean up the response (remove markdown code blocks if present)
+      String cleaned = cleanJsonResponse(aiContent);
+      JsonNode root = objectMapper.readTree(cleaned);
 
       String status = root.path("status").asText("READY");
       String intentType = root.path("intentType").asText("TASK");
@@ -751,5 +753,38 @@ public class SmartInputAIService {
     void questionCount(int count) {
       this.questionCount = count;
     }
+  }
+
+  /** Clean JSON response by removing markdown code blocks and extracting JSON. */
+  private String cleanJsonResponse(String response) {
+    String cleaned = response.trim();
+
+    // Remove markdown code blocks - handle various formats
+    if (cleaned.startsWith("```json")) {
+      cleaned = cleaned.substring(7);
+    } else if (cleaned.startsWith("```JSON")) {
+      cleaned = cleaned.substring(7);
+    } else if (cleaned.startsWith("```")) {
+      cleaned = cleaned.substring(3);
+    }
+
+    // Remove trailing ```
+    if (cleaned.endsWith("```")) {
+      cleaned = cleaned.substring(0, cleaned.length() - 3);
+    }
+
+    cleaned = cleaned.trim();
+
+    // If the response still doesn't start with {, try to extract JSON from the middle
+    if (!cleaned.startsWith("{") && !cleaned.startsWith("[")) {
+      int jsonStart = cleaned.indexOf("{");
+      int jsonEnd = cleaned.lastIndexOf("}");
+      if (jsonStart >= 0 && jsonEnd > jsonStart) {
+        cleaned = cleaned.substring(jsonStart, jsonEnd + 1);
+        log.debug("🧹 [SmartInput] Extracted JSON from position {} to {}", jsonStart, jsonEnd);
+      }
+    }
+
+    return cleaned.trim();
   }
 }

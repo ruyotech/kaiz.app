@@ -522,15 +522,35 @@ public class CommandCenterAIService {
   // Helper methods
   private String cleanJsonResponse(String response) {
     String cleaned = response.trim();
-    // Remove markdown code blocks
+
+    // Remove markdown code blocks - handle various formats
+    // Check for ```json or ``` at start
     if (cleaned.startsWith("```json")) {
+      cleaned = cleaned.substring(7);
+    } else if (cleaned.startsWith("```JSON")) {
       cleaned = cleaned.substring(7);
     } else if (cleaned.startsWith("```")) {
       cleaned = cleaned.substring(3);
     }
+
+    // Remove trailing ``` - could be anywhere at the end
     if (cleaned.endsWith("```")) {
       cleaned = cleaned.substring(0, cleaned.length() - 3);
     }
+
+    cleaned = cleaned.trim();
+
+    // If the response still doesn't start with {, try to extract JSON from the middle
+    if (!cleaned.startsWith("{") && !cleaned.startsWith("[")) {
+      // Look for JSON object start
+      int jsonStart = cleaned.indexOf("{");
+      int jsonEnd = cleaned.lastIndexOf("}");
+      if (jsonStart >= 0 && jsonEnd > jsonStart) {
+        cleaned = cleaned.substring(jsonStart, jsonEnd + 1);
+        log.debug("🧹 [AI] Extracted JSON from position {} to {}", jsonStart, jsonEnd);
+      }
+    }
+
     return cleaned.trim();
   }
 
