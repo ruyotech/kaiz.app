@@ -2,13 +2,14 @@
  * Draft Detail Screen
  * 
  * Shows full details of a pending draft from the Command Center AI.
+ * All fields are EDITABLE - user can modify before confirming.
  * Three actions available:
  * - Reject: Discard and return to Command Center conversation
  * - Confirm: Add to pending approval list for later review
  * - Approve: Directly create the item (task/event/challenge)
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,6 +17,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -45,8 +49,74 @@ import {
 
 type ActionType = 'reject' | 'confirm' | 'approve';
 
+// Editable form data structure
+interface EditableFormData {
+  title: string;
+  description: string;
+  dueDate: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  location: string;
+  priority: string;
+  storyPoints: number;
+  estimatedMinutes: number;
+  eisenhowerQuadrantId: string;
+  lifeWheelAreaId: string;
+  category: string;
+  attendees: string;
+  isRecurring: boolean;
+  isAllDay: boolean;
+}
+
 // ============================================================================
-// Field Display Component
+// Editable Field Component
+// ============================================================================
+
+interface EditableFieldProps {
+  icon: string;
+  label: string;
+  value: string;
+  onChangeText: (text: string) => void;
+  placeholder?: string;
+  multiline?: boolean;
+  keyboardType?: 'default' | 'numeric';
+}
+
+function EditableField({ 
+  icon, 
+  label, 
+  value, 
+  onChangeText, 
+  placeholder,
+  multiline = false,
+  keyboardType = 'default'
+}: EditableFieldProps) {
+  return (
+    <View className="flex-row items-start py-3 border-b border-gray-100">
+      <View className="w-10 h-10 rounded-xl bg-gray-100 items-center justify-center mr-3">
+        <MaterialCommunityIcons name={icon as any} size={20} color="#6B7280" />
+      </View>
+      <View className="flex-1">
+        <Text className="text-xs text-gray-500 uppercase tracking-wide mb-1">{label}</Text>
+        <TextInput
+          className="text-base text-gray-800 bg-gray-50 rounded-lg px-3 py-2"
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder || `Enter ${label.toLowerCase()}`}
+          placeholderTextColor="#9CA3AF"
+          multiline={multiline}
+          numberOfLines={multiline ? 3 : 1}
+          keyboardType={keyboardType}
+          style={multiline ? { minHeight: 60, textAlignVertical: 'top' } : {}}
+        />
+      </View>
+    </View>
+  );
+}
+
+// ============================================================================
+// Field Display Component (read-only)
 // ============================================================================
 
 interface DetailFieldProps {
@@ -496,7 +566,53 @@ export default function DraftDetailScreen() {
     }
   }, [params.draft]);
   
-  // State
+  // Editable form state - initialized from draft data
+  const [formData, setFormData] = useState<EditableFormData>({
+    title: '',
+    description: '',
+    dueDate: '',
+    date: '',
+    startTime: '',
+    endTime: '',
+    location: '',
+    priority: 'MEDIUM',
+    storyPoints: 3,
+    estimatedMinutes: 30,
+    eisenhowerQuadrantId: 'q2',
+    lifeWheelAreaId: 'lw-4',
+    category: '',
+    attendees: '',
+    isRecurring: false,
+    isAllDay: false,
+  });
+  
+  // Initialize form data from draft
+  useEffect(() => {
+    if (draft?.draft) {
+      // Cast to any since we're handling multiple draft types dynamically
+      const d = draft.draft as any;
+      setFormData({
+        title: d.title || draft.title || '',
+        description: d.description || '',
+        dueDate: d.dueDate || '',
+        date: d.date || '',
+        startTime: d.startTime || '',
+        endTime: d.endTime || '',
+        location: d.location || '',
+        priority: d.priority || 'MEDIUM',
+        storyPoints: d.storyPoints || 3,
+        estimatedMinutes: d.estimatedMinutes || 30,
+        eisenhowerQuadrantId: d.eisenhowerQuadrantId || 'q2',
+        lifeWheelAreaId: d.lifeWheelAreaId || 'lw-4',
+        category: d.category || '',
+        attendees: Array.isArray(d.attendees) ? d.attendees.join(', ') : (d.attendees || ''),
+        isRecurring: d.isRecurring || false,
+        isAllDay: d.isAllDay || false,
+      });
+    }
+  }, [draft]);
+  
+  // Processing state
   const [processingAction, setProcessingAction] = useState<ActionType | null>(null);
   
   // Get type info with safe defaults
@@ -504,8 +620,18 @@ export default function DraftDetailScreen() {
   const typeColor = getDraftTypeColor(draftType);
   const typeIcon = getDraftTypeIcon(draftType);
   const typeName = getDraftTypeDisplayName(draftType);
-  const title = draft ? (draft.title || getDraftTitle(draft.draft)) : 'Draft';
   const confidence = draft?.confidence ?? 0.8;
+  
+  // Determine if this looks like an event
+  const isEventLike = formData.startTime || formData.location || formData.attendees;
+  
+  // =========================================================================
+  // Form Updaters
+  // =========================================================================
+  
+  const updateField = useCallback((field: keyof EditableFormData, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  }, []);
   
   // =========================================================================
   // Actions
@@ -516,8 +642,7 @@ export default function DraftDetailScreen() {
     
     setProcessingAction('reject');
     try {
-      await commandCenterService.rejectDraft(draft.id);
-      // Go back to Command Center with rejection message
+      // Just go back - no need to call API for rejection of unsaved draft
       router.back();
     } catch (error) {
       console.error('Error rejecting draft:', error);
@@ -530,22 +655,43 @@ export default function DraftDetailScreen() {
   const handleConfirm = useCallback(async () => {
     if (!draft) return;
     
+    if (!formData.title.trim()) {
+      Alert.alert('Error', 'Please enter a title');
+      return;
+    }
+    
     setProcessingAction('confirm');
     try {
-      // Call API to save draft as task with PENDING_APPROVAL status
-      // draft.id is the sessionId from the SmartInput response
-      const response = await commandCenterService.saveToPending(draft.id);
+      // Use new endpoint that accepts draft data directly (bypasses session lookup)
+      const response = await commandCenterService.createPendingFromDraft({
+        draftType: draftType,
+        title: formData.title,
+        description: formData.description || undefined,
+        dueDate: formData.dueDate || undefined,
+        priority: formData.priority || undefined,
+        storyPoints: formData.storyPoints || undefined,
+        estimatedMinutes: formData.estimatedMinutes || undefined,
+        eisenhowerQuadrantId: formData.eisenhowerQuadrantId || undefined,
+        lifeWheelAreaId: formData.lifeWheelAreaId || undefined,
+        category: formData.category || undefined,
+        isRecurring: formData.isRecurring || undefined,
+        date: formData.date || undefined,
+        startTime: formData.startTime || undefined,
+        endTime: formData.endTime || undefined,
+        location: formData.location || undefined,
+        isAllDay: formData.isAllDay || undefined,
+        attendees: formData.attendees ? formData.attendees.split(',').map(a => a.trim()).filter(Boolean) : undefined,
+      });
       
       if (response.success && response.data) {
         const { taskId } = response.data;
         Alert.alert(
           '✅ Added to Pending',
-          `${typeName} "${title}" has been saved for approval.`,
+          `${typeName} "${formData.title}" has been saved for approval.`,
           [
             {
               text: 'View Pending',
               onPress: () => {
-                // Navigate to pending screen or directly to the task
                 router.replace({
                   pathname: '/(tabs)/command-center/pending-task',
                   params: { taskId }
@@ -569,19 +715,43 @@ export default function DraftDetailScreen() {
     } finally {
       setProcessingAction(null);
     }
-  }, [draft, router, typeName, title]);
+  }, [draft, formData, draftType, router, typeName]);
   
   const handleApprove = useCallback(async () => {
     if (!draft) return;
     
+    if (!formData.title.trim()) {
+      Alert.alert('Error', 'Please enter a title');
+      return;
+    }
+    
     setProcessingAction('approve');
     try {
-      const response = await commandCenterService.approveDraft(draft.id);
+      // For now, approve also uses createPendingFromDraft but could create directly
+      const response = await commandCenterService.createPendingFromDraft({
+        draftType: draftType,
+        title: formData.title,
+        description: formData.description || undefined,
+        dueDate: formData.dueDate || undefined,
+        priority: formData.priority || undefined,
+        storyPoints: formData.storyPoints || undefined,
+        estimatedMinutes: formData.estimatedMinutes || undefined,
+        eisenhowerQuadrantId: formData.eisenhowerQuadrantId || undefined,
+        lifeWheelAreaId: formData.lifeWheelAreaId || undefined,
+        category: formData.category || undefined,
+        isRecurring: formData.isRecurring || undefined,
+        date: formData.date || undefined,
+        startTime: formData.startTime || undefined,
+        endTime: formData.endTime || undefined,
+        location: formData.location || undefined,
+        isAllDay: formData.isAllDay || undefined,
+        attendees: formData.attendees ? formData.attendees.split(',').map(a => a.trim()).filter(Boolean) : undefined,
+      });
       
       if (response.success) {
         Alert.alert(
           '✅ Created!',
-          `${typeName} "${title}" has been created successfully.`,
+          `${typeName} "${formData.title}" has been created successfully.`,
           [
             {
               text: 'OK',
@@ -598,7 +768,7 @@ export default function DraftDetailScreen() {
     } finally {
       setProcessingAction(null);
     }
-  }, [draft, router, typeName, title]);
+  }, [draft, formData, draftType, router, typeName]);
   
   // =========================================================================
   // Render
@@ -628,27 +798,32 @@ export default function DraftDetailScreen() {
   return (
     <Container safeArea={false}>
       <ScreenHeader
-        title="Review Item"
+        title="Review & Edit"
         subtitle={`${typeName} from AI`}
         showBack
       />
       
-      <ScrollView 
-        className="flex-1" 
-        contentContainerStyle={{ padding: 16, paddingBottom: 200 }}
+      <KeyboardAvoidingView 
+        className="flex-1"
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        {/* Header Card */}
-        <View 
-          className="rounded-3xl overflow-hidden mb-6"
-          style={{ backgroundColor: typeColor + '10' }}
+        <ScrollView 
+          className="flex-1" 
+          contentContainerStyle={{ padding: 16, paddingBottom: 200 }}
+          keyboardShouldPersistTaps="handled"
         >
-          {/* Type Badge */}
+          {/* Header Card */}
           <View 
-            className="px-4 py-3 flex-row items-center"
-            style={{ backgroundColor: typeColor + '15' }}
+            className="rounded-3xl overflow-hidden mb-6"
+            style={{ backgroundColor: typeColor + '10' }}
           >
+            {/* Type Badge */}
             <View 
-              className="w-12 h-12 rounded-2xl items-center justify-center"
+              className="px-4 py-3 flex-row items-center"
+              style={{ backgroundColor: typeColor + '15' }}
+            >
+              <View 
+                className="w-12 h-12 rounded-2xl items-center justify-center"
               style={{ backgroundColor: typeColor + '25' }}
             >
               <MaterialCommunityIcons name={typeIcon as any} size={24} color={typeColor} />
@@ -658,7 +833,7 @@ export default function DraftDetailScreen() {
                 {typeName}
               </Text>
               <Text className="text-xl font-bold text-gray-900" numberOfLines={2}>
-                {title}
+                {formData.title || 'Untitled'}
               </Text>
             </View>
             {/* Confidence Badge */}
@@ -707,36 +882,153 @@ export default function DraftDetailScreen() {
           )}
         </View>
         
-        {/* Detail Section based on type - with smart fallbacks */}
-        <View className="mb-6">
-          <Text className="text-lg font-bold text-gray-900 mb-4">
-            Details
+        {/* EDITABLE Form Fields */}
+        <View className="mb-6 bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+          <Text className="text-lg font-bold text-gray-900 mb-1">
+            Edit Details
+          </Text>
+          <Text className="text-sm text-gray-500 mb-4">
+            Modify any fields before confirming
           </Text>
           
-          {/* Show event details if we have event-like data (date, startTime, location) */}
-          {draft?.draft && ((draft.draft as any).date || (draft.draft as any).startTime || (draft.draft as any).location) && (
-            <EventDetailSection draft={draft.draft as EventDraft} />
+          {/* Title - Always shown */}
+          <EditableField
+            icon="format-title"
+            label="Title"
+            value={formData.title}
+            onChangeText={(v) => updateField('title', v)}
+            placeholder="Enter title"
+          />
+          
+          {/* Description - Always shown */}
+          <EditableField
+            icon="text"
+            label="Description"
+            value={formData.description}
+            onChangeText={(v) => updateField('description', v)}
+            placeholder="Add description (optional)"
+            multiline
+          />
+          
+          {/* Event-specific fields */}
+          {(isEventLike || draftType === 'EVENT' || (draftType as string) === 'MEETING') && (
+            <>
+              <EditableField
+                icon="calendar"
+                label="Date"
+                value={formData.date}
+                onChangeText={(v) => updateField('date', v)}
+                placeholder="yyyy-MM-dd (e.g., 2026-02-05)"
+              />
+              
+              <EditableField
+                icon="clock-start"
+                label="Start Time"
+                value={formData.startTime}
+                onChangeText={(v) => updateField('startTime', v)}
+                placeholder="HH:mm (e.g., 14:00)"
+              />
+              
+              <EditableField
+                icon="clock-end"
+                label="End Time"
+                value={formData.endTime}
+                onChangeText={(v) => updateField('endTime', v)}
+                placeholder="HH:mm (e.g., 15:00)"
+              />
+              
+              <EditableField
+                icon="map-marker"
+                label="Location"
+                value={formData.location}
+                onChangeText={(v) => updateField('location', v)}
+                placeholder="Enter location"
+              />
+              
+              <EditableField
+                icon="account-group"
+                label="Attendees"
+                value={formData.attendees}
+                onChangeText={(v) => updateField('attendees', v)}
+                placeholder="Comma-separated emails or names"
+              />
+            </>
           )}
           
-          {/* Show task details for TASK type or if it has task fields */}
-          {draft?.draft && draftType === 'TASK' && !((draft.draft as any).date || (draft.draft as any).location) && (
-            <TaskDetailSection draft={draft.draft as TaskDraft} />
+          {/* Task-specific fields */}
+          {(draftType === 'TASK' && !isEventLike) && (
+            <>
+              <EditableField
+                icon="calendar-check"
+                label="Due Date"
+                value={formData.dueDate}
+                onChangeText={(v) => updateField('dueDate', v)}
+                placeholder="yyyy-MM-dd (e.g., 2026-02-05)"
+              />
+              
+              <EditableField
+                icon="poker-chip"
+                label="Story Points"
+                value={String(formData.storyPoints || '')}
+                onChangeText={(v) => updateField('storyPoints', parseInt(v) || 0)}
+                placeholder="1, 2, 3, 5, 8, 13"
+                keyboardType="numeric"
+              />
+              
+              <EditableField
+                icon="clock-outline"
+                label="Estimated Minutes"
+                value={String(formData.estimatedMinutes || '')}
+                onChangeText={(v) => updateField('estimatedMinutes', parseInt(v) || 0)}
+                placeholder="Time in minutes"
+                keyboardType="numeric"
+              />
+            </>
           )}
           
-          {draftType === 'CHALLENGE' && draft?.draft && (
-            <ChallengeDetailSection draft={draft.draft as ChallengeDraft} />
-          )}
-          {draftType === 'BILL' && draft?.draft && (
-            <BillDetailSection draft={draft.draft as BillDraft} />
-          )}
-          {draftType === 'NOTE' && draft?.draft && (
-            <NoteDetailSection draft={draft.draft as NoteDraft} />
+          {/* Show quadrant and life wheel area info (read-only for now) */}
+          {formData.eisenhowerQuadrantId && (
+            <View className="flex-row items-start py-3 border-b border-gray-100">
+              <View className="w-10 h-10 rounded-xl bg-amber-100 items-center justify-center mr-3">
+                <MaterialCommunityIcons name="grid" size={20} color="#F59E0B" />
+              </View>
+              <View className="flex-1">
+                <Text className="text-xs text-gray-500 uppercase tracking-wide mb-1">Eisenhower Quadrant</Text>
+                <Text className="text-base text-gray-800">
+                  {formData.eisenhowerQuadrantId === 'q1' ? 'Do First (Urgent & Important)' :
+                   formData.eisenhowerQuadrantId === 'q2' ? 'Schedule (Important, Not Urgent)' :
+                   formData.eisenhowerQuadrantId === 'q3' ? 'Delegate (Urgent, Not Important)' :
+                   formData.eisenhowerQuadrantId === 'q4' ? 'Eliminate (Not Urgent/Important)' :
+                   formData.eisenhowerQuadrantId}
+                </Text>
+              </View>
+            </View>
           )}
           
-          {/* Generic fallback - show any remaining fields we haven't displayed */}
-          {draft?.draft && <GenericFieldsSection draft={draft.draft} />}
+          {formData.lifeWheelAreaId && (
+            <View className="flex-row items-start py-3">
+              <View className="w-10 h-10 rounded-xl bg-rose-100 items-center justify-center mr-3">
+                <MaterialCommunityIcons name="sync" size={20} color="#F43F5E" />
+              </View>
+              <View className="flex-1">
+                <Text className="text-xs text-gray-500 uppercase tracking-wide mb-1">Life Wheel Area</Text>
+                <Text className="text-base text-gray-800">
+                  {formData.lifeWheelAreaId === 'lw-1' ? 'Health & Fitness' :
+                   formData.lifeWheelAreaId === 'lw-2' ? 'Relationships' :
+                   formData.lifeWheelAreaId === 'lw-3' ? 'Personal Growth' :
+                   formData.lifeWheelAreaId === 'lw-4' ? 'Career & Work' :
+                   formData.lifeWheelAreaId === 'lw-5' ? 'Finance' :
+                   formData.lifeWheelAreaId === 'lw-6' ? 'Fun & Recreation' :
+                   formData.lifeWheelAreaId === 'lw-7' ? 'Physical Environment' :
+                   formData.lifeWheelAreaId === 'lw-8' ? 'Family' :
+                   formData.lifeWheelAreaId}
+                </Text>
+              </View>
+            </View>
+          )}
         </View>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
       
       {/* Bottom Action Bar */}
       <View 

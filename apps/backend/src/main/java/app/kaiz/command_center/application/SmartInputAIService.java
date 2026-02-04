@@ -87,10 +87,12 @@ public class SmartInputAIService {
     OriginalInput originalInput = captureOriginalInput(request);
 
     String userPrompt = buildUserPrompt(userId, request);
-    // Get system prompt with current date context for proper date parsing ("tomorrow", "next week", etc.)
+    // Get system prompt with current date context for proper date parsing ("tomorrow", "next week",
+    // etc.)
     String tomorrowDate = LocalDate.now().plusDays(1).toString();
     String currentSystemPrompt = CommandCenterSystemPrompt.getPromptWithDates(tomorrowDate);
-    List<Message> messages = List.of(new SystemMessage(currentSystemPrompt), new UserMessage(userPrompt));
+    List<Message> messages =
+        List.of(new SystemMessage(currentSystemPrompt), new UserMessage(userPrompt));
 
     try {
       ChatResponse response = chatModel.call(new Prompt(messages));
@@ -175,9 +177,9 @@ public class SmartInputAIService {
   }
 
   /**
-   * Save the draft from a session directly as a Task with PENDING_APPROVAL status.
-   * This bypasses the PendingDraft entity and creates the actual Task for approval.
-   * 
+   * Save the draft from a session directly as a Task with PENDING_APPROVAL status. This bypasses
+   * the PendingDraft entity and creates the actual Task for approval.
+   *
    * @param userId The user ID
    * @param sessionId The session ID containing the draft
    * @return The saved Task ID
@@ -194,39 +196,153 @@ public class SmartInputAIService {
       throw new IllegalStateException("No draft found in session: " + sessionId);
     }
 
-    log.info("💾 [SaveToPending] Converting draft to task for user: {}, session: {}", userId, sessionId);
+    log.info(
+        "💾 [SaveToPending] Converting draft to task for user: {}, session: {}", userId, sessionId);
 
     // Get user
-    User user = userRepository.findById(userId)
-        .orElseThrow(() -> new ResourceNotFoundException("User", userId.toString()));
+    User user =
+        userRepository
+            .findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User", userId.toString()));
 
     // Handle based on draft type (Task or Event both become Task entity)
-    Task savedTask = switch (draft) {
-      case Draft.TaskDraft taskDraft -> createTaskFromDraft(user, sessionId, taskDraft, false);
-      case Draft.EventDraft eventDraft -> createTaskFromEventDraft(user, sessionId, eventDraft);
-      default -> throw new IllegalArgumentException("Unsupported draft type for pending: " + draft.type());
-    };
+    Task savedTask =
+        switch (draft) {
+          case Draft.TaskDraft taskDraft -> createTaskFromDraft(user, sessionId, taskDraft, false);
+          case Draft.EventDraft eventDraft -> createTaskFromEventDraft(user, sessionId, eventDraft);
+          default ->
+              throw new IllegalArgumentException(
+                  "Unsupported draft type for pending: " + draft.type());
+        };
 
     // Remove session after successful save
     sessions.remove(sessionId);
 
-    log.info("✅ [SaveToPending] Task created with ID: {}, status: PENDING_APPROVAL", savedTask.getId());
+    log.info(
+        "✅ [SaveToPending] Task created with ID: {}, status: PENDING_APPROVAL", savedTask.getId());
     return savedTask.getId();
   }
 
   /**
-   * Create a Task entity from TaskDraft with PENDING_APPROVAL status.
+   * Create a Task entity directly from draft data (bypasses session lookup). This is useful when
+   * the session has expired or when user has edited the draft fields.
+   *
+   * @param userId The user ID
+   * @param request The draft data from frontend (potentially edited by user)
+   * @return The saved Task ID
    */
-  private Task createTaskFromDraft(User user, UUID sessionId, Draft.TaskDraft taskDraft, boolean isEvent) {
+  @Transactional
+  public UUID createPendingFromDraft(
+      UUID userId, app.kaiz.command_center.api.dto.CreatePendingDraftRequest request) {
+    log.info(
+        "💾 [CreatePendingFromDraft] Creating task from draft for user: {}, type: {}",
+        userId,
+        request.draftType());
+
+    // Get user
+    User user =
+        userRepository
+            .findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User", userId.toString()));
+
     // Resolve life wheel area
-    LifeWheelArea lifeWheelArea = lifeWheelAreaRepository.findById(taskDraft.lifeWheelAreaId())
-        .orElseGet(() -> lifeWheelAreaRepository.findById("lw-4")
-            .orElseThrow(() -> new ResourceNotFoundException("LifeWheelArea", "lw-4")));
+    String lifeWheelId = request.lifeWheelAreaId() != null ? request.lifeWheelAreaId() : "lw-4";
+    LifeWheelArea lifeWheelArea =
+        lifeWheelAreaRepository
+            .findById(lifeWheelId)
+            .orElseGet(
+                () ->
+                    lifeWheelAreaRepository
+                        .findById("lw-4")
+                        .orElseThrow(() -> new ResourceNotFoundException("LifeWheelArea", "lw-4")));
 
     // Resolve eisenhower quadrant
-    EisenhowerQuadrant eisenhowerQuadrant = eisenhowerQuadrantRepository.findById(taskDraft.eisenhowerQuadrantId())
-        .orElseGet(() -> eisenhowerQuadrantRepository.findById("q2")
-            .orElseThrow(() -> new ResourceNotFoundException("EisenhowerQuadrant", "q2")));
+    String quadrantId =
+        request.eisenhowerQuadrantId() != null ? request.eisenhowerQuadrantId() : "q2";
+    EisenhowerQuadrant eisenhowerQuadrant =
+        eisenhowerQuadrantRepository
+            .findById(quadrantId)
+            .orElseGet(
+                () ->
+                    eisenhowerQuadrantRepository
+                        .findById("q2")
+                        .orElseThrow(
+                            () -> new ResourceNotFoundException("EisenhowerQuadrant", "q2")));
+
+    // Determine if this is an event
+    boolean isEvent = request.isEvent();
+
+    // Convert dates to Instant
+    Instant targetDate = null;
+    Instant eventStartTime = null;
+    Instant eventEndTime = null;
+    ZoneId zone = ZoneId.systemDefault();
+
+    LocalDate effectiveDate = request.getEffectiveDate();
+    if (effectiveDate != null) {
+      targetDate = effectiveDate.atStartOfDay(zone).toInstant();
+
+      if (request.startTime() != null) {
+        eventStartTime = effectiveDate.atTime(request.startTime()).atZone(zone).toInstant();
+      }
+      if (request.endTime() != null) {
+        eventEndTime = effectiveDate.atTime(request.endTime()).atZone(zone).toInstant();
+      }
+    }
+
+    // Story points default
+    int storyPoints = request.storyPoints() != null ? request.storyPoints() : 3;
+
+    Task task =
+        Task.builder()
+            .title(request.title())
+            .description(request.description())
+            .user(user)
+            .lifeWheelArea(lifeWheelArea)
+            .eisenhowerQuadrant(eisenhowerQuadrant)
+            .storyPoints(storyPoints)
+            .status(TaskStatus.PENDING_APPROVAL)
+            .aiConfidence(BigDecimal.valueOf(0.85))
+            .targetDate(targetDate)
+            .isRecurring(request.isRecurring() != null ? request.isRecurring() : false)
+            .isEvent(isEvent)
+            .eventStartTime(eventStartTime)
+            .eventEndTime(eventEndTime)
+            .location(request.location())
+            .build();
+
+    Task savedTask = taskRepository.save(task);
+
+    log.info(
+        "✅ [CreatePendingFromDraft] Task created with ID: {}, isEvent: {}",
+        savedTask.getId(),
+        isEvent);
+    return savedTask.getId();
+  }
+
+  /** Create a Task entity from TaskDraft with PENDING_APPROVAL status. */
+  private Task createTaskFromDraft(
+      User user, UUID sessionId, Draft.TaskDraft taskDraft, boolean isEvent) {
+    // Resolve life wheel area
+    LifeWheelArea lifeWheelArea =
+        lifeWheelAreaRepository
+            .findById(taskDraft.lifeWheelAreaId())
+            .orElseGet(
+                () ->
+                    lifeWheelAreaRepository
+                        .findById("lw-4")
+                        .orElseThrow(() -> new ResourceNotFoundException("LifeWheelArea", "lw-4")));
+
+    // Resolve eisenhower quadrant
+    EisenhowerQuadrant eisenhowerQuadrant =
+        eisenhowerQuadrantRepository
+            .findById(taskDraft.eisenhowerQuadrantId())
+            .orElseGet(
+                () ->
+                    eisenhowerQuadrantRepository
+                        .findById("q2")
+                        .orElseThrow(
+                            () -> new ResourceNotFoundException("EisenhowerQuadrant", "q2")));
 
     // Convert LocalDate to Instant for targetDate
     Instant targetDate = null;
@@ -234,47 +350,55 @@ public class SmartInputAIService {
       targetDate = taskDraft.dueDate().atStartOfDay(ZoneId.systemDefault()).toInstant();
     }
 
-    Task task = Task.builder()
-        .title(taskDraft.title())
-        .description(taskDraft.description())
-        .user(user)
-        .lifeWheelArea(lifeWheelArea)
-        .eisenhowerQuadrant(eisenhowerQuadrant)
-        .storyPoints(taskDraft.storyPoints())
-        .status(TaskStatus.PENDING_APPROVAL)
-        .aiConfidence(BigDecimal.valueOf(0.85))
-        .aiSessionId(sessionId)
-        .targetDate(targetDate)
-        .isRecurring(taskDraft.isRecurring())
-        .isEvent(isEvent)
-        .build();
+    Task task =
+        Task.builder()
+            .title(taskDraft.title())
+            .description(taskDraft.description())
+            .user(user)
+            .lifeWheelArea(lifeWheelArea)
+            .eisenhowerQuadrant(eisenhowerQuadrant)
+            .storyPoints(taskDraft.storyPoints())
+            .status(TaskStatus.PENDING_APPROVAL)
+            .aiConfidence(BigDecimal.valueOf(0.85))
+            .aiSessionId(sessionId)
+            .targetDate(targetDate)
+            .isRecurring(taskDraft.isRecurring())
+            .isEvent(isEvent)
+            .build();
 
     return taskRepository.save(task);
   }
 
   /**
-   * Create a Task entity from EventDraft with PENDING_APPROVAL status.
-   * Events are stored as tasks with isEvent=true.
+   * Create a Task entity from EventDraft with PENDING_APPROVAL status. Events are stored as tasks
+   * with isEvent=true.
    */
   private Task createTaskFromEventDraft(User user, UUID sessionId, Draft.EventDraft eventDraft) {
     // Resolve life wheel area
-    LifeWheelArea lifeWheelArea = lifeWheelAreaRepository.findById(eventDraft.lifeWheelAreaId())
-        .orElseGet(() -> lifeWheelAreaRepository.findById("lw-4")
-            .orElseThrow(() -> new ResourceNotFoundException("LifeWheelArea", "lw-4")));
+    LifeWheelArea lifeWheelArea =
+        lifeWheelAreaRepository
+            .findById(eventDraft.lifeWheelAreaId())
+            .orElseGet(
+                () ->
+                    lifeWheelAreaRepository
+                        .findById("lw-4")
+                        .orElseThrow(() -> new ResourceNotFoundException("LifeWheelArea", "lw-4")));
 
     // Use Q2 (Schedule) for events by default
-    EisenhowerQuadrant eisenhowerQuadrant = eisenhowerQuadrantRepository.findById("q2")
-        .orElseThrow(() -> new ResourceNotFoundException("EisenhowerQuadrant", "q2"));
+    EisenhowerQuadrant eisenhowerQuadrant =
+        eisenhowerQuadrantRepository
+            .findById("q2")
+            .orElseThrow(() -> new ResourceNotFoundException("EisenhowerQuadrant", "q2"));
 
     // Convert date and times to Instant
     Instant targetDate = null;
     Instant eventStartTime = null;
     Instant eventEndTime = null;
-    
+
     if (eventDraft.date() != null) {
       ZoneId zone = ZoneId.systemDefault();
       targetDate = eventDraft.date().atStartOfDay(zone).toInstant();
-      
+
       if (eventDraft.startTime() != null) {
         eventStartTime = eventDraft.date().atTime(eventDraft.startTime()).atZone(zone).toInstant();
       }
@@ -283,23 +407,24 @@ public class SmartInputAIService {
       }
     }
 
-    Task task = Task.builder()
-        .title(eventDraft.title())
-        .description(eventDraft.description())
-        .user(user)
-        .lifeWheelArea(lifeWheelArea)
-        .eisenhowerQuadrant(eisenhowerQuadrant)
-        .storyPoints(3) // Default story points for events
-        .status(TaskStatus.PENDING_APPROVAL)
-        .aiConfidence(BigDecimal.valueOf(0.85))
-        .aiSessionId(sessionId)
-        .targetDate(targetDate)
-        .isEvent(true)
-        .location(eventDraft.location())
-        .isAllDay(eventDraft.isAllDay())
-        .eventStartTime(eventStartTime)
-        .eventEndTime(eventEndTime)
-        .build();
+    Task task =
+        Task.builder()
+            .title(eventDraft.title())
+            .description(eventDraft.description())
+            .user(user)
+            .lifeWheelArea(lifeWheelArea)
+            .eisenhowerQuadrant(eisenhowerQuadrant)
+            .storyPoints(3) // Default story points for events
+            .status(TaskStatus.PENDING_APPROVAL)
+            .aiConfidence(BigDecimal.valueOf(0.85))
+            .aiSessionId(sessionId)
+            .targetDate(targetDate)
+            .isEvent(true)
+            .location(eventDraft.location())
+            .isAllDay(eventDraft.isAllDay())
+            .eventStartTime(eventStartTime)
+            .eventEndTime(eventEndTime)
+            .build();
 
     return taskRepository.save(task);
   }

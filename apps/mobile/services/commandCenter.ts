@@ -285,6 +285,67 @@ export const commandCenterService = {
     }
   },
 
+  /**
+   * Create pending task directly from draft data
+   * This bypasses session lookup and sends draft fields directly.
+   * Useful when session has expired or user has edited fields.
+   */
+  async createPendingFromDraft(
+    draftData: {
+      draftType: string;
+      title: string;
+      description?: string;
+      dueDate?: string; // yyyy-MM-dd
+      priority?: string;
+      storyPoints?: number;
+      estimatedMinutes?: number;
+      eisenhowerQuadrantId?: string;
+      lifeWheelAreaId?: string;
+      category?: string;
+      tags?: string[];
+      isRecurring?: boolean;
+      date?: string; // yyyy-MM-dd
+      startTime?: string; // HH:mm
+      endTime?: string; // HH:mm
+      location?: string;
+      isAllDay?: boolean;
+      attendees?: string[];
+    }
+  ): Promise<ApiResponse<{ taskId: string; status: string; message: string }>> {
+    console.log('💾 [CommandCenter] Creating pending from draft data:', draftData.title);
+
+    try {
+      const headers = await getAuthHeaders();
+
+      const response = await fetch(
+        `${API_BASE_URL}/api/v1/command-center/drafts/create-pending`,
+        {
+          method: 'POST',
+          headers: {
+            ...headers,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(draftData),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log('💾 [CommandCenter] Create pending result:', data);
+      return data;
+    } catch (error: any) {
+      console.error('💾 [CommandCenter] Error creating pending:', error);
+      return {
+        success: false,
+        error: error.message || 'Failed to create pending task',
+      };
+    }
+  },
+
   // ==========================================================================
   // Draft Actions
   // ==========================================================================

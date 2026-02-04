@@ -115,14 +115,43 @@ public class CommandCenterController {
     try {
       UUID taskId = smartInputService.saveToPending(userId, sessionId);
       return ResponseEntity.ok(
-          ApiResponse.success(Map.of(
-              "taskId", taskId.toString(), 
-              "status", "PENDING_APPROVAL",
-              "message", "Task saved for approval")));
+          ApiResponse.success(
+              Map.of(
+                  "taskId", taskId.toString(),
+                  "status", "PENDING_APPROVAL",
+                  "message", "Task saved for approval")));
     } catch (IllegalStateException e) {
       log.error("💾 [Smart Input] Session not found: {}", sessionId);
       return ResponseEntity.badRequest()
           .body(ApiResponse.error("Session not found or expired: " + sessionId));
+    }
+  }
+
+  @PostMapping("/drafts/create-pending")
+  @Operation(
+      summary = "Create task from draft data with PENDING_APPROVAL status",
+      description =
+          "Creates a Task entity directly from the provided draft data. "
+              + "This endpoint does not require a session - the draft data is sent directly. "
+              + "Useful when the session has expired or when user has edited the draft fields.")
+  public ResponseEntity<ApiResponse<Map<String, Object>>> createPendingFromDraft(
+      @CurrentUser UUID userId, @Valid @RequestBody CreatePendingDraftRequest request) {
+
+    log.info("💾 [Create Pending] Creating pending task from draft for user: {}", userId);
+    log.info("💾 [Create Pending] Draft type: {}, title: {}", request.draftType(), request.title());
+
+    try {
+      UUID taskId = smartInputService.createPendingFromDraft(userId, request);
+      return ResponseEntity.ok(
+          ApiResponse.success(
+              Map.of(
+                  "taskId", taskId.toString(),
+                  "status", "PENDING_APPROVAL",
+                  "message", "Task saved for approval")));
+    } catch (Exception e) {
+      log.error("💾 [Create Pending] Failed to create pending task: {}", e.getMessage());
+      return ResponseEntity.badRequest()
+          .body(ApiResponse.error("Failed to create pending task: " + e.getMessage()));
     }
   }
 
