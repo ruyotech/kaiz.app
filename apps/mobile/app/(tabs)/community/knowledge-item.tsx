@@ -70,74 +70,269 @@ export default function KnowledgeItemScreen() {
         return styles[difficulty] || styles.BEGINNER;
     };
 
-    // Simple markdown-like text renderer
+    // Comprehensive markdown renderer for mobile
     const renderContent = (content: string) => {
         if (!content) return null;
         
-        // Split by paragraphs (double newlines)
-        const paragraphs = content.split(/\n\n+/);
+        const elements: React.ReactNode[] = [];
+        let key = 0;
         
-        return paragraphs.map((paragraph, index) => {
-            const trimmed = paragraph.trim();
-            if (!trimmed) return null;
+        // Split content into lines for processing
+        const lines = content.split('\n');
+        let i = 0;
+        
+        while (i < lines.length) {
+            const line = lines[i];
+            const trimmed = line.trim();
             
-            // Check if it's a heading
+            // Skip empty lines
+            if (!trimmed) {
+                i++;
+                continue;
+            }
+            
+            // Code blocks (```)
+            if (trimmed.startsWith('```')) {
+                const codeLines: string[] = [];
+                i++; // Skip opening ```
+                while (i < lines.length && !lines[i].trim().startsWith('```')) {
+                    codeLines.push(lines[i]);
+                    i++;
+                }
+                i++; // Skip closing ```
+                
+                if (codeLines.length > 0) {
+                    elements.push(
+                        <ScrollView
+                            key={key++}
+                            horizontal
+                            style={{
+                                backgroundColor: '#18181b',
+                                borderRadius: 8,
+                                marginVertical: 10,
+                                borderWidth: 1,
+                                borderColor: '#333',
+                            }}
+                            contentContainerStyle={{ padding: 14, minWidth: '100%' }}
+                            showsHorizontalScrollIndicator={true}
+                        >
+                            <Text
+                                style={{
+                                    color: '#e5e7eb',
+                                    fontFamily: 'monospace',
+                                    fontSize: 14,
+                                    lineHeight: 20,
+                                }}
+                                selectable
+                            >
+                                {codeLines.map((codeLine, idx) => (
+                                    <Text key={idx}>
+                                        {codeLine.replace(/^\s+/, (s) => '\u00A0'.repeat(s.length))}
+                                        {idx < codeLines.length - 1 ? '\n' : ''}
+                                    </Text>
+                                ))}
+                            </Text>
+                        </ScrollView>
+                    );
+                }
+                continue;
+            }
+            
+            // Tables (lines starting with |)
+            if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+                const tableRows: string[][] = [];
+                let hasHeader = false;
+                
+                while (i < lines.length && lines[i].trim().startsWith('|')) {
+                    const row = lines[i].trim();
+                    // Skip separator row (|---|---|)
+                    if (row.match(/^\|[\s-:|]+\|$/)) {
+                        hasHeader = tableRows.length > 0;
+                        i++;
+                        continue;
+                    }
+                    const cells = row.split('|').filter(c => c.trim() !== '').map(c => c.trim());
+                    tableRows.push(cells);
+                    i++;
+                }
+                
+                if (tableRows.length > 0) {
+                    elements.push(
+                        <View 
+                            key={key++} 
+                            className="my-4 rounded-xl overflow-hidden"
+                            style={{ backgroundColor: isDark ? '#1E293B' : '#F8FAFC', borderWidth: 1, borderColor: colors.border }}
+                        >
+                            {tableRows.map((row, rowIdx) => (
+                                <View 
+                                    key={rowIdx} 
+                                    className="flex-row"
+                                    style={{ 
+                                        backgroundColor: rowIdx === 0 && hasHeader 
+                                            ? (isDark ? '#334155' : '#E2E8F0') 
+                                            : 'transparent',
+                                        borderBottomWidth: rowIdx < tableRows.length - 1 ? 1 : 0,
+                                        borderBottomColor: colors.border,
+                                    }}
+                                >
+                                    {row.map((cell, cellIdx) => (
+                                        <View 
+                                            key={cellIdx} 
+                                            className="flex-1 px-3 py-2"
+                                            style={{ 
+                                                borderRightWidth: cellIdx < row.length - 1 ? 1 : 0,
+                                                borderRightColor: colors.border,
+                                            }}
+                                        >
+                                            <Text 
+                                                className={`text-sm ${rowIdx === 0 && hasHeader ? 'font-semibold' : ''}`}
+                                                style={{ color: colors.text }}
+                                            >
+                                                {renderInlineText(cell)}
+                                            </Text>
+                                        </View>
+                                    ))}
+                                </View>
+                            ))}
+                        </View>
+                    );
+                }
+                continue;
+            }
+            
+            // Blockquotes (>)
+            if (trimmed.startsWith('>')) {
+                const quoteLines: string[] = [];
+                while (i < lines.length && lines[i].trim().startsWith('>')) {
+                    quoteLines.push(lines[i].trim().replace(/^>\s*/, ''));
+                    i++;
+                }
+                elements.push(
+                    <View 
+                        key={key++} 
+                        className="my-3 pl-4 py-2"
+                        style={{ 
+                            borderLeftWidth: 4, 
+                            borderLeftColor: '#9333EA',
+                            backgroundColor: isDark ? 'rgba(147, 51, 234, 0.1)' : '#FAF5FF',
+                        }}
+                    >
+                        <Text className="text-base italic" style={{ color: colors.textSecondary }}>
+                            {quoteLines.map(l => renderInlineText(l)).join(' ')}
+                        </Text>
+                    </View>
+                );
+                continue;
+            }
+            
+            // H1 (#)
+            if (trimmed.startsWith('# ') && !trimmed.startsWith('## ')) {
+                elements.push(
+                    <Text key={key++} className="text-2xl font-bold mt-4 mb-3" style={{ color: colors.text }}>
+                        {trimmed.replace('# ', '')}
+                    </Text>
+                );
+                i++;
+                continue;
+            }
+            
+            // H2 (##)
             if (trimmed.startsWith('## ')) {
-                return (
-                    <Text 
-                        key={index} 
-                        className="text-lg font-bold mt-4 mb-2"
-                        style={{ color: colors.text }}
-                    >
-                        {trimmed.replace('## ', '')}
+                elements.push(
+                    <Text key={key++} className="text-xl font-bold mt-5 mb-3" style={{ color: colors.text }}>
+                        {renderInlineText(trimmed.replace('## ', ''))}
                     </Text>
                 );
+                i++;
+                continue;
             }
             
+            // H3 (###)
             if (trimmed.startsWith('### ')) {
-                return (
-                    <Text 
-                        key={index} 
-                        className="text-base font-semibold mt-3 mb-2"
-                        style={{ color: colors.text }}
-                    >
-                        {trimmed.replace('### ', '')}
+                elements.push(
+                    <Text key={key++} className="text-lg font-semibold mt-4 mb-2" style={{ color: colors.text }}>
+                        {renderInlineText(trimmed.replace('### ', ''))}
                     </Text>
                 );
+                i++;
+                continue;
             }
             
-            // Check if it's a list item
+            // Unordered lists (- or *)
             if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
-                const items = trimmed.split('\n').filter(line => line.trim());
-                return (
-                    <View key={index} className="mb-3">
-                        {items.map((item, idx) => (
-                            <View key={idx} className="flex-row mb-1">
-                                <Text style={{ color: '#9333EA' }} className="mr-2">•</Text>
-                                <Text style={{ color: colors.textSecondary, flex: 1 }}>
-                                    {item.replace(/^[-*]\s*/, '').replace(/\*\*(.*?)\*\*/g, '$1')}
+                const listItems: string[] = [];
+                while (i < lines.length && (lines[i].trim().startsWith('- ') || lines[i].trim().startsWith('* '))) {
+                    listItems.push(lines[i].trim().replace(/^[-*]\s*/, ''));
+                    i++;
+                }
+                elements.push(
+                    <View key={key++} className="my-2 ml-2">
+                        {listItems.map((item, idx) => (
+                            <View key={idx} className="flex-row mb-2">
+                                <Text style={{ color: '#9333EA' }} className="mr-3 text-base">•</Text>
+                                <Text style={{ color: colors.textSecondary, flex: 1 }} className="text-base leading-6">
+                                    {renderInlineText(item)}
                                 </Text>
                             </View>
                         ))}
                     </View>
                 );
+                continue;
             }
             
-            // Regular paragraph - remove markdown bold markers for display
-            const cleanText = trimmed
-                .replace(/\*\*(.*?)\*\*/g, '$1')  // Remove bold markers
-                .replace(/\*(.*?)\*/g, '$1');      // Remove italic markers
+            // Ordered lists (1. 2. 3.)
+            if (/^\d+\.\s/.test(trimmed)) {
+                const listItems: { num: string; text: string }[] = [];
+                while (i < lines.length && /^\d+\.\s/.test(lines[i].trim())) {
+                    const match = lines[i].trim().match(/^(\d+)\.\s*(.*)/);
+                    if (match) {
+                        listItems.push({ num: match[1], text: match[2] });
+                    }
+                    i++;
+                }
+                elements.push(
+                    <View key={key++} className="my-2 ml-2">
+                        {listItems.map((item, idx) => (
+                            <View key={idx} className="flex-row mb-2">
+                                <Text style={{ color: '#9333EA' }} className="mr-3 text-base font-medium w-6">{item.num}.</Text>
+                                <Text style={{ color: colors.textSecondary, flex: 1 }} className="text-base leading-6">
+                                    {renderInlineText(item.text)}
+                                </Text>
+                            </View>
+                        ))}
+                    </View>
+                );
+                continue;
+            }
             
-            return (
-                <Text 
-                    key={index} 
-                    className="text-base mb-3 leading-6"
-                    style={{ color: colors.textSecondary }}
-                >
-                    {cleanText}
+            // Horizontal rule (---)
+            if (trimmed.match(/^[-_*]{3,}$/)) {
+                elements.push(
+                    <View key={key++} className="my-4" style={{ height: 1, backgroundColor: colors.border }} />
+                );
+                i++;
+                continue;
+            }
+            
+            // Regular paragraph
+            elements.push(
+                <Text key={key++} className="text-base mb-3 leading-7" style={{ color: colors.textSecondary }}>
+                    {renderInlineText(trimmed)}
                 </Text>
             );
-        });
+            i++;
+        }
+        
+        return elements;
+    };
+    
+    // Helper to render inline formatting (bold, italic, code, links)
+    const renderInlineText = (text: string): string => {
+        return text
+            .replace(/\*\*(.*?)\*\*/g, '$1')  // Bold → plain (React Native doesn't support nested Text styling easily)
+            .replace(/\*(.*?)\*/g, '$1')      // Italic → plain
+            .replace(/`([^`]+)`/g, '$1')      // Inline code → plain
+            .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1'); // Links → just text
     };
 
     if (loading) {
