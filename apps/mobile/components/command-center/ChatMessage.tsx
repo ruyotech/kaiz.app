@@ -194,16 +194,42 @@ function DraftPreviewCard({ draft, onApprove, onReject, onEdit, onPress, isProce
   const typeIcon = getDraftTypeIcon(draft.draftType);
   const typeName = getDraftTypeDisplayName(draft.draftType);
   
-  // Navigate to draft detail screen when card is pressed
+  // Navigate to create-from-sensai screen when Confirm is pressed (opens full create form)
+  const handleConfirm = () => {
+    // Cast draft.draft to any since it could be various types
+    const draftData = draft.draft as any;
+    
+    // Navigate to create-from-sensai with draft data
+    router.push({
+      pathname: '/(tabs)/command-center/create-from-sensai',
+      params: {
+        taskId: draftData?.id || '',
+        title: draft.title,
+        description: draft.description || '',
+        isEvent: draft.draftType === 'EVENT' ? 'true' : 'false',
+        targetDate: draftData?.dueDate || draftData?.startTime || draftData?.date || '',
+        lifeWheelAreaId: draftData?.lifeWheelAreaId || 'lw-1',
+        eisenhowerQuadrantId: draftData?.eisenhowerQuadrantId || 'eq-4',
+        storyPoints: draftData?.storyPoints?.toString() || '2',
+        isAllDay: draftData?.isAllDay ? 'true' : 'false',
+        eventStartTime: draftData?.startTime || '',
+        eventEndTime: draftData?.endTime || '',
+        location: draftData?.location || '',
+        isRecurring: draftData?.isRecurring ? 'true' : 'false',
+        aiReasoning: draft.reasoning || '',
+        aiConfidence: (draft.confidence || 0.85).toString(),
+        draftType: draft.draftType,
+      },
+    });
+  };
+  
+  // Navigate to draft detail screen when card is pressed for more details
   const handleCardPress = () => {
     if (onPress) {
       onPress(draft);
     } else {
-      // Default navigation to draft detail screen
-      router.push({
-        pathname: '/(tabs)/command-center/draft-detail',
-        params: { draft: JSON.stringify(draft) },
-      });
+      // Navigate to create form as default action
+      handleConfirm();
     }
   };
   
@@ -260,7 +286,7 @@ function DraftPreviewCard({ draft, onApprove, onReject, onEdit, onPress, isProce
           )}
         </View>
         
-        {/* Quick Actions - Simplified for new flow */}
+        {/* Quick Actions - Reject: Delete & back to chat, Confirm: Open create form */}
         <View className="px-4 py-3 border-t border-gray-100 flex-row gap-2">
           <TouchableOpacity
             onPress={(e) => {
@@ -274,7 +300,10 @@ function DraftPreviewCard({ draft, onApprove, onReject, onEdit, onPress, isProce
           </TouchableOpacity>
           
           <TouchableOpacity
-            onPress={handleCardPress}
+            onPress={(e) => {
+              e.stopPropagation?.();
+              handleConfirm();
+            }}
             disabled={isProcessing}
             className="flex-1 rounded-xl py-3 items-center flex-row justify-center"
             style={{ backgroundColor: typeColor }}
@@ -284,16 +313,16 @@ function DraftPreviewCard({ draft, onApprove, onReject, onEdit, onPress, isProce
             ) : (
               <>
                 <MaterialCommunityIcons name="check" size={18} color="white" />
-                <Text className="text-white font-semibold ml-1">Create</Text>
+                <Text className="text-white font-semibold ml-1">Confirm</Text>
               </>
             )}
           </TouchableOpacity>
         </View>
         
-        {/* Tap for more options hint */}
+        {/* Tap for details hint */}
         <View className="px-4 pb-3 flex-row items-center justify-center">
           <MaterialCommunityIcons name="gesture-tap" size={14} color="#9CA3AF" />
-          <Text className="text-gray-400 text-xs ml-1">Tap card for more options</Text>
+          <Text className="text-gray-400 text-xs ml-1">Tap card to review details</Text>
         </View>
       </View>
     </Pressable>

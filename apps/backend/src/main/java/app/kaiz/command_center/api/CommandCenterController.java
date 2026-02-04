@@ -394,8 +394,9 @@ public class CommandCenterController {
       for (MultipartFile file : attachments) {
         String type = determineAttachmentType(file.getContentType());
 
-        // Extract text from images using Claude Vision OCR
         String extractedText = null;
+        
+        // Extract text from images using Claude Vision OCR
         if ("image".equals(type)) {
           try {
             extractedText = aiService.extractTextFromImage(file);
@@ -408,9 +409,24 @@ public class CommandCenterController {
                 "🔍 [OCR] Failed to extract text from {}: {}",
                 file.getOriginalFilename(),
                 e.getMessage());
+            extractedText = "[Image uploaded: " + file.getOriginalFilename() + " - OCR processing failed]";
           }
         }
-        // TODO: Add voice transcription for audio files
+        // Handle voice/audio files - add description for AI to understand
+        else if ("voice".equals(type)) {
+          log.info("🎤 [Audio] Voice attachment detected: {}", file.getOriginalFilename());
+          extractedText = "[Audio file uploaded: " + file.getOriginalFilename() + 
+              " - Please ask the user what they want to create from this recording. " +
+              "Voice transcription will be available in a future update.]";
+        }
+        // Handle PDFs and documents - add description for AI
+        else if ("file".equals(type) && file.getContentType() != null && 
+                 file.getContentType().contains("pdf")) {
+          log.info("📄 [PDF] Document detected: {}", file.getOriginalFilename());
+          extractedText = "[PDF document uploaded: " + file.getOriginalFilename() + 
+              " - Please ask the user what they want to create from this document. " +
+              "PDF text extraction will be available in a future update.]";
+        }
 
         summaries.add(
             new AttachmentSummary(

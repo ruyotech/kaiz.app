@@ -23,7 +23,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Container } from '../../../components/layout/Container';
 import { ScreenHeader } from '../../../components/layout/ScreenHeader';
 import { commandCenterService } from '../../../services/commandCenter';
-import { api } from '../../../services/api';
+import { taskApi } from '../../../services/api';
 import { useThemeContext } from '../../../providers/ThemeProvider';
 
 // ============================================================================
@@ -45,6 +45,8 @@ interface TaskDetail {
   eventStartTime?: string;
   eventEndTime?: string;
   aiConfidence?: number;
+  aiReasoning?: string;
+  isRecurring?: boolean;
   createdAt: string;
 }
 
@@ -176,12 +178,12 @@ export default function PendingTaskDetailScreen() {
       if (!params.taskId) return;
       
       try {
-        const response = await api.tasks.getTaskById(params.taskId);
-        if (response.success && response.data) {
-          setTask(response.data);
-        } else if (response.data) {
-          // API might return data directly
-          setTask(response.data);
+        // taskApi.getTaskById returns unwrapped response directly (the task object)
+        const taskData = await taskApi.getTaskById(params.taskId);
+        if (taskData && typeof taskData === 'object' && 'id' in taskData) {
+          setTask(taskData as TaskDetail);
+        } else {
+          console.error('Invalid task data received:', taskData);
         }
       } catch (error) {
         console.error('Failed to fetch task:', error);
@@ -204,7 +206,7 @@ export default function PendingTaskDetailScreen() {
   const quadrantInfo = task ? EISENHOWER_QUADRANTS[task.eisenhowerQuadrantId] : null;
   const effortInfo = task ? EFFORT_LABELS[task.storyPoints] : null;
   
-  // Handle reject
+  // Handle reject - deletes and goes back to chat
   const handleReject = useCallback(async () => {
     if (!task) return;
     
@@ -221,9 +223,8 @@ export default function PendingTaskDetailScreen() {
             try {
               const response = await commandCenterService.rejectPendingTask(task.id);
               if (response.success) {
-                Alert.alert('Rejected', 'Task has been deleted.', [
-                  { text: 'OK', onPress: () => router.back() }
-                ]);
+                // Go back to chat (conversation continues)
+                router.back();
               } else {
                 Alert.alert('Error', response.error || 'Failed to reject task');
               }
@@ -238,27 +239,43 @@ export default function PendingTaskDetailScreen() {
     );
   }, [task, router]);
   
-  // Handle approve
-  const handleApprove = useCallback(async () => {
+  // Handle confirm - keeps task as pending, goes back to pending list
+  const handleConfirm = useCallback(() => {
     if (!task) return;
     
-    setProcessingAction('approve');
-    try {
-      const response = await commandCenterService.approvePendingTask(task.id);
-      if (response.success) {
-        Alert.alert(
-          '✅ Approved!',
-          `"${task.title}" has been added to your TODO list.`,
-          [{ text: 'OK', onPress: () => router.back() }]
-        );
-      } else {
-        Alert.alert('Error', response.error || 'Failed to approve task');
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to approve task');
-    } finally {
-      setProcessingAction(null);
-    }
+    // Task is already in pending status, just go back to the pending list
+    // Clear chat for fresh conversation
+    router.replace({
+      pathname: '/(tabs)/command-center/pending',
+      params: { clearChat: 'true' },
+    });
+  }, [task, router]);
+  
+  // Handle approve - opens create screen to select destination
+  const handleApprove = useCallback(() => {
+    if (!task) return;
+    
+    // Navigate to create-from-sensai screen with task data
+    router.push({
+      pathname: '/(tabs)/command-center/create-from-sensai',
+      params: {
+        taskId: task.id,
+        title: task.title,
+        description: task.description || '',
+        isEvent: task.isEvent ? 'true' : 'false',
+        targetDate: task.targetDate || '',
+        lifeWheelAreaId: task.lifeWheelAreaId?.toString() || '1',
+        eisenhowerQuadrantId: task.eisenhowerQuadrantId?.toString() || '4',
+        storyPoints: task.storyPoints?.toString() || '2',
+        isAllDay: task.isAllDay ? 'true' : 'false',
+        eventStartTime: task.eventStartTime || '',
+        eventEndTime: task.eventEndTime || '',
+        location: task.location || '',
+        isRecurring: task.isRecurring ? 'true' : 'false',
+        aiReasoning: task.aiReasoning || '',
+        aiConfidence: task.aiConfidence?.toString() || '0.85',
+      },
+    });
   }, [task, router]);
   
   // Loading state
@@ -444,42 +461,56 @@ export default function PendingTaskDetailScreen() {
         className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-100"
         style={{ paddingBottom: Math.max(insets.bottom, 16) }}
       >
-        <View className="flex-row gap-3 p-4">
+        {/* Help Text */}
+        <View className="px-4 pt-3 pb-2">
+          <Text className="text-xs text-center text-gray-500">
+            <Text className="font-medium">Reject:</Text> Delete & back to chat • 
+            <Text className="font-medium"> Confirm:</Text> Save for later • 
+            <Text className="font-medium"> Approve:</Text> Create now
+          </Text>
+        </View>
+        
+        <View className="flex-row gap-2 px-4 pb-4">
           {/* Reject Button */}
           <TouchableOpacity
             onPress={handleReject}
             disabled={processingAction !== null}
-            className="flex-1 flex-row items-center justify-center py-4 rounded-xl border-2 border-red-200 bg-red-50"
+            className="flex-1 flex-row items-center justify-center py-3 rounded-xl border-2 border-red-200 bg-red-50"
             style={{ opacity: processingAction !== null ? 0.6 : 1 }}
           >
             {processingAction === 'reject' ? (
               <ActivityIndicator size="small" color="#EF4444" />
             ) : (
               <>
-                <MaterialCommunityIcons name="close" size={20} color="#EF4444" />
-                <Text className="text-base font-semibold text-red-500 ml-2">Reject</Text>
+                <MaterialCommunityIcons name="close" size={18} color="#EF4444" />
+                <Text className="text-sm font-semibold text-red-500 ml-1">Reject</Text>
               </>
             )}
           </TouchableOpacity>
           
-          {/* Approve Button */}
+          {/* Confirm Button - saves to pending */}
+          <TouchableOpacity
+            onPress={handleConfirm}
+            disabled={processingAction !== null}
+            className="flex-1 flex-row items-center justify-center py-3 rounded-xl border-2 border-amber-200 bg-amber-50"
+            style={{ opacity: processingAction !== null ? 0.6 : 1 }}
+          >
+            <MaterialCommunityIcons name="clock-outline" size={18} color="#F59E0B" />
+            <Text className="text-sm font-semibold text-amber-600 ml-1">Confirm</Text>
+          </TouchableOpacity>
+          
+          {/* Approve Button - opens create screen */}
           <TouchableOpacity
             onPress={handleApprove}
             disabled={processingAction !== null}
-            className="flex-1 flex-row items-center justify-center py-4 rounded-xl"
+            className="flex-1 flex-row items-center justify-center py-3 rounded-xl"
             style={{ 
               backgroundColor: typeColor,
               opacity: processingAction !== null ? 0.6 : 1,
             }}
           >
-            {processingAction === 'approve' ? (
-              <ActivityIndicator size="small" color="white" />
-            ) : (
-              <>
-                <MaterialCommunityIcons name="check" size={20} color="white" />
-                <Text className="text-base font-semibold text-white ml-2">Approve</Text>
-              </>
-            )}
+            <MaterialCommunityIcons name="check" size={18} color="white" />
+            <Text className="text-sm font-semibold text-white ml-1">Approve</Text>
           </TouchableOpacity>
         </View>
       </View>

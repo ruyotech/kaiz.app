@@ -26,7 +26,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { Audio } from 'expo-av';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 
 import { Container } from '../../../components/layout/Container';
 import { ScreenHeader } from '../../../components/layout/ScreenHeader';
@@ -65,19 +65,20 @@ export default function CommandCenterScreen() {
   const insets = useSafeAreaInsets();
   const scrollViewRef = useRef<ScrollView>(null);
   const { colors } = useThemeContext();
+  const params = useLocalSearchParams<{ clearChat?: string }>();
   
   // =========================================================================
   // State
   // =========================================================================
   
-  const [messages, setMessages] = useState<ChatMessageType[]>([
-    {
-      id: '1',
-      role: 'assistant',
-      content: "Hey! I'm your SensAI assistant. Tell me what you'd like to create - a task, challenge, event, or anything else. You can also send images, files, or voice notes!",
-      timestamp: new Date(),
-    },
-  ]);
+  const initialMessage: ChatMessageType = {
+    id: '1',
+    role: 'assistant',
+    content: "Hey! I'm your SensAI assistant. Tell me what you'd like to create - a task, challenge, event, or anything else. You can also send images, files, or voice notes!",
+    timestamp: new Date(),
+  };
+  
+  const [messages, setMessages] = useState<ChatMessageType[]>([initialMessage]);
   
   const [inputText, setInputText] = useState('');
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
@@ -104,6 +105,27 @@ export default function CommandCenterScreen() {
   // =========================================================================
   // Effects
   // =========================================================================
+
+  // Handle clearChat navigation parameter - resets conversation for fresh start
+  useFocusEffect(
+    useCallback(() => {
+      if (params.clearChat === 'true') {
+        // Reset to initial state for fresh conversation
+        setMessages([{
+          id: Date.now().toString(),
+          role: 'assistant',
+          content: "Great! What would you like to create next? I can help with tasks, challenges, events, and more!",
+          timestamp: new Date(),
+        }]);
+        setInputText('');
+        setAttachments([]);
+        setCurrentDraftId(null);
+        setCurrentSessionId(null);
+        // Clear the param to prevent re-triggering
+        router.setParams({ clearChat: undefined });
+      }
+    }, [params.clearChat])
+  );
 
   // Fetch pending drafts for badge
   const fetchPendingDrafts = useCallback(async () => {
@@ -208,32 +230,54 @@ export default function CommandCenterScreen() {
     setIsProcessing(true);
 
     try {
-      // Convert attachments to API format
-      const apiAttachments: SmartInputAttachment[] = attachments.map(a => ({
-        type: a.type,
-        uri: a.uri,
-        mimeType: a.mimeType,
-        name: a.name,
-        testAttachmentId: a.testAttachmentId,
-      }));
+      let response;
+      
+      // Check if we have real file attachments (not test attachments)
+      const realFileAttachments = attachments.filter(a => a.uri && !a.testAttachmentId);
+      const testAttachments = attachments.filter(a => a.testAttachmentId);
+      
+      if (realFileAttachments.length > 0) {
+        // Use multipart upload for real files (enables OCR/transcription)
+        console.log('📤 [SendMessage] Using multipart upload for', realFileAttachments.length, 'files');
+        response = await commandCenterService.sendMessageWithFiles(
+          text || null,
+          realFileAttachments.map(a => ({
+            uri: a.uri,
+            name: a.name,
+            mimeType: a.mimeType,
+          })),
+          currentSessionId || undefined
+        );
+      } else {
+        // Use JSON API for text-only or test attachments
+        const apiAttachments: SmartInputAttachment[] = testAttachments.map(a => ({
+          type: a.type,
+          uri: a.uri,
+          mimeType: a.mimeType,
+          name: a.name,
+          testAttachmentId: a.testAttachmentId,
+        }));
 
-      // Send to AI
-      const response = await commandCenterService.sendMessage(
-        text || null,
-        apiAttachments,
-        currentSessionId || undefined
-      );
+        response = await commandCenterService.sendMessage(
+          text || null,
+          apiAttachments,
+          currentSessionId || undefined
+        );
+      }
 
       if (response.success && response.data) {
         const aiResponse = response.data as any;
         console.log('🤖 [AI Response] Raw:', JSON.stringify(aiResponse, null, 2));
-        setCurrentSessionId(aiResponse.sessionId);
+        
+        // Handle both /smart-input (sessionId) and /process (id) response formats
+        const responseId = aiResponse.sessionId || aiResponse.id;
+        setCurrentSessionId(responseId);
 
         // Transform backend response to frontend DraftPreview structure
-        // Backend returns: { sessionId, status, intentDetected, confidenceScore, draft: {type, title, ...}, ... }
-        // Frontend expects: { id, draftType, status, confidence, title, draft: {type, title, ...}, ... }
-        let draftPreview = null;
-        if (aiResponse.draft && (aiResponse.status === 'READY' || aiResponse.draft)) {
+        // /smart-input returns: { sessionId, status, intentDetected, confidenceScore, draft: {type, title, ...}, ... }
+        // /process returns: { id, status, intentDetected, confidenceScore, draft: {type, title, ...}, ... }
+        let draftPreview: DraftPreview | undefined = undefined;
+        if (aiResponse.draft && (aiResponse.status === 'READY' || aiResponse.status === 'PENDING_APPROVAL' || aiResponse.draft)) {
           const rawDraft = aiResponse.draft;
           // Normalize draft type to uppercase
           const rawType = rawDraft?.type || '';
@@ -254,7 +298,7 @@ export default function CommandCenterScreen() {
           };
           
           draftPreview = {
-            id: aiResponse.sessionId, // Use sessionId as draft ID - THIS IS CRITICAL
+            id: responseId, // Use sessionId or id as draft ID - THIS IS CRITICAL
             draftType: draftType,
             status: 'PENDING_APPROVAL' as const,
             confidence: Number(aiResponse.confidenceScore) || 0.8,
@@ -268,7 +312,7 @@ export default function CommandCenterScreen() {
           };
           
           console.log('📋 [DraftPreview] Created with id:', draftPreview.id);
-          setCurrentDraftId(aiResponse.sessionId);
+          setCurrentDraftId(responseId);
           // Refresh pending drafts
           fetchPendingDrafts();
         }
@@ -764,8 +808,7 @@ export default function CommandCenterScreen() {
             ) : (
               <Animated.View style={{ transform: [{ scale: recordingAnimation }] }}>
                 <TouchableOpacity
-                  onPressIn={startRecording}
-                  onPressOut={stopRecording}
+                  onPress={isRecording ? stopRecording : startRecording}
                   className={`w-10 h-10 rounded-full items-center justify-center ${
                     isRecording ? 'bg-red-500' : 'bg-purple-600'
                   }`}
