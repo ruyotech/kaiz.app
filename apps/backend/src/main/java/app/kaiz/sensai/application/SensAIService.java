@@ -116,11 +116,12 @@ public class SensAIService {
 
   public DailyStandupDto.GetStandupResponse getTodayStandupWithHealth(UUID userId) {
     DailyStandupDto standup = getTodayStandup(userId);
-    boolean hasCompletedToday = standup != null && standup.completedAt() != null && !standup.isSkipped();
-    
+    boolean hasCompletedToday =
+        standup != null && standup.completedAt() != null && !standup.isSkipped();
+
     // Get current sprint health - use "current" as sprintId for active sprint
     VelocityDto.SprintHealth sprintHealth = getSprintHealth(userId, "current");
-    
+
     return new DailyStandupDto.GetStandupResponse(standup, hasCompletedToday, sprintHealth);
   }
 
@@ -346,7 +347,20 @@ public class SensAIService {
 
     if (record == null) {
       return new VelocityDto.SprintHealth(
-          sprintId, 0, 14, 14, 0, 0, 0, 0, 0, 100, "low", "on_track", List.of(), "Sprint not started yet.");
+          sprintId,
+          0,
+          14,
+          14,
+          0,
+          0,
+          0,
+          0,
+          0,
+          100,
+          "low",
+          "on_track",
+          List.of(),
+          "Sprint not started yet.");
     }
 
     int totalDays =
@@ -375,7 +389,7 @@ public class SensAIService {
     // Calculate health score
     int healthScore = calculateHealthScore(record, daysElapsed, totalDays, projectedCompletion);
     String riskLevel = healthScore >= 70 ? "low" : healthScore >= 40 ? "medium" : "high";
-    
+
     // Map to UI health status
     String healthStatus;
     if (projectedCompletion >= 110) {

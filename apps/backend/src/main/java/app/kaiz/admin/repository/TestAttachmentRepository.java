@@ -10,13 +10,13 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface TestAttachmentRepository extends JpaRepository<TestAttachment, UUID> {
 
-    List<TestAttachment> findByAttachmentType(AttachmentType type);
+  List<TestAttachment> findByAttachmentType(AttachmentType type);
 
-    List<TestAttachment> findByUseCase(String useCase);
+  List<TestAttachment> findByUseCase(String useCase);
 
-    List<TestAttachment> findByActiveTrue();
+  List<TestAttachment> findByActiveTrue();
 
-    List<TestAttachment> findByActiveTrueOrderByDisplayOrderAsc();
+  List<TestAttachment> findByActiveTrueOrderByDisplayOrderAsc();
 
-    List<TestAttachment> findByAttachmentTypeAndActiveTrue(AttachmentType type);
+  List<TestAttachment> findByAttachmentTypeAndActiveTrue(AttachmentType type);
 }

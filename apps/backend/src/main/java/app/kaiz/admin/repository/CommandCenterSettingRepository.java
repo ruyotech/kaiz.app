@@ -10,9 +10,9 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface CommandCenterSettingRepository extends JpaRepository<CommandCenterSetting, UUID> {
 
-    Optional<CommandCenterSetting> findBySettingKey(String settingKey);
+  Optional<CommandCenterSetting> findBySettingKey(String settingKey);
 
-    List<CommandCenterSetting> findByActiveTrue();
+  List<CommandCenterSetting> findByActiveTrue();
 
-    List<CommandCenterSetting> findBySecretFalseAndActiveTrue();
+  List<CommandCenterSetting> findBySecretFalseAndActiveTrue();
 }

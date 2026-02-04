@@ -39,10 +39,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     try {
       String token = extractToken(request);
       String uri = request.getRequestURI();
-      
+
       // Log for admin endpoints
       if (uri.contains("/admin/")) {
-        log.info("Processing admin request: {} - Token present: {}", uri, StringUtils.hasText(token));
+        log.info(
+            "Processing admin request: {} - Token present: {}", uri, StringUtils.hasText(token));
       }
 
       if (StringUtils.hasText(token) && jwtTokenProvider.validateToken(token)) {
@@ -91,7 +92,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         log.info("Token validation failed for {}", uri);
       }
     } catch (Exception e) {
-      log.warn("Could not set user authentication for {}: {}", request.getRequestURI(), e.getMessage());
+      log.warn(
+          "Could not set user authentication for {}: {}", request.getRequestURI(), e.getMessage());
     }
 
     filterChain.doFilter(request, response);

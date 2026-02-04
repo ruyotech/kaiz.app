@@ -1,5 +1,7 @@
 package app.kaiz.command_center.api;
 
+import app.kaiz.admin.application.AdminCommandCenterService;
+import app.kaiz.admin.application.dto.CommandCenterAdminDtos.TestAttachmentResponse;
 import app.kaiz.command_center.api.dto.*;
 import app.kaiz.command_center.api.dto.CommandCenterAIResponse.AttachmentSummary;
 import app.kaiz.command_center.application.CommandCenterAIService;
@@ -37,6 +39,7 @@ public class CommandCenterController {
   private final SmartInputAIService smartInputService;
   private final DraftApprovalService approvalService;
   private final PendingDraftRepository draftRepository;
+  private final AdminCommandCenterService adminService;
 
   // =========================================================================
   // Smart Input Endpoints (New - with clarification flow)
@@ -256,6 +259,59 @@ public class CommandCenterController {
             draft.getExpiresAt());
 
     return ResponseEntity.ok(ApiResponse.success(response));
+  }
+
+  // =========================================================================
+  // Test Attachments (for simulator testing)
+  // =========================================================================
+
+  @GetMapping("/test-attachments")
+  @Operation(
+      summary = "Get test attachments",
+      description = "Retrieve test attachments uploaded via admin for simulator testing")
+  public ResponseEntity<ApiResponse<List<TestAttachmentResponse>>> getTestAttachments(
+      @CurrentUser UUID userId, @RequestParam(required = false) String type) {
+
+    log.info("🧪 [Command Center] Fetching test attachments for user: {}, type: {}", userId, type);
+
+    List<TestAttachmentResponse> attachments;
+    if (type != null && !type.isEmpty()) {
+      attachments = adminService.getTestAttachmentsByType(type.toUpperCase());
+    } else {
+      attachments = adminService.getAllTestAttachments();
+    }
+
+    return ResponseEntity.ok(ApiResponse.success(attachments));
+  }
+
+  @GetMapping("/test-attachments/{id}")
+  @Operation(
+      summary = "Get test attachment by ID",
+      description = "Retrieve a specific test attachment by its ID")
+  public ResponseEntity<ApiResponse<TestAttachmentResponse>> getTestAttachment(
+      @CurrentUser UUID userId, @PathVariable UUID id) {
+
+    log.info("🧪 [Command Center] Fetching test attachment: {} for user: {}", id, userId);
+    TestAttachmentResponse attachment = adminService.getTestAttachment(id);
+    return ResponseEntity.ok(ApiResponse.success(attachment));
+  }
+
+  @GetMapping("/test-attachments/{id}/download")
+  @Operation(
+      summary = "Download test attachment",
+      description = "Download the file data of a test attachment")
+  public ResponseEntity<byte[]> downloadTestAttachment(
+      @CurrentUser UUID userId, @PathVariable UUID id) {
+
+    log.info("⬇️ [Command Center] Downloading test attachment: {} for user: {}", id, userId);
+    TestAttachmentResponse attachment = adminService.getTestAttachment(id);
+    byte[] data = adminService.getTestAttachmentData(id);
+
+    return ResponseEntity.ok()
+        .contentType(MediaType.parseMediaType(attachment.mimeType()))
+        .header(
+            "Content-Disposition", "attachment; filename=\"" + attachment.attachmentName() + "\"")
+        .body(data);
   }
 
   // =========================================================================

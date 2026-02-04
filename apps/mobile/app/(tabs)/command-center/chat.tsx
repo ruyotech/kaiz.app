@@ -1,127 +1,55 @@
 /**
- * CommandCenterChat - AI-powered conversation screen
+ * Command Center Chat Screen
  * 
- * This screen allows users to chat with the AI to create tasks, challenges,
- * events, etc. The AI processes input and returns a draft preview that
- * the user can approve, edit, or reject.
+ * AI-powered conversation interface for creating tasks, challenges, events, etc.
+ * - Supports text, image, voice, and file inputs
+ * - Uses admin-configured LLM providers and system prompts
+ * - Test attachments available for simulator testing
+ * - Drafts are created as pending for user approval
  */
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
-    View,
-    Text,
-    ScrollView,
-    KeyboardAvoidingView,
-    Platform,
-    ActivityIndicator,
+  View,
+  Text,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableOpacity,
+  TextInput,
+  Alert,
+  Animated,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
+import { Audio } from 'expo-av';
+
 import { Container } from '../../../components/layout/Container';
 import { ScreenHeader } from '../../../components/layout/ScreenHeader';
-import { ChatInput, Attachment } from '../../../components/chat/ChatInput';
-import { DraftPreviewCard } from '../../../components/chat/DraftPreviewCard';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { commandCenterApi, CommandInputAttachment } from '../../../services/api';
+import { ChatMessage, TestAttachmentPicker } from '../../../components/command-center';
+import { commandCenterService } from '../../../services/commandCenter';
 import {
-    ChatMessage,
-    CommandCenterAIResponse,
-    getDraftTitle,
-    getDraftTypeDisplayName,
-} from '../../../types/commandCenter.types';
+  ChatMessage as ChatMessageType,
+  SmartInputAttachment,
+  TestAttachment,
+  getDraftTitle,
+  getDraftTypeDisplayName,
+} from '../../../types/commandCenter';
 
 // ============================================================================
-// Message Bubble Components
+// Types
 // ============================================================================
 
-interface UserMessageProps {
-    message: ChatMessage;
-}
-
-function UserMessage({ message }: UserMessageProps) {
-    return (
-        <View className="flex-row justify-end mb-3 px-4">
-            <View className="max-w-[85%] bg-blue-600 rounded-2xl rounded-br-sm px-4 py-3">
-                <Text className="text-white text-base">{message.content}</Text>
-                {message.attachments && message.attachments.length > 0 && (
-                    <View className="mt-2 pt-2 border-t border-blue-500">
-                        {message.attachments.map((att, i) => (
-                            <View key={i} className="flex-row items-center">
-                                <MaterialCommunityIcons 
-                                    name={att.type === 'image' ? 'image' : att.type === 'audio' ? 'microphone' : 'file-document'} 
-                                    size={14} 
-                                    color="rgba(255,255,255,0.8)" 
-                                />
-                                <Text className="text-blue-100 text-xs ml-1" numberOfLines={1}>
-                                    {att.name}
-                                </Text>
-                            </View>
-                        ))}
-                    </View>
-                )}
-                <Text className="text-blue-200 text-xs mt-1 text-right">
-                    {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </Text>
-            </View>
-        </View>
-    );
-}
-
-interface AIMessageProps {
-    message: ChatMessage;
-    onApprove: () => void;
-    onEdit: () => void;
-    onReject: () => void;
-    isLoading?: boolean;
-}
-
-function AIMessage({ message, onApprove, onEdit, onReject, isLoading }: AIMessageProps) {
-    return (
-        <View className="mb-3 px-4">
-            {/* AI Avatar and Label */}
-            <View className="flex-row items-center mb-2">
-                <View className="w-7 h-7 bg-purple-100 rounded-full items-center justify-center">
-                    <MaterialCommunityIcons name="robot" size={16} color="#8B5CF6" />
-                </View>
-                <Text className="text-xs font-medium text-purple-600 ml-2">Kaiz AI</Text>
-            </View>
-            
-            {/* Message or Draft Card */}
-            <View className="ml-9">
-                {message.isLoading ? (
-                    <View className="bg-gray-100 rounded-2xl rounded-tl-sm px-4 py-3">
-                        <View className="flex-row items-center">
-                            <ActivityIndicator size="small" color="#8B5CF6" />
-                            <Text className="text-gray-600 ml-2">Thinking...</Text>
-                        </View>
-                    </View>
-                ) : message.draft ? (
-                    <DraftPreviewCard
-                        response={message.draft}
-                        onApprove={onApprove}
-                        onEdit={onEdit}
-                        onReject={onReject}
-                        isLoading={isLoading}
-                    />
-                ) : (
-                    <View className="bg-gray-100 rounded-2xl rounded-tl-sm px-4 py-3">
-                        <Text className="text-gray-800 text-base">{message.content}</Text>
-                        <Text className="text-gray-400 text-xs mt-1">
-                            {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </Text>
-                    </View>
-                )}
-            </View>
-        </View>
-    );
-}
-
-function SystemMessage({ message }: { message: ChatMessage }) {
-    return (
-        <View className="items-center my-3 px-4">
-            <View className="bg-gray-200 rounded-full px-4 py-1">
-                <Text className="text-xs text-gray-600">{message.content}</Text>
-            </View>
-        </View>
-    );
+interface PendingAttachment {
+  id: string;
+  name: string;
+  type: 'image' | 'audio' | 'pdf' | 'document';
+  mimeType: string;
+  uri: string;
+  size?: number;
+  testAttachmentId?: string;
 }
 
 // ============================================================================
@@ -129,306 +57,593 @@ function SystemMessage({ message }: { message: ChatMessage }) {
 // ============================================================================
 
 export default function CommandCenterChatScreen() {
-    const scrollViewRef = useRef<ScrollView>(null);
-    
-    // Messages state
-    const [messages, setMessages] = useState<ChatMessage[]>([
-        {
-            id: '1',
-            type: 'ai',
-            content: "Hi! I'm Kaiz AI. Tell me what you'd like to create - a task, challenge, event, or anything else. You can also share images, files, or voice messages!",
-            timestamp: new Date(),
-        },
-    ]);
-    
-    const [isProcessing, setIsProcessing] = useState(false);
-    const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
+  const insets = useSafeAreaInsets();
+  const scrollViewRef = useRef<ScrollView>(null);
+  
+  // =========================================================================
+  // State
+  // =========================================================================
+  
+  const [messages, setMessages] = useState<ChatMessageType[]>([
+    {
+      id: '1',
+      role: 'assistant',
+      content: "Hey! I'm your Kaiz AI assistant. Tell me what you'd like to create - a task, challenge, event, or anything else. You can also send images, files, or voice notes!",
+      timestamp: new Date(),
+    },
+  ]);
+  
+  const [inputText, setInputText] = useState('');
+  const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  
+  // Input options modal
+  const [showInputOptions, setShowInputOptions] = useState(false);
+  const [showTestAttachments, setShowTestAttachments] = useState(false);
+  
+  // Recording state
+  const [isRecording, setIsRecording] = useState(false);
+  const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const recordingAnimation = useRef(new Animated.Value(1)).current;
+  
+  // =========================================================================
+  // Effects
+  // =========================================================================
+  
+  // Auto-scroll to bottom
+  useEffect(() => {
+    setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 100);
+  }, [messages]);
 
-    // Auto-scroll to bottom when messages change
-    useEffect(() => {
-        setTimeout(() => {
-            scrollViewRef.current?.scrollToEnd({ animated: true });
-        }, 100);
-    }, [messages]);
+  // Recording animation
+  useEffect(() => {
+    if (isRecording) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(recordingAnimation, {
+            toValue: 1.2,
+            duration: 500,
+            useNativeDriver: true,
+          }),
+          Animated.timing(recordingAnimation, {
+            toValue: 1,
+            duration: 500,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    } else {
+      recordingAnimation.setValue(1);
+    }
+  }, [isRecording]);
 
-    // Convert ChatInput attachment to API attachment format
-    const convertAttachment = (att: Attachment): CommandInputAttachment => ({
-        type: att.type === 'audio' ? 'voice' : att.type,
-        uri: att.uri,
-        name: att.name,
-        mimeType: att.mimeType,
+  // =========================================================================
+  // Message Handlers
+  // =========================================================================
+
+  const sendMessage = useCallback(async () => {
+    const text = inputText.trim();
+    if (!text && attachments.length === 0) return;
+
+    // Add user message
+    const userMessage: ChatMessageType = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: text || '📎 Attachment',
+      timestamp: new Date(),
+      attachments: attachments.map(a => ({
+        id: a.id,
+        name: a.name,
+        type: a.type,
+        mimeType: a.mimeType,
+        uri: a.uri,
+        size: a.size,
+        testAttachmentId: a.testAttachmentId,
+      })),
+    };
+
+    // Add thinking message
+    const thinkingMessage: ChatMessageType = {
+      id: (Date.now() + 1).toString(),
+      role: 'assistant',
+      content: '',
+      timestamp: new Date(),
+      isThinking: true,
+    };
+
+    setMessages(prev => [...prev, userMessage, thinkingMessage]);
+    setInputText('');
+    setAttachments([]);
+    setIsProcessing(true);
+
+    try {
+      // Convert attachments to API format
+      const apiAttachments: SmartInputAttachment[] = attachments.map(a => ({
+        type: a.type,
+        uri: a.uri,
+        mimeType: a.mimeType,
+        name: a.name,
+        testAttachmentId: a.testAttachmentId,
+      }));
+
+      // Send to AI
+      const response = await commandCenterService.sendMessage(
+        text || null,
+        apiAttachments,
+        currentSessionId || undefined
+      );
+
+      if (response.success && response.data) {
+        const aiResponse = response.data;
+        setCurrentSessionId(aiResponse.sessionId);
+
+        if (aiResponse.draft) {
+          setCurrentDraftId(aiResponse.draft.id);
+        }
+
+        // Replace thinking with response
+        const aiMessage: ChatMessageType = {
+          id: thinkingMessage.id,
+          role: 'assistant',
+          content: aiResponse.message,
+          timestamp: new Date(),
+          draft: aiResponse.draft,
+          clarification: aiResponse.clarification,
+        };
+
+        setMessages(prev =>
+          prev.map(m => (m.id === thinkingMessage.id ? aiMessage : m))
+        );
+      } else {
+        // Error message
+        const errorMessage: ChatMessageType = {
+          id: thinkingMessage.id,
+          role: 'assistant',
+          content: `Sorry, something went wrong: ${response.error || 'Unknown error'}`,
+          timestamp: new Date(),
+        };
+
+        setMessages(prev =>
+          prev.map(m => (m.id === thinkingMessage.id ? errorMessage : m))
+        );
+      }
+    } catch (error: any) {
+      console.error('Error sending message:', error);
+
+      const errorMessage: ChatMessageType = {
+        id: thinkingMessage.id,
+        role: 'assistant',
+        content: 'Sorry, I encountered an error. Please try again.',
+        timestamp: new Date(),
+      };
+
+      setMessages(prev =>
+        prev.map(m => (m.id === thinkingMessage.id ? errorMessage : m))
+      );
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [inputText, attachments, currentSessionId]);
+
+  // =========================================================================
+  // Draft Actions
+  // =========================================================================
+
+  const handleApprove = useCallback(async () => {
+    if (!currentDraftId) return;
+
+    setIsProcessing(true);
+    try {
+      const response = await commandCenterService.approveDraft(currentDraftId);
+
+      if (response.success) {
+        const draftMessage = messages.find(m => m.draft?.id === currentDraftId);
+        const draftType = draftMessage?.draft?.draftType;
+        const title = draftMessage?.draft ? getDraftTitle(draftMessage.draft.draft) : 'Item';
+        const displayType = draftType ? getDraftTypeDisplayName(draftType) : 'Item';
+
+        // Success message
+        const successMessage: ChatMessageType = {
+          id: Date.now().toString(),
+          role: 'system',
+          content: `✅ ${displayType} "${title}" created successfully!`,
+          timestamp: new Date(),
+        };
+
+        // Follow-up message
+        const followUpMessage: ChatMessageType = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: `Great! Your ${displayType.toLowerCase()} has been created. Would you like to create something else?`,
+          timestamp: new Date(),
+        };
+
+        setMessages(prev => [...prev, successMessage, followUpMessage]);
+        setCurrentDraftId(null);
+        setCurrentSessionId(null);
+      } else {
+        Alert.alert('Error', response.error || 'Failed to create. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error approving draft:', error);
+      Alert.alert('Error', 'Failed to create. Please try again.');
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [currentDraftId, messages]);
+
+  const handleReject = useCallback(async () => {
+    if (!currentDraftId) return;
+
+    setIsProcessing(true);
+    try {
+      await commandCenterService.rejectDraft(currentDraftId);
+
+      const rejectMessage: ChatMessageType = {
+        id: Date.now().toString(),
+        role: 'system',
+        content: '❌ Draft rejected',
+        timestamp: new Date(),
+      };
+
+      const followUpMessage: ChatMessageType = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: "No problem! Tell me more about what you'd like to create, or try describing it differently.",
+        timestamp: new Date(),
+      };
+
+      setMessages(prev => [...prev, rejectMessage, followUpMessage]);
+      setCurrentDraftId(null);
+    } catch (error) {
+      console.error('Error rejecting draft:', error);
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [currentDraftId]);
+
+  // =========================================================================
+  // Attachment Handlers
+  // =========================================================================
+
+  const pickImage = useCallback(async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Permission Required', 'Please allow access to your photos.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.8,
+      allowsMultipleSelection: false,
     });
 
-    // Handle sending a message
-    const handleSend = useCallback(async (text: string, attachments: Attachment[]) => {
-        if (!text.trim() && attachments.length === 0) return;
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0];
+      setAttachments(prev => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          name: asset.fileName || 'image.jpg',
+          type: 'image',
+          mimeType: asset.mimeType || 'image/jpeg',
+          uri: asset.uri,
+          size: asset.fileSize,
+        },
+      ]);
+    }
+    setShowInputOptions(false);
+  }, []);
 
-        // Add user message
-        const userMessage: ChatMessage = {
+  const takePhoto = useCallback(async () => {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Permission Required', 'Please allow camera access.');
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0];
+      setAttachments(prev => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          name: 'photo.jpg',
+          type: 'image',
+          mimeType: 'image/jpeg',
+          uri: asset.uri,
+        },
+      ]);
+    }
+    setShowInputOptions(false);
+  }, []);
+
+  const pickDocument = useCallback(async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/pdf', 'text/*', 'application/msword'],
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const asset = result.assets[0];
+        setAttachments(prev => [
+          ...prev,
+          {
             id: Date.now().toString(),
-            type: 'user',
-            content: text || '(attachment)',
-            timestamp: new Date(),
-            attachments: attachments.map(a => ({
-                name: a.name,
-                type: a.type,
-                mimeType: a.mimeType,
-                size: a.size,
-            })),
-        };
-        
-        // Add loading AI message
-        const loadingMessage: ChatMessage = {
-            id: (Date.now() + 1).toString(),
-            type: 'ai',
-            content: '',
-            timestamp: new Date(),
-            isLoading: true,
-        };
+            name: asset.name,
+            type: asset.mimeType?.includes('pdf') ? 'pdf' : 'document',
+            mimeType: asset.mimeType || 'application/octet-stream',
+            uri: asset.uri,
+            size: asset.size,
+          },
+        ]);
+      }
+    } catch (error) {
+      console.error('Error picking document:', error);
+    }
+    setShowInputOptions(false);
+  }, []);
 
-        setMessages(prev => [...prev, userMessage, loadingMessage]);
-        setIsProcessing(true);
+  const handleTestAttachmentSelect = useCallback((testAttachment: TestAttachment) => {
+    setAttachments(prev => [
+      ...prev,
+      {
+        id: Date.now().toString(),
+        name: testAttachment.attachmentName,
+        type: testAttachment.attachmentType.toLowerCase() as any,
+        mimeType: testAttachment.mimeType,
+        uri: testAttachment.fileUrl || '',
+        testAttachmentId: testAttachment.id,
+      },
+    ]);
+  }, []);
 
-        try {
-            // Call AI API
-            const response = await commandCenterApi.processWithAI(
-                text || null,
-                attachments.map(convertAttachment)
-            );
+  const removeAttachment = useCallback((id: string) => {
+    setAttachments(prev => prev.filter(a => a.id !== id));
+  }, []);
 
-            if (response.success && response.data) {
-                const aiResponse = response.data;
-                setCurrentDraftId(aiResponse.id);
+  // =========================================================================
+  // Voice Recording
+  // =========================================================================
 
-                // Replace loading message with draft preview
-                const draftMessage: ChatMessage = {
-                    id: loadingMessage.id,
-                    type: 'ai',
-                    content: '',
-                    timestamp: new Date(),
-                    draft: aiResponse,
-                };
+  const startRecording = useCallback(async () => {
+    try {
+      const permission = await Audio.requestPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('Permission Required', 'Please allow microphone access.');
+        return;
+      }
 
-                setMessages(prev => 
-                    prev.map(m => m.id === loadingMessage.id ? draftMessage : m)
-                );
-            } else {
-                // Show error message
-                const errorMessage: ChatMessage = {
-                    id: loadingMessage.id,
-                    type: 'ai',
-                    content: `Sorry, I couldn't process that. ${response.error || 'Please try again.'}`,
-                    timestamp: new Date(),
-                };
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
 
-                setMessages(prev => 
-                    prev.map(m => m.id === loadingMessage.id ? errorMessage : m)
-                );
-            }
-        } catch (error: any) {
-            console.error('Error processing message:', error);
-            
-            // Show error message
-            const errorMessage: ChatMessage = {
-                id: loadingMessage.id,
-                type: 'ai',
-                content: "Sorry, something went wrong. Please try again.",
-                timestamp: new Date(),
-            };
+      const { recording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
 
-            setMessages(prev => 
-                prev.map(m => m.id === loadingMessage.id ? errorMessage : m)
-            );
-        } finally {
-            setIsProcessing(false);
-        }
-    }, []);
+      setRecording(recording);
+      setIsRecording(true);
+    } catch (error) {
+      console.error('Failed to start recording:', error);
+      Alert.alert('Error', 'Failed to start recording.');
+    }
+  }, []);
 
-    // Handle draft approval
-    const handleApprove = useCallback(async () => {
-        if (!currentDraftId) return;
+  const stopRecording = useCallback(async () => {
+    if (!recording) return;
 
-        setIsProcessing(true);
-        try {
-            const response = await commandCenterApi.approveDraft(currentDraftId);
+    try {
+      await recording.stopAndUnloadAsync();
+      const uri = recording.getURI();
 
-            if (response.success) {
-                // Find the draft to get its type for the success message
-                const draftMessage = messages.find(m => m.draft?.id === currentDraftId);
-                const draftType = draftMessage?.draft?.intentDetected;
-                const draftTitle = draftMessage?.draft ? getDraftTitle(draftMessage.draft.draft) : 'Item';
-                const displayType = draftType ? getDraftTypeDisplayName(draftType) : 'Item';
-
-                // Add success system message
-                const successMessage: ChatMessage = {
-                    id: Date.now().toString(),
-                    type: 'system',
-                    content: `✅ ${displayType} "${draftTitle}" created successfully!`,
-                    timestamp: new Date(),
-                };
-
-                // Add follow-up AI message (no popup)
-                const followUpMessage: ChatMessage = {
-                    id: (Date.now() + 1).toString(),
-                    type: 'ai',
-                    content: `Great! Your ${displayType.toLowerCase()} has been created and saved. Would you like to create something else?`,
-                    timestamp: new Date(),
-                };
-
-                setMessages(prev => [...prev, successMessage, followUpMessage]);
-                setCurrentDraftId(null);
-            } else {
-                const errorMsg = typeof response.error === 'string'
-                    ? response.error
-                    : response.error?.message || 'Failed to create. Please try again.';
-
-                // Add error message inline
-                const errorMessage: ChatMessage = {
-                    id: Date.now().toString(),
-                    type: 'system',
-                    content: `⚠️ ${errorMsg}`,
-                    timestamp: new Date(),
-                };
-                setMessages(prev => [...prev, errorMessage]);
-            }
-        } catch (error) {
-            console.error('Error approving draft:', error);
-
-            // Add error message inline
-            const errorMessage: ChatMessage = {
-                id: Date.now().toString(),
-                type: 'system',
-                content: '⚠️ Something went wrong. Please try again.',
-                timestamp: new Date(),
-            };
-            setMessages(prev => [...prev, errorMessage]);
-        } finally {
-            setIsProcessing(false);
-        }
-    }, [currentDraftId, messages]);
-
-    // Handle draft edit
-    const handleEdit = useCallback(() => {
-        // TODO: Navigate to edit screen with draft data
-        // For now, show inline message that edit is not yet implemented
-        const editMessage: ChatMessage = {
+      if (uri) {
+        setAttachments(prev => [
+          ...prev,
+          {
             id: Date.now().toString(),
-            type: 'ai',
-            content: "Edit functionality is coming soon! For now, you can reject this draft and describe what you'd like to change, and I'll create a new one.",
-            timestamp: new Date(),
-        };
-        setMessages(prev => [...prev, editMessage]);
-    }, []);
+            name: 'voice_note.m4a',
+            type: 'audio',
+            mimeType: 'audio/m4a',
+            uri,
+          },
+        ]);
+      }
+    } catch (error) {
+      console.error('Failed to stop recording:', error);
+    } finally {
+      setRecording(null);
+      setIsRecording(false);
+    }
+  }, [recording]);
 
-    // Handle draft rejection
-    const handleReject = useCallback(async () => {
-        if (!currentDraftId) return;
+  // =========================================================================
+  // Render
+  // =========================================================================
 
-        setIsProcessing(true);
-        try {
-            const response = await commandCenterApi.rejectDraft(currentDraftId);
+  return (
+    <Container safeArea={false}>
+      <ScreenHeader
+        title="AI Chat"
+        subtitle="Create anything with natural language"
+        showBack
+        useSafeArea={false}
+      />
 
-            if (response.success) {
-                // Add rejection system message
-                const rejectMessage: ChatMessage = {
-                    id: Date.now().toString(),
-                    type: 'system',
-                    content: 'Draft discarded.',
-                    timestamp: new Date(),
-                };
-
-                // Add follow-up AI message
-                const followUpMessage: ChatMessage = {
-                    id: (Date.now() + 1).toString(),
-                    type: 'ai',
-                    content: "No problem! I've discarded that draft. Would you like to try again with different wording, or create something else?",
-                    timestamp: new Date(),
-                };
-
-                setMessages(prev => [...prev, rejectMessage, followUpMessage]);
-                setCurrentDraftId(null);
-            } else {
-                const errorMsg = typeof response.error === 'string'
-                    ? response.error
-                    : response.error?.message || 'Failed to reject draft.';
-
-                // Add error message inline
-                const errorMessage: ChatMessage = {
-                    id: Date.now().toString(),
-                    type: 'system',
-                    content: `⚠️ ${errorMsg}`,
-                    timestamp: new Date(),
-                };
-                setMessages(prev => [...prev, errorMessage]);
-            }
-        } catch (error) {
-            console.error('Error rejecting draft:', error);
-
-            // Add error message inline
-            const errorMessage: ChatMessage = {
-                id: Date.now().toString(),
-                type: 'system',
-                content: '⚠️ Something went wrong. Please try again.',
-                timestamp: new Date(),
-            };
-            setMessages(prev => [...prev, errorMessage]);
-        } finally {
-            setIsProcessing(false);
-        }
-    }, [currentDraftId]);
-
-    return (
-        <Container safeArea={false}>
-            <ScreenHeader
-                title="AI Assistant"
-                subtitle="Create with natural language"
-                showBack
-                useSafeArea={false}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        className="flex-1"
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        {/* Messages */}
+        <ScrollView
+          ref={scrollViewRef}
+          className="flex-1"
+          contentContainerStyle={{ paddingVertical: 16 }}
+          keyboardShouldPersistTaps="handled"
+        >
+          {messages.map((message) => (
+            <ChatMessage
+              key={message.id}
+              message={message}
+              onDraftApprove={message.draft?.id === currentDraftId ? handleApprove : undefined}
+              onDraftReject={message.draft?.id === currentDraftId ? handleReject : undefined}
+              isProcessing={isProcessing}
             />
+          ))}
+        </ScrollView>
 
-            <KeyboardAvoidingView 
-                className="flex-1"
-                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+        {/* Attachments Preview */}
+        {attachments.length > 0 && (
+          <View className="px-4 py-2 border-t border-gray-100 bg-gray-50">
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {attachments.map((att) => (
+                <View key={att.id} className="mr-2 relative">
+                  <View className="bg-blue-100 rounded-xl px-3 py-2 flex-row items-center">
+                    <MaterialCommunityIcons
+                      name={
+                        att.type === 'image' ? 'image' :
+                        att.type === 'audio' ? 'microphone' :
+                        att.type === 'pdf' ? 'file-pdf-box' : 'file-document'
+                      }
+                      size={16}
+                      color="#3B82F6"
+                    />
+                    <Text className="text-blue-700 text-sm ml-2 max-w-24" numberOfLines={1}>
+                      {att.name}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => removeAttachment(att.id)}
+                    className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full items-center justify-center"
+                  >
+                    <MaterialCommunityIcons name="close" size={12} color="white" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* Input Area */}
+        <View
+          className="border-t border-gray-200 bg-white px-4 py-3"
+          style={{ paddingBottom: Math.max(insets.bottom, 12) }}
+        >
+          <View className="flex-row items-end gap-2">
+            {/* Attachment Button */}
+            <TouchableOpacity
+              onPress={() => setShowInputOptions(!showInputOptions)}
+              className="w-10 h-10 bg-gray-100 rounded-full items-center justify-center"
             >
-                {/* Messages */}
-                <ScrollView 
-                    ref={scrollViewRef}
-                    className="flex-1"
-                    contentContainerStyle={{ paddingVertical: 16 }}
-                    keyboardShouldPersistTaps="handled"
-                >
-                    {messages.map((message) => {
-                        switch (message.type) {
-                            case 'user':
-                                return <UserMessage key={message.id} message={message} />;
-                            case 'ai':
-                            case 'draft':
-                                return (
-                                    <AIMessage 
-                                        key={message.id} 
-                                        message={message}
-                                        onApprove={handleApprove}
-                                        onEdit={handleEdit}
-                                        onReject={handleReject}
-                                        isLoading={isProcessing}
-                                    />
-                                );
-                            case 'system':
-                                return <SystemMessage key={message.id} message={message} />;
-                            default:
-                                return null;
-                        }
-                    })}
-                </ScrollView>
+              <MaterialCommunityIcons
+                name={showInputOptions ? 'close' : 'plus'}
+                size={24}
+                color="#6B7280"
+              />
+            </TouchableOpacity>
 
-                {/* Input */}
-                <ChatInput
-                    onSend={handleSend}
-                    placeholder="Describe what you want to create..."
-                    disabled={isProcessing}
-                />
-            </KeyboardAvoidingView>
-        </Container>
-    );
+            {/* Text Input */}
+            <View className="flex-1 bg-gray-100 rounded-2xl px-4 py-2 max-h-32">
+              <TextInput
+                value={inputText}
+                onChangeText={setInputText}
+                placeholder="Describe what you want to create..."
+                placeholderTextColor="#9CA3AF"
+                multiline
+                className="text-base text-gray-800"
+                style={{ maxHeight: 100 }}
+                editable={!isProcessing}
+              />
+            </View>
+
+            {/* Send / Voice Button */}
+            {inputText.trim() || attachments.length > 0 ? (
+              <TouchableOpacity
+                onPress={sendMessage}
+                disabled={isProcessing}
+                className="w-10 h-10 bg-purple-600 rounded-full items-center justify-center"
+              >
+                <MaterialCommunityIcons name="send" size={20} color="white" />
+              </TouchableOpacity>
+            ) : (
+              <Animated.View style={{ transform: [{ scale: recordingAnimation }] }}>
+                <TouchableOpacity
+                  onPressIn={startRecording}
+                  onPressOut={stopRecording}
+                  className={`w-10 h-10 rounded-full items-center justify-center ${
+                    isRecording ? 'bg-red-500' : 'bg-purple-600'
+                  }`}
+                >
+                  <MaterialCommunityIcons
+                    name={isRecording ? 'stop' : 'microphone'}
+                    size={20}
+                    color="white"
+                  />
+                </TouchableOpacity>
+              </Animated.View>
+            )}
+          </View>
+
+          {/* Input Options */}
+          {showInputOptions && (
+            <View className="flex-row gap-2 mt-3 pt-3 border-t border-gray-100">
+              <TouchableOpacity
+                onPress={takePhoto}
+                className="flex-1 bg-blue-50 rounded-xl py-3 items-center flex-row justify-center"
+              >
+                <MaterialCommunityIcons name="camera" size={20} color="#3B82F6" />
+                <Text className="text-blue-600 font-medium ml-2">Camera</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={pickImage}
+                className="flex-1 bg-green-50 rounded-xl py-3 items-center flex-row justify-center"
+              >
+                <MaterialCommunityIcons name="image" size={20} color="#10B981" />
+                <Text className="text-green-600 font-medium ml-2">Gallery</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={pickDocument}
+                className="flex-1 bg-orange-50 rounded-xl py-3 items-center flex-row justify-center"
+              >
+                <MaterialCommunityIcons name="file-document" size={20} color="#F97316" />
+                <Text className="text-orange-600 font-medium ml-2">File</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => {
+                  setShowInputOptions(false);
+                  setShowTestAttachments(true);
+                }}
+                className="flex-1 bg-purple-50 rounded-xl py-3 items-center flex-row justify-center"
+              >
+                <MaterialCommunityIcons name="test-tube" size={20} color="#8B5CF6" />
+                <Text className="text-purple-600 font-medium ml-2">Test</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </KeyboardAvoidingView>
+
+      {/* Test Attachments Picker */}
+      <TestAttachmentPicker
+        visible={showTestAttachments}
+        onClose={() => setShowTestAttachments(false)}
+        onSelect={handleTestAttachmentSelect}
+      />
+    </Container>
+  );
 }

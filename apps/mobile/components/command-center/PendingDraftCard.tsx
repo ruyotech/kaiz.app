@@ -8,18 +8,18 @@ import React from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
-    CommandCenterAIResponse,
+    DraftPreview,
     getDraftTitle,
     getDraftTypeIcon,
     getDraftTypeColor,
     getDraftTypeDisplayName,
-} from '../../types/commandCenter.types';
+} from '../../types/commandCenter';
 
 interface PendingDraftCardProps {
-    draft: CommandCenterAIResponse;
+    draft: DraftPreview;
     onApprove: (draftId: string) => void;
     onReject: (draftId: string) => void;
-    onPress?: (draft: CommandCenterAIResponse) => void;
+    onPress?: (draft: DraftPreview) => void;
     isLoading?: boolean;
 }
 
@@ -31,12 +31,12 @@ export function PendingDraftCard({
     isLoading = false,
 }: PendingDraftCardProps) {
     const title = getDraftTitle(draft.draft);
-    const typeIcon = getDraftTypeIcon(draft.intentDetected);
-    const typeColor = getDraftTypeColor(draft.intentDetected);
-    const typeName = getDraftTypeDisplayName(draft.intentDetected);
+    const typeIcon = getDraftTypeIcon(draft.draftType);
+    const typeColor = getDraftTypeColor(draft.draftType);
+    const typeName = getDraftTypeDisplayName(draft.draftType);
 
     // Calculate time until expiration
-    const expiresAt = new Date(draft.expiresAt);
+    const expiresAt = draft.expiresAt ? new Date(draft.expiresAt) : new Date(Date.now() + 24 * 60 * 60 * 1000);
     const now = new Date();
     const hoursRemaining = Math.max(0, Math.floor((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60)));
 
@@ -81,7 +81,7 @@ export function PendingDraftCard({
                     style={{ backgroundColor: typeColor + '15' }}
                 >
                     <Text className="text-xs font-medium" style={{ color: typeColor }}>
-                        {Math.round(draft.confidenceScore * 100)}%
+                        {Math.round((draft.confidence || 0.85) * 100)}%
                     </Text>
                 </View>
             </View>

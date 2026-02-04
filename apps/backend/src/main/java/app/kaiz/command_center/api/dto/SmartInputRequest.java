@@ -1,7 +1,6 @@
 package app.kaiz.command_center.api.dto;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -11,10 +10,10 @@ import java.util.UUID;
  * attachments.
  */
 public record SmartInputRequest(
-    @NotNull UUID userId,
-    @NotBlank String text,
+    String text, // Optional - can be null if only attachments are provided
     String voiceTranscription,
     List<Attachment> attachments,
+    String sessionId, // For multi-turn conversations
     Context context) {
 
   /** Attachment (image, file, etc.) */

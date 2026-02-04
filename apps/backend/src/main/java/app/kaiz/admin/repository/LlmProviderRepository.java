@@ -11,12 +11,12 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface LlmProviderRepository extends JpaRepository<LlmProvider, UUID> {
 
-    Optional<LlmProvider> findByProviderName(String providerName);
+  Optional<LlmProvider> findByProviderName(String providerName);
 
-    List<LlmProvider> findByActiveTrue();
+  List<LlmProvider> findByActiveTrue();
 
-    @Query("SELECT p FROM LlmProvider p WHERE p.isDefault = true AND p.active = true")
-    Optional<LlmProvider> findDefaultProvider();
+  @Query("SELECT p FROM LlmProvider p WHERE p.isDefault = true AND p.active = true")
+  Optional<LlmProvider> findDefaultProvider();
 
-    List<LlmProvider> findAllByOrderByDisplayNameAsc();
+  List<LlmProvider> findAllByOrderByDisplayNameAsc();
 }

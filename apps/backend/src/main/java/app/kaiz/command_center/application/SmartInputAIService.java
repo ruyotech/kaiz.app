@@ -56,7 +56,7 @@ public class SmartInputAIService {
     UUID sessionId = UUID.randomUUID();
     OriginalInput originalInput = captureOriginalInput(request);
 
-    String userPrompt = buildUserPrompt(request);
+    String userPrompt = buildUserPrompt(userId, request);
     List<Message> messages = List.of(new SystemMessage(systemPrompt), new UserMessage(userPrompt));
 
     try {
@@ -145,7 +145,7 @@ public class SmartInputAIService {
   // Internal methods
   // =========================================================================
 
-  private String buildUserPrompt(SmartInputRequest request) {
+  private String buildUserPrompt(UUID userId, SmartInputRequest request) {
     StringBuilder prompt = new StringBuilder();
     prompt.append("User input: \"").append(request.text()).append("\"");
 
@@ -169,7 +169,7 @@ public class SmartInputAIService {
           .append("\"");
     }
 
-    prompt.append("\n\nContext: User ID=").append(request.userId());
+    prompt.append("\n\nContext: User ID=").append(userId);
     prompt.append(", Current time=").append(Instant.now());
     prompt.append(", Timezone=").append(ZoneId.systemDefault());
 

@@ -8,11 +8,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface CommandCenterFeatureFlagRepository extends JpaRepository<CommandCenterFeatureFlag, UUID> {
+public interface CommandCenterFeatureFlagRepository
+    extends JpaRepository<CommandCenterFeatureFlag, UUID> {
 
-    Optional<CommandCenterFeatureFlag> findByFlagKey(String flagKey);
+  Optional<CommandCenterFeatureFlag> findByFlagKey(String flagKey);
 
-    List<CommandCenterFeatureFlag> findByEnabledTrue();
+  List<CommandCenterFeatureFlag> findByEnabledTrue();
 
-    List<CommandCenterFeatureFlag> findAllByOrderByFlagNameAsc();
+  List<CommandCenterFeatureFlag> findAllByOrderByFlagNameAsc();
 }

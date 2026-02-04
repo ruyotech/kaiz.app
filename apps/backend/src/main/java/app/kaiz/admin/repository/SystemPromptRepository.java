@@ -11,13 +11,13 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface SystemPromptRepository extends JpaRepository<SystemPrompt, UUID> {
 
-    Optional<SystemPrompt> findByPromptKey(String promptKey);
+  Optional<SystemPrompt> findByPromptKey(String promptKey);
 
-    List<SystemPrompt> findByPromptCategory(PromptCategory category);
+  List<SystemPrompt> findByPromptCategory(PromptCategory category);
 
-    List<SystemPrompt> findByActiveTrue();
+  List<SystemPrompt> findByActiveTrue();
 
-    List<SystemPrompt> findByPromptCategoryAndActiveTrue(PromptCategory category);
+  List<SystemPrompt> findByPromptCategoryAndActiveTrue(PromptCategory category);
 
-    List<SystemPrompt> findAllByOrderByPromptCategoryAscPromptNameAsc();
+  List<SystemPrompt> findAllByOrderByPromptCategoryAscPromptNameAsc();
 }

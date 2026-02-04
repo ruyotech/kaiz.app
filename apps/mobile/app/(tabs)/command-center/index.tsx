@@ -4,8 +4,8 @@ import { Container } from '../../../components/layout/Container';
 import { ScreenHeader } from '../../../components/layout/ScreenHeader';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { commandCenterApi } from '../../../services/api';
-import { CommandCenterAIResponse } from '../../../types/commandCenter.types';
+import { commandCenterService } from '../../../services/commandCenter';
+import { DraftPreview } from '../../../types/commandCenter';
 import { PendingDraftCard } from '../../../components/command-center';
 
 const CREATE_OPTIONS = [
@@ -18,7 +18,7 @@ export default function CommandCenterScreen() {
     const router = useRouter();
 
     // Pending drafts state
-    const [pendingDrafts, setPendingDrafts] = useState<CommandCenterAIResponse[]>([]);
+    const [pendingDrafts, setPendingDrafts] = useState<DraftPreview[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [processingDraftId, setProcessingDraftId] = useState<string | null>(null);
@@ -27,7 +27,7 @@ export default function CommandCenterScreen() {
     const fetchPendingDrafts = useCallback(async () => {
         try {
             setIsLoading(true);
-            const response = await commandCenterApi.getPendingDrafts();
+            const response = await commandCenterService.getPendingDrafts();
             if (response.success && response.data) {
                 setPendingDrafts(response.data);
             }
@@ -54,14 +54,14 @@ export default function CommandCenterScreen() {
     const handleApprove = useCallback(async (draftId: string) => {
         setProcessingDraftId(draftId);
         try {
-            const response = await commandCenterApi.approveDraft(draftId);
+            const response = await commandCenterService.approveDraft(draftId);
             if (response.success) {
                 // Remove from list
                 setPendingDrafts(prev => prev.filter(d => d.id !== draftId));
             } else {
                 const errorMsg = typeof response.error === 'string'
                     ? response.error
-                    : response.error?.message || 'Failed to approve draft';
+                    : 'Failed to approve draft';
                 Alert.alert('Error', errorMsg);
             }
         } catch (error) {
@@ -76,14 +76,14 @@ export default function CommandCenterScreen() {
     const handleReject = useCallback(async (draftId: string) => {
         setProcessingDraftId(draftId);
         try {
-            const response = await commandCenterApi.rejectDraft(draftId);
+            const response = await commandCenterService.rejectDraft(draftId);
             if (response.success) {
                 // Remove from list
                 setPendingDrafts(prev => prev.filter(d => d.id !== draftId));
             } else {
                 const errorMsg = typeof response.error === 'string'
                     ? response.error
-                    : response.error?.message || 'Failed to reject draft';
+                    : 'Failed to reject draft';
                 Alert.alert('Error', errorMsg);
             }
         } catch (error) {

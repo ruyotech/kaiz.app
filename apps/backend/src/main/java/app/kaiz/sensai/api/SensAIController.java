@@ -54,7 +54,8 @@ public class SensAIController {
   @Operation(
       summary = "Get today's standup",
       description = "Get the standup for today if it exists, along with sprint health")
-  public ResponseEntity<ApiResponse<DailyStandupDto.GetStandupResponse>> getTodayStandup(@CurrentUser UUID userId) {
+  public ResponseEntity<ApiResponse<DailyStandupDto.GetStandupResponse>> getTodayStandup(
+      @CurrentUser UUID userId) {
     DailyStandupDto.GetStandupResponse response = sensAIService.getTodayStandupWithHealth(userId);
     return ResponseEntity.ok(ApiResponse.success(response));
   }

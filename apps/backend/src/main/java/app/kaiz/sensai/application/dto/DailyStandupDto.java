@@ -46,7 +46,5 @@ public record DailyStandupDto(
 
   /** Response for getting today's standup with sprint health. */
   public record GetStandupResponse(
-      DailyStandupDto standup,
-      boolean hasCompletedToday,
-      VelocityDto.SprintHealth sprintHealth) {}
+      DailyStandupDto standup, boolean hasCompletedToday, VelocityDto.SprintHealth sprintHealth) {}
 }
