@@ -249,6 +249,30 @@ function ChallengeDetailSection({ draft }: { draft: ChallengeDraft }) {
 // ============================================================================
 
 function EventDetailSection({ draft }: { draft: EventDraft }) {
+  // Backend returns date + startTime (as LocalTime strings like "14:00")
+  // Frontend expects startTime as full datetime
+  // Handle both formats
+  const draftAny = draft as any;
+  
+  // Format start time - could be full datetime or just time
+  let startTimeDisplay: string | null = null;
+  if (draftAny.date && draftAny.startTime) {
+    // Backend format: date="2026-02-05", startTime="14:00"
+    startTimeDisplay = `${formatDate(draftAny.date)} at ${draftAny.startTime}`;
+  } else if (draft.startTime) {
+    startTimeDisplay = formatDateTime(draft.startTime);
+  }
+  
+  // Format end time
+  let endTimeDisplay: string | null = null;
+  if (draftAny.endTime) {
+    if (draftAny.date) {
+      endTimeDisplay = draftAny.endTime; // Just time like "15:00"
+    } else {
+      endTimeDisplay = formatDateTime(draftAny.endTime);
+    }
+  }
+  
   return (
     <>
       {draft.description && (
@@ -264,22 +288,34 @@ function EventDetailSection({ draft }: { draft: EventDraft }) {
       
       <View className="bg-gray-50 rounded-2xl p-4">
         <DetailField 
+          icon="calendar" 
+          label="Date" 
+          value={draftAny.date ? formatDate(draftAny.date) : null}
+          color="#3B82F6"
+        />
+        <DetailField 
           icon="clock-start" 
           label="Start Time" 
-          value={formatDateTime(draft.startTime)}
+          value={startTimeDisplay}
           color="#06B6D4"
         />
         <DetailField 
           icon="clock-end" 
           label="End Time" 
-          value={draft.endTime ? formatDateTime(draft.endTime) : null}
+          value={endTimeDisplay}
           color="#8B5CF6"
         />
         <DetailField 
           icon="map-marker" 
           label="Location" 
-          value={draft.location}
+          value={draftAny.location}
           color="#EF4444"
+        />
+        <DetailField 
+          icon="account-group" 
+          label="Attendees" 
+          value={draftAny.attendees?.length > 0 ? draftAny.attendees.join(', ') : null}
+          color="#10B981"
         />
         <DetailField 
           icon="bell" 
@@ -290,10 +326,10 @@ function EventDetailSection({ draft }: { draft: EventDraft }) {
         <DetailField 
           icon="repeat" 
           label="Recurrence" 
-          value={draft.recurrence}
+          value={draftAny.recurrence}
           color="#10B981"
         />
-        {draft.isAllDay && (
+        {(draft.isAllDay || draftAny.isAllDay) && (
           <View className="flex-row items-center bg-cyan-100 rounded-lg px-3 py-2 mt-2">
             <MaterialCommunityIcons name="calendar-today" size={16} color="#06B6D4" />
             <Text className="text-cyan-700 ml-2 font-medium">All Day Event</Text>
@@ -389,6 +425,49 @@ function NoteDetailSection({ draft }: { draft: NoteDraft }) {
         </View>
       )}
     </>
+  );
+}
+
+// ============================================================================
+// Generic Fields Section - Shows any additional fields not covered by type-specific sections
+// ============================================================================
+
+function GenericFieldsSection({ draft }: { draft: any }) {
+  // Fields already shown by other sections
+  const alreadyDisplayedFields = [
+    'type', 'title', 'description', 'dueDate', 'priority', 'storyPoints',
+    'estimatedMinutes', 'category', 'eisenhowerQuadrant', 'eisenhowerQuadrantId',
+    'lifeWheelArea', 'lifeWheelAreaId', 'tags', 'date', 'startTime', 'endTime',
+    'location', 'isAllDay', 'reminder', 'recurrence', 'attendees', 'content',
+    'amount', 'currency', 'isRecurring', 'recurrencePattern', 'challengeType',
+    'targetDays', 'frequency', 'specificDays', 'startDate', 'endDate', 'name',
+    'metricType', 'targetValue', 'unit', 'duration', 'whyStatement', 
+    'rewardDescription', 'graceDays', 'reminderTime', 'suggestedEpicId',
+    'suggestedSprintId', 'suggestedTasks', 'color', 'icon',
+  ];
+  
+  // Get fields that haven't been displayed
+  const extraFields = Object.entries(draft || {}).filter(([key, value]) => {
+    return !alreadyDisplayedFields.includes(key) && value != null && value !== '';
+  });
+  
+  if (extraFields.length === 0) return null;
+  
+  return (
+    <View className="mt-4 bg-gray-50 rounded-2xl p-4">
+      <Text className="text-xs text-gray-500 uppercase tracking-wide mb-3">
+        Additional Information
+      </Text>
+      {extraFields.map(([key, value]) => (
+        <DetailField
+          key={key}
+          icon="information-outline"
+          label={key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+          value={typeof value === 'object' ? JSON.stringify(value) : String(value)}
+          color="#6B7280"
+        />
+      ))}
+    </View>
   );
 }
 
@@ -628,20 +707,24 @@ export default function DraftDetailScreen() {
           )}
         </View>
         
-        {/* Detail Section based on type */}
+        {/* Detail Section based on type - with smart fallbacks */}
         <View className="mb-6">
           <Text className="text-lg font-bold text-gray-900 mb-4">
             Details
           </Text>
           
-          {draftType === 'TASK' && draft?.draft && (
+          {/* Show event details if we have event-like data (date, startTime, location) */}
+          {draft?.draft && ((draft.draft as any).date || (draft.draft as any).startTime || (draft.draft as any).location) && (
+            <EventDetailSection draft={draft.draft as EventDraft} />
+          )}
+          
+          {/* Show task details for TASK type or if it has task fields */}
+          {draft?.draft && draftType === 'TASK' && !((draft.draft as any).date || (draft.draft as any).location) && (
             <TaskDetailSection draft={draft.draft as TaskDraft} />
           )}
+          
           {draftType === 'CHALLENGE' && draft?.draft && (
             <ChallengeDetailSection draft={draft.draft as ChallengeDraft} />
-          )}
-          {draftType === 'EVENT' && draft?.draft && (
-            <EventDetailSection draft={draft.draft as EventDraft} />
           )}
           {draftType === 'BILL' && draft?.draft && (
             <BillDetailSection draft={draft.draft as BillDraft} />
@@ -649,6 +732,9 @@ export default function DraftDetailScreen() {
           {draftType === 'NOTE' && draft?.draft && (
             <NoteDetailSection draft={draft.draft as NoteDraft} />
           )}
+          
+          {/* Generic fallback - show any remaining fields we haven't displayed */}
+          {draft?.draft && <GenericFieldsSection draft={draft.draft} />}
         </View>
       </ScrollView>
       

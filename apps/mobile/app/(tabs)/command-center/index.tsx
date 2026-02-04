@@ -225,11 +225,50 @@ export default function CommandCenterScreen() {
       );
 
       if (response.success && response.data) {
-        const aiResponse = response.data;
+        const aiResponse = response.data as any;
+        console.log('🤖 [AI Response] Raw:', JSON.stringify(aiResponse, null, 2));
         setCurrentSessionId(aiResponse.sessionId);
 
-        if (aiResponse.draft) {
-          setCurrentDraftId(aiResponse.draft.id);
+        // Transform backend response to frontend DraftPreview structure
+        // Backend returns: { sessionId, status, intentDetected, confidenceScore, draft: {type, title, ...}, ... }
+        // Frontend expects: { id, draftType, status, confidence, title, draft: {type, title, ...}, ... }
+        let draftPreview = null;
+        if (aiResponse.draft && (aiResponse.status === 'READY' || aiResponse.draft)) {
+          const rawDraft = aiResponse.draft;
+          // Normalize draft type to uppercase
+          const rawType = rawDraft?.type || '';
+          const normalizedType = rawType.toUpperCase() || 'TASK';
+          // Use intentDetected first (backend sets this), fallback to draft type
+          const draftType = (aiResponse.intentDetected || normalizedType) as 'TASK' | 'EVENT' | 'CHALLENGE' | 'BILL' | 'NOTE' | 'EPIC' | 'GOAL';
+          
+          console.log('📋 [Draft] rawType:', rawType, 'intentDetected:', aiResponse.intentDetected, 'final draftType:', draftType);
+          
+          // Transform backend fields to frontend format, preserving all original fields
+          const transformedDraft = {
+            ...rawDraft,
+            type: normalizedType, // Ensure type is uppercase
+            // Keep backend IDs for proper mapping
+            lifeWheelAreaId: rawDraft.lifeWheelAreaId,
+            eisenhowerQuadrantId: rawDraft.eisenhowerQuadrantId,
+            storyPoints: rawDraft.storyPoints,
+          };
+          
+          draftPreview = {
+            id: aiResponse.sessionId, // Use sessionId as draft ID - THIS IS CRITICAL
+            draftType: draftType,
+            status: 'PENDING_APPROVAL' as const,
+            confidence: Number(aiResponse.confidenceScore) || 0.8,
+            title: rawDraft.title || rawDraft.name || 'Untitled',
+            description: rawDraft.description,
+            draft: transformedDraft,
+            reasoning: aiResponse.reasoning,
+            suggestions: aiResponse.suggestions,
+            expiresAt: aiResponse.expiresAt,
+            createdAt: new Date().toISOString(),
+          };
+          
+          console.log('📋 [DraftPreview] Created with id:', draftPreview.id);
+          setCurrentDraftId(aiResponse.sessionId);
           // Refresh pending drafts
           fetchPendingDrafts();
         }
@@ -238,10 +277,10 @@ export default function CommandCenterScreen() {
         const aiMessage: ChatMessageType = {
           id: thinkingMessage.id,
           role: 'assistant',
-          content: aiResponse.message,
+          content: aiResponse.reasoning || aiResponse.message || 'Here\'s what I understood:',
           timestamp: new Date(),
-          draft: aiResponse.draft,
-          clarification: aiResponse.clarification,
+          draft: draftPreview,
+          clarification: aiResponse.clarificationFlow || aiResponse.clarification,
         };
 
         setMessages(prev =>
