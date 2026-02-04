@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
@@ -66,6 +67,9 @@ public class Task extends BaseEntity {
 
   @Column(name = "ai_confidence", precision = 3, scale = 2)
   private BigDecimal aiConfidence;
+
+  @Column(name = "ai_session_id")
+  private UUID aiSessionId;
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "created_from_template_id")

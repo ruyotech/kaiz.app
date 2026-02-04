@@ -247,6 +247,44 @@ export const commandCenterService = {
     }
   },
 
+  /**
+   * Save draft as task with PENDING_APPROVAL status
+   * This saves the AI-generated draft directly to the tasks table
+   * for later approval by the user.
+   */
+  async saveToPending(
+    sessionId: string
+  ): Promise<ApiResponse<{ taskId: string; status: string; message: string }>> {
+    console.log('💾 [CommandCenter] Saving to pending:', sessionId);
+
+    try {
+      const headers = await getAuthHeaders();
+
+      const response = await fetch(
+        `${API_BASE_URL}/api/v1/command-center/smart-input/${sessionId}/save-to-pending`,
+        {
+          method: 'POST',
+          headers,
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log('💾 [CommandCenter] Save result:', data);
+      return data;
+    } catch (error: any) {
+      console.error('💾 [CommandCenter] Error saving to pending:', error);
+      return {
+        success: false,
+        error: error.message || 'Failed to save to pending',
+      };
+    }
+  },
+
   // ==========================================================================
   // Draft Actions
   // ==========================================================================
@@ -370,7 +408,7 @@ export const commandCenterService = {
   },
 
   /**
-   * Get all pending drafts
+   * Get all pending drafts (legacy - from PendingDraft table)
    */
   async getPendingDrafts(): Promise<ApiResponse<DraftPreview[]>> {
     console.log('📋 [CommandCenter] Fetching pending drafts...');
@@ -398,6 +436,105 @@ export const commandCenterService = {
       return {
         success: false,
         error: error.message || 'Failed to fetch pending drafts',
+      };
+    }
+  },
+
+  /**
+   * Get all tasks with PENDING_APPROVAL status
+   * This is the new approach where AI drafts are saved directly as tasks
+   */
+  async getPendingApprovalTasks(): Promise<ApiResponse<any[]>> {
+    console.log('📋 [CommandCenter] Fetching pending approval tasks...');
+
+    try {
+      const headers = await getAuthHeaders();
+
+      const response = await fetch(`${API_BASE_URL}/api/v1/tasks/status/PENDING_APPROVAL`, {
+        method: 'GET',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log('📋 [CommandCenter] Pending tasks:', data);
+      return data;
+    } catch (error: any) {
+      console.error('📋 [CommandCenter] Error fetching pending tasks:', error);
+      return {
+        success: false,
+        error: error.message || 'Failed to fetch pending tasks',
+      };
+    }
+  },
+
+  /**
+   * Approve a pending task - changes status from PENDING_APPROVAL to TODO
+   */
+  async approvePendingTask(taskId: string): Promise<ApiResponse<any>> {
+    console.log('✅ [CommandCenter] Approving pending task:', taskId);
+
+    try {
+      const headers = await getAuthHeaders();
+
+      const response = await fetch(`${API_BASE_URL}/api/v1/tasks/${taskId}/status`, {
+        method: 'PATCH',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: 'TODO' }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log('✅ [CommandCenter] Task approved:', data);
+      return data;
+    } catch (error: any) {
+      console.error('✅ [CommandCenter] Error approving task:', error);
+      return {
+        success: false,
+        error: error.message || 'Failed to approve task',
+      };
+    }
+  },
+
+  /**
+   * Reject a pending task - deletes the task
+   */
+  async rejectPendingTask(taskId: string): Promise<ApiResponse<void>> {
+    console.log('❌ [CommandCenter] Rejecting pending task:', taskId);
+
+    try {
+      const headers = await getAuthHeaders();
+
+      const response = await fetch(`${API_BASE_URL}/api/v1/tasks/${taskId}`, {
+        method: 'DELETE',
+        headers,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+
+      return { success: true };
+    } catch (error: any) {
+      console.error('❌ [CommandCenter] Error rejecting task:', error);
+      return {
+        success: false,
+        error: error.message || 'Failed to reject task',
       };
     }
   },

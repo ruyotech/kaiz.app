@@ -1,8 +1,8 @@
 /**
- * Pending Drafts Screen
+ * Pending Approvals Screen
  * 
- * Displays all AI-generated drafts awaiting user approval.
- * Allows users to approve or reject tasks, events, challenges, etc.
+ * Displays all tasks/events with PENDING_APPROVAL status.
+ * Allows users to approve (move to TODO) or reject (delete) items.
  */
 
 import React, { useState, useCallback, useEffect } from 'react';
@@ -21,16 +21,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Container } from '../../../components/layout/Container';
 import { ScreenHeader } from '../../../components/layout/ScreenHeader';
-import { PendingDraftCard } from '../../../components/command-center';
+import { PendingTaskCard } from '../../../components/command-center/PendingTaskCard';
 import { commandCenterService } from '../../../services/commandCenter';
 import { useThemeContext } from '../../../providers/ThemeProvider';
-import {
-  DraftPreview,
-  getDraftTitle,
-  getDraftTypeIcon,
-  getDraftTypeColor,
-  getDraftTypeDisplayName,
-} from '../../../types/commandCenter';
 
 // ============================================================================
 // Empty State Component
@@ -131,33 +124,52 @@ function FilterChip({ label, icon, color, count, isSelected, onPress }: FilterCh
 // Main Screen
 // ============================================================================
 
+// Task type from API
+interface PendingTask {
+  id: string;
+  title: string;
+  description?: string;
+  lifeWheelAreaId: string;
+  eisenhowerQuadrantId: string;
+  storyPoints: number;
+  status: string;
+  targetDate?: string;
+  isEvent: boolean;
+  location?: string;
+  isAllDay?: boolean;
+  eventStartTime?: string;
+  eventEndTime?: string;
+  aiConfidence?: number;
+  createdAt: string;
+}
+
 export default function PendingDraftsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { colors } = useThemeContext();
 
-  // State
-  const [drafts, setDrafts] = useState<DraftPreview[]>([]);
+  // State - now using PendingTask instead of DraftPreview
+  const [tasks, setTasks] = useState<PendingTask[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [processingDraftId, setProcessingDraftId] = useState<string | null>(null);
+  const [processingTaskId, setProcessingTaskId] = useState<string | null>(null);
   const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
 
   // =========================================================================
   // Data Fetching
   // =========================================================================
 
-  const fetchDrafts = useCallback(async (showRefresh = false) => {
+  const fetchTasks = useCallback(async (showRefresh = false) => {
     if (showRefresh) setIsRefreshing(true);
     else setIsLoading(true);
 
     try {
-      const response = await commandCenterService.getPendingDrafts();
+      const response = await commandCenterService.getPendingApprovalTasks();
       if (response.success && response.data) {
-        setDrafts(response.data);
+        setTasks(response.data);
       }
     } catch (error) {
-      console.error('Failed to fetch pending drafts:', error);
+      console.error('Failed to fetch pending tasks:', error);
       Alert.alert('Error', 'Failed to load pending items');
     } finally {
       setIsLoading(false);
@@ -166,55 +178,55 @@ export default function PendingDraftsScreen() {
   }, []);
 
   useEffect(() => {
-    fetchDrafts();
-  }, [fetchDrafts]);
+    fetchTasks();
+  }, [fetchTasks]);
 
   // =========================================================================
   // Actions
   // =========================================================================
 
-  const handleApprove = useCallback(async (draftId: string) => {
-    setProcessingDraftId(draftId);
+  const handleApprove = useCallback(async (taskId: string) => {
+    setProcessingTaskId(taskId);
 
     try {
-      const response = await commandCenterService.approveDraft(draftId);
+      const response = await commandCenterService.approvePendingTask(taskId);
       if (response.success) {
         // Remove from list
-        setDrafts(prev => prev.filter(d => d.id !== draftId));
+        setTasks(prev => prev.filter(t => t.id !== taskId));
         // Show success feedback
-        Alert.alert('✅ Created!', 'Item has been added successfully.');
+        Alert.alert('✅ Approved!', 'Task has been added to your TODO list.');
       } else {
         Alert.alert('Error', response.error || 'Failed to approve');
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to approve item');
+      Alert.alert('Error', 'Failed to approve task');
     } finally {
-      setProcessingDraftId(null);
+      setProcessingTaskId(null);
     }
   }, []);
 
-  const handleReject = useCallback(async (draftId: string) => {
+  const handleReject = useCallback(async (taskId: string) => {
     Alert.alert(
-      'Reject Item',
-      'Are you sure you want to reject this item? It will be discarded.',
+      'Reject Task',
+      'Are you sure you want to reject this task? It will be deleted.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Reject',
           style: 'destructive',
           onPress: async () => {
-            setProcessingDraftId(draftId);
+            setProcessingTaskId(taskId);
             try {
-              const response = await commandCenterService.rejectDraft(draftId);
+              const response = await commandCenterService.rejectPendingTask(taskId);
               if (response.success) {
-                setDrafts(prev => prev.filter(d => d.id !== draftId));
+                setTasks(prev => prev.filter(t => t.id !== taskId));
               } else {
                 Alert.alert('Error', response.error || 'Failed to reject');
               }
             } catch (error) {
-              Alert.alert('Error', 'Failed to reject item');
+              Alert.alert('Error', 'Failed to reject task');
             } finally {
-              setProcessingDraftId(null);
+              setProcessingTaskId(null);
             }
           },
         },
@@ -223,53 +235,50 @@ export default function PendingDraftsScreen() {
   }, []);
 
   const handleApproveAll = useCallback(() => {
-    const filteredDrafts = selectedFilter 
-      ? drafts.filter(d => d.draftType === selectedFilter)
-      : drafts;
+    const filteredTasks = selectedFilter 
+      ? tasks.filter(t => (t.isEvent ? 'EVENT' : 'TASK') === selectedFilter)
+      : tasks;
 
-    if (filteredDrafts.length === 0) return;
+    if (filteredTasks.length === 0) return;
 
     Alert.alert(
       'Approve All',
-      `Create all ${filteredDrafts.length} pending items?`,
+      `Approve all ${filteredTasks.length} pending items?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Approve All',
           onPress: async () => {
-            for (const draft of filteredDrafts) {
-              await handleApprove(draft.id);
+            for (const task of filteredTasks) {
+              await handleApprove(task.id);
             }
           },
         },
       ]
     );
-  }, [drafts, selectedFilter, handleApprove]);
+  }, [tasks, selectedFilter, handleApprove]);
 
   // =========================================================================
   // Computed Values
   // =========================================================================
 
-  // Count drafts by type
-  const draftCounts = drafts.reduce((acc, draft) => {
-    acc[draft.draftType] = (acc[draft.draftType] || 0) + 1;
+  // Count tasks by type (task vs event)
+  const taskCounts = tasks.reduce((acc, task) => {
+    const type = task.isEvent ? 'EVENT' : 'TASK';
+    acc[type] = (acc[type] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 
-  // Filter drafts
-  const filteredDrafts = selectedFilter 
-    ? drafts.filter(d => d.draftType === selectedFilter)
-    : drafts;
+  // Filter tasks
+  const filteredTasks = selectedFilter 
+    ? tasks.filter(t => (t.isEvent ? 'EVENT' : 'TASK') === selectedFilter)
+    : tasks;
 
   // Available filter types
   const filterTypes = [
     { type: 'TASK', label: 'Tasks', icon: 'checkbox-marked-circle-outline', color: '#3B82F6' },
     { type: 'EVENT', label: 'Events', icon: 'calendar', color: '#8B5CF6' },
-    { type: 'CHALLENGE', label: 'Challenges', icon: 'trophy', color: '#F59E0B' },
-    { type: 'NOTE', label: 'Notes', icon: 'note-text', color: '#10B981' },
-    { type: 'BILL', label: 'Bills', icon: 'receipt', color: '#EF4444' },
-    { type: 'EPIC', label: 'Epics', icon: 'view-dashboard', color: '#6366F1' },
-  ].filter(f => draftCounts[f.type] > 0);
+  ].filter(f => taskCounts[f.type] > 0);
 
   // =========================================================================
   // Render
@@ -297,10 +306,10 @@ export default function PendingDraftsScreen() {
     <Container safeArea={false}>
       <ScreenHeader
         title="Pending Approvals"
-        subtitle={`${drafts.length} item${drafts.length !== 1 ? 's' : ''} awaiting review`}
+        subtitle={`${tasks.length} item${tasks.length !== 1 ? 's' : ''} awaiting review`}
         showBack
         rightAction={
-          drafts.length > 0 ? (
+          tasks.length > 0 ? (
             <TouchableOpacity
               onPress={handleApproveAll}
               className="px-3 py-1.5 rounded-lg"
@@ -314,7 +323,7 @@ export default function PendingDraftsScreen() {
         }
       />
 
-      {drafts.length === 0 ? (
+      {tasks.length === 0 ? (
         <EmptyState />
       ) : (
         <View className="flex-1">
@@ -330,7 +339,7 @@ export default function PendingDraftsScreen() {
                   label="All"
                   icon="view-grid"
                   color={colors.primary}
-                  count={drafts.length}
+                  count={tasks.length}
                   isSelected={selectedFilter === null}
                   onPress={() => setSelectedFilter(null)}
                 />
@@ -340,7 +349,7 @@ export default function PendingDraftsScreen() {
                     label={filter.label}
                     icon={filter.icon}
                     color={filter.color}
-                    count={draftCounts[filter.type] || 0}
+                    count={taskCounts[filter.type] || 0}
                     isSelected={selectedFilter === filter.type}
                     onPress={() => setSelectedFilter(
                       selectedFilter === filter.type ? null : filter.type
@@ -351,7 +360,7 @@ export default function PendingDraftsScreen() {
             </View>
           )}
 
-          {/* Drafts List */}
+          {/* Tasks List */}
           <ScrollView
             className="flex-1"
             contentContainerStyle={{ 
@@ -361,25 +370,25 @@ export default function PendingDraftsScreen() {
             refreshControl={
               <RefreshControl
                 refreshing={isRefreshing}
-                onRefresh={() => fetchDrafts(true)}
+                onRefresh={() => fetchTasks(true)}
                 tintColor={colors.primary}
               />
             }
           >
-            {filteredDrafts.length === 0 ? (
+            {filteredTasks.length === 0 ? (
               <View className="items-center py-8">
                 <Text style={{ color: colors.textSecondary }}>
                   No {selectedFilter?.toLowerCase() || ''} items pending
                 </Text>
               </View>
             ) : (
-              filteredDrafts.map(draft => (
-                <PendingDraftCard
-                  key={draft.id}
-                  draft={draft}
+              filteredTasks.map(task => (
+                <PendingTaskCard
+                  key={task.id}
+                  task={task}
                   onApprove={handleApprove}
                   onReject={handleReject}
-                  isLoading={processingDraftId === draft.id}
+                  isLoading={processingTaskId === task.id}
                 />
               ))
             )}

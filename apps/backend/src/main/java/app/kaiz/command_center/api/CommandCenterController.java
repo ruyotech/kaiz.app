@@ -19,6 +19,7 @@ import jakarta.validation.Valid;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -98,6 +99,31 @@ public class CommandCenterController {
     SmartInputResponse response = smartInputService.submitClarificationAnswers(userId, request);
 
     return ResponseEntity.ok(ApiResponse.success(response));
+  }
+
+  @PostMapping("/smart-input/{sessionId}/save-to-pending")
+  @Operation(
+      summary = "Save draft as task with PENDING_APPROVAL status",
+      description =
+          "Converts the SmartInput session draft to a Task entity with PENDING_APPROVAL status. "
+              + "Returns the saved task ID for navigation to pending detail screen.")
+  public ResponseEntity<ApiResponse<Map<String, Object>>> saveToPending(
+      @CurrentUser UUID userId, @PathVariable UUID sessionId) {
+
+    log.info("💾 [Smart Input] Saving session {} as pending task for user {}", sessionId, userId);
+
+    try {
+      UUID taskId = smartInputService.saveToPending(userId, sessionId);
+      return ResponseEntity.ok(
+          ApiResponse.success(Map.of(
+              "taskId", taskId.toString(), 
+              "status", "PENDING_APPROVAL",
+              "message", "Task saved for approval")));
+    } catch (IllegalStateException e) {
+      log.error("💾 [Smart Input] Session not found: {}", sessionId);
+      return ResponseEntity.badRequest()
+          .body(ApiResponse.error("Session not found or expired: " + sessionId));
+    }
   }
 
   @PostMapping("/smart-input/{sessionId}/confirm-alternative")

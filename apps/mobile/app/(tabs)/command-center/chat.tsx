@@ -179,6 +179,7 @@ export default function CommandCenterChatScreen() {
 
       if (response.success && response.data) {
         const aiResponse = response.data as any; // Backend response structure differs from frontend types
+        console.log('🤖 [AI Response] Raw:', JSON.stringify(aiResponse, null, 2));
         setCurrentSessionId(aiResponse.sessionId);
 
         // Transform backend response to frontend DraftPreview structure
@@ -187,9 +188,13 @@ export default function CommandCenterChatScreen() {
         let draftPreview = null;
         if (aiResponse.draft && aiResponse.status === 'READY') {
           const rawDraft = aiResponse.draft;
-          // Normalize draft type to uppercase
-          const normalizedType = (rawDraft.type || '').toUpperCase() || 'TASK';
-          const draftType = (aiResponse.intentDetected || normalizedType) as any;
+          // Normalize draft type to uppercase - check both rawDraft.type and intentDetected
+          const rawType = rawDraft?.type || '';
+          const normalizedType = rawType.toUpperCase() || 'TASK';
+          // Use intentDetected first (backend sets this), fallback to draft type
+          const draftType = (aiResponse.intentDetected || normalizedType) as 'TASK' | 'EVENT' | 'CHALLENGE' | 'BILL' | 'NOTE' | 'EPIC' | 'GOAL';
+          
+          console.log('📋 [Draft] rawType:', rawType, 'intentDetected:', aiResponse.intentDetected, 'final draftType:', draftType);
           
           // Transform backend fields to frontend format
           const transformedDraft = {

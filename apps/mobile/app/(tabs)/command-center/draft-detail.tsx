@@ -451,26 +451,45 @@ export default function DraftDetailScreen() {
   const handleConfirm = useCallback(async () => {
     if (!draft) return;
     
-    // The draft is already in PENDING_APPROVAL status from the AI
-    // Just navigate to the pending approvals screen
-    Alert.alert(
-      'Added to Pending',
-      `${typeName} "${title}" has been added to your pending approvals list.`,
-      [
-        {
-          text: 'View Pending',
-          onPress: () => {
-            router.replace('/(tabs)/command-center/pending');
-          },
-        },
-        {
-          text: 'Back to Chat',
-          onPress: () => {
-            router.back();
-          },
-        },
-      ]
-    );
+    setProcessingAction('confirm');
+    try {
+      // Call API to save draft as task with PENDING_APPROVAL status
+      // draft.id is the sessionId from the SmartInput response
+      const response = await commandCenterService.saveToPending(draft.id);
+      
+      if (response.success && response.data) {
+        const { taskId } = response.data;
+        Alert.alert(
+          '✅ Added to Pending',
+          `${typeName} "${title}" has been saved for approval.`,
+          [
+            {
+              text: 'View Pending',
+              onPress: () => {
+                // Navigate to pending screen or directly to the task
+                router.replace({
+                  pathname: '/(tabs)/command-center/pending-task',
+                  params: { taskId }
+                });
+              },
+            },
+            {
+              text: 'Back to Chat',
+              onPress: () => {
+                router.back();
+              },
+            },
+          ]
+        );
+      } else {
+        throw new Error(response.error || 'Failed to save to pending');
+      }
+    } catch (error: any) {
+      console.error('❌ [DraftDetail] Error saving to pending:', error);
+      Alert.alert('Error', error.message || 'Failed to save. Please try again.');
+    } finally {
+      setProcessingAction(null);
+    }
   }, [draft, router, typeName, title]);
   
   const handleApprove = useCallback(async () => {
