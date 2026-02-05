@@ -55,6 +55,7 @@ public class SmartInputAIService {
   private final UserRepository userRepository;
   private final LifeWheelAreaRepository lifeWheelAreaRepository;
   private final EisenhowerQuadrantRepository eisenhowerQuadrantRepository;
+  private final SystemPromptService systemPromptService;
 
   // In-memory session storage (use Redis in production)
   private final Map<UUID, ConversationSession> sessions = new ConcurrentHashMap<>();
@@ -68,6 +69,7 @@ public class SmartInputAIService {
       UserRepository userRepository,
       LifeWheelAreaRepository lifeWheelAreaRepository,
       EisenhowerQuadrantRepository eisenhowerQuadrantRepository,
+      SystemPromptService systemPromptService,
       @Value("${kaiz.command-center.draft-expiration-hours:24}") int expirationHours) {
 
     this.chatModel = chatModel;
@@ -78,6 +80,7 @@ public class SmartInputAIService {
     this.userRepository = userRepository;
     this.lifeWheelAreaRepository = lifeWheelAreaRepository;
     this.eisenhowerQuadrantRepository = eisenhowerQuadrantRepository;
+    this.systemPromptService = systemPromptService;
     this.draftExpirationDuration = Duration.ofHours(expirationHours);
   }
 
@@ -87,10 +90,25 @@ public class SmartInputAIService {
     OriginalInput originalInput = captureOriginalInput(request);
 
     String userPrompt = buildUserPrompt(userId, request);
-    // Get system prompt with current date context for proper date parsing ("tomorrow", "next week",
-    // etc.)
-    String tomorrowDate = LocalDate.now().plusDays(1).toString();
-    String currentSystemPrompt = CommandCenterSystemPrompt.getPromptWithDates(tomorrowDate);
+
+    // Determine input type and get appropriate prompt from database
+    boolean hasImage =
+        request.attachments() != null
+            && request.attachments().stream()
+                .anyMatch(a -> a.type() != null && a.type().toLowerCase().contains("image"));
+    boolean hasVoice =
+        request.attachments() != null
+            && request.attachments().stream()
+                .anyMatch(
+                    a ->
+                        a.type() != null
+                            && (a.type().toLowerCase().contains("audio")
+                                || a.type().toLowerCase().contains("voice")));
+
+    // Get the appropriate system prompt from database based on input type
+    String currentSystemPrompt = systemPromptService.getPromptForInputType(hasImage, hasVoice);
+    log.debug("Using prompt for input type - hasImage: {}, hasVoice: {}", hasImage, hasVoice);
+
     List<Message> messages =
         List.of(new SystemMessage(currentSystemPrompt), new UserMessage(userPrompt));
 
@@ -496,8 +514,16 @@ public class SmartInputAIService {
       JsonNode root = objectMapper.readTree(cleaned);
 
       String status = root.path("status").asText("READY");
-      String intentType = root.path("intentType").asText("TASK");
-      double confidence = root.path("confidence").asDouble(0.8);
+      // Support both "intentDetected" (prompt schema) and "intentType" (legacy)
+      String intentType =
+          root.has("intentDetected")
+              ? root.path("intentDetected").asText("TASK").toUpperCase()
+              : root.path("intentType").asText("TASK").toUpperCase();
+      // Support both "confidenceScore" (prompt schema) and "confidence" (legacy)
+      double confidence =
+          root.has("confidenceScore")
+              ? root.path("confidenceScore").asDouble(0.8)
+              : root.path("confidence").asDouble(0.8);
       String reasoning = root.path("reasoning").asText("");
 
       DraftType draftType = DraftType.valueOf(intentType);
@@ -520,8 +546,12 @@ public class SmartInputAIService {
                 Instant.now().plus(draftExpirationDuration));
 
         case "NEEDS_CLARIFICATION" -> {
-          AIInterpretation.ClarificationFlow flow =
-              parseClarificationFlow(root.path("clarification"));
+          // Support both "clarificationFlow" (prompt schema) and "clarification" (legacy)
+          JsonNode clarificationNode =
+              root.has("clarificationFlow")
+                  ? root.path("clarificationFlow")
+                  : root.path("clarification");
+          AIInterpretation.ClarificationFlow flow = parseClarificationFlow(clarificationNode);
           ImageAnalysisDTO imageAnalysis = parseImageAnalysis(root.path("imageAnalysis"));
 
           // Store session

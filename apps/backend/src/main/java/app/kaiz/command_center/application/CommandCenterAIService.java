@@ -48,6 +48,7 @@ public class CommandCenterAIService {
   private final PendingDraftRepository draftRepository;
   private final UserRepository userRepository;
   private final AIConversationLogger aiLogger;
+  private final SystemPromptService systemPromptService;
 
   // Draft expiration time (24 hours)
   private static final long DRAFT_EXPIRATION_HOURS = 24;
@@ -93,9 +94,13 @@ public class CommandCenterAIService {
       String userPrompt = buildUserPrompt(text, attachmentSummaries, voiceTranscription);
       conversation.logUserPrompt(userPrompt);
 
-      // Get system prompt with current date context
-      String tomorrowDate = LocalDate.now().plusDays(1).format(DateTimeFormatter.ISO_LOCAL_DATE);
-      String systemPrompt = CommandCenterSystemPrompt.getPromptWithDates(tomorrowDate);
+      // Get system prompt from database with current date context
+      boolean hasImage =
+          attachmentSummaries != null
+              && attachmentSummaries.stream()
+                  .anyMatch(a -> a.mimeType() != null && a.mimeType().startsWith("image/"));
+      boolean hasVoice = voiceTranscription != null && !voiceTranscription.isBlank();
+      String systemPrompt = systemPromptService.getPromptForInputType(hasImage, hasVoice);
       conversation.logSystemPrompt(systemPrompt, false); // Preview only, too long for full
 
       // Log provider info
