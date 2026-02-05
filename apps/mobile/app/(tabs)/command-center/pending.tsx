@@ -152,7 +152,6 @@ export default function PendingDraftsScreen() {
   const [tasks, setTasks] = useState<PendingTask[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [processingTaskId, setProcessingTaskId] = useState<string | null>(null);
   const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
 
   // =========================================================================
@@ -185,78 +184,31 @@ export default function PendingDraftsScreen() {
   // Actions
   // =========================================================================
 
-  const handleApprove = useCallback(async (taskId: string) => {
-    setProcessingTaskId(taskId);
-
-    try {
-      const response = await commandCenterService.approvePendingTask(taskId);
-      if (response.success) {
-        // Remove from list
-        setTasks(prev => prev.filter(t => t.id !== taskId));
-        // Show success feedback
-        Alert.alert('✅ Approved!', 'Task has been added to your TODO list.');
-      } else {
-        Alert.alert('Error', response.error || 'Failed to approve');
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to approve task');
-    } finally {
-      setProcessingTaskId(null);
-    }
-  }, []);
-
-  const handleReject = useCallback(async (taskId: string) => {
-    Alert.alert(
-      'Reject Task',
-      'Are you sure you want to reject this task? It will be deleted.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Reject',
-          style: 'destructive',
-          onPress: async () => {
-            setProcessingTaskId(taskId);
-            try {
-              const response = await commandCenterService.rejectPendingTask(taskId);
-              if (response.success) {
-                setTasks(prev => prev.filter(t => t.id !== taskId));
-              } else {
-                Alert.alert('Error', response.error || 'Failed to reject');
-              }
-            } catch (error) {
-              Alert.alert('Error', 'Failed to reject task');
-            } finally {
-              setProcessingTaskId(null);
-            }
-          },
-        },
-      ]
-    );
-  }, []);
-
-  const handleApproveAll = useCallback(() => {
-    const filteredTasks = selectedFilter 
-      ? tasks.filter(t => (t.isEvent ? 'EVENT' : 'TASK') === selectedFilter)
-      : tasks;
-
-    if (filteredTasks.length === 0) return;
-
-    Alert.alert(
-      'Approve All',
-      `Approve all ${filteredTasks.length} pending items?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Approve All',
-          onPress: async () => {
-            for (const task of filteredTasks) {
-              await handleApprove(task.id);
-            }
-          },
-        },
-      ]
-    );
-  }, [tasks, selectedFilter, handleApprove]);
+  const handleCreateTask = useCallback((task: PendingTask) => {
+    // Build draft data in the format expected by create-from-sensai
+    const draftData = {
+      title: task.title,
+      description: task.description || '',
+      lifeWheelAreaId: task.lifeWheelAreaId,
+      eisenhowerQuadrantId: task.eisenhowerQuadrantId,
+      storyPoints: task.storyPoints || 2,
+      dueDate: task.targetDate || '',
+      isEvent: task.isEvent,
+      startTime: task.eventStartTime || '',
+      endTime: task.eventEndTime || '',
+      location: task.location || '',
+      isAllDay: task.isAllDay || false,
+    };
+    
+    // Navigate to create-from-sensai screen with task data
+    router.push({
+      pathname: '/(tabs)/command-center/create-from-sensai',
+      params: {
+        draftData: JSON.stringify(draftData),
+        pendingTaskId: task.id, // Pass task ID for deletion after creation
+      },
+    });
+  }, [router]);
 
   // =========================================================================
   // Computed Values
@@ -308,19 +260,6 @@ export default function PendingDraftsScreen() {
         title="Pending Approvals"
         subtitle={`${tasks.length} item${tasks.length !== 1 ? 's' : ''} awaiting review`}
         showBack
-        rightAction={
-          tasks.length > 0 ? (
-            <TouchableOpacity
-              onPress={handleApproveAll}
-              className="px-3 py-1.5 rounded-lg"
-              style={{ backgroundColor: colors.primary + '20' }}
-            >
-              <Text className="text-sm font-medium" style={{ color: colors.primary }}>
-                Approve All
-              </Text>
-            </TouchableOpacity>
-          ) : undefined
-        }
       />
 
       {tasks.length === 0 ? (
@@ -386,9 +325,7 @@ export default function PendingDraftsScreen() {
                 <PendingTaskCard
                   key={task.id}
                   task={task}
-                  onApprove={handleApprove}
-                  onReject={handleReject}
-                  isLoading={processingTaskId === task.id}
+                  onCreateTask={handleCreateTask}
                 />
               ))
             )}

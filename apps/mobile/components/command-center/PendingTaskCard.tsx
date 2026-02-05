@@ -30,8 +30,7 @@ interface PendingTask {
 
 interface PendingTaskCardProps {
   task: PendingTask;
-  onApprove: (taskId: string) => void;
-  onReject: (taskId: string) => void;
+  onCreateTask: (task: PendingTask) => void;
   isLoading?: boolean;
 }
 
@@ -85,8 +84,7 @@ function formatTime(dateString: string): string {
 
 export function PendingTaskCard({
   task,
-  onApprove,
-  onReject,
+  onCreateTask,
   isLoading = false,
 }: PendingTaskCardProps) {
   const router = useRouter();
@@ -196,43 +194,26 @@ export function PendingTaskCard({
         )}
       </View>
 
-      {/* Action Buttons */}
+      {/* Action Button */}
       <View className="flex-row gap-2">
-        {/* Reject Button */}
+        {/* Create Task Button */}
         <TouchableOpacity
           onPress={(e) => {
             e.stopPropagation?.();
-            onReject(task.id);
+            onCreateTask(task);
           }}
           disabled={isLoading}
-          className="flex-1 flex-row items-center justify-center py-2 rounded-lg border border-red-200 bg-red-50"
-        >
-          {isLoading ? (
-            <ActivityIndicator size="small" color="#EF4444" />
-          ) : (
-            <>
-              <MaterialCommunityIcons name="close" size={16} color="#EF4444" />
-              <Text className="text-sm font-medium text-red-500 ml-1">Reject</Text>
-            </>
-          )}
-        </TouchableOpacity>
-
-        {/* Approve Button */}
-        <TouchableOpacity
-          onPress={(e) => {
-            e.stopPropagation?.();
-            onApprove(task.id);
-          }}
-          disabled={isLoading}
-          className="flex-1 flex-row items-center justify-center py-2 rounded-lg"
-          style={{ backgroundColor: typeColor }}
+          className="flex-1 flex-row items-center justify-center py-3 rounded-lg"
+          style={{ backgroundColor: '#10B981' }}
         >
           {isLoading ? (
             <ActivityIndicator size="small" color="white" />
           ) : (
             <>
-              <MaterialCommunityIcons name="check" size={16} color="white" />
-              <Text className="text-sm font-medium text-white ml-1">Approve</Text>
+              <MaterialCommunityIcons name="plus" size={18} color="white" />
+              <Text className="text-sm font-semibold text-white ml-1">
+                {task.isEvent ? 'Create Event' : 'Create Task'}
+              </Text>
             </>
           )}
         </TouchableOpacity>

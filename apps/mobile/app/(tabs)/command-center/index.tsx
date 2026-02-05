@@ -101,7 +101,7 @@ export default function CommandCenterScreen() {
   const [testAttachments, setTestAttachments] = useState<TestAttachment[]>([]);
 
   // Pending drafts state (for header badge)
-  const [pendingDrafts, setPendingDrafts] = useState<DraftPreview[]>([]);
+  const [pendingTasksCount, setPendingTasksCount] = useState(0);
   
   // =========================================================================
   // Effects
@@ -128,21 +128,24 @@ export default function CommandCenterScreen() {
     }, [params.clearChat])
   );
 
-  // Fetch pending drafts for badge
-  const fetchPendingDrafts = useCallback(async () => {
+  // Fetch pending tasks count for badge (uses same API as pending screen)
+  const fetchPendingTasksCount = useCallback(async () => {
     try {
-      const response = await commandCenterService.getPendingDrafts();
+      const response = await commandCenterService.getPendingApprovalTasks();
       if (response.success && response.data) {
-        setPendingDrafts(response.data);
+        setPendingTasksCount(response.data.length);
       }
     } catch (error) {
-      console.error('Failed to fetch pending drafts:', error);
+      console.error('Failed to fetch pending tasks count:', error);
     }
   }, []);
 
-  useEffect(() => {
-    fetchPendingDrafts();
-  }, [fetchPendingDrafts]);
+  // Refresh count when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchPendingTasksCount();
+    }, [fetchPendingTasksCount])
+  );
 
   // Fetch test attachments when test mode is enabled
   useEffect(() => {
@@ -315,7 +318,7 @@ export default function CommandCenterScreen() {
           console.log('📋 [DraftPreview] Created with id:', draftPreview.id);
           setCurrentDraftId(responseId);
           // Refresh pending drafts
-          fetchPendingDrafts();
+          fetchPendingTasksCount();
         }
 
         // Replace thinking with response
@@ -360,7 +363,7 @@ export default function CommandCenterScreen() {
     } finally {
       setIsProcessing(false);
     }
-  }, [inputText, attachments, currentSessionId, fetchPendingDrafts]);
+  }, [inputText, attachments, currentSessionId, fetchPendingTasksCount]);
 
   // =========================================================================
   // Draft Actions
@@ -399,7 +402,7 @@ export default function CommandCenterScreen() {
         setCurrentDraftId(null);
         setCurrentSessionId(null);
         // Refresh pending drafts
-        fetchPendingDrafts();
+        fetchPendingTasksCount();
       } else {
         Alert.alert('Error', response.error || 'Failed to create. Please try again.');
       }
@@ -409,7 +412,7 @@ export default function CommandCenterScreen() {
     } finally {
       setIsProcessing(false);
     }
-  }, [currentDraftId, messages, fetchPendingDrafts]);
+  }, [currentDraftId, messages, fetchPendingTasksCount]);
 
   const handleReject = useCallback(async () => {
     if (!currentDraftId) return;
@@ -435,13 +438,13 @@ export default function CommandCenterScreen() {
       setMessages(prev => [...prev, rejectMessage, followUpMessage]);
       setCurrentDraftId(null);
       // Refresh pending drafts
-      fetchPendingDrafts();
+      fetchPendingTasksCount();
     } catch (error) {
       console.error('Error rejecting draft:', error);
     } finally {
       setIsProcessing(false);
     }
-  }, [currentDraftId, fetchPendingDrafts]);
+  }, [currentDraftId, fetchPendingTasksCount]);
 
   // Handler for when draft is confirmed via createPendingFromDraft (no approveDraft call needed)
   const handleConfirmed = useCallback((title: string, draftType: string) => {
@@ -467,8 +470,8 @@ export default function CommandCenterScreen() {
     setCurrentDraftId(null);
     setCurrentSessionId(null);
     // Refresh pending drafts
-    fetchPendingDrafts();
-  }, [fetchPendingDrafts]);
+    fetchPendingTasksCount();
+  }, [fetchPendingTasksCount]);
 
   // =========================================================================
   // Attachment Handlers
@@ -701,10 +704,10 @@ export default function CommandCenterScreen() {
         <View className="w-9 h-9 rounded-full items-center justify-center" style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}>
           <MaterialCommunityIcons name="clock-check-outline" size={20} color={colors.primary} />
         </View>
-        {pendingDrafts.length > 0 && (
+        {pendingTasksCount > 0 && (
           <View className="absolute -top-1 -right-1 min-w-5 h-5 bg-orange-500 rounded-full items-center justify-center px-1">
             <Text className="text-white text-xs font-bold">
-              {pendingDrafts.length > 9 ? '9+' : pendingDrafts.length}
+              {pendingTasksCount > 9 ? '9+' : pendingTasksCount}
             </Text>
           </View>
         )}
