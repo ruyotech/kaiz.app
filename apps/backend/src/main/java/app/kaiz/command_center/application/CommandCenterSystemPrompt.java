@@ -65,35 +65,35 @@ public final class CommandCenterSystemPrompt {
 
             5. CALENDAR/MEETING DETECTION (ABSOLUTE MANDATORY - THIS OVERRIDES EVERYTHING!):
                ⚠️⚠️⚠️ CRITICAL - READ CAREFULLY ⚠️⚠️⚠️
-               
+
                IF the input contains ANY of these patterns, you MUST:
                1. Set intentDetected = "event" (NOT "task"!)
                2. Set draft.type = "event"
                3. Extract and include the date as "date": "YYYY-MM-DD"
                4. Extract and include time as "startTime": "HH:mm" (24-hour)
                5. Extract and include "endTime": "HH:mm" if available
-               
+
                DETECTION PATTERNS (ANY match = EVENT):
                - Time: "2:00 PM", "10:00 AM", "14:00", "2:00 PM – 2:30 PM"
                - Video: "Microsoft Teams", "Teams Meeting", "Zoom", "Google Meet"
                - Keywords: "meeting", "standup", "sync", "1:1", "calendar", "organizer"
                - Calendar UI: date headers, time slots, attendee lists
-               
+
                TIME CONVERSION EXAMPLES:
                - "2:00 PM" → startTime: "14:00"
                - "10:00 AM" → startTime: "10:00"
                - "2:00 PM – 2:30 PM" → startTime: "14:00", endTime: "14:30"
-               
+
                DATE CONVERSION EXAMPLES:
                - "Monday, January 26" → date: "2026-01-26"
                - "Jan 27, 2026" → date: "2026-01-27"
-               
+
                ❌ WRONG OUTPUT (DO NOT DO THIS!):
                {"intentDetected": "task", "draft": {"type": "task", "title": "Meeting", ...}}
-               
+
                ✅ CORRECT OUTPUT (ALWAYS DO THIS!):
                {"intentDetected": "event", "draft": {"type": "event", "title": "Meeting", "date": "2026-01-27", "startTime": "14:00", "endTime": "14:30", ...}}
-               
+
                THIS RULE HAS HIGHEST PRIORITY - CALENDAR CONTENT = EVENT, PERIOD!
 
             ═══════════════════════════════════════════════════════════════════════════════
@@ -139,13 +139,13 @@ public final class CommandCenterSystemPrompt {
 
             📅 CALENDAR/MEETING SCREENSHOTS (Outlook, Teams, Google Calendar):
                ⚠️ MANDATORY: Calendar screenshots ALWAYS become EVENT, NEVER TASK!
-               
+
                DETECTION PATTERNS:
                - Time: "10:00 AM", "2:00 PM – 2:30 PM", "14:00"
                - Date: "Monday, January 26", "Jan 27", "January 26"
                - Keywords: "meeting", "Teams", "Zoom", "organizer", "calendar"
                - Visual: Calendar UI, time slots, attendee avatars
-               
+
                REQUIRED OUTPUT FOR CALENDAR:
                {
                  "intentDetected": "event",     // MUST be "event", NOT "task"!
@@ -160,16 +160,16 @@ public final class CommandCenterSystemPrompt {
                    "lifeWheelAreaId": "lw-2"
                  }
                }
-               
+
                TIME CONVERSION (12h → 24h):
                - 2:00 PM → 14:00
                - 10:00 AM → 10:00
                - 12:00 PM → 12:00
                - 12:00 AM → 00:00
-               
+
                → If info complete: status = "READY"
                → If missing date/time: status = "NEEDS_CLARIFICATION"
-               
+
                NEVER return intentDetected="task" for calendar content!
 
             🧾 RECEIPTS/PAYMENT CONFIRMATIONS:

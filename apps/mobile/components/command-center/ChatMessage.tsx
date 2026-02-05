@@ -16,6 +16,7 @@ interface ChatMessageProps {
   onDraftReject?: () => void;
   onDraftEdit?: () => void;
   onDraftPress?: (draft: DraftPreview) => void;
+  onDraftConfirmed?: (title: string, draftType: string) => void; // Called after createPendingFromDraft succeeds (no approveDraft needed)
   isProcessing?: boolean;
 }
 
@@ -25,6 +26,7 @@ export function ChatMessage({
   onDraftReject, 
   onDraftEdit,
   onDraftPress,
+  onDraftConfirmed,
   isProcessing 
 }: ChatMessageProps) {
   if (message.role === 'system') {
@@ -42,6 +44,7 @@ export function ChatMessage({
       onDraftReject={onDraftReject}
       onDraftEdit={onDraftEdit}
       onDraftPress={onDraftPress}
+      onDraftConfirmed={onDraftConfirmed}
       isProcessing={isProcessing}
     />
   );
@@ -98,6 +101,7 @@ interface AssistantMessageProps {
   onDraftReject?: () => void;
   onDraftEdit?: () => void;
   onDraftPress?: (draft: DraftPreview) => void;
+  onDraftConfirmed?: (title: string, draftType: string) => void;
   isProcessing?: boolean;
 }
 
@@ -107,6 +111,7 @@ function AssistantMessage({
   onDraftReject, 
   onDraftEdit,
   onDraftPress,
+  onDraftConfirmed,
   isProcessing 
 }: AssistantMessageProps) {
   return (
@@ -135,6 +140,7 @@ function AssistantMessage({
             onReject={onDraftReject}
             onEdit={onDraftEdit}
             onPress={onDraftPress}
+            onConfirmed={onDraftConfirmed}
             isProcessing={isProcessing}
           />
         ) : message.clarification ? (
@@ -183,10 +189,11 @@ interface DraftPreviewCardProps {
   onReject?: () => void;
   onEdit?: () => void;
   onPress?: (draft: DraftPreview) => void;
+  onConfirmed?: (title: string, draftType: string) => void; // Called after createPendingFromDraft succeeds
   isProcessing?: boolean;
 }
 
-function DraftPreviewCard({ draft, onApprove, onReject, onEdit, onPress, isProcessing }: DraftPreviewCardProps) {
+function DraftPreviewCard({ draft, onApprove, onReject, onEdit, onPress, onConfirmed, isProcessing }: DraftPreviewCardProps) {
   const router = useRouter();
   
   if (!draft) return null;
@@ -260,10 +267,11 @@ function DraftPreviewCard({ draft, onApprove, onReject, onEdit, onPress, isProce
     let startTimeStr = '';
     let endTimeStr = '';
     
-    // FALLBACK: If AI returned TASK but title/description contains time patterns,
+    // FALLBACK: If AI returned TASK but title/description/reasoning contains time patterns,
     // extract them. This handles cases where AI misclassified a calendar screenshot.
-    const titleAndDesc = `${draft.title || ''} ${draft.description || ''} ${draftDetails?.description || ''}`;
-    const extractedFromText = extractTimeFromText(titleAndDesc);
+    // Include reasoning since AI often puts date/time info there (e.g., "date (Monday, January 26), time (2:00 PM – 2:30 PM)")
+    const titleDescReasoning = `${draft.title || ''} ${draft.description || ''} ${draftDetails?.description || ''} ${draft.reasoning || ''}`;
+    const extractedFromText = extractTimeFromText(titleDescReasoning);
     if (extractedFromText.date || extractedFromText.startTime) {
       console.log('🕐 [ChatMessage] Extracted time from text:', extractedFromText);
     }
@@ -340,34 +348,41 @@ function DraftPreviewCard({ draft, onApprove, onReject, onEdit, onPress, isProce
     return builtData;
   };
   
-  // Navigate to pending-task (approval list) when Confirm is pressed
+  // Save to pending approval list when Confirm is pressed
   // Uses createPendingFromDraft to avoid session expiration issues
+  // Does NOT navigate - just saves and clears chat via onApprove callback
   const handleConfirm = async () => {
     try {
       const draftData = buildDraftDataObject();
       
+      console.log('💾 [ChatMessage] Creating pending from draft data:', draftData.title);
+      
       // Use createPendingFromDraft which sends data directly (no session needed)
       // Backend uses `date` for events and `dueDate` for tasks
+      // Convert empty strings to undefined (backend expects null/undefined, not empty strings for dates)
       const response = await commandCenterService.createPendingFromDraft({
         draftType: draft.draftType || 'TASK',
         title: draftData.title,
-        description: draftData.description,
-        dueDate: draftData.dueDate, // For tasks
-        date: draftData.dueDate, // For events (backend uses this with startTime/endTime)
+        description: draftData.description || undefined,
+        dueDate: draftData.dueDate || undefined, // For tasks - must be yyyy-MM-dd or undefined
+        date: draftData.dueDate || undefined, // For events - must be yyyy-MM-dd or undefined
         storyPoints: draftData.storyPoints,
         eisenhowerQuadrantId: draftData.eisenhowerQuadrantId,
         lifeWheelAreaId: draftData.lifeWheelAreaId,
-        startTime: draftData.startTime,
-        endTime: draftData.endTime,
-        location: draftData.location,
+        startTime: draftData.startTime || undefined, // Must be HH:mm or undefined
+        endTime: draftData.endTime || undefined, // Must be HH:mm or undefined
+        location: draftData.location || undefined,
         isAllDay: draftData.isAllDay,
       });
       
+      console.log('💾 [ChatMessage] Create pending result:', JSON.stringify(response));
+      
       if (response.success) {
-        // Navigate to pending task list
-        // Note: Do NOT call onApprove() here - that triggers the old approveDraft endpoint
-        // We already created the task via createPendingFromDraft
-        router.push('/(tabs)/command-center/pending-task');
+        // Call onConfirmed callback to clear chat and show success message
+        // Do NOT call onApprove - that would call approveDraft endpoint again
+        if (onConfirmed) {
+          onConfirmed(draftData.title, draft.draftType || 'TASK');
+        }
       } else {
         Alert.alert('Error', response.error || 'Failed to save to pending');
       }

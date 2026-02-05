@@ -38,6 +38,7 @@ import {
   SmartInputAttachment,
   TestAttachment,
   DraftPreview,
+  DraftType,
   getDraftTitle,
   getDraftTypeDisplayName,
 } from '../../../types/commandCenter';
@@ -442,6 +443,33 @@ export default function CommandCenterScreen() {
     }
   }, [currentDraftId, fetchPendingDrafts]);
 
+  // Handler for when draft is confirmed via createPendingFromDraft (no approveDraft call needed)
+  const handleConfirmed = useCallback((title: string, draftType: string) => {
+    const displayType = getDraftTypeDisplayName(draftType as DraftType);
+    
+    // Success message
+    const successMessage: ChatMessageType = {
+      id: Date.now().toString(),
+      role: 'system',
+      content: `✅ ${displayType} "${title}" saved to pending approval!`,
+      timestamp: new Date(),
+    };
+
+    // Follow-up message
+    const followUpMessage: ChatMessageType = {
+      id: (Date.now() + 1).toString(),
+      role: 'assistant',
+      content: `Your ${displayType.toLowerCase()} has been saved for review. Would you like to create something else?`,
+      timestamp: new Date(),
+    };
+
+    setMessages(prev => [...prev, successMessage, followUpMessage]);
+    setCurrentDraftId(null);
+    setCurrentSessionId(null);
+    // Refresh pending drafts
+    fetchPendingDrafts();
+  }, [fetchPendingDrafts]);
+
   // =========================================================================
   // Attachment Handlers
   // =========================================================================
@@ -723,6 +751,7 @@ export default function CommandCenterScreen() {
               message={message}
               onDraftApprove={message.draft?.id === currentDraftId ? handleApprove : undefined}
               onDraftReject={message.draft?.id === currentDraftId ? handleReject : undefined}
+              onDraftConfirmed={message.draft?.id === currentDraftId ? handleConfirmed : undefined}
               isProcessing={isProcessing}
             />
           ))}
