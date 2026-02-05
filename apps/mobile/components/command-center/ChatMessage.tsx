@@ -4,10 +4,11 @@
  */
 
 import React from 'react';
-import { View, Text, ActivityIndicator, Image, Pressable, TouchableOpacity } from 'react-native';
+import { View, Text, ActivityIndicator, Image, Pressable, TouchableOpacity, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { ChatMessage as ChatMessageType, DraftPreview, getDraftTypeDisplayName, getDraftTypeIcon, getDraftTypeColor } from '../../types/commandCenter';
+import { commandCenterService } from '../../services/commandCenter';
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -194,31 +195,124 @@ function DraftPreviewCard({ draft, onApprove, onReject, onEdit, onPress, isProce
   const typeIcon = getDraftTypeIcon(draft.draftType);
   const typeName = getDraftTypeDisplayName(draft.draftType);
   
-  // Navigate to create-from-sensai screen when Confirm is pressed (opens full create form)
-  const handleConfirm = () => {
-    // Cast draft.draft to any since it could be various types
-    const draftData = draft.draft as any;
+  // Build complete draft data object for passing to create screen
+  // draft.draft contains the raw backend TaskDraft/EventDraft/etc object
+  const buildDraftDataObject = () => {
+    const draftDetails = draft.draft as any;
     
-    // Navigate to create-from-sensai with draft data
+    console.log('🔄 [ChatMessage] Building draft data:');
+    console.log('  - draft:', JSON.stringify(draft, null, 2));
+    console.log('  - draftDetails:', JSON.stringify(draftDetails, null, 2));
+    
+    // Parse date/time from various possible formats
+    let dateStr = '';
+    let startTimeStr = '';
+    let endTimeStr = '';
+    
+    // For events, parse startTime which might be ISO datetime
+    if (draftDetails?.startTime) {
+      try {
+        const startDate = new Date(draftDetails.startTime);
+        if (!isNaN(startDate.getTime())) {
+          dateStr = startDate.toISOString().split('T')[0]; // yyyy-MM-dd
+          startTimeStr = startDate.toTimeString().slice(0, 5); // HH:mm
+        }
+      } catch (e) {
+        // If not ISO, might be just time string
+        startTimeStr = draftDetails.startTime;
+      }
+    }
+    
+    if (draftDetails?.endTime) {
+      try {
+        const endDate = new Date(draftDetails.endTime);
+        if (!isNaN(endDate.getTime())) {
+          endTimeStr = endDate.toTimeString().slice(0, 5); // HH:mm
+        }
+      } catch (e) {
+        endTimeStr = draftDetails.endTime;
+      }
+    }
+    
+    // For tasks, use dueDate
+    if (draftDetails?.dueDate && !dateStr) {
+      dateStr = draftDetails.dueDate;
+    }
+    
+    // Also check for direct date field
+    if (draftDetails?.date && !dateStr) {
+      dateStr = draftDetails.date;
+    }
+    
+    const builtData = {
+      title: draft.title || draftDetails?.title || '',
+      description: draft.description || draftDetails?.description || '',
+      isEvent: draft.draftType === 'EVENT',
+      dueDate: dateStr,
+      startTime: startTimeStr,
+      endTime: endTimeStr,
+      lifeWheelAreaId: draftDetails?.lifeWheelAreaId || 'lw-4',
+      eisenhowerQuadrantId: draftDetails?.eisenhowerQuadrantId || 'eq-2',
+      storyPoints: draftDetails?.storyPoints || 3,
+      isAllDay: draftDetails?.isAllDay || false,
+      location: draftDetails?.location || '',
+      isRecurring: draftDetails?.isRecurring || false,
+      aiReasoning: draft.reasoning || '',
+      aiSummary: draft.description || draftDetails?.description || '',
+      draftType: draft.draftType,
+    };
+    
+    console.log('  - builtData:', JSON.stringify(builtData, null, 2));
+    return builtData;
+  };
+  
+  // Navigate to pending-task (approval list) when Confirm is pressed
+  // Uses createPendingFromDraft to avoid session expiration issues
+  const handleConfirm = async () => {
+    try {
+      const draftData = buildDraftDataObject();
+      
+      // Use createPendingFromDraft which sends data directly (no session needed)
+      // Backend uses `date` for events and `dueDate` for tasks
+      const response = await commandCenterService.createPendingFromDraft({
+        draftType: draft.draftType || 'TASK',
+        title: draftData.title,
+        description: draftData.description,
+        dueDate: draftData.dueDate, // For tasks
+        date: draftData.dueDate, // For events (backend uses this with startTime/endTime)
+        storyPoints: draftData.storyPoints,
+        eisenhowerQuadrantId: draftData.eisenhowerQuadrantId,
+        lifeWheelAreaId: draftData.lifeWheelAreaId,
+        startTime: draftData.startTime,
+        endTime: draftData.endTime,
+        location: draftData.location,
+        isAllDay: draftData.isAllDay,
+      });
+      
+      if (response.success) {
+        // Navigate to pending task list
+        onApprove?.();
+        router.push('/(tabs)/command-center/pending-task');
+      } else {
+        Alert.alert('Error', response.error || 'Failed to save to pending');
+      }
+    } catch (error: any) {
+      console.error('Error saving to pending:', error);
+      Alert.alert('Error', 'Failed to save to pending. Please try again.');
+    }
+  };
+  
+  // Navigate to create-from-sensai screen when Create Task/Event is pressed
+  const handleCreateTask = () => {
+    const draftData = buildDraftDataObject();
+    
+    console.log('🚀 [ChatMessage] Navigating to create-from-sensai with:', JSON.stringify(draftData, null, 2));
+    
     router.push({
       pathname: '/(tabs)/command-center/create-from-sensai',
       params: {
-        taskId: draftData?.id || '',
-        title: draft.title,
-        description: draft.description || '',
-        isEvent: draft.draftType === 'EVENT' ? 'true' : 'false',
-        targetDate: draftData?.dueDate || draftData?.startTime || draftData?.date || '',
-        lifeWheelAreaId: draftData?.lifeWheelAreaId || 'lw-1',
-        eisenhowerQuadrantId: draftData?.eisenhowerQuadrantId || 'eq-4',
-        storyPoints: draftData?.storyPoints?.toString() || '2',
-        isAllDay: draftData?.isAllDay ? 'true' : 'false',
-        eventStartTime: draftData?.startTime || '',
-        eventEndTime: draftData?.endTime || '',
-        location: draftData?.location || '',
-        isRecurring: draftData?.isRecurring ? 'true' : 'false',
-        aiReasoning: draft.reasoning || '',
-        aiConfidence: (draft.confidence || 0.85).toString(),
-        draftType: draft.draftType,
+        draftData: JSON.stringify(draftData),
+        clearChat: 'true',
       },
     });
   };
@@ -286,36 +380,54 @@ function DraftPreviewCard({ draft, onApprove, onReject, onEdit, onPress, isProce
           )}
         </View>
         
-        {/* Quick Actions - Reject: Delete & back to chat, Confirm: Open create form */}
-        <View className="px-4 py-3 border-t border-gray-100 flex-row gap-2">
-          <TouchableOpacity
-            onPress={(e) => {
-              e.stopPropagation?.();
-              onReject?.();
-            }}
-            disabled={isProcessing}
-            className="flex-1 bg-gray-100 rounded-xl py-3 items-center"
-          >
-            <Text className="text-gray-600 font-medium">Reject</Text>
-          </TouchableOpacity>
+        {/* Quick Actions - 3 options: Reject, Confirm (to pending), Create Task */}
+        <View className="px-4 py-3 border-t border-gray-100">
+          {/* Top row: Reject and Confirm */}
+          <View className="flex-row gap-2 mb-2">
+            <TouchableOpacity
+              onPress={(e) => {
+                e.stopPropagation?.();
+                onReject?.();
+              }}
+              disabled={isProcessing}
+              className="flex-1 bg-gray-100 rounded-xl py-3 items-center"
+            >
+              <Text className="text-gray-600 font-medium">Reject</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              onPress={(e) => {
+                e.stopPropagation?.();
+                handleConfirm();
+              }}
+              disabled={isProcessing}
+              className="flex-1 rounded-xl py-3 items-center flex-row justify-center"
+              style={{ backgroundColor: typeColor }}
+            >
+              {isProcessing ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <>
+                  <MaterialCommunityIcons name="check" size={18} color="white" />
+                  <Text className="text-white font-semibold ml-1">Confirm</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
           
+          {/* Bottom row: Create Task/Event (full width) */}
           <TouchableOpacity
             onPress={(e) => {
               e.stopPropagation?.();
-              handleConfirm();
+              handleCreateTask();
             }}
             disabled={isProcessing}
-            className="flex-1 rounded-xl py-3 items-center flex-row justify-center"
-            style={{ backgroundColor: typeColor }}
+            className="w-full bg-green-600 rounded-xl py-3 items-center flex-row justify-center"
           >
-            {isProcessing ? (
-              <ActivityIndicator size="small" color="white" />
-            ) : (
-              <>
-                <MaterialCommunityIcons name="check" size={18} color="white" />
-                <Text className="text-white font-semibold ml-1">Confirm</Text>
-              </>
-            )}
+            <MaterialCommunityIcons name="plus-circle" size={18} color="white" />
+            <Text className="text-white font-semibold ml-2">
+              {draft.draftType === 'EVENT' ? 'Create Event' : 'Create Task'}
+            </Text>
           </TouchableOpacity>
         </View>
         

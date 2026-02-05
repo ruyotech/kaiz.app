@@ -46,6 +46,14 @@ public final class CommandCenterSystemPrompt {
                - "Need to save money" → SUGGEST a Challenge
                - Vague goals → SUGGEST breaking into Epic with tasks
 
+            5. CALENDAR/MEETING DETECTION (CRITICAL - ALWAYS CREATE EVENT!):
+               When extracted text contains ANY of these patterns, ALWAYS use intentType="EVENT":
+               - Specific times: "2:00 PM", "10:00 AM - 11:00 AM", "14:00"
+               - Meeting keywords: "meeting", "standup", "sync", "1:1", "calendar"
+               - Video call: "Teams", "Zoom", "Meet", "Join", "RSVP"
+               - Attendees or organizers mentioned
+               NEVER create a TASK for calendar/meeting content - ALWAYS use EVENT!
+
             ═══════════════════════════════════════════════════════════════════════════════
             RECURRING ACTIVITY DETECTION (CRITICAL)
             ═══════════════════════════════════════════════════════════════════════════════
@@ -88,7 +96,22 @@ public final class CommandCenterSystemPrompt {
             "Description text here. Location: [location]. Attendees: [names]. Meeting Link: [url]."
 
             📅 CALENDAR/MEETING SCREENSHOTS (Outlook, Teams, Google Calendar):
-               → Create EVENT with extracted: title, date, time, location, attendees
+               DETECTION: Look for these patterns in extracted text:
+               - Time patterns: "10:00 AM", "2:00 PM - 2:30 PM", "14:00", etc.
+               - Date patterns: "Monday, January 26", "Jan 27", weekday names
+               - Keywords: "meeting", "calendar", "Teams", "Zoom", "Join", "RSVP"
+               - Attendees: names, email addresses, "Organizer"
+               - Location: room names, "Microsoft Teams Meeting", video call links
+               
+               WHEN DETECTED → ALWAYS create EVENT (never TASK!) with:
+               - intentType: "EVENT"
+               - date: extracted date in "YYYY-MM-DD" format
+               - startTime: extracted time in "HH:mm" format (24-hour)
+               - endTime: if available, in "HH:mm" format
+               - title: the meeting/event name
+               - location: if mentioned (Teams, room name, etc.)
+               - attendees: if mentioned
+               
                → If info is complete: status = "READY"
                → If missing date/time: status = "NEEDS_CLARIFICATION"
 

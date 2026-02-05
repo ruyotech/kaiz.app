@@ -86,6 +86,10 @@ const DESTINATION_OPTIONS = [
   { id: 'backlog', label: 'Backlog', icon: 'inbox-full', description: 'Save for later planning' },
 ];
 
+// Time picker constants
+const HOURS = Array.from({ length: 24 }, (_, i) => i);
+const MINUTES = [0, 15, 30, 45];
+
 // ============================================================================
 // Main Screen
 // ============================================================================
@@ -100,16 +104,40 @@ export default function CreateFromSensAIScreen() {
     clearChat?: string;
   }>();
 
-  // Parse draft data from params
-  const initialDraft: DraftData = params.draftData 
-    ? JSON.parse(params.draftData) 
-    : { title: '' };
+  // Parse draft data from params with error handling
+  const parseDraftData = useCallback((): DraftData => {
+    console.log('[CreateFromSensAI] Raw params.draftData:', params.draftData);
+    console.log('[CreateFromSensAI] params.draftData type:', typeof params.draftData);
+    
+    if (!params.draftData) {
+      console.log('[CreateFromSensAI] No draftData in params');
+      return { title: '' };
+    }
+    
+    try {
+      // Handle if draftData is already an object (shouldn't happen but safety check)
+      if (typeof params.draftData === 'object') {
+        console.log('[CreateFromSensAI] draftData is already an object');
+        return params.draftData as unknown as DraftData;
+      }
+      
+      const parsed = JSON.parse(params.draftData);
+      console.log('[CreateFromSensAI] Parsed draft data:', JSON.stringify(parsed, null, 2));
+      return parsed;
+    } catch (error) {
+      console.error('[CreateFromSensAI] Failed to parse draftData:', error);
+      console.error('[CreateFromSensAI] Raw value was:', params.draftData);
+      return { title: '' };
+    }
+  }, [params.draftData]);
+  
+  const initialDraft: DraftData = parseDraftData();
 
   // =========================================================================
   // State
   // =========================================================================
 
-  // Form data
+  // Form data - Initialize from AI data
   const [title, setTitle] = useState(initialDraft.title || '');
   const [description, setDescription] = useState(initialDraft.description || '');
   const [storyPoints, setStoryPoints] = useState(initialDraft.storyPoints || 3);
@@ -120,16 +148,60 @@ export default function CreateFromSensAIScreen() {
   const [destination, setDestination] = useState<'sprint' | 'backlog'>('sprint');
   const [selectedSprintId, setSelectedSprintId] = useState<string | null>(null);
   
-  // Date
-  const [targetDate, setTargetDate] = useState<Date | null>(
-    initialDraft.dueDate ? new Date(initialDraft.dueDate) : null
-  );
+  // Date - Parse from AI if available
+  const [targetDate, setTargetDate] = useState<Date | null>(() => {
+    if (initialDraft.dueDate) {
+      const parsed = new Date(initialDraft.dueDate);
+      return isNaN(parsed.getTime()) ? null : parsed;
+    }
+    return null;
+  });
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   // Event-specific
   const isEvent = initialDraft.isEvent || false;
   const [location, setLocation] = useState(initialDraft.location || '');
   const [isAllDay, setIsAllDay] = useState(initialDraft.isAllDay || false);
+
+  // Time picker state - Parse initial time from draft data
+  const parseTimeFromString = (timeStr?: string): { hour: number; minute: number } | null => {
+    if (!timeStr) return null;
+    
+    // Handle HH:mm format
+    if (timeStr.includes(':')) {
+      const [hourStr, minuteStr] = timeStr.split(':');
+      const hour = parseInt(hourStr, 10);
+      const minute = parseInt(minuteStr, 10);
+      if (!isNaN(hour) && !isNaN(minute)) {
+        return { hour, minute };
+      }
+    }
+    
+    // Handle ISO datetime format (e.g., "2025-01-26T14:00:00")
+    if (timeStr.includes('T')) {
+      const timePart = timeStr.split('T')[1];
+      if (timePart) {
+        const [hourStr, minuteStr] = timePart.split(':');
+        const hour = parseInt(hourStr, 10);
+        const minute = parseInt(minuteStr, 10);
+        if (!isNaN(hour) && !isNaN(minute)) {
+          return { hour, minute };
+        }
+      }
+    }
+    
+    return null;
+  };
+
+  const startTimeParsed = parseTimeFromString(initialDraft.startTime);
+  const endTimeParsed = parseTimeFromString(initialDraft.endTime);
+  
+  const [hasTime, setHasTime] = useState(!!startTimeParsed);
+  const [selectedHour, setSelectedHour] = useState(startTimeParsed?.hour ?? 9);
+  const [selectedMinute, setSelectedMinute] = useState(startTimeParsed?.minute ?? 0);
+  const [hasEndTime, setHasEndTime] = useState(!!endTimeParsed);
+  const [selectedEndHour, setSelectedEndHour] = useState(endTimeParsed?.hour ?? (startTimeParsed ? (startTimeParsed.hour + 1) % 24 : 10));
+  const [selectedEndMinute, setSelectedEndMinute] = useState(endTimeParsed?.minute ?? 0);
 
   // Data loading
   const [sprints, setSprints] = useState<Sprint[]>([]);
@@ -142,6 +214,77 @@ export default function CreateFromSensAIScreen() {
   const [showSprintPicker, setShowSprintPicker] = useState(false);
   const [showLifeWheelPicker, setShowLifeWheelPicker] = useState(false);
   const [showStoryPointsPicker, setShowStoryPointsPicker] = useState(false);
+  
+  // Update state when params change (Expo Router may load params async)
+  useEffect(() => {
+    const draft = parseDraftData();
+    console.log('[CreateFromSensAI] Params changed, updating form with:', draft);
+    
+    if (draft.title) {
+      setTitle(draft.title);
+    }
+    if (draft.description) {
+      setDescription(draft.description);
+    }
+    if (draft.storyPoints) {
+      setStoryPoints(draft.storyPoints);
+    }
+    if (draft.eisenhowerQuadrantId) {
+      setEisenhowerQuadrantId(draft.eisenhowerQuadrantId);
+    }
+    if (draft.lifeWheelAreaId) {
+      setSelectedLifeWheelAreaId(draft.lifeWheelAreaId);
+    }
+    if (draft.dueDate) {
+      const parsed = new Date(draft.dueDate);
+      if (!isNaN(parsed.getTime())) {
+        setTargetDate(parsed);
+      }
+    }
+    if (draft.location) {
+      setLocation(draft.location);
+    }
+    if (typeof draft.isAllDay === 'boolean') {
+      setIsAllDay(draft.isAllDay);
+    }
+    // Parse and update time fields
+    if (draft.startTime) {
+      const parsed = parseTimeFromString(draft.startTime);
+      if (parsed) {
+        setHasTime(true);
+        setSelectedHour(parsed.hour);
+        setSelectedMinute(parsed.minute);
+      }
+    }
+    if (draft.endTime) {
+      const parsed = parseTimeFromString(draft.endTime);
+      if (parsed) {
+        setHasEndTime(true);
+        setSelectedEndHour(parsed.hour);
+        setSelectedEndMinute(parsed.minute);
+      }
+    }
+  }, [params.draftData]);
+  
+  // Log initial state for debugging
+  useEffect(() => {
+    console.log('[CreateFromSensAI] Current form state:', {
+      title,
+      description,
+      storyPoints,
+      eisenhowerQuadrantId,
+      selectedLifeWheelAreaId,
+      targetDate,
+      isEvent,
+      location,
+      hasTime,
+      selectedHour,
+      selectedMinute,
+      hasEndTime,
+      selectedEndHour,
+      selectedEndMinute,
+    });
+  }, [title, description, hasTime, selectedHour, selectedMinute]);
 
   // =========================================================================
   // Data Fetching
@@ -221,6 +364,11 @@ export default function CreateFromSensAIScreen() {
 
     setIsLoading(true);
     try {
+      // Format time strings for API
+      const formatTime = (hour: number, minute: number): string => {
+        return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+      };
+
       const taskData: any = {
         title: title.trim(),
         description: description.trim() || null,
@@ -233,6 +381,9 @@ export default function CreateFromSensAIScreen() {
         isEvent,
         location: isEvent ? location : null,
         isAllDay: isEvent ? isAllDay : false,
+        // Add time fields for events
+        scheduledStartTime: isEvent && hasTime && !isAllDay ? formatTime(selectedHour, selectedMinute) : null,
+        scheduledEndTime: isEvent && hasTime && hasEndTime && !isAllDay ? formatTime(selectedEndHour, selectedEndMinute) : null,
       };
 
       const newTask = await taskApi.createTask(taskData);
@@ -627,6 +778,186 @@ export default function CreateFromSensAIScreen() {
                   thumbColor={isAllDay ? colors.primary : '#F3F4F6'}
                 />
               </View>
+
+              {/* Time Picker - Only show if not all day */}
+              {!isAllDay && (
+                <View className="mt-4">
+                  {/* Add Time Toggle */}
+                  <TouchableOpacity
+                    onPress={() => setHasTime(!hasTime)}
+                    className={`flex-row items-center p-3 rounded-xl border ${
+                      hasTime ? 'bg-amber-50 border-amber-300' : 'bg-gray-50 border-gray-200'
+                    }`}
+                  >
+                    <View className={`w-8 h-8 rounded-full items-center justify-center mr-3 ${
+                      hasTime ? 'bg-amber-100' : 'bg-gray-200'
+                    }`}>
+                      <MaterialCommunityIcons name="clock-outline" size={18} color={hasTime ? '#d97706' : '#6b7280'} />
+                    </View>
+                    <Text className={`flex-1 font-medium ${hasTime ? 'text-amber-800' : 'text-gray-600'}`}>
+                      {hasTime 
+                        ? hasEndTime
+                          ? `${selectedHour.toString().padStart(2, '0')}:${selectedMinute.toString().padStart(2, '0')} - ${selectedEndHour.toString().padStart(2, '0')}:${selectedEndMinute.toString().padStart(2, '0')}`
+                          : `At ${selectedHour.toString().padStart(2, '0')}:${selectedMinute.toString().padStart(2, '0')}`
+                        : 'Add specific time'
+                      }
+                    </Text>
+                    <MaterialCommunityIcons 
+                      name={hasTime ? "checkbox-marked" : "checkbox-blank-outline"} 
+                      size={22} 
+                      color={hasTime ? "#d97706" : "#9ca3af"} 
+                    />
+                  </TouchableOpacity>
+
+                  {/* Time Picker UI */}
+                  {hasTime && (
+                    <View className="mt-2 p-4 bg-amber-50 rounded-xl border border-amber-200">
+                      {/* Start Time */}
+                      <View>
+                        <Text className="text-xs text-amber-700 font-medium mb-2">Start Time</Text>
+                        <View className="flex-row items-center gap-2">
+                          {/* Hour Selector */}
+                          <View className="flex-1">
+                            <Text className="text-xs text-amber-600 mb-1 text-center">Hour</Text>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="max-h-12">
+                              <View className="flex-row gap-1">
+                                {HOURS.map((hour) => (
+                                  <TouchableOpacity
+                                    key={hour}
+                                    onPress={() => setSelectedHour(hour)}
+                                    className={`w-10 h-10 rounded-lg items-center justify-center ${
+                                      selectedHour === hour
+                                        ? 'bg-amber-500'
+                                        : 'bg-white border border-amber-200'
+                                    }`}
+                                  >
+                                    <Text className={`font-medium ${
+                                      selectedHour === hour ? 'text-white' : 'text-gray-700'
+                                    }`}>
+                                      {hour.toString().padStart(2, '0')}
+                                    </Text>
+                                  </TouchableOpacity>
+                                ))}
+                              </View>
+                            </ScrollView>
+                          </View>
+                        </View>
+                        {/* Minute Selector */}
+                        <View className="mt-2">
+                          <Text className="text-xs text-amber-600 mb-1 text-center">Minute</Text>
+                          <View className="flex-row justify-center gap-3">
+                            {MINUTES.map((minute) => (
+                              <TouchableOpacity
+                                key={minute}
+                                onPress={() => setSelectedMinute(minute)}
+                                className={`w-14 h-10 rounded-lg items-center justify-center ${
+                                  selectedMinute === minute
+                                    ? 'bg-amber-500'
+                                    : 'bg-white border border-amber-200'
+                                }`}
+                              >
+                                <Text className={`font-medium ${
+                                  selectedMinute === minute ? 'text-white' : 'text-gray-700'
+                                }`}>
+                                  :{minute.toString().padStart(2, '0')}
+                                </Text>
+                              </TouchableOpacity>
+                            ))}
+                          </View>
+                        </View>
+                      </View>
+
+                      {/* End Time Toggle */}
+                      <TouchableOpacity
+                        onPress={() => {
+                          setHasEndTime(!hasEndTime);
+                          if (!hasEndTime) {
+                            setSelectedEndHour((selectedHour + 1) % 24);
+                            setSelectedEndMinute(selectedMinute);
+                          }
+                        }}
+                        className={`mt-3 flex-row items-center p-3 rounded-xl border ${
+                          hasEndTime ? 'bg-purple-50 border-purple-300' : 'bg-gray-50 border-gray-200'
+                        }`}
+                      >
+                        <View className={`w-7 h-7 rounded-full items-center justify-center mr-2 ${
+                          hasEndTime ? 'bg-purple-100' : 'bg-gray-200'
+                        }`}>
+                          <MaterialCommunityIcons name="clock-end" size={16} color={hasEndTime ? '#9333ea' : '#6b7280'} />
+                        </View>
+                        <Text className={`flex-1 font-medium ${hasEndTime ? 'text-purple-800' : 'text-gray-600'}`}>
+                          {hasEndTime 
+                            ? `Until ${selectedEndHour.toString().padStart(2, '0')}:${selectedEndMinute.toString().padStart(2, '0')}`
+                            : 'Add end time'
+                          }
+                        </Text>
+                        <MaterialCommunityIcons 
+                          name={hasEndTime ? "checkbox-marked" : "checkbox-blank-outline"} 
+                          size={22} 
+                          color={hasEndTime ? "#9333ea" : "#9ca3af"} 
+                        />
+                      </TouchableOpacity>
+
+                      {/* End Time Picker */}
+                      {hasEndTime && (
+                        <View className="mt-2 p-3 bg-purple-50 rounded-xl border border-purple-200">
+                          <Text className="text-xs text-purple-700 font-medium mb-2">End Time</Text>
+                          <View className="flex-row items-center gap-2">
+                            {/* End Hour Selector */}
+                            <View className="flex-1">
+                              <Text className="text-xs text-purple-600 mb-1 text-center">Hour</Text>
+                              <ScrollView horizontal showsHorizontalScrollIndicator={false} className="max-h-12">
+                                <View className="flex-row gap-1">
+                                  {HOURS.map((hour) => (
+                                    <TouchableOpacity
+                                      key={hour}
+                                      onPress={() => setSelectedEndHour(hour)}
+                                      className={`w-10 h-10 rounded-lg items-center justify-center ${
+                                        selectedEndHour === hour
+                                          ? 'bg-purple-500'
+                                          : 'bg-white border border-purple-200'
+                                      }`}
+                                    >
+                                      <Text className={`font-medium ${
+                                        selectedEndHour === hour ? 'text-white' : 'text-gray-700'
+                                      }`}>
+                                        {hour.toString().padStart(2, '0')}
+                                      </Text>
+                                    </TouchableOpacity>
+                                  ))}
+                                </View>
+                              </ScrollView>
+                            </View>
+                          </View>
+                          {/* End Minute Selector */}
+                          <View className="mt-2">
+                            <Text className="text-xs text-purple-600 mb-1 text-center">Minute</Text>
+                            <View className="flex-row justify-center gap-3">
+                              {MINUTES.map((minute) => (
+                                <TouchableOpacity
+                                  key={minute}
+                                  onPress={() => setSelectedEndMinute(minute)}
+                                  className={`w-14 h-10 rounded-lg items-center justify-center ${
+                                    selectedEndMinute === minute
+                                      ? 'bg-purple-500'
+                                      : 'bg-white border border-purple-200'
+                                  }`}
+                                >
+                                  <Text className={`font-medium ${
+                                    selectedEndMinute === minute ? 'text-white' : 'text-gray-700'
+                                  }`}>
+                                    :{minute.toString().padStart(2, '0')}
+                                  </Text>
+                                </TouchableOpacity>
+                              ))}
+                            </View>
+                          </View>
+                        </View>
+                      )}
+                    </View>
+                  )}
+                </View>
+              )}
             </>
           )}
         </ScrollView>
