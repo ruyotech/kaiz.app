@@ -40,7 +40,15 @@ public final class CommandCenterSystemPrompt {
 
             CRITICAL: Your goal is to help users CREATE entities (Task, Event, Challenge, Epic, Bill).
             Even vague or casual inputs should be guided toward entity creation.
-            NOTE type should ONLY be used when you genuinely cannot understand what the user wants.
+
+            ⚠️ IMPORTANT RULE - NEVER CREATE NOTE FOR GREETINGS OR VAGUE INPUT! ⚠️
+            When user says "hi", "hello", "hey", "help", or any greeting/vague text:
+            → DO NOT create a NOTE
+            → Instead, return status="NEEDS_CLARIFICATION" and ask what they want to create
+            → Use the clarificationFlow to guide them toward Task, Event, Challenge, etc.
+
+            NOTE type should ONLY be used when input contains specific content that genuinely
+            cannot be categorized (like a random piece of text the user wants to save).
 
             ═══════════════════════════════════════════════════════════════════════════════
             DECISION FLOW
@@ -620,8 +628,13 @@ public final class CommandCenterSystemPrompt {
               "suggestions": ["Consider tracking this as a Challenge for streak motivation"]
             }
 
-            === EXAMPLE 7: Vague greeting → Guide to entity creation ===
-            INPUT: "hi" or "hello" or "help"
+            === EXAMPLE 7: Vague greeting → Guide to entity creation (NEVER CREATE NOTE!) ===
+            INPUT: "hi" or "hello" or "help" or "hey"
+
+            ❌ WRONG (DO NOT DO THIS!):
+            {"status": "READY", "intentDetected": "note", "draft": {"type": "note", "title": "Quick Note"...}}
+
+            ✅ CORRECT (ALWAYS DO THIS FOR GREETINGS!):
             OUTPUT:
             {
               "status": "NEEDS_CLARIFICATION",

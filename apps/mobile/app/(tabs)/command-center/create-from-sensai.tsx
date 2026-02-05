@@ -364,10 +364,23 @@ export default function CreateFromSensAIScreen() {
 
     setIsLoading(true);
     try {
-      // Format time strings for API
-      const formatTime = (hour: number, minute: number): string => {
-        return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+      // Helper to create ISO instant from date and time
+      const createInstant = (date: Date, hour: number, minute: number): string => {
+        const d = new Date(date);
+        d.setHours(hour, minute, 0, 0);
+        return d.toISOString();
       };
+
+      // Build event start/end times as Instant if this is an event with time
+      let eventStartTime: string | null = null;
+      let eventEndTime: string | null = null;
+      
+      if (isEvent && hasTime && !isAllDay && targetDate) {
+        eventStartTime = createInstant(targetDate, selectedHour, selectedMinute);
+        if (hasEndTime) {
+          eventEndTime = createInstant(targetDate, selectedEndHour, selectedEndMinute);
+        }
+      }
 
       const taskData: any = {
         title: title.trim(),
@@ -381,9 +394,9 @@ export default function CreateFromSensAIScreen() {
         isEvent,
         location: isEvent ? location : null,
         isAllDay: isEvent ? isAllDay : false,
-        // Add time fields for events
-        scheduledStartTime: isEvent && hasTime && !isAllDay ? formatTime(selectedHour, selectedMinute) : null,
-        scheduledEndTime: isEvent && hasTime && hasEndTime && !isAllDay ? formatTime(selectedEndHour, selectedEndMinute) : null,
+        // Event time fields must be Instant (ISO datetime strings)
+        eventStartTime,
+        eventEndTime,
       };
 
       const newTask = await taskApi.createTask(taskData);
