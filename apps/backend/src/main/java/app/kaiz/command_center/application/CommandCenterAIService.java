@@ -142,14 +142,23 @@ public class CommandCenterAIService {
       // Complete conversation log
       conversation.complete(saved.getId().toString(), parsed.draft().type().name());
 
-      // Build response
-      return CommandCenterAIResponse.of(
+      // Determine the response status based on AI's status
+      DraftStatus responseStatus = switch (parsed.status()) {
+        case "NEEDS_CLARIFICATION" -> DraftStatus.NEEDS_CLARIFICATION;
+        case "SUGGEST_ALTERNATIVE" -> DraftStatus.NEEDS_CLARIFICATION; // Treat similar to clarification
+        default -> DraftStatus.PENDING_APPROVAL;
+      };
+
+      // Build response with proper status
+      return CommandCenterAIResponse.withStatus(
           saved.getId(),
+          responseStatus,
           parsed.draft().type(),
           parsed.confidenceScore(),
           parsed.draft(),
           parsed.reasoning(),
           parsed.suggestions(),
+          parsed.clarifyingQuestions(),
           text,
           attachmentSummaries,
           voiceTranscription,
@@ -364,6 +373,8 @@ public class CommandCenterAIService {
 
       JsonNode root = objectMapper.readTree(cleaned);
 
+      // Parse status - defaults to READY
+      String status = root.path("status").asText("READY");
       String intentDetected = root.path("intentDetected").asText("note");
       double confidenceScore = root.path("confidenceScore").asDouble(0.5);
       String reasoning = root.path("reasoning").asText("");
@@ -375,15 +386,73 @@ public class CommandCenterAIService {
         }
       }
 
-      // Parse the draft based on type
-      JsonNode draftNode = root.path("draft");
-      Draft draft = parseDraft(intentDetected, draftNode);
+      // Parse clarifying questions from clarificationFlow
+      List<String> clarifyingQuestions = new ArrayList<>();
+      if (root.has("clarificationFlow") && !root.get("clarificationFlow").isNull()) {
+        JsonNode flowNode = root.get("clarificationFlow");
+        // Add title/description as context if available
+        String flowTitle = flowNode.path("title").asText("");
+        String flowDescription = flowNode.path("description").asText("");
+        if (!flowTitle.isBlank()) {
+          clarifyingQuestions.add(flowTitle);
+        }
+        if (!flowDescription.isBlank() && !flowDescription.equals(flowTitle)) {
+          clarifyingQuestions.add(flowDescription);
+        }
+        // Extract questions from the questions array
+        if (flowNode.has("questions") && flowNode.get("questions").isArray()) {
+          for (JsonNode q : flowNode.get("questions")) {
+            String question = q.path("question").asText("");
+            if (!question.isBlank()) {
+              // Build a descriptive question with options
+              StringBuilder questionText = new StringBuilder(question);
+              if (q.has("options") && q.get("options").isArray()) {
+                List<String> optionLabels = new ArrayList<>();
+                for (JsonNode opt : q.get("options")) {
+                  String label = opt.path("label").asText("");
+                  String icon = opt.path("icon").asText("");
+                  if (!label.isBlank()) {
+                    optionLabels.add(icon.isBlank() ? label : icon + " " + label);
+                  }
+                }
+                if (!optionLabels.isEmpty()) {
+                  questionText.append(" Options: ").append(String.join(", ", optionLabels));
+                }
+              }
+              clarifyingQuestions.add(questionText.toString());
+            }
+          }
+        }
+      }
 
-      return new AIResponseParsed(draft, confidenceScore, reasoning, suggestions);
+      // Parse the draft based on type (can be null for NEEDS_CLARIFICATION)
+      Draft draft;
+      JsonNode draftNode = root.path("draft");
+      if (draftNode.isNull() || draftNode.isMissingNode()) {
+        // For NEEDS_CLARIFICATION with no draft, create a placeholder
+        if ("NEEDS_CLARIFICATION".equals(status)) {
+          draft = new Draft.NoteDraft(
+              "Clarification Needed",
+              "Please provide more details about what you'd like to create.",
+              "lw-4",
+              List.of("clarification"),
+              clarifyingQuestions);
+        } else {
+          draft = parseDraft(intentDetected, draftNode);
+        }
+      } else {
+        draft = parseDraft(intentDetected, draftNode);
+      }
+
+      log.info("📊 [AI Parse] status={}, intent={}, confidence={}, clarifyQuestions={}", 
+          status, intentDetected, confidenceScore, clarifyingQuestions.size());
+
+      return new AIResponseParsed(status, draft, confidenceScore, reasoning, suggestions, clarifyingQuestions);
     } catch (Exception e) {
       log.error("🤖 [AI] Error parsing AI response: {}", e.getMessage(), e);
       // Return a fallback note draft
       return new AIResponseParsed(
+          "READY",
           new Draft.NoteDraft(
               "Processing Error",
               "Could not parse AI response: " + jsonResponse,
@@ -392,7 +461,8 @@ public class CommandCenterAIService {
               List.of("What would you like to create?", "Can you provide more details?")),
           0.3,
           "Failed to parse AI response, captured as note",
-          List.of());
+          List.of(),
+          List.of("What would you like to create?", "Can you provide more details?"));
     }
   }
 
@@ -598,7 +668,12 @@ public class CommandCenterAIService {
 
   /** Internal record for parsed AI response. */
   private record AIResponseParsed(
-      Draft draft, double confidenceScore, String reasoning, List<String> suggestions) {}
+      String status,
+      Draft draft,
+      double confidenceScore,
+      String reasoning,
+      List<String> suggestions,
+      List<String> clarifyingQuestions) {}
 
   /** Custom exception for AI processing errors. */
   public static class AIProcessingException extends RuntimeException {

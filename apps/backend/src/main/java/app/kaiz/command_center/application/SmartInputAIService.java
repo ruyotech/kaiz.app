@@ -511,9 +511,18 @@ public class SmartInputAIService {
     try {
       // Clean up the response (remove markdown code blocks if present)
       String cleaned = cleanJsonResponse(aiContent);
+      
+      // DEBUG: Log the raw AI response to understand what's being returned
+      log.info("AI raw response for input '{}': {}", originalInput.text(), cleaned);
+      
       JsonNode root = objectMapper.readTree(cleaned);
 
       String status = root.path("status").asText("READY");
+      
+      // DEBUG: Log parsed status and intent
+      log.info("Parsed status='{}', intentDetected='{}'", 
+          status, 
+          root.has("intentDetected") ? root.path("intentDetected").asText() : root.path("intentType").asText());
       // Support both "intentDetected" (prompt schema) and "intentType" (legacy)
       String intentType =
           root.has("intentDetected")

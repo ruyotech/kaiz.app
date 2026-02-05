@@ -69,4 +69,35 @@ public record CommandCenterAIResponse(
         Instant.now(),
         expiresAt);
   }
+
+  /** Builder with explicit status and clarifying questions. */
+  public static CommandCenterAIResponse withStatus(
+      UUID id,
+      DraftStatus status,
+      DraftType intentDetected,
+      double confidenceScore,
+      Draft draft,
+      String reasoning,
+      List<String> suggestions,
+      List<String> clarifyingQuestions,
+      String originalText,
+      List<AttachmentSummary> attachments,
+      String voiceTranscription,
+      Instant expiresAt) {
+
+    return new CommandCenterAIResponse(
+        id,
+        status,
+        intentDetected,
+        confidenceScore,
+        draft,
+        reasoning,
+        suggestions,
+        clarifyingQuestions != null && !clarifyingQuestions.isEmpty() 
+            ? clarifyingQuestions 
+            : (draft instanceof Draft.NoteDraft note ? note.clarifyingQuestions() : List.of()),
+        new OriginalInput(originalText, attachments, voiceTranscription),
+        Instant.now(),
+        expiresAt);
+  }
 }

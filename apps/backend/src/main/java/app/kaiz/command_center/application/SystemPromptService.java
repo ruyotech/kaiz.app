@@ -67,18 +67,21 @@ public class SystemPromptService {
 
       if (promptOpt.isPresent() && promptOpt.get().isActive()) {
         String content = promptOpt.get().getPromptContent();
-        log.debug(
-            "Using database prompt: {} (version {})", promptKey, promptOpt.get().getVersion());
+        log.info(
+            "✅ Using DATABASE prompt: {} (version {}, length={})", 
+            promptKey, 
+            promptOpt.get().getVersion(),
+            content.length());
         return replaceDateVariables(content);
       } else {
         log.warn(
-            "Prompt '{}' not found or inactive in database, using hardcoded fallback for {}",
+            "⚠️ Prompt '{}' not found or inactive in database, using HARDCODED fallback for {}",
             promptKey,
             fallbackDescription);
         return getFallbackPrompt(promptKey);
       }
     } catch (Exception e) {
-      log.error("Error fetching prompt '{}' from database: {}", promptKey, e.getMessage());
+      log.error("❌ Error fetching prompt '{}' from database: {}", promptKey, e.getMessage());
       return getFallbackPrompt(promptKey);
     }
   }
