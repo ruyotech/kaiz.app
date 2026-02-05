@@ -195,6 +195,57 @@ function DraftPreviewCard({ draft, onApprove, onReject, onEdit, onPress, isProce
   const typeIcon = getDraftTypeIcon(draft.draftType);
   const typeName = getDraftTypeDisplayName(draft.draftType);
   
+  // Helper to parse time from text like "2:00 PM", "14:00", "2:00 PM – 2:30 PM"
+  const extractTimeFromText = (text: string): { startTime: string; endTime: string; date: string } => {
+    let startTime = '';
+    let endTime = '';
+    let date = '';
+    
+    if (!text) return { startTime, endTime, date };
+    
+    // Try to extract date - patterns like "Monday, January 26", "Jan 27, 2026"
+    const dateMatch = text.match(/(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)?[,\s]*(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2}(?:,?\s*\d{4})?/i);
+    if (dateMatch) {
+      try {
+        const parsed = new Date(dateMatch[0] + ', 2026'); // Add year if missing
+        if (!isNaN(parsed.getTime())) {
+          date = parsed.toISOString().split('T')[0];
+        }
+      } catch (e) {}
+    }
+    
+    // Try to extract time range - patterns like "2:00 PM – 2:30 PM", "10:00 AM - 11:00 AM"
+    const timeRangeMatch = text.match(/(\d{1,2}:\d{2}\s*(?:AM|PM)?)\s*[-–]\s*(\d{1,2}:\d{2}\s*(?:AM|PM)?)/i);
+    if (timeRangeMatch) {
+      startTime = convertTo24Hour(timeRangeMatch[1].trim());
+      endTime = convertTo24Hour(timeRangeMatch[2].trim());
+    } else {
+      // Try single time - pattern like "2:00 PM", "at 10:00 AM"
+      const singleTimeMatch = text.match(/(\d{1,2}:\d{2}\s*(?:AM|PM))/i);
+      if (singleTimeMatch) {
+        startTime = convertTo24Hour(singleTimeMatch[1].trim());
+      }
+    }
+    
+    return { startTime, endTime, date };
+  };
+  
+  // Convert "2:00 PM" to "14:00"
+  const convertTo24Hour = (time12h: string): string => {
+    if (!time12h) return '';
+    const match = time12h.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+    if (!match) return time12h;
+    
+    let hours = parseInt(match[1], 10);
+    const minutes = match[2];
+    const period = match[3]?.toUpperCase();
+    
+    if (period === 'PM' && hours !== 12) hours += 12;
+    if (period === 'AM' && hours === 12) hours = 0;
+    
+    return `${hours.toString().padStart(2, '0')}:${minutes}`;
+  };
+  
   // Build complete draft data object for passing to create screen
   // draft.draft contains the raw backend TaskDraft/EventDraft/etc object
   const buildDraftDataObject = () => {
@@ -208,6 +259,14 @@ function DraftPreviewCard({ draft, onApprove, onReject, onEdit, onPress, isProce
     let dateStr = '';
     let startTimeStr = '';
     let endTimeStr = '';
+    
+    // FALLBACK: If AI returned TASK but title/description contains time patterns,
+    // extract them. This handles cases where AI misclassified a calendar screenshot.
+    const titleAndDesc = `${draft.title || ''} ${draft.description || ''} ${draftDetails?.description || ''}`;
+    const extractedFromText = extractTimeFromText(titleAndDesc);
+    if (extractedFromText.date || extractedFromText.startTime) {
+      console.log('🕐 [ChatMessage] Extracted time from text:', extractedFromText);
+    }
     
     // For events, parse startTime which might be ISO datetime
     if (draftDetails?.startTime) {
@@ -244,10 +303,25 @@ function DraftPreviewCard({ draft, onApprove, onReject, onEdit, onPress, isProce
       dateStr = draftDetails.date;
     }
     
+    // FALLBACK: Use extracted time from title/description if not found in draft fields
+    if (!dateStr && extractedFromText.date) {
+      dateStr = extractedFromText.date;
+    }
+    if (!startTimeStr && extractedFromText.startTime) {
+      startTimeStr = extractedFromText.startTime;
+    }
+    if (!endTimeStr && extractedFromText.endTime) {
+      endTimeStr = extractedFromText.endTime;
+    }
+    
+    // Determine if this should be treated as an event (even if AI said TASK)
+    const hasTimeData = startTimeStr || extractedFromText.startTime;
+    const shouldBeEvent = draft.draftType === 'EVENT' || hasTimeData;
+    
     const builtData = {
       title: draft.title || draftDetails?.title || '',
       description: draft.description || draftDetails?.description || '',
-      isEvent: draft.draftType === 'EVENT',
+      isEvent: shouldBeEvent,
       dueDate: dateStr,
       startTime: startTimeStr,
       endTime: endTimeStr,
@@ -259,7 +333,7 @@ function DraftPreviewCard({ draft, onApprove, onReject, onEdit, onPress, isProce
       isRecurring: draftDetails?.isRecurring || false,
       aiReasoning: draft.reasoning || '',
       aiSummary: draft.description || draftDetails?.description || '',
-      draftType: draft.draftType,
+      draftType: shouldBeEvent ? 'EVENT' : draft.draftType,
     };
     
     console.log('  - builtData:', JSON.stringify(builtData, null, 2));
@@ -291,7 +365,8 @@ function DraftPreviewCard({ draft, onApprove, onReject, onEdit, onPress, isProce
       
       if (response.success) {
         // Navigate to pending task list
-        onApprove?.();
+        // Note: Do NOT call onApprove() here - that triggers the old approveDraft endpoint
+        // We already created the task via createPendingFromDraft
         router.push('/(tabs)/command-center/pending-task');
       } else {
         Alert.alert('Error', response.error || 'Failed to save to pending');
@@ -426,7 +501,11 @@ function DraftPreviewCard({ draft, onApprove, onReject, onEdit, onPress, isProce
           >
             <MaterialCommunityIcons name="plus-circle" size={18} color="white" />
             <Text className="text-white font-semibold ml-2">
-              {draft.draftType === 'EVENT' ? 'Create Event' : 'Create Task'}
+              {/* Show Create Event if: AI says EVENT OR title/description contains time */}
+              {draft.draftType === 'EVENT' || 
+               /\d{1,2}:\d{2}\s*(AM|PM)?/i.test(`${draft.title} ${draft.description}`) 
+                ? 'Create Event' 
+                : 'Create Task'}
             </Text>
           </TouchableOpacity>
         </View>
