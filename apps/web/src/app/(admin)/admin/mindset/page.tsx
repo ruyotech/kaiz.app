@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useAdminAuthStore } from '@/store/admin-auth-store';
+import { getAdminAccessToken } from '@/lib/api';
 import * as mindsetApi from '@/lib/api/mindset';
 import type {
   MindsetContent,
@@ -28,7 +28,6 @@ import {
 type Tab = 'quotes' | 'themes' | 'stats';
 
 export default function MindsetAdminPage() {
-  const { token } = useAdminAuthStore();
   const [activeTab, setActiveTab] = useState<Tab>('quotes');
 
   // ── Quotes state ────────────────────────────────────────────────────
@@ -51,6 +50,7 @@ export default function MindsetAdminPage() {
 
   // ── Data loading ────────────────────────────────────────────────────
   const loadQuotes = useCallback(async () => {
+    const token = getAdminAccessToken();
     if (!token) return;
     setQuotesLoading(true);
     try {
@@ -61,9 +61,10 @@ export default function MindsetAdminPage() {
     } finally {
       setQuotesLoading(false);
     }
-  }, [token]);
+  }, []);
 
   const loadThemes = useCallback(async () => {
+    const token = getAdminAccessToken();
     if (!token) return;
     setThemesLoading(true);
     try {
@@ -74,9 +75,10 @@ export default function MindsetAdminPage() {
     } finally {
       setThemesLoading(false);
     }
-  }, [token]);
+  }, []);
 
   const loadStats = useCallback(async () => {
+    const token = getAdminAccessToken();
     if (!token) return;
     setStatsLoading(true);
     try {
@@ -87,7 +89,7 @@ export default function MindsetAdminPage() {
     } finally {
       setStatsLoading(false);
     }
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     if (activeTab === 'quotes') loadQuotes();
@@ -97,6 +99,7 @@ export default function MindsetAdminPage() {
 
   // ── CRUD handlers ───────────────────────────────────────────────────
   const handleDeleteQuote = async (id: string) => {
+    const token = getAdminAccessToken();
     if (!token || !confirm('Delete this quote?')) return;
     try {
       await mindsetApi.deleteContent(token, id);
@@ -107,6 +110,7 @@ export default function MindsetAdminPage() {
   };
 
   const handleDeleteTheme = async (id: string) => {
+    const token = getAdminAccessToken();
     if (!token || !confirm('Delete this theme?')) return;
     try {
       await mindsetApi.deleteTheme(token, id);
@@ -407,7 +411,6 @@ export default function MindsetAdminPage() {
       {showQuoteModal && (
         <QuoteModal
           quote={editingQuote}
-          token={token!}
           onClose={() => { setShowQuoteModal(false); setEditingQuote(null); }}
           onSaved={() => { setShowQuoteModal(false); setEditingQuote(null); loadQuotes(); }}
         />
@@ -416,7 +419,6 @@ export default function MindsetAdminPage() {
       {/* ── Bulk Upload Modal ────────────────────────────────────────── */}
       {showBulkModal && (
         <BulkUploadModal
-          token={token!}
           onClose={() => setShowBulkModal(false)}
           onDone={() => { setShowBulkModal(false); loadQuotes(); }}
         />
@@ -426,7 +428,6 @@ export default function MindsetAdminPage() {
       {showThemeModal && (
         <ThemeModal
           theme={editingTheme}
-          token={token!}
           onClose={() => { setShowThemeModal(false); setEditingTheme(null); }}
           onSaved={() => { setShowThemeModal(false); setEditingTheme(null); loadThemes(); }}
         />
@@ -440,12 +441,10 @@ export default function MindsetAdminPage() {
 // ============================================================================
 function QuoteModal({
   quote,
-  token,
   onClose,
   onSaved,
 }: {
   quote: MindsetContent | null;
-  token: string;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -462,6 +461,8 @@ function QuoteModal({
   const [saving, setSaving] = useState(false);
 
   const handleSubmit = async () => {
+    const token = getAdminAccessToken();
+    if (!token) return;
     setSaving(true);
     try {
       if (quote) {
@@ -568,11 +569,9 @@ function QuoteModal({
 // Bulk Upload Modal
 // ============================================================================
 function BulkUploadModal({
-  token,
   onClose,
   onDone,
 }: {
-  token: string;
   onClose: () => void;
   onDone: () => void;
 }) {
@@ -591,6 +590,8 @@ function BulkUploadModal({
   );
 
   const handleUpload = async () => {
+    const token = getAdminAccessToken();
+    if (!token) return;
     setUploading(true);
     try {
       const parsed = JSON.parse(jsonText);
@@ -654,12 +655,10 @@ function BulkUploadModal({
 // ============================================================================
 function ThemeModal({
   theme,
-  token,
   onClose,
   onSaved,
 }: {
   theme: MindsetTheme | null;
-  token: string;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -674,6 +673,8 @@ function ThemeModal({
   const [saving, setSaving] = useState(false);
 
   const handleSubmit = async () => {
+    const token = getAdminAccessToken();
+    if (!token) return;
     setSaving(true);
     try {
       if (theme) {
