@@ -1,22 +1,23 @@
 /**
- * MindsetFeed — TikTok-style vertical swipe feed for mindset quotes
+ * MindsetFeed — Full-screen vertical pager for mindset quotes
  *
- * Uses react-native-reanimated + gesture-handler for swipe navigation.
+ * Uses FlatList with pagingEnabled for native iOS/Android snapping.
+ * The OS handles momentum, deceleration, and snap physics — zero
+ * manual gesture math, zero overlap, zero jank.
+ *
  * Floating action buttons for share & favorite.
  * All server state via TanStack Query hooks.
  */
 import React, { useCallback, useRef, useState } from 'react';
-import { View, Dimensions, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
-import { GestureDetector, Gesture } from 'react-native-gesture-handler';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  withSpring,
-  runOnJS,
-  interpolate,
-  Extrapolation,
-} from 'react-native-reanimated';
+import {
+  View,
+  FlatList,
+  Dimensions,
+  StyleSheet,
+  Pressable,
+  ActivityIndicator,
+  type ViewToken,
+} from 'react-native';
 import { MindsetCard } from './MindsetCard';
 import { useMindsetPreferencesStore } from '../../store/mindsetStore';
 import { useToggleMindsetFavorite } from '../../hooks/queries';
@@ -24,7 +25,6 @@ import { mindsetIcons } from '../../constants/icons';
 import { AppIcon } from '../ui/AppIcon';
 import { moduleColors } from '../../constants/theme';
 import type { MindsetContent, MindsetTheme } from '../../types/models';
-import { logger } from '../../utils/logger';
 
 interface MindsetFeedProps {
   feedItems: MindsetContent[];
@@ -34,8 +34,7 @@ interface MindsetFeedProps {
   onShare?: (content: MindsetContent, cardRef: React.RefObject<View | null>) => void;
 }
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-const SWIPE_THRESHOLD = SCREEN_HEIGHT * 0.2;
+const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export const MindsetFeed = React.memo(function MindsetFeed({
   feedItems,
@@ -47,40 +46,35 @@ export const MindsetFeed = React.memo(function MindsetFeed({
   const { selectedThemeId } = useMindsetPreferencesStore();
   const toggleFavorite = useToggleMindsetFavorite();
 
-  const translateY = useSharedValue(0);
   const [currentIndex, setCurrentIndex] = useState(0);
   const cardRef = useRef<View>(null);
+  const flatListRef = useRef<FlatList<MindsetContent>>(null);
 
   // Resolve active theme
   const activeTheme =
     themes.find((t) => t.id === selectedThemeId) || themes[0];
 
   const currentContent = feedItems[currentIndex];
-  const nextContentItem = feedItems[currentIndex + 1];
 
-  // ── Navigation callbacks ────────────────────────────────────────────
-  const goNext = useCallback(() => {
-    setCurrentIndex((prev) => {
-      if (prev < feedItems.length - 1) return prev + 1;
-      return 0; // loop back
-    });
-  }, [feedItems.length]);
+  // ── Viewability tracking ────────────────────────────────────────────
+  const viewabilityConfig = useRef({
+    itemVisiblePercentThreshold: 50,
+  }).current;
 
-  const goPrevious = useCallback(() => {
-    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : prev));
-  }, []);
+  const onViewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      if (viewableItems.length > 0 && viewableItems[0].index != null) {
+        setCurrentIndex(viewableItems[0].index);
+      }
+    },
+  ).current;
 
+  // ── Actions ─────────────────────────────────────────────────────────
   const handleFavorite = useCallback(() => {
     if (currentContent) {
       toggleFavorite.mutate(currentContent.id);
     }
   }, [currentContent, toggleFavorite]);
-
-  const handleLongPress = useCallback(() => {
-    if (currentContent && onLongPress) {
-      onLongPress(currentContent);
-    }
-  }, [currentContent, onLongPress]);
 
   const handleShare = useCallback(() => {
     if (currentContent && onShare) {
@@ -88,101 +82,39 @@ export const MindsetFeed = React.memo(function MindsetFeed({
     }
   }, [currentContent, onShare]);
 
-  // ── Gesture ─────────────────────────────────────────────────────────
-  const panGesture = Gesture.Pan()
-    .onUpdate((event) => {
-      if (event.translationY < 0) {
-        translateY.value = event.translationY;
-      } else if (currentIndex > 0) {
-        translateY.value = event.translationY * 0.3;
-      }
-    })
-    .onEnd((event) => {
-      const velocity = event.velocityY;
+  // ── Render item ─────────────────────────────────────────────────────
+  const renderItem = useCallback(
+    ({ item }: { item: MindsetContent }) => (
+      <Pressable
+        style={styles.page}
+        onLongPress={() => onLongPress?.(item)}
+        delayLongPress={500}
+      >
+        <View
+          ref={item.id === currentContent?.id ? cardRef : undefined}
+          collapsable={false}
+          style={styles.cardWrapper}
+        >
+          <MindsetCard content={item} theme={activeTheme} />
+        </View>
+      </Pressable>
+    ),
+    [activeTheme, currentContent?.id, onLongPress],
+  );
 
-      // Swipe up → next
-      if (event.translationY < -SWIPE_THRESHOLD || velocity < -800) {
-        translateY.value = withTiming(-SCREEN_HEIGHT, { duration: 250 }, (finished) => {
-          if (finished) {
-            runOnJS(goNext)();
-            translateY.value = 0;
-          }
-        });
-      }
-      // Swipe down → previous
-      else if (
-        (event.translationY > SWIPE_THRESHOLD * 0.5 || velocity > 800) &&
-        currentIndex > 0
-      ) {
-        translateY.value = withTiming(SCREEN_HEIGHT, { duration: 250 }, (finished) => {
-          if (finished) {
-            runOnJS(goPrevious)();
-            translateY.value = 0;
-          }
-        });
-      }
-      // Snap back
-      else {
-        translateY.value = withSpring(0, {
-          damping: 20,
-          stiffness: 300,
-          overshootClamping: true,
-        });
-      }
-    });
+  const keyExtractor = useCallback(
+    (item: MindsetContent) => item.id,
+    [],
+  );
 
-  const longPressGesture = Gesture.LongPress()
-    .minDuration(500)
-    .onStart(() => {
-      runOnJS(handleLongPress)();
-    });
-
-  const composedGesture = Gesture.Race(longPressGesture, panGesture);
-
-  // ── Animated styles ─────────────────────────────────────────────────
-  const currentCardStyle = useAnimatedStyle(() => {
-    const scale = interpolate(
-      Math.abs(translateY.value),
-      [0, SWIPE_THRESHOLD],
-      [1, 0.95],
-      Extrapolation.CLAMP,
-    );
-    const opacity = interpolate(
-      Math.abs(translateY.value),
-      [0, SWIPE_THRESHOLD * 2],
-      [1, 0],
-      Extrapolation.CLAMP,
-    );
-    return {
-      transform: [{ translateY: translateY.value }, { scale }],
-      opacity,
-    };
-  });
-
-  const nextCardStyle = useAnimatedStyle(() => {
-    const ty = interpolate(
-      translateY.value,
-      [-SCREEN_HEIGHT, 0],
-      [0, SCREEN_HEIGHT * 0.1],
-      Extrapolation.CLAMP,
-    );
-    const scale = interpolate(
-      translateY.value,
-      [-SWIPE_THRESHOLD, 0],
-      [1, 0.9],
-      Extrapolation.CLAMP,
-    );
-    const opacity = interpolate(
-      translateY.value,
-      [-SWIPE_THRESHOLD, 0],
-      [1, 0.3],
-      Extrapolation.CLAMP,
-    );
-    return {
-      transform: [{ translateY: ty }, { scale }],
-      opacity,
-    };
-  });
+  const getItemLayout = useCallback(
+    (_: unknown, index: number) => ({
+      length: SCREEN_HEIGHT,
+      offset: SCREEN_HEIGHT * index,
+      index,
+    }),
+    [],
+  );
 
   // ── Loading / empty states ──────────────────────────────────────────
   if (isLoading || !currentContent || !activeTheme) {
@@ -195,23 +127,24 @@ export const MindsetFeed = React.memo(function MindsetFeed({
 
   return (
     <View style={styles.root}>
-      {/* Next card (underneath) */}
-      {nextContentItem && (
-        <Animated.View style={[StyleSheet.absoluteFill, nextCardStyle]}>
-          <MindsetCard content={nextContentItem} theme={activeTheme} />
-        </Animated.View>
-      )}
-
-      {/* Current card */}
-      <GestureDetector gesture={composedGesture}>
-        <Animated.View
-          style={[styles.flex1, currentCardStyle]}
-          ref={cardRef}
-          collapsable={false}
-        >
-          <MindsetCard content={currentContent} theme={activeTheme} />
-        </Animated.View>
-      </GestureDetector>
+      <FlatList
+        ref={flatListRef}
+        data={feedItems}
+        renderItem={renderItem}
+        keyExtractor={keyExtractor}
+        getItemLayout={getItemLayout}
+        pagingEnabled
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+        decelerationRate="fast"
+        snapToAlignment="start"
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={viewabilityConfig}
+        initialNumToRender={2}
+        maxToRenderPerBatch={3}
+        windowSize={3}
+        removeClippedSubviews
+      />
 
       {/* Floating actions */}
       <View style={styles.fab}>
@@ -238,8 +171,13 @@ export const MindsetFeed = React.memo(function MindsetFeed({
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+    backgroundColor: '#000000',
   },
-  flex1: {
+  page: {
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
+  },
+  cardWrapper: {
     flex: 1,
   },
   loadingContainer: {
@@ -250,15 +188,15 @@ const styles = StyleSheet.create({
   },
   fab: {
     position: 'absolute',
-    bottom: 100,
+    bottom: 120,
     right: 20,
     gap: 16,
   },
   fabButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
