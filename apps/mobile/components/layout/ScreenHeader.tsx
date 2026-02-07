@@ -2,7 +2,7 @@ import { View, Text, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { NotificationBell } from '../notifications';
+import { NotificationBell } from '../notifications/NotificationBell';
 import { useThemeContext } from '../../providers/ThemeProvider';
 
 interface ScreenHeaderProps {
