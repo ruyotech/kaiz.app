@@ -9,7 +9,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeContext } from '../../providers/ThemeProvider';
 import { AppIcon } from '../ui/AppIcon';
-import { navIcons, sectionIcons, moduleIcons, statusIcons, actionIcons } from '../../constants/icons';
+import { navIcons, sectionIcons, moduleIcons, statusIcons, actionIcons, settingsIcons } from '../../constants/icons';
 
 // ============================================================================
 // App groupings — derived from the central APPS list
@@ -98,19 +98,22 @@ export function AppSwitcher() {
         ...(SUB_APPS.sprints ?? []),
     ];
 
+    const navigateAndClose = (route: string) => {
+        router.push(route as any);
+        toggleAppSwitcher();
+    };
+
     const handleAppSelect = (app: App | SubApp) => {
         // Don't change currentApp for overlays — they preserve the current bottom bar context
         const overlayIds = ['templates', 'backlog', 'epics', 'taskSearch'];
         if (!overlayIds.includes(app.id)) {
             setCurrentApp(app.id as AppContext);
         }
-        router.push(app.route as any);
-        toggleAppSwitcher();
+        navigateAndClose(app.route);
     };
 
     const handleSubAppSelect = (sub: SubApp) => {
-        router.push(sub.route as any);
-        toggleAppSwitcher();
+        navigateAndClose(sub.route);
     };
 
     return (
@@ -352,6 +355,18 @@ export function AppSwitcher() {
                     )}
                 </ScrollView>
 
+                {/* Settings Footer */}
+                <View className="px-4 py-3" style={{ backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.border }}>
+                    <TouchableOpacity
+                        onPress={() => navigateAndClose('/(tabs)/settings')}
+                        className="flex-row items-center justify-center rounded-xl py-3"
+                        style={{ backgroundColor: colors.backgroundSecondary }}
+                    >
+                        <AppIcon icon={settingsIcons.cogOutline} size={20} color={colors.textSecondary} />
+                        <Text className="font-medium text-sm ml-2" style={{ color: colors.textSecondary }}>{t('navigation.appSwitcher.settings')}</Text>
+                    </TouchableOpacity>
+                </View>
+
                 {/* ====== Bottom Navigation Bar ====== */}
                 {(() => {
                     const mainIcon = NAV_CONFIGS[currentApp as AppContext] ?? NAV_CONFIGS['sprints'];
@@ -377,10 +392,7 @@ export function AppSwitcher() {
                                 {/* 2. Current App */}
                                 <TouchableOpacity
                                     className="items-center"
-                                    onPress={() => {
-                                        router.push(mainIcon.route as any);
-                                        toggleAppSwitcher();
-                                    }}
+                                    onPress={() => navigateAndClose(mainIcon.route)}
                                 >
                                     <View className="w-12 h-12 rounded-2xl items-center justify-center" style={{ backgroundColor: colors.primaryLight }}>
                                         <AppIcon icon={mainIcon.icon} size={26} color={colors.primary} />
@@ -393,10 +405,7 @@ export function AppSwitcher() {
                                 {/* 3. Dashboard (replaced "More") */}
                                 <TouchableOpacity
                                     className="items-center"
-                                    onPress={() => {
-                                        router.push('/(tabs)/dashboard' as any);
-                                        toggleAppSwitcher();
-                                    }}
+                                    onPress={() => navigateAndClose('/(tabs)/dashboard')}
                                 >
                                     <View className="w-12 h-12 rounded-2xl items-center justify-center" style={{ backgroundColor: '#DBEAFE' }}>
                                         <AppIcon icon={moduleIcons.dashboard} size={26} color="#3B82F6" />
@@ -409,10 +418,7 @@ export function AppSwitcher() {
                                 {/* 4. Create */}
                                 <TouchableOpacity
                                     className="items-center"
-                                    onPress={() => {
-                                        toggleAppSwitcher();
-                                        router.push('/(tabs)/command-center' as any);
-                                    }}
+                                    onPress={() => navigateAndClose('/(tabs)/command-center')}
                                 >
                                     <View className="w-12 h-12 rounded-2xl items-center justify-center" style={{ backgroundColor: '#D1FAE5' }}>
                                         <AppIcon icon={actionIcons.addCircle} size={26} color="#10B981" />
