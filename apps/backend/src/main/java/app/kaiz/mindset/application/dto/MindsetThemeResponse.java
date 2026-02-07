@@ -2,7 +2,7 @@ package app.kaiz.mindset.application.dto;
 
 import java.util.List;
 
-public record MindsetThemeDto(
+public record MindsetThemeResponse(
     String id,
     String name,
     String backgroundColor,

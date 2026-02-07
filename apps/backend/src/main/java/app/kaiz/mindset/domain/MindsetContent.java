@@ -54,7 +54,6 @@ public class MindsetContent extends BaseEntity {
   @Builder.Default
   private Integer dwellTimeMs = 4000;
 
-  @Column(name = "is_favorite")
-  @Builder.Default
-  private Boolean isFavorite = false;
+  @Column(name = "background_image_url", length = 500)
+  private String backgroundImageUrl;
 }

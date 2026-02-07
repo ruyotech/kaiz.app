@@ -127,6 +127,7 @@ export const essentiaKeys = {
 // ── Mindset ─────────────────────────────────────────────────────────────────
 export const mindsetKeys = {
   all: ['mindset'] as const,
+  feed: () => [...mindsetKeys.all, 'feed'] as const,
   content: () => [...mindsetKeys.all, 'content'] as const,
   contentDetail: (id: string) => [...mindsetKeys.all, 'content', id] as const,
   byDimension: (tag: string) => [...mindsetKeys.all, 'dimension', tag] as const,

@@ -33,7 +33,6 @@ public class CacheConfig {
             buildCache("lifeWheelAreas", 30, 100),
             buildCache("eisenhowerQuadrants", 30, 100),
             buildCache("mindsetThemes", 30, 100),
-            buildCache("mindsetContent", 30, 200),
             buildCache("challengeTemplates", 30, 200),
             buildCache("essentiaBooks", 30, 200),
             buildCache("essentiaCategories", 30, 50),

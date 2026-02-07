@@ -1,37 +1,26 @@
 package app.kaiz.mindset.application;
 
-import app.kaiz.mindset.application.dto.MindsetContentDto;
-import app.kaiz.mindset.application.dto.MindsetThemeDto;
+import app.kaiz.mindset.application.dto.MindsetContentResponse;
+import app.kaiz.mindset.application.dto.MindsetThemeResponse;
 import app.kaiz.mindset.domain.MindsetContent;
 import app.kaiz.mindset.domain.MindsetTheme;
-import org.springframework.stereotype.Component;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
-@Component
-public class MindsetMapper {
+@Mapper(componentModel = "spring")
+public interface MindsetMapper {
 
-  public MindsetContentDto toContentDto(MindsetContent content) {
-    return new MindsetContentDto(
-        content.getId().toString(),
-        content.getBody(),
-        content.getAuthor(),
-        content.getDimensionTag(),
-        content.getSecondaryTags(),
-        content.getThemePreset(),
-        content.getInterventionWeight(),
-        content.getEmotionalTone(),
-        content.getDwellTimeMs(),
-        content.getIsFavorite(),
-        content.getCreatedAt());
-  }
+  @Mapping(target = "lifeWheelAreaId", source = "content.lifeWheelArea.id")
+  @Mapping(target = "lifeWheelAreaName", source = "content.lifeWheelArea.name")
+  @Mapping(target = "lifeWheelAreaColor", source = "content.lifeWheelArea.color")
+  @Mapping(target = "isFavorite", source = "isFavorite")
+  @Mapping(target = "favoriteCount", source = "favoriteCount")
+  MindsetContentResponse toContentResponse(
+      MindsetContent content, boolean isFavorite, long favoriteCount);
 
-  public MindsetThemeDto toThemeDto(MindsetTheme theme) {
-    return new MindsetThemeDto(
-        theme.getId().toString(),
-        theme.getName(),
-        theme.getBackgroundColor(),
-        theme.getTextColor(),
-        theme.getAccentColor(),
-        theme.getGradientColors(),
-        theme.getDefaultAsset());
+  MindsetThemeResponse toThemeResponse(MindsetTheme theme);
+
+  default MindsetContentResponse toContentResponseSimple(MindsetContent content) {
+    return toContentResponse(content, false, 0);
   }
 }

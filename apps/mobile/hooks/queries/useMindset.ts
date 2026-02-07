@@ -1,17 +1,28 @@
 /**
- * React Query hooks — Mindset content & themes
+ * React Query hooks — Mindset content, feed, themes & favorites
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { mindsetApi } from '../../services/api';
 import { mindsetKeys } from './keys';
 import { STALE_TIMES } from '../../providers/QueryProvider';
+import type { MindsetContent } from '../../types/models';
 
 // ── Queries ─────────────────────────────────────────────────────────────────
 
-export function useMindsetContent() {
+/** Curated feed — personalized ~20 items with contextual injection */
+export function useMindsetFeed(weakDimensions?: string[]) {
   return useQuery({
-    queryKey: mindsetKeys.content(),
-    queryFn: () => mindsetApi.getAllContent(),
+    queryKey: mindsetKeys.feed(),
+    queryFn: () => mindsetApi.getFeed(weakDimensions),
+    staleTime: STALE_TIMES.lists,
+  });
+}
+
+/** Paginated content list */
+export function useMindsetContent(page = 0, size = 20) {
+  return useQuery({
+    queryKey: [...mindsetKeys.content(), { page, size }],
+    queryFn: () => mindsetApi.getAllContent(page, size),
     staleTime: STALE_TIMES.static,
   });
 }
@@ -34,6 +45,7 @@ export function useMindsetByDimension(tag: string) {
   });
 }
 
+/** User's favorited content */
 export function useMindsetFavorites() {
   return useQuery({
     queryKey: mindsetKeys.favorites(),
@@ -42,6 +54,7 @@ export function useMindsetFavorites() {
   });
 }
 
+/** All available themes */
 export function useMindsetThemes() {
   return useQuery({
     queryKey: mindsetKeys.themes(),
@@ -61,13 +74,57 @@ export function useMindsetTheme(id: string) {
 
 // ── Mutations ───────────────────────────────────────────────────────────────
 
+/** Toggle favorite with optimistic update on feed + favorites cache */
 export function useToggleMindsetFavorite() {
   const qc = useQueryClient();
+
   return useMutation({
     mutationFn: (id: string) => mindsetApi.toggleFavorite(id),
-    onSuccess: () => {
+
+    onMutate: async (id: string) => {
+      // Cancel in-flight queries
+      await qc.cancelQueries({ queryKey: mindsetKeys.feed() });
+      await qc.cancelQueries({ queryKey: mindsetKeys.favorites() });
+
+      // Snapshot previous values
+      const previousFeed = qc.getQueryData<MindsetContent[]>(mindsetKeys.feed());
+      const previousFavorites = qc.getQueryData<MindsetContent[]>(mindsetKeys.favorites());
+
+      // Optimistic toggle in feed cache
+      if (previousFeed) {
+        qc.setQueryData<MindsetContent[]>(mindsetKeys.feed(), (old) =>
+          old?.map((item) =>
+            item.id === id
+              ? {
+                  ...item,
+                  isFavorite: !item.isFavorite,
+                  favoriteCount: item.isFavorite
+                    ? item.favoriteCount - 1
+                    : item.favoriteCount + 1,
+                }
+              : item,
+          ),
+        );
+      }
+
+      return { previousFeed, previousFavorites };
+    },
+
+    onError: (_err, _id, context) => {
+      // Rollback on error
+      if (context?.previousFeed) {
+        qc.setQueryData(mindsetKeys.feed(), context.previousFeed);
+      }
+      if (context?.previousFavorites) {
+        qc.setQueryData(mindsetKeys.favorites(), context.previousFavorites);
+      }
+    },
+
+    onSettled: () => {
+      // Refetch to ensure server sync
+      qc.invalidateQueries({ queryKey: mindsetKeys.feed() });
       qc.invalidateQueries({ queryKey: mindsetKeys.favorites() });
-      qc.invalidateQueries({ queryKey: mindsetKeys.content() });
     },
   });
 }
+

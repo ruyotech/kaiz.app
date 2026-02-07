@@ -25,6 +25,11 @@ import {
 } from './apiClient';
 
 import { User } from '../types/models';
+import type {
+  MindsetContent as MindsetContentType,
+  MindsetTheme as MindsetThemeType,
+  ToggleFavoriteResponse as ToggleFavoriteResponseType,
+} from '../types/models';
 import { UserPreferences } from '../store/preferencesStore';
 import { TaskTemplate, RecurrencePattern } from '../types/models';
 import type {
@@ -456,15 +461,24 @@ interface CreateTemplatePayload {
 // ============================================================================
 
 export const mindsetApi = {
-  async getAllContent() { return apiGet<unknown[]>('/mindset/content'); },
-  async getContentById(id: string) { return apiGet<unknown>(`/mindset/content/${id}`); },
-  async getContentByDimension(tag: string) { return apiGet<unknown[]>(`/mindset/content/dimension/${tag}`); },
-  async getContentByTone(tone: string) { return apiGet<unknown[]>(`/mindset/content/tone/${tone}`); },
-  async getFavorites() { return apiGet<unknown[]>('/mindset/content/favorites'); },
-  async toggleFavorite(id: string) { return apiPost<unknown>(`/mindset/content/${id}/toggle-favorite`); },
-  async getAllThemes() { return apiGet<unknown[]>('/mindset/themes'); },
-  async getThemeById(id: string) { return apiGet<unknown>(`/mindset/themes/${id}`); },
-  async getThemeByName(name: string) { return apiGet<unknown>(`/mindset/themes/name/${name}`); },
+  async getFeed(weakDimensions?: string[]) {
+    const params = weakDimensions?.length ? `?weakDimensions=${weakDimensions.join(',')}` : '';
+    return apiGet<MindsetContentType[]>(`/mindset/content/feed${params}`);
+  },
+  async getAllContent(page = 0, size = 20) {
+    return apiGet<MindsetContentType[]>(`/mindset/content?page=${page}&size=${size}`);
+  },
+  async getContentById(id: string) { return apiGet<MindsetContentType>(`/mindset/content/${id}`); },
+  async getContentByDimension(areaId: string, page = 0, size = 20) {
+    return apiGet<MindsetContentType[]>(`/mindset/content/dimension/${areaId}?page=${page}&size=${size}`);
+  },
+  async getFavorites(page = 0, size = 20) {
+    return apiGet<MindsetContentType[]>(`/mindset/favorites?page=${page}&size=${size}`);
+  },
+  async toggleFavorite(id: string) { return apiPost<ToggleFavoriteResponseType>(`/mindset/content/${id}/favorite`); },
+  async getAllThemes() { return apiGet<MindsetThemeType[]>('/mindset/themes'); },
+  async getThemeById(id: string) { return apiGet<MindsetThemeType>(`/mindset/themes/${id}`); },
+  async getThemeByName(name: string) { return apiGet<MindsetThemeType>(`/mindset/themes/name/${name}`); },
 };
 
 // ============================================================================

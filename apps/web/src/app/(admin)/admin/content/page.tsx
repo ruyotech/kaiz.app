@@ -5,7 +5,6 @@ import { cn } from '@/lib/utils';
 import {
   FileText,
   BookOpen,
-  Lightbulb,
   MessageCircle,
   Search,
   Plus,
@@ -19,7 +18,7 @@ import {
   Video,
 } from 'lucide-react';
 
-type ContentType = 'articles' | 'knowledge' | 'faq' | 'mindset';
+type ContentType = 'articles' | 'knowledge' | 'faq';
 
 interface ContentItem {
   id: string;
@@ -43,7 +42,6 @@ export default function AdminContentPage() {
     { id: 'articles' as ContentType, label: 'Articles', icon: FileText, count: 24 },
     { id: 'knowledge' as ContentType, label: 'Knowledge Hub', icon: BookOpen, count: 56 },
     { id: 'faq' as ContentType, label: 'FAQs', icon: MessageCircle, count: 18 },
-    { id: 'mindset' as ContentType, label: 'Mindset Content', icon: Lightbulb, count: 42 },
   ];
 
   const mockItems: ContentItem[] = [
@@ -91,17 +89,6 @@ export default function AdminContentPage() {
       createdAt: '2024-01-10',
       updatedAt: '2024-01-10',
     },
-    {
-      id: '5',
-      title: 'Morning Motivation Quote Set',
-      type: 'mindset',
-      status: 'PUBLISHED',
-      category: 'Quotes',
-      author: 'Admin',
-      views: 5621,
-      createdAt: '2023-12-15',
-      updatedAt: '2024-02-01',
-    },
   ];
 
   const filteredItems = mockItems.filter(
@@ -117,7 +104,7 @@ export default function AdminContentPage() {
         <div>
           <h1 className="text-2xl font-bold">Content Management</h1>
           <p className="text-slate-400 text-sm mt-1">
-            Manage articles, knowledge hub, FAQs, and mindset content
+            Manage articles, knowledge hub, and FAQs
           </p>
         </div>
         <button

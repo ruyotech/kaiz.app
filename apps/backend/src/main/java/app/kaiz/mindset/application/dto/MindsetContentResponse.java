@@ -4,7 +4,7 @@ import app.kaiz.mindset.domain.EmotionalTone;
 import java.time.Instant;
 import java.util.List;
 
-public record MindsetContentDto(
+public record MindsetContentResponse(
     String id,
     String body,
     String author,
@@ -13,6 +13,10 @@ public record MindsetContentDto(
     String themePreset,
     Integer interventionWeight,
     EmotionalTone emotionalTone,
-    Integer dwellTimeMs,
-    Boolean isFavorite,
+    String backgroundImageUrl,
+    String lifeWheelAreaId,
+    String lifeWheelAreaName,
+    String lifeWheelAreaColor,
+    boolean isFavorite,
+    long favoriteCount,
     Instant createdAt) {}

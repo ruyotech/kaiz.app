@@ -274,56 +274,42 @@ export type MindsetThemePreset =
     | 'gradient-purple'
     | 'gradient-sunset';
 
+export type EmotionalTone = 'MOTIVATIONAL' | 'REFLECTIVE' | 'ACTIONABLE' | 'CALMING' | 'INSPIRATIONAL' | 'EMPOWERING' | 'CHALLENGING' | 'HUMOROUS';
+
 export interface MindsetContent {
     id: string;
-    body: string; // The quote/message text
-    author: string | null; // Attribution (can be null for system-generated)
-    dimensionTag: LifeWheelDimensionTag; // Primary Life Wheel dimension
-    secondaryTags?: LifeWheelDimensionTag[]; // Additional relevant dimensions
-    themePreset: MindsetThemePreset; // Visual theme identifier
-    assetUrl?: string; // Background image/video URL
-    assetType?: 'image' | 'video'; // Asset media type
-    interventionWeight: number; // 0-100: Higher = more targeted for intervention
-    emotionalTone?: 'motivational' | 'reflective' | 'actionable' | 'calming';
-    dwellTimeMs?: number; // User engagement tracking
-    isFavorite?: boolean;
+    body: string;
+    author: string | null;
+    dimensionTag: string;
+    secondaryTags: string[];
+    themePreset: string;
+    interventionWeight: number;
+    emotionalTone: EmotionalTone;
+    backgroundImageUrl: string | null;
+    lifeWheelAreaId: string | null;
+    lifeWheelAreaName: string | null;
+    lifeWheelAreaColor: string | null;
+    isFavorite: boolean;
+    favoriteCount: number;
     createdAt: string;
-    lastShownAt?: string;
-}
-
-export interface MindsetFavorite {
-    id: string;
-    userId: string;
-    contentId: string;
-    savedAt: string;
-    note?: string; // User's personal note on why they saved it
 }
 
 export interface MindsetTheme {
-    id: MindsetThemePreset;
+    id: string;
     name: string;
     backgroundColor: string;
     textColor: string;
     accentColor: string;
-    defaultAsset?: string; // Default background for this theme
-    gradientColors?: string[]; // For gradient themes
+    gradientColors: string[];
+    defaultAsset: string | null;
 }
 
-export interface MindsetSession {
-    id: string;
-    userId: string;
-    startedAt: string;
-    endedAt?: string;
-    contentViewedIds: string[];
-    totalDwellTime: number; // milliseconds
-    actionsTriggered: {
-        internalized: number; // Added to journal
-        operationalized: number; // Converted to tasks
-        favorited: number;
-    };
+export interface ToggleFavoriteResponse {
+    isFavorite: boolean;
+    favoriteCount: number;
 }
 
-// Note: Legacy Quote interfaces removed - replaced by MindsetContent system
+// Note: Legacy Quote/MindsetSession/MindsetFavorite interfaces removed — favorites are now per-user on server
 
 // Books (Legacy - replaced by Essentia)
 export interface BookSummary {

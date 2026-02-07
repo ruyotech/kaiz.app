@@ -191,6 +191,20 @@ export const familyIcons = {
   standup: mci('account-voice'),
 } as const;
 
+export const mindsetIcons = {
+  quote: mci('format-quote-close'),
+  favorite: mci('heart'),
+  favoriteOutline: mci('heart-outline'),
+  share: mci('share-variant'),
+  copy: mci('content-copy'),
+  theme: mci('palette'),
+  dimension: mci('chart-donut'),
+  swipeUp: mci('chevron-up'),
+  feed: mci('creation'),
+  favorites: mci('heart-multiple'),
+  themes: mci('palette-swatch'),
+} as const;
+
 // Combined export for quick access
 export const icons = {
   nav: navIcons,
@@ -203,4 +217,5 @@ export const icons = {
   social: socialIcons,
   settings: settingsIcons,
   family: familyIcons,
+  mindset: mindsetIcons,
 } as const;
