@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 import React, { useState, useEffect } from 'react';
 import {
     View,
@@ -88,7 +89,7 @@ export function TemplateDetailModal({
         try {
             await rateTemplate(template.id, newRating);
         } catch (error) {
-            console.error('Failed to rate template:', error);
+            logger.error('Failed to rate template:', error);
             // Revert on error
             setUserRating(userRating);
         } finally {
@@ -103,7 +104,7 @@ export function TemplateDetailModal({
             const newFavoriteStatus = await toggleFavorite(template.id);
             setIsFavorite(newFavoriteStatus);
         } catch (error) {
-            console.error('Failed to toggle favorite:', error);
+            logger.error('Failed to toggle favorite:', error);
             // Revert on error
             setIsFavorite(isFavorite);
         }
@@ -124,7 +125,7 @@ export function TemplateDetailModal({
             setNewTag('');
             setShowTagInput(false);
         } catch (error) {
-            console.error('Failed to add tag:', error);
+            logger.error('Failed to add tag:', error);
         } finally {
             setIsAddingTag(false);
         }
@@ -136,7 +137,7 @@ export function TemplateDetailModal({
             const updatedTags = await removeTemplateTag(template.id, tag);
             setUserTags(updatedTags);
         } catch (error) {
-            console.error('Failed to remove tag:', error);
+            logger.error('Failed to remove tag:', error);
         } finally {
             setRemovingTagId(null);
         }

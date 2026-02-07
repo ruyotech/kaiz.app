@@ -23,7 +23,7 @@ export interface Family {
     createdAt: string;
 }
 
-// SDLC - Life Wheel
+// Life Wheel
 export interface LifeWheelArea {
     id: string;
     name: string;
@@ -31,7 +31,7 @@ export interface LifeWheelArea {
     color: string;
 }
 
-// SDLC - Eisenhower Matrix
+// Eisenhower Matrix
 export interface EisenhowerQuadrant {
     id: string;
     name: string;
@@ -39,7 +39,7 @@ export interface EisenhowerQuadrant {
     color: string;
 }
 
-// SDLC - Sprints (52 weeks)
+// Sprints (52 weeks)
 export interface Sprint {
     id: string;
     weekNumber: number;
@@ -50,7 +50,7 @@ export interface Sprint {
     completedPoints: number;
 }
 
-// SDLC - Epics
+// Epics
 export interface Epic {
     id: string;
     title: string;
@@ -72,7 +72,7 @@ export interface Epic {
     visibility?: 'private' | 'shared';
 }
 
-// SDLC - Tasks
+// Tasks
 export interface Task {
     id: string;
     title: string;

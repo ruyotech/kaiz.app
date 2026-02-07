@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 /**
  * calendarSyncStore.ts - External Calendar Sync Store for Kaiz 
  * 
@@ -871,7 +872,7 @@ export const useCalendarSyncStore = create<CalendarSyncState>()(
             },
             
             addEvents: (events: ExternalEvent[]) => {
-                console.log(`[calendarSyncStore] addEvents called with ${events.length} events`);
+                logger.log(`[calendarSyncStore] addEvents called with ${events.length} events`);
                 set((state) => {
                     // Merge events, avoiding duplicates by ID
                     const existingIds = new Set(state.externalEvents.map((e) => e.id));
@@ -895,9 +896,9 @@ export const useCalendarSyncStore = create<CalendarSyncState>()(
                         };
                     });
                     
-                    console.log(`[calendarSyncStore] Adding ${enrichedEvents.length} new events (${existingIds.size} existing)`);
+                    logger.log(`[calendarSyncStore] Adding ${enrichedEvents.length} new events (${existingIds.size} existing)`);
                     const updatedEvents = [...state.externalEvents, ...enrichedEvents];
-                    console.log(`[calendarSyncStore] Total events after add:`, updatedEvents.length);
+                    logger.log(`[calendarSyncStore] Total events after add:`, updatedEvents.length);
                     
                     return {
                         externalEvents: updatedEvents,

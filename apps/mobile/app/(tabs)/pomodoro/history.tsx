@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, FlatList } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { usePomodoroStore, PomodoroSession } from '../../../store/pomodoroStore';
 import { Container } from '../../../components/layout/Container';
@@ -232,7 +233,7 @@ export default function PomodoroHistory() {
           </Text>
         </View>
       ) : (
-        <FlatList
+        <FlashList
           data={filteredSessions}
           renderItem={renderSession}
           keyExtractor={(item) => item.id}

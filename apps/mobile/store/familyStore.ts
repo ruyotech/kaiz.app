@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 /**
  * familyStore.ts - Family Membership State Management
  * 
@@ -610,7 +611,7 @@ export const useFamilyStore = create<FamilyState>()(
                     });
                 } catch (error) {
                     // Fallback to mock data if API unavailable
-                    console.warn('API unavailable, using mock data:', error);
+                    logger.warn('API unavailable, using mock data:', error);
                     const newFamily = {
                         ...generateMockFamily(),
                         id: `family-${Date.now()}`,
@@ -665,13 +666,14 @@ export const useFamilyStore = create<FamilyState>()(
                     
                     // Fetch members in background
                     get().fetchMembers();
-                } catch (error: any) {
+                } catch (error: unknown) {
                     // Check if this is a 404/500 "not found" - family doesn't exist
-                    const isNotFound = error?.statusCode === 404 || 
-                        error?.message?.includes('not found');
+                    const errObj = error as { statusCode?: number; message?: string } | null;
+                    const isNotFound = errObj?.statusCode === 404 || 
+                        errObj?.message?.includes('not found');
                     
                     if (isNotFound) {
-                        console.log('👨‍👩‍👧‍👦 Family not found:', familyId);
+                        logger.log('👨‍👩‍👧‍👦 Family not found:', familyId);
                         set({ 
                             currentFamily: null,
                             members: [],
@@ -682,7 +684,7 @@ export const useFamilyStore = create<FamilyState>()(
                         });
                     } else {
                         // Actual API error
-                        console.warn('⚠️ Could not fetch family:', error);
+                        logger.warn('⚠️ Could not fetch family:', error);
                         set({ 
                             currentFamily: null,
                             members: [],
@@ -733,7 +735,7 @@ export const useFamilyStore = create<FamilyState>()(
                         get().fetchMembers();
                     } catch (membershipError) {
                         // Family exists but membership fetch failed - use defaults
-                        console.warn('Could not fetch membership:', membershipError);
+                        logger.warn('Could not fetch membership:', membershipError);
                         set({ 
                             currentFamily: family,
                             isOwner: false,
@@ -742,16 +744,17 @@ export const useFamilyStore = create<FamilyState>()(
                             loading: false 
                         });
                     }
-                } catch (error: any) {
+                } catch (error: unknown) {
                     // Check if this is a 404/500 "not found" - user has no family
                     // The backend returns 404 when user is not a member of any family
-                    const isNotFound = error?.statusCode === 404 || 
-                        error?.message?.includes('not a member of any family') ||
-                        error?.message?.includes('not found');
+                    const errObj = error as { statusCode?: number; message?: string } | null;
+                    const isNotFound = errObj?.statusCode === 404 || 
+                        errObj?.message?.includes('not a member of any family') ||
+                        errObj?.message?.includes('not found');
                     
                     if (isNotFound) {
                         // User has no family - this is a valid state, not an error
-                        console.log('👨‍👩‍👧‍👦 User has no family workspace');
+                        logger.log('👨‍👩‍👧‍👦 User has no family workspace');
                         set({ 
                             currentFamily: null,
                             members: [],
@@ -762,7 +765,7 @@ export const useFamilyStore = create<FamilyState>()(
                         });
                     } else {
                         // Actual API error - log it but show empty state (not mock data)
-                        console.warn('⚠️ Could not fetch family:', error);
+                        logger.warn('⚠️ Could not fetch family:', error);
                         set({ 
                             currentFamily: null,
                             members: [],
@@ -812,7 +815,7 @@ export const useFamilyStore = create<FamilyState>()(
                     return code;
                 } catch (error) {
                     // Fallback to local generation if API unavailable
-                    console.warn('API unavailable, generating local code:', error);
+                    logger.warn('API unavailable, generating local code:', error);
                     const code = Math.random().toString(36).substring(2, 10).toUpperCase();
                     set(state => ({
                         currentFamily: state.currentFamily ? {
@@ -833,7 +836,7 @@ export const useFamilyStore = create<FamilyState>()(
                     await familyApi.leaveFamily();
                     set({ ...initialState });
                 } catch (error) {
-                    console.warn('API error, clearing local state:', error);
+                    logger.warn('API error, clearing local state:', error);
                     set({ ...initialState });
                 }
             },
@@ -847,7 +850,7 @@ export const useFamilyStore = create<FamilyState>()(
                     }
                     set({ ...initialState });
                 } catch (error) {
-                    console.warn('API error:', error);
+                    logger.warn('API error:', error);
                     set({ error: 'Failed to delete family', loading: false });
                     throw error;
                 }
@@ -887,7 +890,7 @@ export const useFamilyStore = create<FamilyState>()(
                     set({ members, loading: false });
                 } catch (error) {
                     // API error - set empty members, don't fall back to mock
-                    console.warn('⚠️ Could not fetch members:', error);
+                    logger.warn('⚠️ Could not fetch members:', error);
                     set({ members: [], apiAvailable: false, loading: false });
                 }
             },
@@ -917,12 +920,12 @@ export const useFamilyStore = create<FamilyState>()(
                         }));
                         set({ pendingInvites: invites, loading: false });
                     } catch (inviteError) {
-                        console.warn('Could not fetch pending invites:', inviteError);
+                        logger.warn('Could not fetch pending invites:', inviteError);
                         set({ loading: false });
                     }
                 } catch (error) {
                     // Fallback to mock invite
-                    console.warn('API unavailable, using mock invite:', error);
+                    logger.warn('API unavailable, using mock invite:', error);
                     const invite: FamilyInvite = {
                         code: Math.random().toString(36).substring(2, 10).toUpperCase(),
                         familyId: get().currentFamily?.id || '',
@@ -977,7 +980,7 @@ export const useFamilyStore = create<FamilyState>()(
                     get().fetchMembers();
                 } catch (error) {
                     // For join, we should not fallback to mock - show error
-                    console.error('Failed to join family:', error);
+                    logger.error('Failed to join family:', error);
                     set({ error: 'Invalid or expired invite code', loading: false });
                     throw error;
                 }
@@ -1002,7 +1005,7 @@ export const useFamilyStore = create<FamilyState>()(
                     }));
                 } catch (error) {
                     // Fallback to local update
-                    console.warn('API unavailable, updating locally:', error);
+                    logger.warn('API unavailable, updating locally:', error);
                     set(state => ({
                         members: state.members.map(m =>
                             m.userId === userId
@@ -1030,7 +1033,7 @@ export const useFamilyStore = create<FamilyState>()(
                     }));
                 } catch (error) {
                     // Fallback to local removal
-                    console.warn('API unavailable, removing locally:', error);
+                    logger.warn('API unavailable, removing locally:', error);
                     set(state => ({
                         members: state.members.filter(m => m.userId !== userId),
                         apiAvailable: false,

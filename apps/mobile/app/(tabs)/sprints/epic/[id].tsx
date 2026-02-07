@@ -89,7 +89,7 @@ export default function EpicDetailScreen() {
                 </View>
                 
                 <TouchableOpacity
-                    onPress={() => router.push(`/(tabs)/sdlc/task/${item.id}` as any)}
+                    onPress={() => router.push(`/(tabs)/sprints/task/${item.id}` as any)}
                 >
                     <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
                 </TouchableOpacity>
@@ -282,7 +282,7 @@ export default function EpicDetailScreen() {
                         <TouchableOpacity
                             onPress={() => {
                                 setShowAddTaskModal(false);
-                                router.push('/(tabs)/sdlc/create-task');
+                                router.push('/(tabs)/sprints/create-task' as any);
                             }}
                             className="bg-gray-900 rounded-xl p-4 mt-4 mb-6 flex-row items-center justify-center"
                         >

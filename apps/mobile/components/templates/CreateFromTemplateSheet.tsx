@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 import React, { useState, useEffect } from 'react';
 import {
     View,
@@ -220,20 +221,20 @@ export function CreateFromTemplateSheet({
 
     const fetchLifeWheelAreas = async () => {
         try {
-            const areas = await lifeWheelApi.getLifeWheelAreas();
+            const areas = await lifeWheelApi.getLifeWheelAreas() as any[];
             setLifeWheelAreas(areas);
         } catch (error) {
-            console.error('Failed to load life wheel areas:', error);
+            logger.error('Failed to load life wheel areas:', error);
         }
     };
 
     const fetchQuadrants = async () => {
         setLoadingQuadrants(true);
         try {
-            const quadrantsData = await lifeWheelApi.getEisenhowerQuadrants();
+            const quadrantsData = await lifeWheelApi.getEisenhowerQuadrants() as EisenhowerQuadrant[];
             setQuadrants(quadrantsData);
         } catch (error) {
-            console.error('Failed to load quadrants:', error);
+            logger.error('Failed to load quadrants:', error);
             // Fallback to default quadrants
             setQuadrants([
                 { id: 'eq-1', name: 'Do First', label: 'Urgent & Important', color: '#DC2626' },
@@ -250,7 +251,7 @@ export function CreateFromTemplateSheet({
         setLoadingSprints(true);
         try {
             const currentYear = new Date().getFullYear();
-            const sprintData = await sprintApi.getSprints(currentYear);
+            const sprintData = await sprintApi.getSprints(currentYear) as Sprint[];
             const now = new Date();
             
             // Get all available sprints (current and future)
@@ -266,7 +267,7 @@ export function CreateFromTemplateSheet({
                 setSelectedSprintId(availableSprints[0].id);
             }
         } catch (error) {
-            console.error('Failed to load sprints:', error);
+            logger.error('Failed to load sprints:', error);
         } finally {
             setLoadingSprints(false);
         }
@@ -371,7 +372,7 @@ export function CreateFromTemplateSheet({
             }> | null = null;
 
             if (attachments.length > 0) {
-                console.log('📤 Uploading task attachments...');
+                logger.log('📤 Uploading task attachments...');
                 const uploadedAttachments: Array<{
                     filename: string;
                     fileUrl: string;
@@ -394,12 +395,12 @@ export function CreateFromTemplateSheet({
                             fileSize: uploadResult.data.fileSize,
                         });
                     } else {
-                        console.error('Failed to upload attachment:', att.name, uploadResult.error);
+                        logger.error('Failed to upload attachment:', att.name, uploadResult.error);
                         throw new Error(`Failed to upload ${att.name}`);
                     }
                 }
 
-                console.log('✅ All attachments uploaded:', uploadedAttachments.length);
+                logger.log('✅ All attachments uploaded:', uploadedAttachments.length);
                 formattedAttachments = uploadedAttachments;
             }
 
@@ -433,7 +434,7 @@ export function CreateFromTemplateSheet({
             const newTask = await taskApi.createTask(taskData);
             
             if (newTask && onSuccess) {
-                onSuccess(newTask.id);
+                onSuccess((newTask as any).id);
             }
             
             Alert.alert(
@@ -442,7 +443,7 @@ export function CreateFromTemplateSheet({
                 [{ text: 'OK', onPress: onClose }]
             );
         } catch (error) {
-            console.error('Failed to create task:', error);
+            logger.error('Failed to create task:', error);
             Alert.alert('Error', 'Failed to create task. Please try again.');
         } finally {
             setIsLoading(false);

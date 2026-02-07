@@ -165,7 +165,7 @@ const generateDemoNotifications = (): EnhancedNotification[] => {
             isRead: true,
             isArchived: false,
             createdAt: new Date(now.setHours(8, 0, 0, 0)).toISOString(),
-            deepLink: '/(tabs)/sdlc/calendar',
+            deepLink: '/(tabs)/sprints/calendar',
         },
         // Yesterday - Birthday
         {
@@ -293,7 +293,7 @@ export const useNotificationStore = create<NotificationState>()(
                     const notifications = notificationsPage.content || notificationsPage;
                     
                     // Convert to enhanced notifications
-                    const enhanced: EnhancedNotification[] = (notifications as Notification[]).map(n => ({
+                    const enhanced: EnhancedNotification[] = (notifications as unknown as Notification[]).map(n => ({
                         id: n.id,
                         userId: n.userId,
                         type: n.type === 'ai_scrum_master' ? 'ai_insight' :
@@ -311,9 +311,9 @@ export const useNotificationStore = create<NotificationState>()(
                     } as EnhancedNotification));
                     
                     set({ 
-                        notifications: notifications as Notification[], 
+                        notifications: notifications as unknown as Notification[], 
                         enhancedNotifications: enhanced,
-                        unreadCount, 
+                        unreadCount: typeof unreadCount === 'number' ? unreadCount : unreadCount.total, 
                         loading: false 
                     });
                 } catch (error) {

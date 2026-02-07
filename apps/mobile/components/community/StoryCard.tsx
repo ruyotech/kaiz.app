@@ -1,3 +1,4 @@
+import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SuccessStory } from '../../types/models';
@@ -19,7 +20,7 @@ const CATEGORY_CONFIG: Record<string, { label: string; icon: string; color: stri
     other: { label: 'Win', icon: 'star', color: '#3B82F6' },
 };
 
-export function StoryCard({ story, onPress, onLike, onCelebrate }: StoryCardProps) {
+export const StoryCard = React.memo(function StoryCard({ story, onPress, onLike, onCelebrate }: StoryCardProps) {
     const { colors } = useThemeContext();
     const config = CATEGORY_CONFIG[story.category] || CATEGORY_CONFIG.other;
     
@@ -132,4 +133,4 @@ export function StoryCard({ story, onPress, onLike, onCelebrate }: StoryCardProp
             </View>
         </TouchableOpacity>
     );
-}
+});

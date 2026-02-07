@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 /**
  * TestAttachmentPicker Component
  * Allows selecting test attachments uploaded via admin for simulator testing
@@ -9,14 +10,14 @@ import {
   Text, 
   TouchableOpacity, 
   Modal, 
-  FlatList, 
   ActivityIndicator,
-  Image,
   Pressable 
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
+import { Image } from 'expo-image';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { TestAttachment } from '../../types/commandCenter';
-import { commandCenterService } from '../../services/commandCenter';
+import { commandCenterApi } from '../../services/api';
 
 interface TestAttachmentPickerProps {
   visible: boolean;
@@ -41,12 +42,12 @@ export function TestAttachmentPicker({
     setLoading(true);
     try {
       const type = filterType || (selectedTab !== 'ALL' ? selectedTab : undefined);
-      const response = await commandCenterService.getTestAttachments(type);
+      const response = await commandCenterApi.getTestAttachments(type);
       if (response.success && response.data) {
         setAttachments(response.data.filter(a => a.isActive));
       }
     } catch (error) {
-      console.error('Failed to load test attachments:', error);
+      logger.error('Failed to load test attachments:', error);
     } finally {
       setLoading(false);
     }
@@ -110,7 +111,8 @@ export function TestAttachmentPicker({
             <Image
               source={{ uri: item.fileUrl }}
               className="w-14 h-14 rounded-xl"
-              resizeMode="cover"
+              contentFit="cover"
+              cachePolicy="memory-disk"
             />
           ) : (
             <MaterialCommunityIcons name={icon as any} size={28} color={color} />
@@ -210,7 +212,7 @@ export function TestAttachmentPicker({
               </Text>
             </View>
           ) : (
-            <FlatList
+            <FlashList
               data={filteredAttachments}
               renderItem={renderAttachment}
               keyExtractor={(item) => item.id}

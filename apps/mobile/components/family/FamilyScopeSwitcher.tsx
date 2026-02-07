@@ -79,9 +79,9 @@ export function FamilyScopeSwitcher({
         const options: ScopeOption[] = [
             {
                 value: 'mine',
-                label: t('family.scope.mine', 'My View'),
+                label: t('family.scope.mine') || 'My View',
                 icon: 'account',
-                description: t('family.scope.mineDescription', 'Your personal tasks'),
+                description: t('family.scope.mineDescription') || 'Your personal tasks',
                 color: colors.primary,
             },
         ];
@@ -89,9 +89,9 @@ export function FamilyScopeSwitcher({
         if (hasFamily) {
             options.push({
                 value: 'family',
-                label: t('family.scope.family', 'Family'),
+                label: t('family.scope.family') || 'Family',
                 icon: 'account-group',
-                description: t('family.scope.familyDescription', 'All family shared tasks'),
+                description: t('family.scope.familyDescription') || 'All family shared tasks',
                 color: '#8B5CF6',
             });
 
@@ -195,7 +195,7 @@ export function FamilyScopeSwitcher({
                         >
                             <View style={styles.dropdownHeader}>
                                 <Text style={[styles.dropdownTitle, { color: colors.text }]}>
-                                    {t('family.scope.selectView', 'Select View')}
+                                    {t('family.scope.selectView') || 'Select View'}
                                 </Text>
                             </View>
                             <ScrollView style={styles.dropdownScroll}>
@@ -267,7 +267,7 @@ export function FamilyScopeSwitcher({
     return (
         <View style={[styles.fullContainer, style]}>
             <Text style={[styles.fullLabel, { color: colors.textSecondary }]}>
-                {t('family.scope.viewAs', 'View as')}
+                {t('family.scope.viewAs') || 'View as'}
             </Text>
             <View
                 style={[

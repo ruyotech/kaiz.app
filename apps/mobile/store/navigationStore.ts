@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type AppContext = 'sdlc' | 'sensai' | 'mindset' | 'essentia' | 'bills' | 'challenges' | 'pomodoro' | 'community' | 'family' | 'settings' | 'notifications' | 'backlog' | 'epics' | 'taskSearch' | 'templates';
+export type AppContext = 'sprints' | 'sensai' | 'mindset' | 'essentia' | 'bills' | 'challenges' | 'pomodoro' | 'community' | 'family' | 'settings' | 'notifications' | 'backlog' | 'epics' | 'taskSearch' | 'templates';
 
 interface NavigationState {
     currentApp: AppContext;
@@ -13,7 +13,7 @@ interface NavigationState {
 }
 
 export const useNavigationStore = create<NavigationState>((set) => ({
-    currentApp: 'sdlc',
+    currentApp: 'sprints',
     isAppSwitcherOpen: false,
     isMoreMenuOpen: false,
     setCurrentApp: (app) => set({ currentApp: app, isMoreMenuOpen: false }),

@@ -1,3 +1,4 @@
+import { logger } from '../../../../utils/logger';
 import { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Switch, Modal, Pressable } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -44,7 +45,7 @@ export default function TaskEditScreen() {
         } catch (error) {
             // Ignore auth expired errors - redirect is handled automatically
             if (error instanceof AuthExpiredError) return;
-            console.error('Error loading task:', error);
+            logger.error('Error loading task:', error);
         } finally {
             setLoading(false);
         }

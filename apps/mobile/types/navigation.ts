@@ -11,7 +11,7 @@ export type RootStackParamList = {
 
 export type TabsParamList = {
     'index': undefined;
-    'sdlc': undefined;
+    'sprints': undefined;
     'command-center': undefined;
     'bills': undefined;
     'motivation': undefined;
@@ -19,7 +19,7 @@ export type TabsParamList = {
     'challenges': undefined;
 };
 
-export type SDLCStackParamList = {
+export type SprintsStackParamList = {
     'index': undefined;
     'calendar': undefined;
     'reports': undefined;

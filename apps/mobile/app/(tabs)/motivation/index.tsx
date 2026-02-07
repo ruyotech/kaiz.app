@@ -1,3 +1,4 @@
+import { logger } from '../../../utils/logger';
 import { View, Alert } from 'react-native';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
@@ -78,9 +79,9 @@ export default function MotivationScreen() {
             }));
             
             setAllContent(mappedContent);
-            setThemes(themesData);
+            setThemes(themesData as any);
         } catch (error) {
-            console.error('Failed to load mindset data:', error);
+            logger.error('Failed to load mindset data:', error);
             Alert.alert('Error', 'Failed to load motivation content. Please try again.');
         } finally {
             setIsLoading(false);
@@ -109,7 +110,7 @@ export default function MotivationScreen() {
             
             // Navigate to task creation with pre-filled data
             router.push({
-                pathname: '/(tabs)/sdlc/create-task',
+                pathname: '/(tabs)/sprints/create-task',
                 params: {
                     title: taskTitle,
                     dimension: selectedContent.dimensionTag,

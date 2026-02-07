@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Modal, Linking } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -376,8 +377,8 @@ export function DayScheduleView({
     const externalEvents = useCalendarSyncStore((state) => state.externalEvents) || [];
     
     // Debug: Log store state
-    console.log('📅 DayScheduleView - externalEvents count:', externalEvents.length);
-    console.log('📅 DayScheduleView - externalEvents:', JSON.stringify(externalEvents.slice(0, 3)));
+    logger.log('📅 DayScheduleView - externalEvents count:', externalEvents.length);
+    logger.log('📅 DayScheduleView - externalEvents:', JSON.stringify(externalEvents.slice(0, 3)));
     
     // Filter external events for current day
     const dayExternalEvents = externalEvents.filter(event => {
@@ -394,15 +395,15 @@ export function DayScheduleView({
                     eventStart = new Date(event.startDate + 'Z');
                 }
             } else {
-                console.log('📅 Event has no startDate:', event.title);
+                logger.log('📅 Event has no startDate:', event.title);
                 return false;
             }
             
             const isSame = isSameDay(eventStart, currentDate);
-            console.log('📅 Event check:', event.title, 'provider:', event.provider, 'raw:', event.startDate, 'parsed:', eventStart.toISOString(), 'isSameDay:', isSame);
+            logger.log('📅 Event check:', event.title, 'provider:', event.provider, 'raw:', event.startDate, 'parsed:', eventStart.toISOString(), 'isSameDay:', isSame);
             return isSame;
         } catch (e) {
-            console.log('📅 Event filter error:', event.title, e);
+            logger.log('📅 Event filter error:', event.title, e);
             return false;
         }
     });
@@ -412,9 +413,9 @@ export function DayScheduleView({
     const timedExternalEvents = dayExternalEvents.filter(e => !e.isAllDay);
 
     // Debug: Log all tasks with recurrence
-    console.log('📅 DayScheduleView - currentDate:', currentDate.toISOString());
-    console.log('📅 External events for day:', dayExternalEvents.length);
-    console.log('📅 All tasks with recurrence:', tasks.filter(t => isTaskRecurring(t)).map(t => ({
+    logger.log('📅 DayScheduleView - currentDate:', currentDate.toISOString());
+    logger.log('📅 External events for day:', dayExternalEvents.length);
+    logger.log('📅 All tasks with recurrence:', tasks.filter(t => isTaskRecurring(t)).map(t => ({
         title: t.title,
         isRecurring: t.isRecurring,
         frequency: t.recurrence?.frequency,
@@ -425,7 +426,7 @@ export function DayScheduleView({
     const dayTasks = tasks.filter(task => {
         const shouldShow = shouldShowOnDay(task, currentDate);
         if (task.recurrence?.frequency === 'YEARLY') {
-            console.log('📅 YEARLY task check:', task.title, 'yearlyDate:', task.recurrence?.yearlyDate, 'shouldShow:', shouldShow);
+            logger.log('📅 YEARLY task check:', task.title, 'yearlyDate:', task.recurrence?.yearlyDate, 'shouldShow:', shouldShow);
         }
         return shouldShow;
     });

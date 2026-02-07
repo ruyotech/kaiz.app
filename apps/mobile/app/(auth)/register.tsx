@@ -104,12 +104,12 @@ export default function RegisterScreen() {
                 [
                     {
                         text: 'OK',
-                        onPress: () => router.replace('/(tabs)/sdlc/calendar'),
+                        onPress: () => router.replace('/(tabs)/sprints/calendar' as any),
                     },
                 ]
             );
-        } catch (error: any) {
-            const message = error?.message || authError || 'Registration failed. Please try again.';
+        } catch (error: unknown) {
+            const message = (error instanceof Error ? error.message : undefined) || authError || 'Registration failed. Please try again.';
             Alert.alert('Error', message);
         } finally {
             setLoading(false);

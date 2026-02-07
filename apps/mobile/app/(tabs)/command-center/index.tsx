@@ -1,3 +1,4 @@
+import { logger } from '../../../utils/logger';
 /**
  * Command Center Screen
  * 
@@ -18,9 +19,16 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
-  Animated,
   Pressable,
 } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withSequence,
+  withTiming,
+  cancelAnimation,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -31,7 +39,7 @@ import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Container } from '../../../components/layout/Container';
 import { ScreenHeader } from '../../../components/layout/ScreenHeader';
 import { ChatMessage, TestAttachmentPicker } from '../../../components/command-center';
-import { commandCenterService } from '../../../services/commandCenter';
+import { commandCenterApi } from '../../../services/api';
 import { useThemeContext } from '../../../providers/ThemeProvider';
 import {
   ChatMessage as ChatMessageType,
@@ -94,7 +102,11 @@ export default function CommandCenterScreen() {
   // Recording state
   const [isRecording, setIsRecording] = useState(false);
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
-  const recordingAnimation = useRef(new Animated.Value(1)).current;
+  const recordingScale = useSharedValue(1);
+
+  const recordingAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: recordingScale.value }],
+  }));
 
   // Test mode state (for simulator testing)
   const [testModeEnabled, setTestModeEnabled] = useState(false);
@@ -131,12 +143,12 @@ export default function CommandCenterScreen() {
   // Fetch pending tasks count for badge (uses same API as pending screen)
   const fetchPendingTasksCount = useCallback(async () => {
     try {
-      const response = await commandCenterService.getPendingApprovalTasks();
+      const response = await commandCenterApi.getPendingApprovalTasks();
       if (response.success && response.data) {
         setPendingTasksCount(response.data.length);
       }
     } catch (error) {
-      console.error('Failed to fetch pending tasks count:', error);
+      logger.error('Failed to fetch pending tasks count:', error);
     }
   }, []);
 
@@ -150,14 +162,14 @@ export default function CommandCenterScreen() {
   // Fetch test attachments when test mode is enabled
   useEffect(() => {
     if (testModeEnabled && testAttachments.length === 0) {
-      console.log('🧪 [TestMode] Fetching test attachments...');
-      commandCenterService.getTestAttachments().then(response => {
-        console.log('🧪 [TestMode] Test attachments response:', JSON.stringify(response));
+      logger.log('🧪 [TestMode] Fetching test attachments...');
+      commandCenterApi.getTestAttachments().then(response => {
+        logger.log('🧪 [TestMode] Test attachments response:', JSON.stringify(response));
         if (response.success && response.data) {
-          console.log('🧪 [TestMode] Loaded', response.data.length, 'test attachments');
+          logger.log('🧪 [TestMode] Loaded', response.data.length, 'test attachments');
           setTestAttachments(response.data);
         } else {
-          console.log('🧪 [TestMode] No test attachments found or error');
+          logger.log('🧪 [TestMode] No test attachments found or error');
         }
       });
     }
@@ -173,22 +185,16 @@ export default function CommandCenterScreen() {
   // Recording animation
   useEffect(() => {
     if (isRecording) {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(recordingAnimation, {
-            toValue: 1.2,
-            duration: 500,
-            useNativeDriver: true,
-          }),
-          Animated.timing(recordingAnimation, {
-            toValue: 1,
-            duration: 500,
-            useNativeDriver: true,
-          }),
-        ])
-      ).start();
+      recordingScale.value = withRepeat(
+        withSequence(
+          withTiming(1.2, { duration: 500 }),
+          withTiming(1, { duration: 500 }),
+        ),
+        -1,
+      );
     } else {
-      recordingAnimation.setValue(1);
+      cancelAnimation(recordingScale);
+      recordingScale.value = withTiming(1, { duration: 200 });
     }
   }, [isRecording]);
 
@@ -198,8 +204,8 @@ export default function CommandCenterScreen() {
 
   const sendMessage = useCallback(async () => {
     const text = inputText.trim();
-    console.log('📤 [SendMessage] Called with text:', text, 'attachments:', attachments.length);
-    console.log('📤 [SendMessage] Attachments details:', JSON.stringify(attachments));
+    logger.log('📤 [SendMessage] Called with text:', text, 'attachments:', attachments.length);
+    logger.log('📤 [SendMessage] Attachments details:', JSON.stringify(attachments));
     if (!text && attachments.length === 0) return;
 
     // Add user message
@@ -242,8 +248,8 @@ export default function CommandCenterScreen() {
       
       if (realFileAttachments.length > 0) {
         // Use multipart upload for real files (enables OCR/transcription)
-        console.log('📤 [SendMessage] Using multipart upload for', realFileAttachments.length, 'files');
-        response = await commandCenterService.sendMessageWithFiles(
+        logger.log('📤 [SendMessage] Using multipart upload for', realFileAttachments.length, 'files');
+        response = await commandCenterApi.sendMessageWithFiles(
           text || null,
           realFileAttachments.map(a => ({
             uri: a.uri,
@@ -262,7 +268,7 @@ export default function CommandCenterScreen() {
           testAttachmentId: a.testAttachmentId,
         }));
 
-        response = await commandCenterService.sendMessage(
+        response = await commandCenterApi.sendMessage(
           text || null,
           apiAttachments,
           currentSessionId || undefined
@@ -271,7 +277,7 @@ export default function CommandCenterScreen() {
 
       if (response.success && response.data) {
         const aiResponse = response.data as any;
-        console.log('🤖 [AI Response] Raw:', JSON.stringify(aiResponse, null, 2));
+        logger.log('🤖 [AI Response] Raw:', JSON.stringify(aiResponse, null, 2));
         
         // Handle both /smart-input (sessionId) and /process (id) response formats
         const responseId = aiResponse.sessionId || aiResponse.id;
@@ -289,7 +295,7 @@ export default function CommandCenterScreen() {
           // Use intentDetected first (backend sets this), fallback to draft type
           const draftType = (aiResponse.intentDetected || normalizedType) as 'TASK' | 'EVENT' | 'CHALLENGE' | 'BILL' | 'NOTE' | 'EPIC' | 'GOAL';
           
-          console.log('📋 [Draft] rawType:', rawType, 'intentDetected:', aiResponse.intentDetected, 'final draftType:', draftType);
+          logger.log('📋 [Draft] rawType:', rawType, 'intentDetected:', aiResponse.intentDetected, 'final draftType:', draftType);
           
           // Transform backend fields to frontend format, preserving all original fields
           const transformedDraft = {
@@ -315,7 +321,7 @@ export default function CommandCenterScreen() {
             createdAt: new Date().toISOString(),
           };
           
-          console.log('📋 [DraftPreview] Created with id:', draftPreview.id);
+          logger.log('📋 [DraftPreview] Created with id:', draftPreview.id);
           setCurrentDraftId(responseId);
           // Refresh pending drafts
           fetchPendingTasksCount();
@@ -347,8 +353,8 @@ export default function CommandCenterScreen() {
           prev.map(m => (m.id === thinkingMessage.id ? errorMessage : m))
         );
       }
-    } catch (error: any) {
-      console.error('Error sending message:', error);
+    } catch (error: unknown) {
+      logger.error('Error sending message:', error);
 
       const errorMessage: ChatMessageType = {
         id: thinkingMessage.id,
@@ -374,7 +380,7 @@ export default function CommandCenterScreen() {
 
     setIsProcessing(true);
     try {
-      const response = await commandCenterService.approveDraft(currentDraftId);
+      const response = await commandCenterApi.approveDraft(currentDraftId);
 
       if (response.success) {
         const draftMessage = messages.find(m => m.draft?.id === currentDraftId);
@@ -404,10 +410,10 @@ export default function CommandCenterScreen() {
         // Refresh pending drafts
         fetchPendingTasksCount();
       } else {
-        Alert.alert('Error', response.error || 'Failed to create. Please try again.');
+        Alert.alert('Error', String(response.error || 'Failed to create. Please try again.'));
       }
     } catch (error) {
-      console.error('Error approving draft:', error);
+      logger.error('Error approving draft:', error);
       Alert.alert('Error', 'Failed to create. Please try again.');
     } finally {
       setIsProcessing(false);
@@ -419,7 +425,7 @@ export default function CommandCenterScreen() {
 
     setIsProcessing(true);
     try {
-      await commandCenterService.rejectDraft(currentDraftId);
+      await commandCenterApi.rejectDraft(currentDraftId);
 
       const rejectMessage: ChatMessageType = {
         id: Date.now().toString(),
@@ -440,7 +446,7 @@ export default function CommandCenterScreen() {
       // Refresh pending drafts
       fetchPendingTasksCount();
     } catch (error) {
-      console.error('Error rejecting draft:', error);
+      logger.error('Error rejecting draft:', error);
     } finally {
       setIsProcessing(false);
     }
@@ -556,7 +562,7 @@ export default function CommandCenterScreen() {
         ]);
       }
     } catch (error) {
-      console.error('Error picking document:', error);
+      logger.error('Error picking document:', error);
     }
     setShowInputOptions(false);
   }, []);
@@ -581,17 +587,17 @@ export default function CommandCenterScreen() {
 
   // Handle + button press - auto-add test attachment if test mode is on
   const handlePlusPress = useCallback(async () => {
-    console.log('🧪 [TestMode] + pressed, testModeEnabled:', testModeEnabled);
+    logger.log('🧪 [TestMode] + pressed, testModeEnabled:', testModeEnabled);
     
     if (testModeEnabled) {
       // Fetch test attachment from web admin and add it
-      console.log('🧪 [TestMode] Fetching test attachment from web admin...');
-      const response = await commandCenterService.getTestAttachments();
-      console.log('🧪 [TestMode] Response:', JSON.stringify(response));
+      logger.log('🧪 [TestMode] Fetching test attachment from web admin...');
+      const response = await commandCenterApi.getTestAttachments();
+      logger.log('🧪 [TestMode] Response:', JSON.stringify(response));
       
       if (response.success && response.data && response.data.length > 0) {
         const testAttachment = response.data[0];
-        console.log('🧪 [TestMode] Adding test attachment:', testAttachment.attachmentName);
+        logger.log('🧪 [TestMode] Adding test attachment:', testAttachment.attachmentName);
         
         const newAttachment = {
           id: Date.now().toString(),
@@ -636,7 +642,7 @@ export default function CommandCenterScreen() {
       setRecording(recording);
       setIsRecording(true);
     } catch (error) {
-      console.error('Failed to start recording:', error);
+      logger.error('Failed to start recording:', error);
       Alert.alert('Error', 'Failed to start recording.');
     }
   }, []);
@@ -661,7 +667,7 @@ export default function CommandCenterScreen() {
         ]);
       }
     } catch (error) {
-      console.error('Failed to stop recording:', error);
+      logger.error('Failed to stop recording:', error);
     } finally {
       setRecording(null);
       setIsRecording(false);
@@ -838,7 +844,7 @@ export default function CommandCenterScreen() {
                 <MaterialCommunityIcons name="send" size={20} color="white" />
               </TouchableOpacity>
             ) : (
-              <Animated.View style={{ transform: [{ scale: recordingAnimation }] }}>
+              <Animated.View style={recordingAnimStyle}>
                 <TouchableOpacity
                   onPress={isRecording ? stopRecording : startRecording}
                   className={`w-10 h-10 rounded-full items-center justify-center ${

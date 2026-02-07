@@ -1,3 +1,4 @@
+import { logger } from '../../../utils/logger';
 import { View, Text, ScrollView, TouchableOpacity, TextInput } from 'react-native';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
@@ -40,7 +41,7 @@ export default function EssentiaExploreScreen() {
             ];
             setCategories(mappedCategories);
         } catch (error) {
-            console.error('Failed to load categories:', error);
+            logger.error('Failed to load categories:', error);
         }
     };
 

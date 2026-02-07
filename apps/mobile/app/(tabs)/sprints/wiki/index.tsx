@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, Pressable, Image, Dimensions } from 'react-native';
+import { View, Text, ScrollView, Pressable, Dimensions } from 'react-native';
 import { Container } from '../../../../components/layout/Container';
 import { ScreenHeader } from '../../../../components/layout/ScreenHeader';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -78,7 +78,7 @@ export default function WikiScreen() {
                             style={{ width: '48%' }}
                             onPress={() => {
                                 // In future: navigate to specific article
-                                // router.push(`/(tabs)/sdlc/wiki/${topic.id}`);
+                                // router.push(`/(tabs)/sprints/wiki/${topic.id}`);
                             }}
                             className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"
                         >

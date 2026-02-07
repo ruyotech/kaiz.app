@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 /**
  * AttachmentPreviewModal.tsx - Full-screen Attachment Preview
  * 
@@ -253,7 +254,7 @@ function AudioPlayer({
                 }
             }
         } catch (err) {
-            console.error('Error toggling playback:', err);
+            logger.error('Error toggling playback:', err);
             setError(true);
         }
     };
@@ -458,7 +459,7 @@ export function AttachmentPreviewModal({
                 title: currentAttachment.filename,
             });
         } catch (error) {
-            console.error('Error sharing:', error);
+            logger.error('Error sharing:', error);
         }
     }, [currentAttachment]);
 
@@ -473,7 +474,7 @@ export function AttachmentPreviewModal({
                 Alert.alert('Cannot Open', 'Unable to open this file.');
             }
         } catch (error) {
-            console.error('Error opening file:', error);
+            logger.error('Error opening file:', error);
             Alert.alert('Error', 'Failed to open file.');
         }
     }, [currentAttachment]);

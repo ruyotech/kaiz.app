@@ -1,3 +1,4 @@
+import { logger } from '../../../utils/logger';
 import { useState, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -95,12 +96,12 @@ export default function SprintCalendar() {
                 
                 // Load life wheel areas
                 const areasData = await lifeWheelApi.getLifeWheelAreas();
-                setLifeWheelAreas(areasData);
+                setLifeWheelAreas(areasData as LifeWheelArea[]);
 
                 if (sprint) {
                     setCurrentSprint(sprint); // Store sprint data for color coding
-                    const filtered = await taskApi.getTasksBySprint(sprint.id);
-                    setWeekTasks(filtered);
+                    const filtered = await taskApi.getTasksBySprint((sprint as any).id);
+                    setWeekTasks(filtered as Task[]);
                 } else {
                     setCurrentSprint(null);
                     setWeekTasks([]);
@@ -108,7 +109,7 @@ export default function SprintCalendar() {
             } catch (error) {
                 // Ignore auth expired errors - redirect is handled automatically
                 if (error instanceof AuthExpiredError) return;
-                console.error('Error loading tasks:', error);
+                logger.error('Error loading tasks:', error);
             } finally {
                 setLoading(false);
             }
@@ -349,7 +350,7 @@ export default function SprintCalendar() {
                                                 task={task}
                                                 epic={taskEpic}
                                                 lifeWheelArea={lifeWheelArea}
-                                                onPress={() => router.push(`/(tabs)/sdlc/task/${task.id}`)}
+                                                onPress={() => router.push(`/(tabs)/sprints/task/${task.id}` as any)}
                                                 viewType={viewType}
                                             />
                                         );
@@ -465,7 +466,7 @@ export default function SprintCalendar() {
                                                 task={task}
                                                 epic={taskEpic}
                                                 lifeWheelArea={lifeWheelArea}
-                                                onPress={() => router.push(`/(tabs)/sdlc/task/${task.id}`)}
+                                                onPress={() => router.push(`/(tabs)/sprints/task/${task.id}` as any)}
                                                 viewType={viewType}
                                             />
                                         );
@@ -562,7 +563,7 @@ export default function SprintCalendar() {
                                                 task={task}
                                                 epic={taskEpic}
                                                 lifeWheelArea={lifeWheelArea}
-                                                onPress={() => router.push(`/(tabs)/sdlc/task/${task.id}`)}
+                                                onPress={() => router.push(`/(tabs)/sprints/task/${task.id}` as any)}
                                                 viewType={viewType}
                                             />
                                         );
@@ -643,7 +644,7 @@ export default function SprintCalendar() {
                         tasks={weekTasks}
                         epics={epics}
                         lifeWheelAreas={lifeWheelAreas}
-                        onTaskPress={(taskId) => router.push(`/(tabs)/sdlc/task/${taskId}`)}
+                        onTaskPress={(taskId) => router.push(`/(tabs)/sprints/task/${taskId}` as any)}
                     />
                 ) : (
                     <ScrollView className="flex-1">

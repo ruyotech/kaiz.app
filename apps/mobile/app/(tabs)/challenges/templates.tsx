@@ -1,3 +1,4 @@
+import { logger } from '../../../utils/logger';
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -52,7 +53,7 @@ export default function TemplatesScreen() {
             const newChallenge = await createChallengeFromTemplate(template.id);
             router.push(`/(tabs)/challenges/challenge/${newChallenge.id}`);
         } catch (error) {
-            console.error('Failed to start challenge:', error);
+            logger.error('Failed to start challenge:', error);
         }
     };
     

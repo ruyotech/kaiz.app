@@ -1,4 +1,5 @@
-import { View, Text, FlatList, Pressable, ScrollView } from 'react-native';
+import { View, Text, Pressable, ScrollView } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Container } from '../../../../components/layout/Container';
@@ -44,7 +45,7 @@ export default function EpicsScreen() {
         
         return (
             <Pressable
-                onPress={() => router.push(`/(tabs)/sdlc/epic/${item.id}` as any)}
+                onPress={() => router.push(`/(tabs)/sprints/epic/${item.id}` as any)}
                 className="bg-white rounded-2xl mb-4 overflow-hidden shadow-sm border border-gray-100"
             >
                 <View className="h-2 w-full" style={{ backgroundColor: item.color }} />
@@ -116,7 +117,7 @@ export default function EpicsScreen() {
                 showBack
                 rightAction={
                     <Pressable
-                        onPress={() => router.push('/(tabs)/sdlc/epics/create')}
+                        onPress={() => router.push('/(tabs)/sprints/epics/create' as any)}
                         className="bg-blue-600 rounded-full w-8 h-8 items-center justify-center shadow-lg"
                     >
                         <MaterialCommunityIcons name="plus" size={20} color="white" />
@@ -149,14 +150,14 @@ export default function EpicsScreen() {
                             Create your first epic to organize tasks into strategic goals
                         </Text>
                         <Pressable
-                            onPress={() => router.push('/(tabs)/sdlc/epics/create')}
+                            onPress={() => router.push('/(tabs)/sprints/epics/create' as any)}
                             className="bg-blue-600 px-6 py-3 rounded-xl mt-6"
                         >
                             <Text className="text-white font-bold">Create Epic</Text>
                         </Pressable>
                     </View>
                 ) : (
-                    <FlatList
+                    <FlashList
                         data={epics}
                         renderItem={renderEpicCard}
                         keyExtractor={item => item.id}

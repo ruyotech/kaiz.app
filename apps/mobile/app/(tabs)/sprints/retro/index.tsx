@@ -1,4 +1,4 @@
-import { View, Text, TextInput, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, Image } from 'react-native';
+import { View, Text, TextInput, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity } from 'react-native';
 import { Container } from '../../../../components/layout/Container';
 import { ScreenHeader } from '../../../../components/layout/ScreenHeader';
 import { useState, useRef, useEffect } from 'react';

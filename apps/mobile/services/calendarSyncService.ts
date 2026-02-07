@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 /**
  * calendarSyncService.ts - External Calendar Sync Service for Kaiz 
  * 
@@ -35,7 +36,7 @@ const loadNativeModules = async () => {
         }
         return true;
     } catch (error) {
-        console.warn('Native calendar modules not available. Calendar sync requires a development build.');
+        logger.warn('Native calendar modules not available. Calendar sync requires a development build.');
         return false;
     }
 };
@@ -81,7 +82,7 @@ const isMicrosoftConfigured = () => MICROSOFT_CLIENT_ID.length > 10;
 const getSecureStoreKey = (baseKey: string, accountEmail?: string) => {
     const suffix = accountEmail ? `_${accountEmail.replace(/[^a-zA-Z0-9]/g, '_')}` : '';
     const key = `${baseKey}${suffix}`;
-    console.log(`[calendarSyncService] getSecureStoreKey: baseKey=${baseKey}, email=${accountEmail}, result=${key}`);
+    logger.log(`[calendarSyncService] getSecureStoreKey: baseKey=${baseKey}, email=${accountEmail}, result=${key}`);
     return key;
 };
 
@@ -171,7 +172,7 @@ class CalendarSyncService {
             const { status } = await Calendar.requestCalendarPermissionsAsync();
             return status === 'granted';
         } catch (error) {
-            console.error('Error requesting Apple Calendar permission:', error);
+            logger.error('Error requesting Apple Calendar permission:', error);
             return false;
         }
     }
@@ -186,7 +187,7 @@ class CalendarSyncService {
             const { status } = await Calendar.getCalendarPermissionsAsync();
             return status === 'granted';
         } catch (error) {
-            console.error('Error checking Apple Calendar permission:', error);
+            logger.error('Error checking Apple Calendar permission:', error);
             return false;
         }
     }
@@ -220,9 +221,9 @@ class CalendarSyncService {
             // Fetch all calendars from device
             const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
             
-            console.log(`[calendarSyncService] Found ${calendars.length} Apple calendars`);
+            logger.log(`[calendarSyncService] Found ${calendars.length} Apple calendars`);
             calendars.forEach((cal, i) => {
-                console.log(`[calendarSyncService] Calendar ${i}: "${cal.title}" (id: ${cal.id}, primary: ${cal.isPrimary})`);
+                logger.log(`[calendarSyncService] Calendar ${i}: "${cal.title}" (id: ${cal.id}, primary: ${cal.isPrimary})`);
             });
             
             const externalCalendars: ExternalCalendar[] = calendars.map((cal) => ({
@@ -240,7 +241,7 @@ class CalendarSyncService {
                 calendars: externalCalendars,
             };
         } catch (error) {
-            console.error('Error connecting Apple Calendar:', error);
+            logger.error('Error connecting Apple Calendar:', error);
             return {
                 success: false,
                 error: error instanceof Error ? error.message : 'Unknown error occurred',
@@ -259,12 +260,12 @@ class CalendarSyncService {
         try {
             await this.init();
             if (!Calendar) {
-                console.log('[calendarSyncService] Calendar module not available');
+                logger.log('[calendarSyncService] Calendar module not available');
                 return [];
             }
             
-            console.log(`[calendarSyncService] Fetching Apple events for calendars:`, calendarIds);
-            console.log(`[calendarSyncService] Date range: ${startDate.toISOString()} to ${endDate.toISOString()}`);
+            logger.log(`[calendarSyncService] Fetching Apple events for calendars:`, calendarIds);
+            logger.log(`[calendarSyncService] Date range: ${startDate.toISOString()} to ${endDate.toISOString()}`);
             
             const events = await Calendar.getEventsAsync(
                 calendarIds,
@@ -272,9 +273,9 @@ class CalendarSyncService {
                 endDate
             );
             
-            console.log(`[calendarSyncService] Raw Apple Calendar events:`, events.length);
+            logger.log(`[calendarSyncService] Raw Apple Calendar events:`, events.length);
             events.forEach((e, i) => {
-                console.log(`[calendarSyncService] Event ${i}: "${e.title}" from ${e.startDate} to ${e.endDate}`);
+                logger.log(`[calendarSyncService] Event ${i}: "${e.title}" from ${e.startDate} to ${e.endDate}`);
             });
             
             const mappedEvents = events.map((event) => ({
@@ -290,10 +291,10 @@ class CalendarSyncService {
                 recurrence: event.recurrenceRule ? JSON.stringify(event.recurrenceRule) : undefined,
             }));
             
-            console.log(`[calendarSyncService] Mapped events:`, mappedEvents);
+            logger.log(`[calendarSyncService] Mapped events:`, mappedEvents);
             return mappedEvents;
         } catch (error) {
-            console.error('Error fetching Apple Calendar events:', error);
+            logger.error('Error fetching Apple Calendar events:', error);
             return [];
         }
     }
@@ -329,8 +330,8 @@ class CalendarSyncService {
             });
         }
         
-        console.log('[calendarSyncService] Google OAuth redirect URI:', redirectUri);
-        console.log('[calendarSyncService] Google OAuth client ID:', clientId);
+        logger.log('[calendarSyncService] Google OAuth redirect URI:', redirectUri);
+        logger.log('[calendarSyncService] Google OAuth client ID:', clientId);
         
         return new AuthSession.AuthRequest({
             clientId,
@@ -445,7 +446,7 @@ class CalendarSyncService {
                 calendars: taggedCalendars,
             };
         } catch (error) {
-            console.error('Error connecting Google Calendar:', error);
+            logger.error('Error connecting Google Calendar:', error);
             return {
                 success: false,
                 error: error instanceof Error ? error.message : 'Unknown error occurred',
@@ -504,7 +505,7 @@ class CalendarSyncService {
             
             return accessToken;
         } catch (error) {
-            console.error('Error getting Google access token:', error);
+            logger.error('Error getting Google access token:', error);
             return null;
         }
     }
@@ -541,7 +542,7 @@ class CalendarSyncService {
             
             return result.accessToken;
         } catch (error) {
-            console.error('Error refreshing Google token:', error);
+            logger.error('Error refreshing Google token:', error);
             return null;
         }
     }
@@ -562,7 +563,7 @@ class CalendarSyncService {
             const data = await response.json();
             return { email: data.email, name: data.name };
         } catch (error) {
-            console.error('Error fetching Google user info:', error);
+            logger.error('Error fetching Google user info:', error);
             return null;
         }
     }
@@ -580,13 +581,13 @@ class CalendarSyncService {
             });
             
             if (!response.ok) {
-                console.error('[calendarSyncService] Google Calendar API error:', response.status, await response.text());
+                logger.error('[calendarSyncService] Google Calendar API error:', response.status, await response.text());
                 return [];
             }
             
             const data = await response.json();
             
-            console.log(`[calendarSyncService] Found ${data.items?.length || 0} Google calendars`);
+            logger.log(`[calendarSyncService] Found ${data.items?.length || 0} Google calendars`);
             
             return (data.items || []).map((cal: any) => ({
                 id: cal.id,
@@ -598,7 +599,7 @@ class CalendarSyncService {
                 accessLevel: cal.accessRole === 'owner' ? 'owner' : 'read',
             }));
         } catch (error) {
-            console.error('Error fetching Google calendars:', error);
+            logger.error('Error fetching Google calendars:', error);
             return [];
         }
     }
@@ -656,7 +657,7 @@ class CalendarSyncService {
             
             return allEvents;
         } catch (error) {
-            console.error('Error fetching Google Calendar events:', error);
+            logger.error('Error fetching Google Calendar events:', error);
             return [];
         }
     }
@@ -683,7 +684,7 @@ class CalendarSyncService {
                         googleDiscovery
                     );
                 } catch (e) {
-                    console.warn('Failed to revoke Google token:', e);
+                    logger.warn('Failed to revoke Google token:', e);
                 }
             }
             
@@ -692,7 +693,7 @@ class CalendarSyncService {
             await SecureStore.deleteItemAsync(refreshKey);
             await SecureStore.deleteItemAsync(expiryKey);
         } catch (error) {
-            console.error('Error disconnecting Google Calendar:', error);
+            logger.error('Error disconnecting Google Calendar:', error);
         }
     }
     
@@ -800,7 +801,7 @@ class CalendarSyncService {
                 calendars,
             };
         } catch (error) {
-            console.error('Error connecting Microsoft Calendar:', error);
+            logger.error('Error connecting Microsoft Calendar:', error);
             return {
                 success: false,
                 error: error instanceof Error ? error.message : 'Unknown error occurred',
@@ -819,7 +820,7 @@ class CalendarSyncService {
     ): Promise<void> {
         if (!SecureStore) return;
         
-        console.log(`[calendarSyncService] storeMicrosoftTokens called with email:`, accountEmail);
+        logger.log(`[calendarSyncService] storeMicrosoftTokens called with email:`, accountEmail);
         
         const accessKey = getSecureStoreKey(SECURE_STORE_KEYS.MICROSOFT_ACCESS_TOKEN, accountEmail);
         const refreshKey = getSecureStoreKey(SECURE_STORE_KEYS.MICROSOFT_REFRESH_TOKEN, accountEmail);
@@ -840,10 +841,10 @@ class CalendarSyncService {
      */
     async getMicrosoftAccessToken(accountEmail?: string): Promise<string | null> {
         try {
-            console.log(`[calendarSyncService] getMicrosoftAccessToken called with email:`, accountEmail);
+            logger.log(`[calendarSyncService] getMicrosoftAccessToken called with email:`, accountEmail);
             await this.init();
             if (!SecureStore) {
-                console.log(`[calendarSyncService] SecureStore not available`);
+                logger.log(`[calendarSyncService] SecureStore not available`);
                 return null;
             }
             
@@ -853,17 +854,17 @@ class CalendarSyncService {
             const accessToken = await SecureStore.getItemAsync(accessKey);
             const expiryStr = await SecureStore.getItemAsync(expiryKey);
             
-            console.log(`[calendarSyncService] Token found:`, accessToken ? 'yes (length=' + accessToken.length + ')' : 'no');
-            console.log(`[calendarSyncService] Expiry:`, expiryStr);
+            logger.log(`[calendarSyncService] Token found:`, accessToken ? 'yes (length=' + accessToken.length + ')' : 'no');
+            logger.log(`[calendarSyncService] Expiry:`, expiryStr);
             
             if (!accessToken) {
                 // Try without email suffix as fallback (for backwards compatibility)
                 if (accountEmail) {
-                    console.log(`[calendarSyncService] Trying without email suffix as fallback`);
+                    logger.log(`[calendarSyncService] Trying without email suffix as fallback`);
                     const fallbackKey = SECURE_STORE_KEYS.MICROSOFT_ACCESS_TOKEN;
                     const fallbackToken = await SecureStore.getItemAsync(fallbackKey);
                     if (fallbackToken) {
-                        console.log(`[calendarSyncService] Found token with fallback key`);
+                        logger.log(`[calendarSyncService] Found token with fallback key`);
                         return fallbackToken;
                     }
                 }
@@ -881,7 +882,7 @@ class CalendarSyncService {
             
             return accessToken;
         } catch (error) {
-            console.error('Error getting Microsoft access token:', error);
+            logger.error('Error getting Microsoft access token:', error);
             return null;
         }
     }
@@ -914,7 +915,7 @@ class CalendarSyncService {
             
             return result.accessToken;
         } catch (error) {
-            console.error('Error refreshing Microsoft token:', error);
+            logger.error('Error refreshing Microsoft token:', error);
             return null;
         }
     }
@@ -938,7 +939,7 @@ class CalendarSyncService {
                 name: data.displayName,
             };
         } catch (error) {
-            console.error('Error fetching Microsoft user info:', error);
+            logger.error('Error fetching Microsoft user info:', error);
             return null;
         }
     }
@@ -956,13 +957,13 @@ class CalendarSyncService {
             });
             
             if (!response.ok) {
-                console.error('[calendarSyncService] Microsoft Calendar API error:', response.status, await response.text());
+                logger.error('[calendarSyncService] Microsoft Calendar API error:', response.status, await response.text());
                 return [];
             }
             
             const data = await response.json();
             
-            console.log(`[calendarSyncService] Found ${data.value?.length || 0} Microsoft calendars`);
+            logger.log(`[calendarSyncService] Found ${data.value?.length || 0} Microsoft calendars`);
             
             return (data.value || []).map((cal: any) => ({
                 id: cal.id,
@@ -974,7 +975,7 @@ class CalendarSyncService {
                 accessLevel: cal.canEdit ? 'owner' : 'read',
             }));
         } catch (error) {
-            console.error('Error fetching Microsoft calendars:', error);
+            logger.error('Error fetching Microsoft calendars:', error);
             return [];
         }
     }
@@ -989,13 +990,13 @@ class CalendarSyncService {
         accountEmail?: string
     ): Promise<ExternalEvent[]> {
         try {
-            console.log(`[calendarSyncService] fetchMicrosoftCalendarEvents called`);
-            console.log(`[calendarSyncService] calendarIds:`, calendarIds);
-            console.log(`[calendarSyncService] dateRange:`, startDate.toISOString(), 'to', endDate.toISOString());
-            console.log(`[calendarSyncService] accountEmail:`, accountEmail);
+            logger.log(`[calendarSyncService] fetchMicrosoftCalendarEvents called`);
+            logger.log(`[calendarSyncService] calendarIds:`, calendarIds);
+            logger.log(`[calendarSyncService] dateRange:`, startDate.toISOString(), 'to', endDate.toISOString());
+            logger.log(`[calendarSyncService] accountEmail:`, accountEmail);
             
             const accessToken = await this.getMicrosoftAccessToken(accountEmail);
-            console.log(`[calendarSyncService] Got access token:`, accessToken ? 'yes' : 'no');
+            logger.log(`[calendarSyncService] Got access token:`, accessToken ? 'yes' : 'no');
             if (!accessToken) return [];
             
             const allEvents: ExternalEvent[] = [];
@@ -1020,12 +1021,12 @@ class CalendarSyncService {
                 );
                 
                 if (!response.ok) {
-                    console.error('[calendarSyncService] Microsoft Calendar API error:', response.status, await response.text());
+                    logger.error('[calendarSyncService] Microsoft Calendar API error:', response.status, await response.text());
                     continue;
                 }
                 
                 const data = await response.json();
-                console.log(`[calendarSyncService] Microsoft raw events for calendar ${calendarId}:`, JSON.stringify(data.value?.slice(0, 2)));
+                logger.log(`[calendarSyncService] Microsoft raw events for calendar ${calendarId}:`, JSON.stringify(data.value?.slice(0, 2)));
                 
                 const events = (data.value || []).map((event: any) => {
                     // Microsoft Graph returns dateTime without timezone, and timeZone separately
@@ -1069,12 +1070,12 @@ class CalendarSyncService {
                 allEvents.push(...events);
             }
             
-            console.log(`[calendarSyncService] Total Microsoft events fetched:`, allEvents.length);
-            console.log(`[calendarSyncService] Microsoft events sample:`, JSON.stringify(allEvents.slice(0, 2)));
+            logger.log(`[calendarSyncService] Total Microsoft events fetched:`, allEvents.length);
+            logger.log(`[calendarSyncService] Microsoft events sample:`, JSON.stringify(allEvents.slice(0, 2)));
             
             return allEvents;
         } catch (error) {
-            console.error('Error fetching Microsoft Calendar events:', error);
+            logger.error('Error fetching Microsoft Calendar events:', error);
             return [];
         }
     }
@@ -1098,9 +1099,9 @@ class CalendarSyncService {
                 try {
                     // Microsoft doesn't have a standard revocation endpoint like Google
                     // but we can try to sign out
-                    console.log('[calendarSyncService] Clearing Microsoft tokens for:', accountEmail || 'default');
+                    logger.log('[calendarSyncService] Clearing Microsoft tokens for:', accountEmail || 'default');
                 } catch (e) {
-                    console.warn('Failed to revoke Microsoft token:', e);
+                    logger.warn('Failed to revoke Microsoft token:', e);
                 }
             }
             
@@ -1109,7 +1110,7 @@ class CalendarSyncService {
             await SecureStore.deleteItemAsync(refreshKey);
             await SecureStore.deleteItemAsync(expiryKey);
         } catch (error) {
-            console.error('Error disconnecting Microsoft Calendar:', error);
+            logger.error('Error disconnecting Microsoft Calendar:', error);
         }
     }
     

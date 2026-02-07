@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { View, Text, FlatList, Pressable, ScrollView, Modal, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, Pressable, ScrollView, Modal, TouchableOpacity, TextInput } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { Container } from '../../../components/layout/Container';
 import { ScreenHeader } from '../../../components/layout/ScreenHeader';
 import { Card } from '../../../components/ui/Card';
@@ -52,9 +53,9 @@ export default function BacklogScreen() {
             lifeWheelApi.getEisenhowerQuadrants(),
             sprintApi.getSprints()
         ]);
-        setLifeWheelAreas(areas);
-        setEisenhowerQuadrants(quadrants);
-        setSprints(sprintsList.filter((s: Sprint) => s.status !== 'completed'));
+        setLifeWheelAreas(areas as LifeWheelArea[]);
+        setEisenhowerQuadrants(quadrants as EisenhowerQuadrant[]);
+        setSprints((sprintsList as Sprint[]).filter((s: Sprint) => s.status !== 'completed'));
         // Epics can be loaded from epicStore if needed
     };
 
@@ -177,7 +178,7 @@ export default function BacklogScreen() {
                         borderLeftColor: style.accentColor,
                     }}
                 >
-                    <Pressable onPress={() => router.push(`/(tabs)/sdlc/task/${item.id}` as any)}>
+                    <Pressable onPress={() => router.push(`/(tabs)/sprints/task/${item.id}` as any)}>
                         <View className="flex-row items-start justify-between mb-3">
                             <View className="flex-row items-center flex-1 mr-2">
                                 <View 
@@ -459,7 +460,7 @@ export default function BacklogScreen() {
                             />
                         )}
                         <Button
-                            onPress={() => router.push('/(tabs)/sdlc/create-task' as any)}
+                            onPress={() => router.push('/(tabs)/sprints/create-task' as any)}
                             size="sm"
                         >
                             + Add
@@ -474,7 +475,7 @@ export default function BacklogScreen() {
                     title="No backlog items"
                     message="Your backlog is empty. Add tasks that you'll plan into future sprints."
                     actionLabel="Create Task"
-                    onAction={() => router.push('/(tabs)/sdlc/create-task' as any)}
+                    onAction={() => router.push('/(tabs)/sprints/create-task' as any)}
                 />
             ) : (
                 <>
@@ -499,7 +500,7 @@ export default function BacklogScreen() {
                             </Text>
                         </View>
                     ) : (
-                        <FlatList
+                        <FlashList
                             data={filteredTasks}
                             renderItem={renderTask}
                             keyExtractor={(item) => item.id}

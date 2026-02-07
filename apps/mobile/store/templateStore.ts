@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -78,18 +79,18 @@ export const useTemplateStore = create<TemplateState>()(
             fetchAllTemplates: async () => {
                 set({ loading: true, error: null });
                 try {
-                    console.log('📋 fetchAllTemplates: Starting...');
+                    logger.log('📋 fetchAllTemplates: Starting...');
                     const [global, user, favorites] = await Promise.all([
                         taskTemplateApi.getGlobalTemplates(),
                         taskTemplateApi.getUserTemplates(),
                         taskTemplateApi.getFavoriteTemplates(),
                     ]);
-                    console.log('📋 fetchAllTemplates: Results:');
-                    console.log('📋 - Global:', Array.isArray(global) ? global.length : 'not array', typeof global);
-                    console.log('📋 - User:', Array.isArray(user) ? user.length : 'not array', typeof user);
-                    console.log('📋 - Favorites:', Array.isArray(favorites) ? favorites.length : 'not array', typeof favorites);
+                    logger.log('📋 fetchAllTemplates: Results:');
+                    logger.log('📋 - Global:', Array.isArray(global) ? global.length : 'not array', typeof global);
+                    logger.log('📋 - User:', Array.isArray(user) ? user.length : 'not array', typeof user);
+                    logger.log('📋 - Favorites:', Array.isArray(favorites) ? favorites.length : 'not array', typeof favorites);
                     if (global && !Array.isArray(global)) {
-                        console.log('📋 - Global raw:', JSON.stringify(global).substring(0, 300));
+                        logger.log('📋 - Global raw:', JSON.stringify(global).substring(0, 300));
                     }
                     set({
                         globalTemplates: global || [],
@@ -98,7 +99,7 @@ export const useTemplateStore = create<TemplateState>()(
                         loading: false,
                     });
                 } catch (error) {
-                    console.error('📋 fetchAllTemplates: Error:', error);
+                    logger.error('📋 fetchAllTemplates: Error:', error);
                     set({ error: 'Failed to fetch templates', loading: false });
                 }
             },
@@ -106,17 +107,17 @@ export const useTemplateStore = create<TemplateState>()(
             fetchGlobalTemplates: async () => {
                 set({ loading: true, error: null });
                 try {
-                    console.log('📋 Fetching global templates...');
+                    logger.log('📋 Fetching global templates...');
                     const templates = await taskTemplateApi.getGlobalTemplates();
-                    console.log('📋 Global templates received:');
-                    console.log('📋 - Type:', typeof templates);
-                    console.log('📋 - Is Array:', Array.isArray(templates));
-                    console.log('📋 - Length:', templates?.length);
-                    console.log('📋 - First item:', templates?.[0] ? JSON.stringify(templates[0]).substring(0, 200) : 'none');
-                    console.log('📋 - Raw data:', JSON.stringify(templates).substring(0, 500));
+                    logger.log('📋 Global templates received:');
+                    logger.log('📋 - Type:', typeof templates);
+                    logger.log('📋 - Is Array:', Array.isArray(templates));
+                    logger.log('📋 - Length:', templates?.length);
+                    logger.log('📋 - First item:', templates?.[0] ? JSON.stringify(templates[0]).substring(0, 200) : 'none');
+                    logger.log('📋 - Raw data:', JSON.stringify(templates).substring(0, 500));
                     set({ globalTemplates: templates || [], loading: false });
                 } catch (error) {
-                    console.error('📋 Failed to fetch global templates:', error);
+                    logger.error('📋 Failed to fetch global templates:', error);
                     set({ error: 'Failed to fetch global templates', loading: false });
                 }
             },
@@ -168,7 +169,7 @@ export const useTemplateStore = create<TemplateState>()(
             createTemplate: async (data: CreateTemplateRequest) => {
                 set({ loading: true, error: null });
                 try {
-                    const newTemplate = await taskTemplateApi.createTemplate(data);
+                    const newTemplate = await taskTemplateApi.createTemplate(data as unknown as Parameters<typeof taskTemplateApi.createTemplate>[0]);
                     set(state => ({
                         userTemplates: [...state.userTemplates, newTemplate],
                         loading: false,
@@ -314,7 +315,7 @@ export const useTemplateStore = create<TemplateState>()(
                     });
                 } catch (error) {
                     // Silent fail - usage tracking is not critical
-                    console.warn('Failed to track template usage:', error);
+                    logger.warn('Failed to track template usage:', error);
                 }
             },
 

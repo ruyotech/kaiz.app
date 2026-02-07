@@ -1,14 +1,15 @@
+import { logger } from '../../utils/logger';
 /**
  * ChatMessage Component
  * Displays user and AI messages in the chat interface
  */
 
 import React from 'react';
-import { View, Text, ActivityIndicator, Image, Pressable, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, ActivityIndicator, Pressable, TouchableOpacity, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { ChatMessage as ChatMessageType, DraftPreview, getDraftTypeDisplayName, getDraftTypeIcon, getDraftTypeColor } from '../../types/commandCenter';
-import { commandCenterService } from '../../services/commandCenter';
+import { commandCenterApi } from '../../services/api';
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -258,9 +259,9 @@ function DraftPreviewCard({ draft, onApprove, onReject, onEdit, onPress, onConfi
   const buildDraftDataObject = () => {
     const draftDetails = draft.draft as any;
     
-    console.log('🔄 [ChatMessage] Building draft data:');
-    console.log('  - draft:', JSON.stringify(draft, null, 2));
-    console.log('  - draftDetails:', JSON.stringify(draftDetails, null, 2));
+    logger.log('🔄 [ChatMessage] Building draft data:');
+    logger.log('  - draft:', JSON.stringify(draft, null, 2));
+    logger.log('  - draftDetails:', JSON.stringify(draftDetails, null, 2));
     
     // Parse date/time from various possible formats
     let dateStr = '';
@@ -273,7 +274,7 @@ function DraftPreviewCard({ draft, onApprove, onReject, onEdit, onPress, onConfi
     const titleDescReasoning = `${draft.title || ''} ${draft.description || ''} ${draftDetails?.description || ''} ${draft.reasoning || ''}`;
     const extractedFromText = extractTimeFromText(titleDescReasoning);
     if (extractedFromText.date || extractedFromText.startTime) {
-      console.log('🕐 [ChatMessage] Extracted time from text:', extractedFromText);
+      logger.log('🕐 [ChatMessage] Extracted time from text:', extractedFromText);
     }
     
     // For events, parse startTime which might be ISO datetime
@@ -344,7 +345,7 @@ function DraftPreviewCard({ draft, onApprove, onReject, onEdit, onPress, onConfi
       draftType: shouldBeEvent ? 'EVENT' : draft.draftType,
     };
     
-    console.log('  - builtData:', JSON.stringify(builtData, null, 2));
+    logger.log('  - builtData:', JSON.stringify(builtData, null, 2));
     return builtData;
   };
   
@@ -355,12 +356,12 @@ function DraftPreviewCard({ draft, onApprove, onReject, onEdit, onPress, onConfi
     try {
       const draftData = buildDraftDataObject();
       
-      console.log('💾 [ChatMessage] Creating pending from draft data:', draftData.title);
+      logger.log('💾 [ChatMessage] Creating pending from draft data:', draftData.title);
       
       // Use createPendingFromDraft which sends data directly (no session needed)
       // Backend uses `date` for events and `dueDate` for tasks
       // Convert empty strings to undefined (backend expects null/undefined, not empty strings for dates)
-      const response = await commandCenterService.createPendingFromDraft({
+      const response = await commandCenterApi.createPendingFromDraft({
         draftType: draft.draftType || 'TASK',
         title: draftData.title,
         description: draftData.description || undefined,
@@ -375,7 +376,7 @@ function DraftPreviewCard({ draft, onApprove, onReject, onEdit, onPress, onConfi
         isAllDay: draftData.isAllDay,
       });
       
-      console.log('💾 [ChatMessage] Create pending result:', JSON.stringify(response));
+      logger.log('💾 [ChatMessage] Create pending result:', JSON.stringify(response));
       
       if (response.success) {
         // Call onConfirmed callback to clear chat and show success message
@@ -384,10 +385,10 @@ function DraftPreviewCard({ draft, onApprove, onReject, onEdit, onPress, onConfi
           onConfirmed(draftData.title, draft.draftType || 'TASK');
         }
       } else {
-        Alert.alert('Error', response.error || 'Failed to save to pending');
+        Alert.alert('Error', String(response.error || 'Failed to save to pending'));
       }
-    } catch (error: any) {
-      console.error('Error saving to pending:', error);
+    } catch (error: unknown) {
+      logger.error('Error saving to pending:', error);
       Alert.alert('Error', 'Failed to save to pending. Please try again.');
     }
   };
@@ -396,7 +397,7 @@ function DraftPreviewCard({ draft, onApprove, onReject, onEdit, onPress, onConfi
   const handleCreateTask = () => {
     const draftData = buildDraftDataObject();
     
-    console.log('🚀 [ChatMessage] Navigating to create-from-sensai with:', JSON.stringify(draftData, null, 2));
+    logger.log('🚀 [ChatMessage] Navigating to create-from-sensai with:', JSON.stringify(draftData, null, 2));
     
     router.push({
       pathname: '/(tabs)/command-center/create-from-sensai',

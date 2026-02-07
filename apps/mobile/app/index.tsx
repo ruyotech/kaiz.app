@@ -4,74 +4,54 @@ import { View, Pressable, Text } from 'react-native';
 import { SplashScreen } from '../components/SplashScreen';
 import { useAppStore } from '../store/appStore';
 import { useAuthStore } from '../store/authStore';
-import { useNotificationStore } from '../store/notificationStore';
+import { logger } from '../utils/logger';
 
 export default function Index() {
     const router = useRouter();
     const [showSplash, setShowSplash] = useState(true);
     const [showDevReset, setShowDevReset] = useState(false);
     const { isOnboarded, reset: resetApp } = useAppStore();
-    const { user, reset: resetAuth } = useAuthStore();
-    const { fetchNotifications } = useNotificationStore();
-
-    useEffect(() => {
-        // Log current state for debugging
-        console.log('🔍 App State:', { 
-            isOnboarded, 
-            hasUser: !!user,
-            userName: user?.fullName 
-        });
-        
-        // Initialize notifications when user is logged in
-        if (user) {
-            fetchNotifications().catch((error) => {
-                console.warn('Failed to fetch notifications:', error);
-            });
-        }
-    }, [isOnboarded, user]);
+    const { user, validateSession, reset: resetAuth } = useAuthStore();
 
     useEffect(() => {
         if (!showSplash) {
-            // Determine where to navigate based on app state
-            console.log('🚀 Navigating based on state...');
-            
-            // Check onboarding first - if not onboarded, go to welcome
-            if (!isOnboarded) {
-                console.log('→ Going to Welcome Screen (not onboarded)');
-                // @ts-ignore - Dynamic route
-                router.replace('/(onboarding)/welcome');
-            } else if (!user) {
-                console.log('→ Going to Login (onboarded but no user)');
-                // @ts-ignore - Dynamic route
-                router.replace('/(auth)/login');
-            } else {
-                // User exists - go directly to sprint calendar
-                console.log('→ Going to Sprint Calendar (user exists)');
-                router.replace('/(tabs)/sdlc/calendar');
-            }
+            (async () => {
+                logger.info('Navigation', 'Navigating based on state…');
+
+                if (!isOnboarded) {
+                    logger.info('Navigation', '→ Welcome Screen (not onboarded)');
+                    router.replace('/(onboarding)/welcome' as never);
+                    return;
+                }
+
+                // Validate token with the backend instead of trusting persisted state
+                const valid = await validateSession();
+                if (!valid) {
+                    logger.info('Navigation', '→ Login (session invalid)');
+                    router.replace('/(auth)/login' as never);
+                } else {
+                    logger.info('Navigation', '→ Sprint Calendar (session valid)');
+                    router.replace('/(tabs)/sprints/calendar' as never);
+                }
+            })();
         }
-    }, [showSplash, isOnboarded, user]);
+    }, [showSplash, isOnboarded]);
 
     const handleSplashFinish = () => {
         setShowSplash(false);
     };
 
     const handleDevReset = async () => {
-        console.log('🔄 Resetting app state...');
+        logger.info('App', 'Resetting app state…');
         const { reset: resetPreferences } = require('../store/preferencesStore').usePreferencesStore.getState();
         
-        // Clear all stores
         resetApp();
         resetAuth();
         resetPreferences();
         setShowDevReset(false);
         
-        // Wait for AsyncStorage to clear
         await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // Go to welcome screen (start of onboarding flow)
-        // @ts-ignore - Dynamic route
-        router.replace('/(onboarding)/welcome');
+        router.replace('/(onboarding)/welcome' as never);
     };
 
     if (showSplash) {

@@ -1,3 +1,4 @@
+import { logger } from '../../../utils/logger';
 import React, { useState } from 'react';
 import {
     View,
@@ -82,7 +83,7 @@ export default function CreateTemplateScreen() {
                 { text: 'OK', onPress: () => router.back() },
             ]);
         } catch (error) {
-            console.error('Failed to create template:', error);
+            logger.error('Failed to create template:', error);
             Alert.alert('Error', 'Failed to create template. Please try again.');
         } finally {
             setIsLoading(false);

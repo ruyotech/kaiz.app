@@ -1,3 +1,4 @@
+import { logger } from '../../../utils/logger';
 /**
  * Create From SensAI Screen
  * 
@@ -106,27 +107,27 @@ export default function CreateFromSensAIScreen() {
 
   // Parse draft data from params with error handling
   const parseDraftData = useCallback((): DraftData => {
-    console.log('[CreateFromSensAI] Raw params.draftData:', params.draftData);
-    console.log('[CreateFromSensAI] params.draftData type:', typeof params.draftData);
+    logger.log('[CreateFromSensAI] Raw params.draftData:', params.draftData);
+    logger.log('[CreateFromSensAI] params.draftData type:', typeof params.draftData);
     
     if (!params.draftData) {
-      console.log('[CreateFromSensAI] No draftData in params');
+      logger.log('[CreateFromSensAI] No draftData in params');
       return { title: '' };
     }
     
     try {
       // Handle if draftData is already an object (shouldn't happen but safety check)
       if (typeof params.draftData === 'object') {
-        console.log('[CreateFromSensAI] draftData is already an object');
+        logger.log('[CreateFromSensAI] draftData is already an object');
         return params.draftData as unknown as DraftData;
       }
       
       const parsed = JSON.parse(params.draftData);
-      console.log('[CreateFromSensAI] Parsed draft data:', JSON.stringify(parsed, null, 2));
+      logger.log('[CreateFromSensAI] Parsed draft data:', JSON.stringify(parsed, null, 2));
       return parsed;
     } catch (error) {
-      console.error('[CreateFromSensAI] Failed to parse draftData:', error);
-      console.error('[CreateFromSensAI] Raw value was:', params.draftData);
+      logger.error('[CreateFromSensAI] Failed to parse draftData:', error);
+      logger.error('[CreateFromSensAI] Raw value was:', params.draftData);
       return { title: '' };
     }
   }, [params.draftData]);
@@ -218,7 +219,7 @@ export default function CreateFromSensAIScreen() {
   // Update state when params change (Expo Router may load params async)
   useEffect(() => {
     const draft = parseDraftData();
-    console.log('[CreateFromSensAI] Params changed, updating form with:', draft);
+    logger.log('[CreateFromSensAI] Params changed, updating form with:', draft);
     
     if (draft.title) {
       setTitle(draft.title);
@@ -268,7 +269,7 @@ export default function CreateFromSensAIScreen() {
   
   // Log initial state for debugging
   useEffect(() => {
-    console.log('[CreateFromSensAI] Current form state:', {
+    logger.log('[CreateFromSensAI] Current form state:', {
       title,
       description,
       storyPoints,
@@ -310,7 +311,7 @@ export default function CreateFromSensAIScreen() {
   const fetchSprints = async () => {
     try {
       const currentYear = new Date().getFullYear();
-      const sprintData = await sprintApi.getSprints(currentYear);
+      const sprintData = await sprintApi.getSprints(currentYear) as Sprint[];
       const now = new Date();
       
       const availableSprints = sprintData
@@ -324,16 +325,16 @@ export default function CreateFromSensAIScreen() {
         setSelectedSprintId(availableSprints[0].id);
       }
     } catch (error) {
-      console.error('Failed to load sprints:', error);
+      logger.error('Failed to load sprints:', error);
     }
   };
 
   const fetchQuadrants = async () => {
     try {
-      const quadrantsData = await lifeWheelApi.getEisenhowerQuadrants();
+      const quadrantsData = await lifeWheelApi.getEisenhowerQuadrants() as EisenhowerQuadrant[];
       setQuadrants(quadrantsData);
     } catch (error) {
-      console.error('Failed to load quadrants:', error);
+      logger.error('Failed to load quadrants:', error);
       setQuadrants([
         { id: 'eq-1', name: 'Do First', label: 'Urgent & Important', color: '#DC2626' },
         { id: 'eq-2', name: 'Schedule', label: 'Not Urgent & Important', color: '#2563EB' },
@@ -348,7 +349,7 @@ export default function CreateFromSensAIScreen() {
       const areas = await lifeWheelApi.getLifeWheelAreas();
       setLifeWheelAreas(areas);
     } catch (error) {
-      console.error('Failed to load life wheel areas:', error);
+      logger.error('Failed to load life wheel areas:', error);
     }
   };
 
@@ -407,12 +408,12 @@ export default function CreateFromSensAIScreen() {
           const commentText = initialDraft.aiSummary 
             || `🤖 AI Analysis:\n${initialDraft.aiReasoning}`;
           
-          await taskApi.addComment(newTask.id, {
+          await taskApi.addComment((newTask as any).id, {
             commentText,
             isAiGenerated: true,
           });
         } catch (commentError) {
-          console.error('Failed to add AI comment:', commentError);
+          logger.error('Failed to add AI comment:', commentError);
           // Don't fail the whole operation if comment fails
         }
       }
@@ -440,7 +441,7 @@ export default function CreateFromSensAIScreen() {
         ]
       );
     } catch (error) {
-      console.error('Failed to create task:', error);
+      logger.error('Failed to create task:', error);
       Alert.alert('Error', 'Failed to create. Please try again.');
     } finally {
       setIsLoading(false);

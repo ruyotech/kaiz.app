@@ -612,7 +612,7 @@ export default function FamilyDashboardScreen() {
                             onPress={() => {
                                 // Set view scope to family and navigate to backlog
                                 setViewScope('family');
-                                router.push('/(tabs)/sdlc/backlog' as any);
+                                router.push('/(tabs)/sprints/backlog' as any);
                             }}
                             className="flex-1 p-4 rounded-2xl items-center"
                             style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
@@ -629,7 +629,7 @@ export default function FamilyDashboardScreen() {
                             onPress={() => {
                                 // Set view scope to family and navigate to calendar
                                 setViewScope('family');
-                                router.push('/(tabs)/sdlc/calendar' as any);
+                                router.push('/(tabs)/sprints/calendar' as any);
                             }}
                             className="flex-1 p-4 rounded-2xl items-center"
                             style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}

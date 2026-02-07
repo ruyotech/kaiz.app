@@ -71,8 +71,9 @@ export const useChallengeStore = create<ChallengeState>((set, get) => ({
                 challengeApi.getChallengeById(challengeId),
                 challengeApi.getEntries(challengeId),
             ]);
+            const detail = challengeData as { participants?: unknown[] };
             set({
-                participants: (challengeData.participants || []) as ChallengeParticipant[],
+                participants: (detail.participants || []) as ChallengeParticipant[],
                 entries: entries as ChallengeEntry[],
                 loading: false,
             });

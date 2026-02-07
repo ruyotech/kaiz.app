@@ -1,4 +1,5 @@
-import { View, Text, TouchableOpacity, Image } from 'react-native';
+import React from 'react';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { CommunityTemplate } from '../../types/models';
 import { useThemeContext } from '../../providers/ThemeProvider';
@@ -20,7 +21,7 @@ const TYPE_CONFIG: Record<string, { label: string; icon: string; color: string }
     checklist: { label: 'Checklist', icon: 'checkbox-marked', color: '#06B6D4' },
 };
 
-export function TemplateCard({ template, onPress, onDownload, onBookmark, compact = false }: TemplateCardProps) {
+export const TemplateCard = React.memo(function TemplateCard({ template, onPress, onDownload, onBookmark, compact = false }: TemplateCardProps) {
     const { colors } = useThemeContext();
     const config = TYPE_CONFIG[template.type] || TYPE_CONFIG.process;
     
@@ -175,4 +176,4 @@ export function TemplateCard({ template, onPress, onDownload, onBookmark, compac
             </View>
         </TouchableOpacity>
     );
-}
+});

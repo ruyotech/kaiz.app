@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 /**
  * AttachmentPicker.tsx - Reusable Attachment Picker Component
  * 
@@ -72,7 +73,7 @@ async function getFileInfo(uri: string): Promise<{ size: number; exists: boolean
         }
         return { exists: false, size: 0 };
     } catch (error) {
-        console.error('❌ Error getting file info:', error);
+        logger.error('❌ Error getting file info:', error);
         return { exists: false, size: 0 };
     }
 }
@@ -137,7 +138,7 @@ export function AttachmentPicker({
 
     // Audio recorder hook
     const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY, (status) => {
-        console.log('🎤 [Voice] Recording status:', status);
+        logger.log('🎤 [Voice] Recording status:', status);
     });
 
     // Permissions
@@ -222,7 +223,7 @@ export function AttachmentPicker({
             onAttachmentAdded(attachment);
             onClose();
         } catch (error) {
-            console.error('📷 [Camera] Error:', error);
+            logger.error('📷 [Camera] Error:', error);
             Alert.alert('Error', 'Failed to capture photo. Please try again.');
         }
     }, [cameraPermission, requestCameraPermission, canAddMore, maxAttachments, onAttachmentAdded, onClose]);
@@ -267,7 +268,7 @@ export function AttachmentPicker({
             onAttachmentAdded(attachment);
             onClose();
         } catch (error) {
-            console.error('🖼️ [Gallery] Error:', error);
+            logger.error('🖼️ [Gallery] Error:', error);
             Alert.alert('Error', 'Failed to access photo library. Please try again.');
         }
     }, [mediaLibraryPermission, requestMediaLibraryPermission, canAddMore, maxAttachments, onAttachmentAdded, onClose]);
@@ -307,7 +308,7 @@ export function AttachmentPicker({
             onAttachmentAdded(attachment);
             onClose();
         } catch (error) {
-            console.error('📄 [File] Error:', error);
+            logger.error('📄 [File] Error:', error);
             Alert.alert('Error', 'Failed to pick file. Please try again.');
         }
     }, [canAddMore, maxAttachments, onAttachmentAdded, onClose]);
@@ -333,7 +334,7 @@ export function AttachmentPicker({
             setIsRecording(true);
             setRecordingDuration(0);
         } catch (error) {
-            console.error('🎤 [Voice] Error starting recording:', error);
+            logger.error('🎤 [Voice] Error starting recording:', error);
             Alert.alert('Error', 'Failed to start recording. Please try again.');
         }
     }, [audioRecorder, canAddMore, maxAttachments]);
@@ -362,7 +363,7 @@ export function AttachmentPicker({
             setIsRecording(false);
             setRecordingDuration(0);
         } catch (error) {
-            console.error('🎤 [Voice] Error stopping recording:', error);
+            logger.error('🎤 [Voice] Error stopping recording:', error);
             setIsRecording(false);
             setRecordingDuration(0);
         }

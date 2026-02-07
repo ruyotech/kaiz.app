@@ -1,3 +1,4 @@
+import { logger } from '../../../utils/logger';
 /**
  * Pending Approvals Screen
  * 
@@ -22,7 +23,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Container } from '../../../components/layout/Container';
 import { ScreenHeader } from '../../../components/layout/ScreenHeader';
 import { PendingTaskCard } from '../../../components/command-center/PendingTaskCard';
-import { commandCenterService } from '../../../services/commandCenter';
+import { commandCenterApi } from '../../../services/api';
 import { useThemeContext } from '../../../providers/ThemeProvider';
 
 // ============================================================================
@@ -163,12 +164,12 @@ export default function PendingDraftsScreen() {
     else setIsLoading(true);
 
     try {
-      const response = await commandCenterService.getPendingApprovalTasks();
+      const response = await commandCenterApi.getPendingApprovalTasks();
       if (response.success && response.data) {
-        setTasks(response.data);
+        setTasks(response.data as PendingTask[]);
       }
     } catch (error) {
-      console.error('Failed to fetch pending tasks:', error);
+      logger.error('Failed to fetch pending tasks:', error);
       Alert.alert('Error', 'Failed to load pending items');
     } finally {
       setIsLoading(false);

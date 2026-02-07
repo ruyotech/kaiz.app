@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 /**
  * settingsStore.ts - Centralized Settings Store for Kaiz 
  * 
@@ -188,7 +189,7 @@ function getEffectiveTheme(themeMode: ThemeMode): ColorSchemeName {
 // Helper to get cache directory size
 async function getCacheDirectorySize(): Promise<number> {
     try {
-        const cacheDir = FileSystem.cacheDirectory || null;
+        const cacheDir = (FileSystem as unknown as { cacheDirectory?: string }).cacheDirectory ?? null;
         if (!cacheDir) return 0;
         // @ts-ignore
         const dirInfo = await FileSystem.getInfoAsync(cacheDir);
@@ -196,7 +197,7 @@ async function getCacheDirectorySize(): Promise<number> {
         // Placeholder: actual size calculation would require recursive walk
         return 0;
     } catch (error) {
-        console.error('Error calculating cache size:', error);
+        logger.error('Error calculating cache size:', error);
         return 0;
     }
 }
@@ -286,7 +287,7 @@ export const useSettingsStore = create<SettingsState>()(
             // === Storage Actions ===
             clearCache: async () => {
                 try {
-                    const cacheDir = FileSystem.cacheDirectory || null;
+                    const cacheDir = (FileSystem as unknown as { cacheDirectory?: string }).cacheDirectory ?? null;
                     if (cacheDir) {
                         const dirInfo = await FileSystem.getInfoAsync(cacheDir);
                         if (dirInfo.exists) {
@@ -301,7 +302,7 @@ export const useSettingsStore = create<SettingsState>()(
                         },
                     }));
                 } catch (error) {
-                    console.error('Error clearing cache:', error);
+                    logger.error('Error clearing cache:', error);
                 }
             },
 

@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 /**
  * ChatInput.tsx - Modern Chat Input Component for Expo SDK 54
  * 
@@ -78,7 +79,7 @@ async function getFileInfo(uri: string): Promise<{ size: number; exists: boolean
             size: info.exists && 'size' in info ? info.size : 0,
         };
     } catch (error) {
-        console.error('❌ Error getting file info:', error);
+        logger.error('❌ Error getting file info:', error);
         return { exists: false, size: 0 };
     }
 }
@@ -143,13 +144,13 @@ function formatDuration(seconds: number): string {
  * Log attachment info for debugging/verification
  */
 function logAttachmentInfo(attachment: Attachment, label: string = 'Attachment'): void {
-    console.log(`\n📎 ===== ${label} =====`);
-    console.log(`   URI: ${attachment.uri}`);
-    console.log(`   Type: ${attachment.type}`);
-    console.log(`   Name: ${attachment.name}`);
-    console.log(`   MIME: ${attachment.mimeType}`);
-    console.log(`   Size: ${formatFileSize(attachment.size)} (${attachment.size} bytes)`);
-    console.log(`   ========================\n`);
+    logger.log(`\n📎 ===== ${label} =====`);
+    logger.log(`   URI: ${attachment.uri}`);
+    logger.log(`   Type: ${attachment.type}`);
+    logger.log(`   Name: ${attachment.name}`);
+    logger.log(`   MIME: ${attachment.mimeType}`);
+    logger.log(`   Size: ${formatFileSize(attachment.size)} (${attachment.size} bytes)`);
+    logger.log(`   ========================\n`);
 }
 
 // ============================================================================
@@ -190,7 +191,7 @@ export function ChatInput({
     
     // Audio recorder using the new expo-audio hook
     const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY, (status) => {
-        console.log('🎤 [Voice] Recording status:', status);
+        logger.log('🎤 [Voice] Recording status:', status);
     });
     
     // Audio player for playback preview (null source when not playing)
@@ -253,7 +254,7 @@ export function ChatInput({
     
     const handleCamera = useCallback(async () => {
         try {
-            console.log('📷 [Camera] Checking permissions...');
+            logger.log('📷 [Camera] Checking permissions...');
             
             // Use the hook-based permission
             if (!cameraPermission?.granted) {
@@ -268,7 +269,7 @@ export function ChatInput({
                 }
             }
             
-            console.log('📷 [Camera] Launching camera...');
+            logger.log('📷 [Camera] Launching camera...');
             const result = await ImagePicker.launchCameraAsync({
                 allowsEditing: true,
                 quality: 0.8,
@@ -276,12 +277,12 @@ export function ChatInput({
             });
             
             if (result.canceled) {
-                console.log('📷 [Camera] User cancelled');
+                logger.log('📷 [Camera] User cancelled');
                 return;
             }
             
             const asset = result.assets[0];
-            console.log('📷 [Camera] Photo captured:', asset.uri);
+            logger.log('📷 [Camera] Photo captured:', asset.uri);
             
             // Get file info for normalization
             const fileInfo = await getFileInfo(asset.uri);
@@ -303,7 +304,7 @@ export function ChatInput({
                 Alert.alert('Limit Reached', `Maximum ${maxAttachments} attachments allowed.`);
             }
         } catch (error) {
-            console.error('📷 [Camera] Error:', error);
+            logger.error('📷 [Camera] Error:', error);
             Alert.alert('Error', 'Failed to capture photo. Please try again.');
         }
     }, [cameraPermission, requestCameraPermission, attachments.length, maxAttachments]);
@@ -314,7 +315,7 @@ export function ChatInput({
     
     const handleGallery = useCallback(async () => {
         try {
-            console.log('🖼️ [Gallery] Checking permissions...');
+            logger.log('🖼️ [Gallery] Checking permissions...');
             
             // Use the hook-based permission
             if (!mediaLibraryPermission?.granted) {
@@ -329,7 +330,7 @@ export function ChatInput({
                 }
             }
             
-            console.log('🖼️ [Gallery] Launching image library...');
+            logger.log('🖼️ [Gallery] Launching image library...');
             const result = await ImagePicker.launchImageLibraryAsync({
                 mediaTypes: ['images'],
                 allowsMultipleSelection: true,
@@ -339,11 +340,11 @@ export function ChatInput({
             });
             
             if (result.canceled) {
-                console.log('🖼️ [Gallery] User cancelled');
+                logger.log('🖼️ [Gallery] User cancelled');
                 return;
             }
             
-            console.log(`🖼️ [Gallery] Selected ${result.assets.length} image(s)`);
+            logger.log(`🖼️ [Gallery] Selected ${result.assets.length} image(s)`);
             
             const newAttachments: Attachment[] = [];
             
@@ -372,7 +373,7 @@ export function ChatInput({
             
             setAttachments(prev => [...prev, ...toAdd]);
         } catch (error) {
-            console.error('🖼️ [Gallery] Error:', error);
+            logger.error('🖼️ [Gallery] Error:', error);
             Alert.alert('Error', 'Failed to access photo library. Please try again.');
         }
     }, [mediaLibraryPermission, requestMediaLibraryPermission, attachments.length, maxAttachments]);
@@ -383,7 +384,7 @@ export function ChatInput({
     
     const handleFilePicker = useCallback(async () => {
         try {
-            console.log('📄 [File] Launching document picker...');
+            logger.log('📄 [File] Launching document picker...');
             
             const result = await DocumentPicker.getDocumentAsync({
                 type: '*/*',
@@ -392,11 +393,11 @@ export function ChatInput({
             });
             
             if (result.canceled) {
-                console.log('📄 [File] User cancelled');
+                logger.log('📄 [File] User cancelled');
                 return;
             }
             
-            console.log(`📄 [File] Selected ${result.assets.length} file(s)`);
+            logger.log(`📄 [File] Selected ${result.assets.length} file(s)`);
             
             const newAttachments: Attachment[] = [];
             
@@ -405,7 +406,7 @@ export function ChatInput({
                 const fileInfo = await getFileInfo(asset.uri);
                 
                 if (!fileInfo.exists) {
-                    console.warn(`📄 [File] File not accessible: ${asset.uri}`);
+                    logger.warn(`📄 [File] File not accessible: ${asset.uri}`);
                     continue;
                 }
                 
@@ -430,7 +431,7 @@ export function ChatInput({
             
             setAttachments(prev => [...prev, ...toAdd]);
         } catch (error) {
-            console.error('📄 [File] Error:', error);
+            logger.error('📄 [File] Error:', error);
             Alert.alert('Error', 'Failed to pick file. Please try again.');
         }
     }, [attachments.length, maxAttachments]);
@@ -441,7 +442,7 @@ export function ChatInput({
     
     const startRecording = useCallback(async () => {
         try {
-            console.log('🎤 [Voice] Requesting microphone permission...');
+            logger.log('🎤 [Voice] Requesting microphone permission...');
             
             // Request permission using the new expo-audio module
             const permissionStatus = await requestRecordingPermissionsAsync();
@@ -455,12 +456,12 @@ export function ChatInput({
                 return;
             }
             
-            console.log('🎤 [Voice] Preparing recorder...');
+            logger.log('🎤 [Voice] Preparing recorder...');
             
             // Prepare the recorder before starting (required in SDK 54)
             await audioRecorder.prepareToRecordAsync();
             
-            console.log('🎤 [Voice] Starting recording...');
+            logger.log('🎤 [Voice] Starting recording...');
             
             // Use the recorder from useAudioRecorder hook
             audioRecorder.record();
@@ -468,23 +469,23 @@ export function ChatInput({
             setIsRecording(true);
             setRecordingDuration(0);
             
-            console.log('🎤 [Voice] Recording started');
+            logger.log('🎤 [Voice] Recording started');
         } catch (error) {
-            console.error('🎤 [Voice] Error starting recording:', error);
+            logger.error('🎤 [Voice] Error starting recording:', error);
             Alert.alert('Error', 'Failed to start recording. Please try again.');
         }
     }, [audioRecorder]);
     
     const stopRecording = useCallback(async (save: boolean = true) => {
         try {
-            console.log(`🎤 [Voice] Stopping recording (save: ${save})...`);
+            logger.log(`🎤 [Voice] Stopping recording (save: ${save})...`);
             
             // Stop the recording
             await audioRecorder.stop();
             
             if (save && audioRecorder.uri) {
                 const uri = audioRecorder.uri;
-                console.log('🎤 [Voice] Recording saved to:', uri);
+                logger.log('🎤 [Voice] Recording saved to:', uri);
                 
                 // Get file info
                 const fileInfo = await getFileInfo(uri);
@@ -506,13 +507,13 @@ export function ChatInput({
                     Alert.alert('Limit Reached', `Maximum ${maxAttachments} attachments allowed.`);
                 }
             } else {
-                console.log('🎤 [Voice] Recording discarded');
+                logger.log('🎤 [Voice] Recording discarded');
             }
             
             setIsRecording(false);
             setRecordingDuration(0);
         } catch (error) {
-            console.error('🎤 [Voice] Error stopping recording:', error);
+            logger.error('🎤 [Voice] Error stopping recording:', error);
             setIsRecording(false);
             setRecordingDuration(0);
         }
@@ -565,13 +566,13 @@ export function ChatInput({
             return;
         }
         
-        console.log('\n📤 ===== SENDING MESSAGE =====');
-        console.log(`   Message: "${message.trim()}"`);
-        console.log(`   Attachments: ${attachments.length}`);
+        logger.log('\n📤 ===== SENDING MESSAGE =====');
+        logger.log(`   Message: "${message.trim()}"`);
+        logger.log(`   Attachments: ${attachments.length}`);
         attachments.forEach((att, i) => {
             logAttachmentInfo(att, `Attachment ${i + 1}`);
         });
-        console.log('==============================\n');
+        logger.log('==============================\n');
         
         onSend(message.trim(), attachments);
         setMessage('');
@@ -795,30 +796,30 @@ export function ChatInput({
  */
 export function ChatInputDemo() {
     const handleSend = (message: string, attachments: Attachment[]) => {
-        console.log('\n🚀 ========== DEMO: Message Received ==========');
-        console.log(`📝 Message: "${message}"`);
-        console.log(`📎 Attachments Count: ${attachments.length}`);
+        logger.log('\n🚀 ========== DEMO: Message Received ==========');
+        logger.log(`📝 Message: "${message}"`);
+        logger.log(`📎 Attachments Count: ${attachments.length}`);
         
         attachments.forEach((att, i) => {
-            console.log(`\n--- Attachment ${i + 1} ---`);
-            console.log(`  URI: ${att.uri}`);
-            console.log(`  Type: ${att.type}`);
-            console.log(`  Name: ${att.name}`);
-            console.log(`  MIME Type: ${att.mimeType}`);
-            console.log(`  Size: ${formatFileSize(att.size)} (${att.size} bytes)`);
+            logger.log(`\n--- Attachment ${i + 1} ---`);
+            logger.log(`  URI: ${att.uri}`);
+            logger.log(`  Type: ${att.type}`);
+            logger.log(`  Name: ${att.name}`);
+            logger.log(`  MIME Type: ${att.mimeType}`);
+            logger.log(`  Size: ${formatFileSize(att.size)} (${att.size} bytes)`);
             
             // Verify the file is accessible
             FileSystem.getInfoAsync(att.uri).then(info => {
-                console.log(`  ✅ File exists: ${info.exists}`);
+                logger.log(`  ✅ File exists: ${info.exists}`);
                 if (info.exists && 'size' in info) {
-                    console.log(`  ✅ Verified size: ${info.size} bytes`);
+                    logger.log(`  ✅ Verified size: ${info.size} bytes`);
                 }
             }).catch(err => {
-                console.log(`  ❌ File access error: ${err.message}`);
+                logger.log(`  ❌ File access error: ${err.message}`);
             });
         });
         
-        console.log('================================================\n');
+        logger.log('================================================\n');
         
         Alert.alert(
             'Message Sent!',

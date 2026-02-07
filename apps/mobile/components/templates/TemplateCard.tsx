@@ -53,7 +53,7 @@ const renderStars = (rating: number, size: number = 14) => {
     return stars;
 };
 
-export function TemplateCard({
+export const TemplateCard = React.memo(function TemplateCard({
     template,
     onPress,
     onFavoritePress,
@@ -315,6 +315,6 @@ export function TemplateCard({
             </Card>
         </TouchableOpacity>
     );
-}
+});
 
 export default TemplateCard;

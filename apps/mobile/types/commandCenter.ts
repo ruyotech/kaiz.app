@@ -149,6 +149,7 @@ export interface TaskDraft {
 export interface ChallengeDraft {
   type: 'CHALLENGE';
   title: string;
+  name?: string;
   description?: string;
   challengeType: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'CUSTOM';
   targetDays?: number;
@@ -346,7 +347,7 @@ export function getDraftTypeColor(type: DraftType | null | undefined): string {
 export function getDraftTitle(draft: DraftPreview['draft'] | null | undefined): string {
   if (!draft || typeof draft !== 'object') return 'Untitled';
   if ('title' in draft && draft.title) return draft.title;
-  if ('name' in draft && (draft as ChallengeDraft).name) return (draft as ChallengeDraft).name;
+  if ('name' in draft && (draft as ChallengeDraft).name) return (draft as ChallengeDraft).name ?? 'Untitled';
   return 'Untitled';
 }
 

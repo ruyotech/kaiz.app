@@ -1,3 +1,4 @@
+import { logger } from '../../../utils/logger';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -38,13 +39,13 @@ export default function KnowledgeItemScreen() {
         setLoading(true);
         try {
             const data = await communityApi.getKnowledgeItemBySlug(slug);
-            setItem(data);
+            setItem(data as KnowledgeItem);
             // Record view using the item's ID
-            if (data?.id) {
-                await communityApi.recordKnowledgeItemView(data.id);
+            if ((data as any)?.id) {
+                await communityApi.recordKnowledgeItemView((data as any).id);
             }
         } catch (error) {
-            console.error('Failed to load knowledge item:', error);
+            logger.error('Failed to load knowledge item:', error);
         } finally {
             setLoading(false);
         }
@@ -57,7 +58,7 @@ export default function KnowledgeItemScreen() {
             setMarkedHelpful(true);
             setItem({ ...item, helpfulCount: item.helpfulCount + 1 });
         } catch (error) {
-            console.error('Failed to mark as helpful:', error);
+            logger.error('Failed to mark as helpful:', error);
         }
     };
 

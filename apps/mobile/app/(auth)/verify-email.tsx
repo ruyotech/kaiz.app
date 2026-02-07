@@ -90,8 +90,8 @@ export default function VerifyEmailScreen() {
                     },
                 ]
             );
-        } catch (error: any) {
-            const message = error?.message || authError || 'Invalid verification code. Please try again.';
+        } catch (error: unknown) {
+            const message = (error instanceof Error ? error.message : undefined) || authError || 'Invalid verification code. Please try again.';
             Alert.alert('Verification Failed', message, [{ text: 'OK' }]);
             setCode(['', '', '', '', '', '']);
             inputRefs.current[0]?.focus();
@@ -109,8 +109,8 @@ export default function VerifyEmailScreen() {
             await sendVerificationCode();
             setResendCooldown(60);
             Alert.alert('Success', 'A new verification code has been sent to your email');
-        } catch (error: any) {
-            const message = error?.message || 'Failed to resend code. Please try again.';
+        } catch (error: unknown) {
+            const message = (error instanceof Error ? error.message : undefined) || 'Failed to resend code. Please try again.';
             Alert.alert('Error', message);
         } finally {
             setLoading(false);
@@ -203,7 +203,7 @@ export default function VerifyEmailScreen() {
                     </Text>
                     
                     {resendCooldown > 0 ? (
-                        <Text style={{ color: colors.textMuted }}>
+                        <Text style={{ color: colors.textSecondary }}>
                             Resend available in {resendCooldown}s
                         </Text>
                     ) : (

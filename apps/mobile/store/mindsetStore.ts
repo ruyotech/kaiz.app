@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -220,7 +221,7 @@ export const useMindsetStore = create<MindsetState>()(
             internalize: (contentId) => {
                 const content = get().allContent.find((c) => c.id === contentId);
                 if (content) {
-                    console.log('📝 Internalize to Journal:', content.body);
+                    logger.log('📝 Internalize to Journal:', content.body);
                     // TODO: Integrate with journal/notes store
                 }
             },
@@ -228,7 +229,7 @@ export const useMindsetStore = create<MindsetState>()(
             operationalize: (contentId) => {
                 const content = get().allContent.find((c) => c.id === contentId);
                 if (content) {
-                    console.log('✅ Operationalize to Task:', content.body);
+                    logger.log('✅ Operationalize to Task:', content.body);
                     // TODO: Integrate with task store
                     // Create task with dimension from content.dimensionTag
                 }

@@ -1,3 +1,4 @@
+import { logger } from '../../../utils/logger';
 /**
  * Command Center Chat Screen
  * 
@@ -18,8 +19,15 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
-  Animated,
 } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withSequence,
+  withTiming,
+  cancelAnimation,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -29,7 +37,8 @@ import { Audio } from 'expo-av';
 import { Container } from '../../../components/layout/Container';
 import { ScreenHeader } from '../../../components/layout/ScreenHeader';
 import { ChatMessage, TestAttachmentPicker } from '../../../components/command-center';
-import { commandCenterService } from '../../../services/commandCenter';
+import { commandCenterApi } from '../../../services/api';
+import type { DraftPreview } from '../../../types/commandCenter';
 import {
   ChatMessage as ChatMessageType,
   SmartInputAttachment,
@@ -86,7 +95,11 @@ export default function CommandCenterChatScreen() {
   // Recording state
   const [isRecording, setIsRecording] = useState(false);
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
-  const recordingAnimation = useRef(new Animated.Value(1)).current;
+  const recordingScale = useSharedValue(1);
+
+  const recordingAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: recordingScale.value }],
+  }));
   
   // =========================================================================
   // Effects
@@ -102,22 +115,16 @@ export default function CommandCenterChatScreen() {
   // Recording animation
   useEffect(() => {
     if (isRecording) {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(recordingAnimation, {
-            toValue: 1.2,
-            duration: 500,
-            useNativeDriver: true,
-          }),
-          Animated.timing(recordingAnimation, {
-            toValue: 1,
-            duration: 500,
-            useNativeDriver: true,
-          }),
-        ])
-      ).start();
+      recordingScale.value = withRepeat(
+        withSequence(
+          withTiming(1.2, { duration: 500 }),
+          withTiming(1, { duration: 500 }),
+        ),
+        -1,
+      );
     } else {
-      recordingAnimation.setValue(1);
+      cancelAnimation(recordingScale);
+      recordingScale.value = withTiming(1, { duration: 200 });
     }
   }, [isRecording]);
 
@@ -171,7 +178,7 @@ export default function CommandCenterChatScreen() {
       }));
 
       // Send to AI
-      const response = await commandCenterService.sendMessage(
+      const response = await commandCenterApi.sendMessage(
         text || null,
         apiAttachments,
         currentSessionId || undefined
@@ -179,13 +186,13 @@ export default function CommandCenterChatScreen() {
 
       if (response.success && response.data) {
         const aiResponse = response.data as any; // Backend response structure differs from frontend types
-        console.log('🤖 [AI Response] Raw:', JSON.stringify(aiResponse, null, 2));
+        logger.log('🤖 [AI Response] Raw:', JSON.stringify(aiResponse, null, 2));
         setCurrentSessionId(aiResponse.sessionId);
 
         // Transform backend response to frontend DraftPreview structure
         // Backend returns: { sessionId, status, intentDetected, confidenceScore, draft: {type, title, ...}, ... }
         // Frontend expects: { id, draftType, status, confidence, title, draft: {type, title, ...}, ... }
-        let draftPreview = null;
+        let draftPreview: DraftPreview | undefined = undefined;
         if (aiResponse.draft && aiResponse.status === 'READY') {
           const rawDraft = aiResponse.draft;
           // Normalize draft type to uppercase - check both rawDraft.type and intentDetected
@@ -194,7 +201,7 @@ export default function CommandCenterChatScreen() {
           // Use intentDetected first (backend sets this), fallback to draft type
           const draftType = (aiResponse.intentDetected || normalizedType) as 'TASK' | 'EVENT' | 'CHALLENGE' | 'BILL' | 'NOTE' | 'EPIC' | 'GOAL';
           
-          console.log('📋 [Draft] rawType:', rawType, 'intentDetected:', aiResponse.intentDetected, 'final draftType:', draftType);
+          logger.log('📋 [Draft] rawType:', rawType, 'intentDetected:', aiResponse.intentDetected, 'final draftType:', draftType);
           
           // Transform backend fields to frontend format
           const transformedDraft = {
@@ -219,7 +226,7 @@ export default function CommandCenterChatScreen() {
             createdAt: new Date().toISOString(),
           };
           
-          console.log('📋 [DraftPreview] Created:', JSON.stringify(draftPreview, null, 2));
+          logger.log('📋 [DraftPreview] Created:', JSON.stringify(draftPreview, null, 2));
           setCurrentDraftId(aiResponse.sessionId);
         }
 
@@ -249,8 +256,8 @@ export default function CommandCenterChatScreen() {
           prev.map(m => (m.id === thinkingMessage.id ? errorMessage : m))
         );
       }
-    } catch (error: any) {
-      console.error('Error sending message:', error);
+    } catch (error: unknown) {
+      logger.error('Error sending message:', error);
 
       const errorMessage: ChatMessageType = {
         id: thinkingMessage.id,
@@ -276,7 +283,7 @@ export default function CommandCenterChatScreen() {
 
     setIsProcessing(true);
     try {
-      const response = await commandCenterService.approveDraft(currentDraftId);
+      const response = await commandCenterApi.approveDraft(currentDraftId);
 
       if (response.success) {
         const draftMessage = messages.find(m => m.draft?.id === currentDraftId);
@@ -304,10 +311,10 @@ export default function CommandCenterChatScreen() {
         setCurrentDraftId(null);
         setCurrentSessionId(null);
       } else {
-        Alert.alert('Error', response.error || 'Failed to create. Please try again.');
+        Alert.alert('Error', String(response.error || 'Failed to create. Please try again.'));
       }
     } catch (error) {
-      console.error('Error approving draft:', error);
+      logger.error('Error approving draft:', error);
       Alert.alert('Error', 'Failed to create. Please try again.');
     } finally {
       setIsProcessing(false);
@@ -319,7 +326,7 @@ export default function CommandCenterChatScreen() {
 
     setIsProcessing(true);
     try {
-      await commandCenterService.rejectDraft(currentDraftId);
+      await commandCenterApi.rejectDraft(currentDraftId);
 
       const rejectMessage: ChatMessageType = {
         id: Date.now().toString(),
@@ -338,7 +345,7 @@ export default function CommandCenterChatScreen() {
       setMessages(prev => [...prev, rejectMessage, followUpMessage]);
       setCurrentDraftId(null);
     } catch (error) {
-      console.error('Error rejecting draft:', error);
+      logger.error('Error rejecting draft:', error);
     } finally {
       setIsProcessing(false);
     }
@@ -427,7 +434,7 @@ export default function CommandCenterChatScreen() {
         ]);
       }
     } catch (error) {
-      console.error('Error picking document:', error);
+      logger.error('Error picking document:', error);
     }
     setShowInputOptions(false);
   }, []);
@@ -474,7 +481,7 @@ export default function CommandCenterChatScreen() {
       setRecording(recording);
       setIsRecording(true);
     } catch (error) {
-      console.error('Failed to start recording:', error);
+      logger.error('Failed to start recording:', error);
       Alert.alert('Error', 'Failed to start recording.');
     }
   }, []);
@@ -499,7 +506,7 @@ export default function CommandCenterChatScreen() {
         ]);
       }
     } catch (error) {
-      console.error('Failed to stop recording:', error);
+      logger.error('Failed to stop recording:', error);
     } finally {
       setRecording(null);
       setIsRecording(false);
@@ -617,7 +624,7 @@ export default function CommandCenterChatScreen() {
                 <MaterialCommunityIcons name="send" size={20} color="white" />
               </TouchableOpacity>
             ) : (
-              <Animated.View style={{ transform: [{ scale: recordingAnimation }] }}>
+              <Animated.View style={recordingAnimStyle}>
                 <TouchableOpacity
                   onPressIn={startRecording}
                   onPressOut={stopRecording}

@@ -6,12 +6,11 @@ import {
     TouchableOpacity,
     Animated,
     Pressable,
-    Image,
     RefreshControl,
     Dimensions,
-    FlatList,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { format, isToday, isYesterday, isThisWeek, formatDistanceToNow } from 'date-fns';
 import { BlurView } from 'expo-blur';

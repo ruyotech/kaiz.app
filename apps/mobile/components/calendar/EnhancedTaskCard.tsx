@@ -1,3 +1,4 @@
+import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Task } from '../../types/models';
@@ -82,7 +83,7 @@ const getRecurrenceLabel = (task: Task, viewType: 'week' | 'day'): { label: stri
     }
 };
 
-export function EnhancedTaskCard({
+export const EnhancedTaskCard = React.memo(function EnhancedTaskCard({
     task,
     epic,
     lifeWheelArea,
@@ -259,10 +260,10 @@ export function EnhancedTaskCard({
             </View>
         </TouchableOpacity>
     );
-}
+});
 
 // Compact version for day schedule view
-export function CompactTaskCard({
+export const CompactTaskCard = React.memo(function CompactTaskCard({
     task,
     epic,
     lifeWheelArea,
@@ -319,4 +320,4 @@ export function CompactTaskCard({
             </View>
         </TouchableOpacity>
     );
-}
+});

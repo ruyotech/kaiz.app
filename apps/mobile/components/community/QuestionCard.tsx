@@ -1,3 +1,4 @@
+import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { CommunityQuestion } from '../../types/models';
@@ -9,7 +10,7 @@ interface QuestionCardProps {
     onUpvote?: () => void;
 }
 
-export function QuestionCard({ question, onPress, onUpvote }: QuestionCardProps) {
+export const QuestionCard = React.memo(function QuestionCard({ question, onPress, onUpvote }: QuestionCardProps) {
     const { colors, isDark } = useThemeContext();
     
     const getTimeAgo = (timestamp: string) => {
@@ -146,4 +147,4 @@ export function QuestionCard({ question, onPress, onUpvote }: QuestionCardProps)
             </View>
         </TouchableOpacity>
     );
-}
+});

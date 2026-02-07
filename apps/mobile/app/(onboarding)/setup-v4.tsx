@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 /**
  * Onboarding V4 - Engaging New User Experience
  * 
@@ -180,10 +181,10 @@ export default function OnboardingSetup() {
 
             try {
                 const result = await onboardingApi.completeOnboarding(onboardingRequest);
-                console.log('✅ Onboarding completed:', result);
+                logger.log('✅ Onboarding completed:', result);
             } catch (apiError) {
                 // If onboarding API fails, continue anyway - user is registered
-                console.warn('⚠️ Onboarding API failed, but user is registered:', apiError);
+                logger.warn('⚠️ Onboarding API failed, but user is registered:', apiError);
             }
             
             // Mark onboarding complete
@@ -194,10 +195,10 @@ export default function OnboardingSetup() {
             Alert.alert(
                 '🎉 Welcome to Kaiz!',
                 `You're all set, ${data.firstName}! We've prepared ${data.selectedTaskTemplates.length} tasks and ${data.selectedEpicTemplates.length} epics for your first sprints.`,
-                [{ text: 'Let\'s Go!', onPress: () => router.replace('/(tabs)/sdlc/calendar') }]
+                [{ text: 'Let\'s Go!', onPress: () => router.replace('/(tabs)/sprints/calendar' as any) }]
             );
-        } catch (error: any) {
-            Alert.alert('Error', error.message || 'Registration failed. Please try again.');
+        } catch (error: unknown) {
+            Alert.alert('Error', error instanceof Error ? error.message : 'Registration failed. Please try again.');
         } finally {
             setLoading(false);
         }

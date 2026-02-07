@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 import React, { useState, useCallback, useMemo } from 'react';
 import {
     View,
@@ -5,10 +6,10 @@ import {
     ScrollView,
     TextInput,
     TouchableOpacity,
-    FlatList,
     RefreshControl,
     ActivityIndicator,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { Ionicons } from '@expo/vector-icons';
 import { TaskTemplate } from '../../types/models';
 import { TemplateCard, LIFE_WHEEL_CONFIG } from './TemplateCard';
@@ -76,7 +77,7 @@ export function TemplateList({
         try {
             await toggleFavorite(templateId);
         } catch (error) {
-            console.error('Failed to toggle favorite:', error);
+            logger.error('Failed to toggle favorite:', error);
         }
     }, [toggleFavorite]);
 
@@ -259,7 +260,7 @@ export function TemplateList({
                 </Text>
             </View>
 
-            <FlatList
+            <FlashList
                 data={filteredTemplates}
                 renderItem={renderTemplateItem}
                 keyExtractor={(item) => item.id}

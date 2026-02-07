@@ -1,3 +1,4 @@
+import { logger } from '../../../utils/logger';
 /**
  * Draft Detail Screen
  * 
@@ -28,7 +29,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Container } from '../../../components/layout/Container';
 import { ScreenHeader } from '../../../components/layout/ScreenHeader';
-import { commandCenterService } from '../../../services/commandCenter';
+import { commandCenterApi } from '../../../services/api';
 import { lifeWheelApi } from '../../../services/api';
 import { useThemeContext } from '../../../providers/ThemeProvider';
 import {
@@ -558,12 +559,12 @@ export default function DraftDetailScreen() {
     try {
       if (params.draft) {
         const parsed = JSON.parse(params.draft);
-        console.log('📋 [DraftDetail] Parsed draft:', JSON.stringify(parsed, null, 2));
+        logger.log('📋 [DraftDetail] Parsed draft:', JSON.stringify(parsed, null, 2));
         return parsed;
       }
       return null;
     } catch (e) {
-      console.error('❌ [DraftDetail] Failed to parse draft:', e);
+      logger.error('❌ [DraftDetail] Failed to parse draft:', e);
       return null;
     }
   }, [params.draft]);
@@ -634,7 +635,7 @@ export default function DraftDetailScreen() {
         setQuadrants(quadrantsData);
         setLifeWheelAreas(areasData);
       } catch (error) {
-        console.error('Failed to load quadrants/areas:', error);
+        logger.error('Failed to load quadrants/areas:', error);
         // Set fallback data
         setQuadrants([
           { id: 'eq-1', name: 'Do First', label: 'Urgent & Important', color: '#EF4444' },
@@ -691,7 +692,7 @@ export default function DraftDetailScreen() {
       // Just go back - no need to call API for rejection of unsaved draft
       router.back();
     } catch (error) {
-      console.error('Error rejecting draft:', error);
+      logger.error('Error rejecting draft:', error);
       Alert.alert('Error', 'Failed to reject. Please try again.');
     } finally {
       setProcessingAction(null);
@@ -709,7 +710,7 @@ export default function DraftDetailScreen() {
     setProcessingAction('confirm');
     try {
       // Use new endpoint that accepts draft data directly (bypasses session lookup)
-      const response = await commandCenterService.createPendingFromDraft({
+      const response = await commandCenterApi.createPendingFromDraft({
         draftType: draftType,
         title: formData.title,
         description: formData.description || undefined,
@@ -753,11 +754,11 @@ export default function DraftDetailScreen() {
           ]
         );
       } else {
-        throw new Error(response.error || 'Failed to save to pending');
+        throw new Error((typeof response.error === 'string' ? response.error : 'Failed to save to pending'));
       }
-    } catch (error: any) {
-      console.error('❌ [DraftDetail] Error saving to pending:', error);
-      Alert.alert('Error', error.message || 'Failed to save. Please try again.');
+    } catch (error: unknown) {
+      logger.error('❌ [DraftDetail] Error saving to pending:', error);
+      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to save. Please try again.');
     } finally {
       setProcessingAction(null);
     }
@@ -774,7 +775,7 @@ export default function DraftDetailScreen() {
     setProcessingAction('approve');
     try {
       // For now, approve also uses createPendingFromDraft but could create directly
-      const response = await commandCenterService.createPendingFromDraft({
+      const response = await commandCenterApi.createPendingFromDraft({
         draftType: draftType,
         title: formData.title,
         description: formData.description || undefined,
@@ -806,10 +807,10 @@ export default function DraftDetailScreen() {
           ]
         );
       } else {
-        Alert.alert('Error', response.error || 'Failed to create. Please try again.');
+        Alert.alert('Error', (typeof response.error === 'string' ? response.error : undefined) || 'Failed to create. Please try again.');
       }
     } catch (error) {
-      console.error('Error approving draft:', error);
+      logger.error('Error approving draft:', error);
       Alert.alert('Error', 'Failed to create. Please try again.');
     } finally {
       setProcessingAction(null);

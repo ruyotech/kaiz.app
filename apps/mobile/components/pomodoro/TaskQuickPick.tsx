@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -35,7 +36,7 @@ export default function TaskQuickPick({ onSelectTask }: TaskQuickPickProps) {
       if (sprint) {
         setCurrentSprintName(`Sprint ${currentWeek}`);
         await fetchTasks();
-        const allTasks = await taskApi.getTasksBySprint(sprint.id);
+        const allTasks = await taskApi.getTasksBySprint((sprint as any).id);
         const filtered = (allTasks || []).filter(
           (t: any) => !t.isDraft && (t.status === 'todo' || t.status === 'in_progress')
         ) as Task[];
@@ -44,7 +45,7 @@ export default function TaskQuickPick({ onSelectTask }: TaskQuickPickProps) {
     } catch (error) {
       // Ignore auth expired errors - redirect is handled automatically
       if (error instanceof AuthExpiredError) return;
-      console.error('Error loading sprint tasks:', error);
+      logger.error('Error loading sprint tasks:', error);
     } finally {
       setLoading(false);
     }

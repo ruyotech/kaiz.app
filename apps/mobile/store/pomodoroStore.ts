@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTaskStore } from './taskStore';
@@ -429,7 +430,7 @@ export const usePomodoroStore = create<PomodoroState>((set, get) => ({
         set({ todaySessions, weekSessions });
       }
     } catch (error) {
-      console.error('Failed to load pomodoro settings:', error);
+      logger.error('Failed to load pomodoro settings:', error);
     }
   },
 
@@ -447,7 +448,7 @@ export const usePomodoroStore = create<PomodoroState>((set, get) => ({
       };
       await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
     } catch (error) {
-      console.error('Failed to save pomodoro settings:', error);
+      logger.error('Failed to save pomodoro settings:', error);
     }
   },
 

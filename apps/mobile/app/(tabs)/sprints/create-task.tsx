@@ -40,8 +40,8 @@ export default function CreateTaskScreen() {
             setEpics(epicsData);
 
             // Set defaults
-            if (areas.length > 0) setLifeWheelAreaId(areas[0].id);
-            if (quads.length > 0) setEisenhowerQuadrantId(quads[0].id);
+            if (areas.length > 0) setLifeWheelAreaId((areas[0] as any).id);
+            if (quads.length > 0) setEisenhowerQuadrantId((quads[0] as any).id);
         };
 
         loadData();

@@ -10,7 +10,7 @@ export default function TabsLayout() {
         <View className="flex-1" style={{ backgroundColor: colors.background }}>
             <Stack screenOptions={{ headerShown: false }}>
                 <Stack.Screen name="index" />
-                <Stack.Screen name="sdlc" />
+                <Stack.Screen name="sprints" />
                 <Stack.Screen name="sensai" />
                 <Stack.Screen name="challenges" />
                 <Stack.Screen name="essentia" />

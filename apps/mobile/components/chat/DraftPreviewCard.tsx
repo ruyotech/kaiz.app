@@ -228,7 +228,7 @@ function NoteDraftDetails({ draft }: { draft: NoteDraft }) {
 // Main Component
 // ============================================================================
 
-export function DraftPreviewCard({
+export const DraftPreviewCard = React.memo(function DraftPreviewCard({
     response,
     onApprove,
     onEdit,
@@ -365,6 +365,6 @@ export function DraftPreviewCard({
             </View>
         </View>
     );
-}
+});
 
 export default DraftPreviewCard;

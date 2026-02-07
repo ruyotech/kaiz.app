@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 import { useEffect, useRef, useState } from 'react';
 import { View, Dimensions, Share, Pressable } from 'react-native';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
@@ -99,7 +100,7 @@ export function MindsetFeed({ onLongPress }: MindsetFeedProps) {
                     : currentContent.body,
             });
         } catch (error) {
-            console.error('Share error:', error);
+            logger.error('Share error:', error);
         }
     };
 

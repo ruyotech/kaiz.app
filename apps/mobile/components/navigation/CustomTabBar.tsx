@@ -1,5 +1,7 @@
+import { logger } from '../../utils/logger';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, TouchableOpacity, TextInput, Modal, Pressable, KeyboardAvoidingView, Platform, Alert, ActivityIndicator, Image, Animated, Linking } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, Modal, Pressable, KeyboardAvoidingView, Platform, Alert, ActivityIndicator, Animated, Linking } from 'react-native';
+import { Image } from 'expo-image';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigationStore, AppContext } from '../../store/navigationStore';
 import { usePomodoroStore } from '../../store/pomodoroStore';
@@ -18,7 +20,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { useThemeContext } from '../../providers/ThemeProvider';
 
 const CREATE_OPTIONS = [
-    { id: 'task', icon: 'checkbox-marked-circle-outline', label: 'Task', color: '#3B82F6', route: '/(tabs)/sdlc/create-task' },
+    { id: 'task', icon: 'checkbox-marked-circle-outline', label: 'Task', color: '#3B82F6', route: '/(tabs)/sprints/create-task' },
     { id: 'challenge', icon: 'trophy-outline', label: 'Challenge', color: '#F59E0B', route: '/(tabs)/challenges/create' },
     { id: 'event', icon: 'calendar-star', label: 'Event', color: '#06B6D4', route: '/(tabs)/command-center' },
 ];
@@ -61,7 +63,7 @@ export function CustomTabBar() {
     // Reset execution state when menu opens (in case previous action got stuck)
     useEffect(() => {
         if (showCreateMenu) {
-            console.log('📋 [Menu] Opening create menu, resetting execution state');
+            logger.log('📋 [Menu] Opening create menu, resetting execution state');
             isExecutingAction.current = false;
         }
     }, [showCreateMenu]);
@@ -118,25 +120,25 @@ export function CustomTabBar() {
 
     // Simple handlers that set pending action and close modal
     const handleCamera = () => {
-        console.log('📷 [Smart Input] Camera button pressed');
+        logger.log('📷 [Smart Input] Camera button pressed');
         setPendingAction('camera');
         setShowCreateMenu(false);
     };
 
     const handleImagePicker = () => {
-        console.log('🖼️ [Smart Input] Image button pressed');
+        logger.log('🖼️ [Smart Input] Image button pressed');
         setPendingAction('image');
         setShowCreateMenu(false);
     };
 
     const handleFilePicker = () => {
-        console.log('📄 [Smart Input] File button pressed');
+        logger.log('📄 [Smart Input] File button pressed');
         setPendingAction('file');
         setShowCreateMenu(false);
     };
 
     const handleVoiceInput = () => {
-        console.log('🎤 [Smart Input] Voice button pressed');
+        logger.log('🎤 [Smart Input] Voice button pressed');
         setPendingAction('voice');
         setShowCreateMenu(false);
     };
@@ -144,9 +146,9 @@ export function CustomTabBar() {
     // Actual launcher functions (called from useEffect after modal closes)
     const launchCamera = useCallback(async () => {
         try {
-            console.log('📷 Requesting camera permission...');
+            logger.log('📷 Requesting camera permission...');
             const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-            console.log('📷 Camera permission result:', permissionResult);
+            logger.log('📷 Camera permission result:', permissionResult);
             
             if (!permissionResult.granted) {
                 if (!permissionResult.canAskAgain) {
@@ -164,15 +166,15 @@ export function CustomTabBar() {
                 return;
             }
 
-            console.log('📷 Launching camera...');
+            logger.log('📷 Launching camera...');
             const result = await ImagePicker.launchCameraAsync({
                 allowsEditing: true,
                 quality: 0.8,
             });
-            console.log('📷 Camera result:', JSON.stringify(result));
+            logger.log('📷 Camera result:', JSON.stringify(result));
 
             if (!result.canceled && result.assets && result.assets[0]) {
-                console.log('📷 Setting attachment with URI:', result.assets[0].uri);
+                logger.log('📷 Setting attachment with URI:', result.assets[0].uri);
                 setAttachment({
                     type: 'image',
                     uri: result.assets[0].uri,
@@ -180,16 +182,16 @@ export function CustomTabBar() {
                 });
             }
         } catch (error) {
-            console.error('📷 Camera error:', error);
+            logger.error('📷 Camera error:', error);
             Alert.alert('Error', 'Failed to access camera. Please try again.');
         }
     }, []);
 
     const launchImagePicker = useCallback(async () => {
         try {
-            console.log('🖼️ Requesting media library permission...');
+            logger.log('🖼️ Requesting media library permission...');
             const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-            console.log('🖼️ Media library permission result:', permissionResult);
+            logger.log('🖼️ Media library permission result:', permissionResult);
             
             if (!permissionResult.granted) {
                 if (!permissionResult.canAskAgain) {
@@ -207,7 +209,7 @@ export function CustomTabBar() {
                 return;
             }
 
-            console.log('🖼️ Launching image library...');
+            logger.log('🖼️ Launching image library...');
             
             // Add timeout protection for simulator issues
             const timeoutPromise = new Promise<never>((_, reject) => {
@@ -222,21 +224,22 @@ export function CustomTabBar() {
             });
             
             const result = await Promise.race([pickerPromise, timeoutPromise]);
-            console.log('🖼️ Image library result:', JSON.stringify(result));
+            logger.log('🖼️ Image library result:', JSON.stringify(result));
 
             if (!result.canceled && result.assets && result.assets[0]) {
-                console.log('🖼️ Setting attachment with URI:', result.assets[0].uri);
+                logger.log('🖼️ Setting attachment with URI:', result.assets[0].uri);
                 setAttachment({
                     type: 'image',
                     uri: result.assets[0].uri,
                     source: 'gallery',
                 });
             } else {
-                console.log('🖼️ User cancelled or no assets');
+                logger.log('🖼️ User cancelled or no assets');
             }
-        } catch (error: any) {
-            console.error('🖼️ Image picker error:', error);
-            if (error.message === 'TIMEOUT') {
+        } catch (error: unknown) {
+            logger.error('🖼️ Image picker error:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            if (errorMessage === 'TIMEOUT') {
                 Alert.alert(
                     'Image Picker Issue',
                     'The image picker is not responding. This can happen on the iOS Simulator. Try reloading the app or test on a real device.',
@@ -250,14 +253,14 @@ export function CustomTabBar() {
 
     const launchFilePicker = useCallback(async () => {
         try {
-            console.log('📄 Launching document picker...');
+            logger.log('📄 Launching document picker...');
             
             // Document picker is unreliable on iOS simulator
             // Show warning and use shorter timeout
             const isSimulator = __DEV__ && Platform.OS === 'ios';
             
             if (isSimulator) {
-                console.log('📄 Running on iOS simulator - document picker may not work');
+                logger.log('📄 Running on iOS simulator - document picker may not work');
             }
             
             // Create a timeout promise - 5 seconds is enough
@@ -275,21 +278,22 @@ export function CustomTabBar() {
             
             // Race between the picker and timeout
             const result = await Promise.race([pickerPromise, timeoutPromise]);
-            console.log('📄 Document picker result:', JSON.stringify(result));
+            logger.log('📄 Document picker result:', JSON.stringify(result));
 
             if (!result.canceled && result.assets && result.assets[0]) {
-                console.log('📄 Setting attachment with file:', result.assets[0].name);
+                logger.log('📄 Setting attachment with file:', result.assets[0].name);
                 setAttachment({
                     type: 'file',
                     uri: result.assets[0].uri,
                     name: result.assets[0].name || 'Document',
                 });
             } else {
-                console.log('📄 User cancelled or no assets');
+                logger.log('📄 User cancelled or no assets');
             }
-        } catch (error: any) {
-            console.error('📄 Document picker error:', error);
-            if (error.message === 'TIMEOUT') {
+        } catch (error: unknown) {
+            logger.error('📄 Document picker error:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            if (errorMessage === 'TIMEOUT') {
                 Alert.alert(
                     'File Picker Unavailable',
                     'The file picker is not responding. This commonly happens on the iOS Simulator.\n\nPlease test on a real device, or use Image picker instead.',
@@ -303,12 +307,12 @@ export function CustomTabBar() {
 
     const startVoiceRecording = useCallback(async () => {
         try {
-            console.log('🎤 Requesting audio permission...');
+            logger.log('🎤 Requesting audio permission...');
             const permission = await Audio.requestPermissionsAsync();
-            console.log('🎤 Audio permission result:', JSON.stringify(permission));
+            logger.log('🎤 Audio permission result:', JSON.stringify(permission));
             
             if (!permission.granted) {
-                console.log('🎤 Permission not granted, canAskAgain:', permission.canAskAgain);
+                logger.log('🎤 Permission not granted, canAskAgain:', permission.canAskAgain);
                 if (!permission.canAskAgain) {
                     Alert.alert(
                         'Microphone Permission Required',
@@ -324,26 +328,28 @@ export function CustomTabBar() {
                 return;
             }
 
-            console.log('🎤 Setting audio mode...');
+            logger.log('🎤 Setting audio mode...');
             await Audio.setAudioModeAsync({
                 allowsRecordingIOS: true,
                 playsInSilentModeIOS: true,
             });
 
-            console.log('🎤 Creating recording...');
+            logger.log('🎤 Creating recording...');
             const { recording } = await Audio.Recording.createAsync(
                 Audio.RecordingOptionsPresets.HIGH_QUALITY
             );
-            console.log('🎤 Recording object created:', recording);
+            logger.log('🎤 Recording object created:', recording);
             recordingRef.current = recording;
             setIsRecording(true);
             setRecordingDuration(0);
-            console.log('🎤 Recording started successfully!');
-        } catch (error: any) {
-            console.error('🎤 Voice recording error:', error);
-            console.error('🎤 Error name:', error?.name);
-            console.error('🎤 Error message:', error?.message);
-            Alert.alert('Error', `Failed to start recording: ${error?.message || 'Unknown error'}`);
+            logger.log('🎤 Recording started successfully!');
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            const errorName = error instanceof Error ? error.name : 'UnknownError';
+            logger.error('🎤 Voice recording error:', error);
+            logger.error('🎤 Error name:', errorName);
+            logger.error('🎤 Error message:', errorMessage);
+            Alert.alert('Error', `Failed to start recording: ${errorMessage}`);
         }
     }, []);
 
@@ -352,7 +358,7 @@ export function CustomTabBar() {
     useEffect(() => {
         // Only log when there's something meaningful to track
         if (pendingAction || showCreateMenu) {
-            console.log('🔄 [useEffect] Check:', {
+            logger.log('🔄 [useEffect] Check:', {
                 pendingAction,
                 showCreateMenu,
                 isExecuting: isExecutingAction.current
@@ -360,44 +366,44 @@ export function CustomTabBar() {
         }
         
         if (pendingAction && !showCreateMenu && !isExecutingAction.current) {
-            console.log('🔄 [useEffect] Conditions met, will execute:', pendingAction);
+            logger.log('🔄 [useEffect] Conditions met, will execute:', pendingAction);
             isExecutingAction.current = true;
             const currentAction = pendingAction;
             
             // Execute immediately without setTimeout - the modal is already closed
             const executeAction = async () => {
-                console.log('🚀 [Execute] Starting action:', currentAction);
+                logger.log('🚀 [Execute] Starting action:', currentAction);
                 // Clear pending action AFTER we've captured it
                 setPendingAction(null);
                 
                 try {
                     switch (currentAction) {
                         case 'camera':
-                            console.log('🚀 [Execute] Calling launchCamera...');
+                            logger.log('🚀 [Execute] Calling launchCamera...');
                             await launchCamera();
-                            console.log('🚀 [Execute] launchCamera completed');
+                            logger.log('🚀 [Execute] launchCamera completed');
                             break;
                         case 'image':
-                            console.log('🚀 [Execute] Calling launchImagePicker...');
+                            logger.log('🚀 [Execute] Calling launchImagePicker...');
                             await launchImagePicker();
-                            console.log('🚀 [Execute] launchImagePicker completed');
+                            logger.log('🚀 [Execute] launchImagePicker completed');
                             break;
                         case 'file':
-                            console.log('🚀 [Execute] Calling launchFilePicker...');
+                            logger.log('🚀 [Execute] Calling launchFilePicker...');
                             await launchFilePicker();
-                            console.log('🚀 [Execute] launchFilePicker completed');
+                            logger.log('🚀 [Execute] launchFilePicker completed');
                             break;
                         case 'voice':
-                            console.log('🚀 [Execute] Calling startVoiceRecording...');
+                            logger.log('🚀 [Execute] Calling startVoiceRecording...');
                             await startVoiceRecording();
-                            console.log('🚀 [Execute] startVoiceRecording completed');
+                            logger.log('🚀 [Execute] startVoiceRecording completed');
                             break;
                     }
                 } catch (error) {
-                    console.error('🚀 [Execute] Error:', error);
+                    logger.error('🚀 [Execute] Error:', error);
                 } finally {
                     isExecutingAction.current = false;
-                    console.log('🚀 [Execute] Action complete, isExecuting reset');
+                    logger.log('🚀 [Execute] Action complete, isExecuting reset');
                 }
             };
             
@@ -410,14 +416,14 @@ export function CustomTabBar() {
     
     // Cancel voice recording
     const cancelVoiceRecording = async () => {
-        console.log('🎤 Cancelling recording...');
+        logger.log('🎤 Cancelling recording...');
         try {
             if (recordingRef.current) {
                 await recordingRef.current.stopAndUnloadAsync();
                 recordingRef.current = null;
             }
         } catch (error) {
-            console.error('🎤 Error stopping recording:', error);
+            logger.error('🎤 Error stopping recording:', error);
         }
         setIsRecording(false);
         setRecordingDuration(0);
@@ -425,12 +431,12 @@ export function CustomTabBar() {
     
     // Accept voice recording
     const acceptVoiceRecording = async () => {
-        console.log('🎤 Accepting recording...');
+        logger.log('🎤 Accepting recording...');
         try {
             if (recordingRef.current) {
                 await recordingRef.current.stopAndUnloadAsync();
                 const uri = recordingRef.current.getURI();
-                console.log('🎤 Recording saved to:', uri);
+                logger.log('🎤 Recording saved to:', uri);
                 recordingRef.current = null;
                 
                 const duration = recordingDuration;
@@ -447,7 +453,7 @@ export function CustomTabBar() {
                 setRecordingDuration(0);
             }
         } catch (error) {
-            console.error('🎤 Error accepting recording:', error);
+            logger.error('🎤 Error accepting recording:', error);
             setIsRecording(false);
             setRecordingDuration(0);
         }
@@ -559,13 +565,13 @@ export function CustomTabBar() {
         switch (type) {
             case 'task':
                 router.push({
-                    pathname: '/(tabs)/sdlc/create-task',
+                    pathname: '/(tabs)/sprints/create-task' as any,
                     params: { prefillTitle: data.title, prefillDescription: data.description },
                 });
                 break;
             case 'challenge':
                 router.push({
-                    pathname: '/(tabs)/challenges/create',
+                    pathname: '/(tabs)/challenges/create' as any,
                     params: { prefillName: data.title, prefillDescription: data.description },
                 });
                 break;
@@ -573,18 +579,18 @@ export function CustomTabBar() {
                 router.push('/(tabs)/command-center');
                 break;
             default:
-                router.push('/(tabs)/sdlc/create-task');
+                router.push('/(tabs)/sprints/create-task' as any);
         }
     };
 
     const handleQuickCreate = async () => {
         // Check if there's an attachment or text to process
         if (!attachment && !input.trim()) {
-            console.log('📤 [Send] No content to send - attachment:', attachment, 'input:', input);
+            logger.log('📤 [Send] No content to send - attachment:', attachment, 'input:', input);
             return;
         }
         
-        console.log('📤 [Send] Processing with AI...', {
+        logger.log('📤 [Send] Processing with AI...', {
             hasAttachment: !!attachment,
             attachmentType: attachment?.type,
             attachmentUri: attachment?.uri,
@@ -609,7 +615,7 @@ export function CustomTabBar() {
                 attachments
             );
             
-            console.log('📤 [Send] AI response:', response);
+            logger.log('📤 [Send] AI response:', response);
             
             if (response.success && response.data) {
                 const aiResponse = response.data;
@@ -627,7 +633,7 @@ export function CustomTabBar() {
                                 text: 'OK', 
                                 onPress: () => {
                                     // Keep input so user can add more info
-                                    console.log('📤 [Send] User needs to clarify');
+                                    logger.log('📤 [Send] User needs to clarify');
                                 }
                             },
                         ]
@@ -646,7 +652,7 @@ export function CustomTabBar() {
                                 style: 'destructive',
                                 onPress: async () => {
                                     await commandCenterApi.rejectDraft(aiResponse.id);
-                                    console.log('📤 [Send] Draft rejected');
+                                    logger.log('📤 [Send] Draft rejected');
                                 }
                             },
                             { 
@@ -659,7 +665,7 @@ export function CustomTabBar() {
                                     } else {
                                         Alert.alert('Error', 'Failed to create ' + draftType.toLowerCase());
                                     }
-                                    console.log('📤 [Send] Draft approved');
+                                    logger.log('📤 [Send] Draft approved');
                                     setInput('');
                                     setAttachment(null);
                                 }
@@ -675,9 +681,10 @@ export function CustomTabBar() {
                     [{ text: 'OK' }]
                 );
             }
-        } catch (error: any) {
-            console.error('📤 [Send] Error:', error);
-            Alert.alert('Error', error.message || 'Failed to process input');
+        } catch (error: unknown) {
+            logger.error('📤 [Send] Error:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Failed to process input';
+            Alert.alert('Error', errorMessage);
         } finally {
             setIsProcessing(false);
         }
@@ -698,7 +705,7 @@ export function CustomTabBar() {
     };
 
     // Navigation helpers for normal tab bar
-    const icons = NAV_CONFIGS[currentApp as AppContext] || NAV_CONFIGS['sdlc'];
+    const icons = NAV_CONFIGS[currentApp as AppContext] || NAV_CONFIGS['sprints'];
     const mainIcon = icons[0];
     const moreIcon = icons[icons.length - 1];
 
@@ -805,7 +812,8 @@ export function CustomTabBar() {
                                                     <Image 
                                                         source={{ uri: attachment.uri }} 
                                                         className="w-8 h-8 rounded-lg"
-                                                        resizeMode="cover"
+                                                        contentFit="cover"
+                                                        cachePolicy="memory-disk"
                                                     />
                                                 ) : (
                                                     <View 
@@ -832,7 +840,7 @@ export function CustomTabBar() {
                                                     onPress={clearAttachment}
                                                     className="ml-1 w-5 h-5 items-center justify-center"
                                                 >
-                                                    <MaterialCommunityIcons name="close-circle" size={16} color={colors.textMuted} />
+                                                    <MaterialCommunityIcons name="close-circle" size={16} color={colors.textTertiary} />
                                                 </TouchableOpacity>
                                             </View>
                                         </View>
@@ -845,7 +853,7 @@ export function CustomTabBar() {
                                             onPress={() => setShowCreateMenu(true)}
                                             className="w-8 h-8 items-center justify-center"
                                         >
-                                            <MaterialCommunityIcons name="plus-circle" size={24} color={colors.textMuted} />
+                                            <MaterialCommunityIcons name="plus-circle" size={24} color={colors.textTertiary} />
                                         </TouchableOpacity>
 
                                         {/* Text Input */}

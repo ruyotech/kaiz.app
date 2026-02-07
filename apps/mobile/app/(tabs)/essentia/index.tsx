@@ -1,3 +1,4 @@
+import { logger } from '../../../utils/logger';
 import { View, Text, ScrollView, TouchableOpacity, Dimensions, Alert } from 'react-native';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
@@ -91,7 +92,7 @@ export default function EssentiaTodayScreen() {
             const pick = getDailyPick();
             setDailyPick(pick);
         } catch (error) {
-            console.error('Failed to load Essentia data:', error);
+            logger.error('Failed to load Essentia data:', error);
             Alert.alert('Error', 'Failed to load books. Please try again.');
         } finally {
             setLoading(false);

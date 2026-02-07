@@ -1,15 +1,16 @@
+import { logger } from '../../../utils/logger';
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
     View,
     Text,
     TouchableOpacity,
     StatusBar,
-    FlatList,
     TextInput,
     RefreshControl,
     ActivityIndicator,
     ScrollView,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -130,7 +131,7 @@ export default function TemplatesScreen() {
         try {
             await toggleFavorite(templateId);
         } catch (error) {
-            console.error('Failed to toggle favorite:', error);
+            logger.error('Failed to toggle favorite:', error);
         }
     }, [toggleFavorite]);
 
@@ -151,14 +152,14 @@ export default function TemplatesScreen() {
             setShowDetailModal(false);
             setSourceTab('my');
         } catch (error) {
-            console.error('Failed to clone template:', error);
+            logger.error('Failed to clone template:', error);
         }
     };
 
     const handleTaskCreated = (taskId: string) => {
         setShowCreateSheet(false);
         setTemplateForCreation(null);
-        router.push(`/(tabs)/sdlc/task/${taskId}`);
+        router.push(`/(tabs)/sprints/task/${taskId}` as any);
     };
 
     const getEmptyMessage = () => {
@@ -335,7 +336,7 @@ export default function TemplatesScreen() {
                 <View className="px-4 py-3 flex-row items-center justify-between">
                     <Text className="text-lg font-bold text-white">Templates</Text>
                     <TouchableOpacity
-                        onPress={() => router.push('/(tabs)/sdlc/create-template' as any)}
+                        onPress={() => router.push('/(tabs)/sprints/create-template' as any)}
                         className="p-1 -mr-1"
                     >
                         <Ionicons name="add" size={26} color="white" />
@@ -450,7 +451,7 @@ export default function TemplatesScreen() {
                     <Text className="text-gray-500 mt-3 text-sm">Loading templates...</Text>
                 </View>
             ) : (
-                <FlatList
+                <FlashList
                     data={filteredTemplates}
                     renderItem={renderTemplateItem}
                     keyExtractor={(item) => item.id}

@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router';
 
-export default function SDLCLayout() {
+export default function SprintsLayout() {
     return (
         <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="index" />

@@ -965,7 +965,7 @@ export default function SettingsScreen() {
                 onClose={() => setShowLanguageModal(false)}
                 title={t('settings.modals.chooseLanguage')}
                 options={languageOptions}
-                selectedValue={locale}
+                selectedValue={locale as SupportedLocale}
                 onSelect={setLocale}
             />
             

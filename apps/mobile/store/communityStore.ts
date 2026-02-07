@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 import { create } from 'zustand';
 import {
     CommunityMember,
@@ -253,10 +254,10 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
             
             set({
                 currentMember: homeData.currentMember as CommunityMember,
-                featuredArticle: homeData.featuredArticle,
-                activePoll: homeData.activePoll,
-                weeklyChallenge: homeData.weeklyChallenge,
-                activityFeed: homeData.recentActivity || [],
+                featuredArticle: homeData.featuredArticle as KnowledgeArticle | null,
+                activePoll: homeData.activePoll as CommunityPoll | null,
+                weeklyChallenge: homeData.weeklyChallenge as WeeklyChallenge | null,
+                activityFeed: (homeData.recentActivity || []) as CommunityActivity[],
                 loading: false,
             });
             
@@ -310,8 +311,8 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
             
             set(state => ({
                 articles: loadMore 
-                    ? [...articles, ...response.content] 
-                    : response.content,
+                    ? [...articles, ...(response.content as KnowledgeArticle[])] 
+                    : response.content as KnowledgeArticle[],
                 articlesPagination: {
                     page,
                     hasMore: response.hasNext,
@@ -358,7 +359,7 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
                 size: DEFAULT_PAGE_SIZE,
             });
             
-            const content = response?.content || [];
+            const content = (response?.content || []) as CommunityQuestion[];
             
             set(state => ({
                 questions: loadMore 
@@ -398,8 +399,8 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
             ]);
             
             set({ 
-                currentQuestion: question, 
-                answers, 
+                currentQuestion: question as CommunityQuestion, 
+                answers: answers as CommunityAnswer[], 
                 loading: false 
             });
         } catch (error) {
@@ -435,8 +436,8 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
             
             set({
                 stories: loadMore 
-                    ? [...stories, ...response.content] 
-                    : response.content,
+                    ? [...stories, ...(response.content as SuccessStory[])] 
+                    : response.content as SuccessStory[],
                 storiesPagination: {
                     page,
                     hasMore: response.hasNext,
@@ -479,7 +480,7 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
                 size: DEFAULT_PAGE_SIZE,
             });
             
-            const content = response?.content || [];
+            const content = (response?.content || []) as CommunityTemplate[];
             
             set(state => ({
                 templates: loadMore 
@@ -510,10 +511,10 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
     
     fetchFeaturedTemplates: async () => {
         try {
-            const featuredTemplates = await communityApi.getFeaturedTemplates();
+            const featuredTemplates = await communityApi.getFeaturedTemplates() as CommunityTemplate[];
             set({ featuredTemplates });
         } catch (error) {
-            console.error('Failed to fetch featured templates:', error);
+            logger.error('Failed to fetch featured templates:', error);
         }
     },
     
@@ -521,8 +522,8 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
         set({ loading: true, error: null });
         try {
             const [leaderboard, userRank] = await Promise.all([
-                communityApi.getLeaderboard(period, category),
-                communityApi.getUserRank(period, category).catch(() => null),
+                communityApi.getLeaderboard(period, category) as Promise<LeaderboardEntry[]>,
+                communityApi.getUserRank(period, category).catch(() => null) as Promise<LeaderboardEntry | null>,
             ]);
             
             set({ 
@@ -546,7 +547,7 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
     fetchPartners: async () => {
         set({ loading: true, error: null });
         try {
-            const partners = await communityApi.getPartners();
+            const partners = await communityApi.getPartners() as AccountabilityPartner[];
             set({ partners, loading: false });
         } catch (error) {
             set({ 
@@ -558,7 +559,7 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
     
     fetchPartnerRequests: async () => {
         try {
-            const partnerRequests = await communityApi.getPartnerRequests();
+            const partnerRequests = await communityApi.getPartnerRequests() as PartnerRequest[];
             set({ partnerRequests });
         } catch (error) {
             set({ error: handleApiError(error) });
@@ -569,7 +570,7 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
         set({ loading: true, error: null });
         try {
             const response = await communityApi.getGroups();
-            set({ motivationGroups: response.content, loading: false });
+            set({ motivationGroups: response.content as MotivationGroup[], loading: false });
         } catch (error) {
             set({ 
                 error: handleApiError(error), 
@@ -598,8 +599,8 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
             
             set({
                 activityFeed: loadMore 
-                    ? [...activityFeed, ...response.content] 
-                    : response.content,
+                    ? [...activityFeed, ...(response.content as CommunityActivity[])] 
+                    : response.content as CommunityActivity[],
                 activityPagination: {
                     page,
                     hasMore: response.hasNext,
@@ -619,10 +620,10 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
     
     fetchAllBadges: async () => {
         try {
-            const allBadges = await communityApi.getAllBadges();
+            const allBadges = await communityApi.getAllBadges() as CommunityBadge[];
             set({ allBadges });
         } catch (error) {
-            console.error('Failed to fetch badges:', error);
+            logger.error('Failed to fetch badges:', error);
         }
     },
     
@@ -630,7 +631,7 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
         set({ loading: true, error: null });
         try {
             const response = await communityApi.getFeatureRequests();
-            set({ featureRequests: response.content, loading: false });
+            set({ featureRequests: response.content as FeatureRequest[], loading: false });
         } catch (error) {
             set({ 
                 error: handleApiError(error), 
@@ -641,10 +642,10 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
     
     fetchReceivedCompliments: async () => {
         try {
-            const receivedCompliments = await communityApi.getReceivedCompliments();
+            const receivedCompliments = await communityApi.getReceivedCompliments() as SecretCompliment[];
             set({ receivedCompliments });
         } catch (error) {
-            console.error('Failed to fetch compliments:', error);
+            logger.error('Failed to fetch compliments:', error);
         }
     },
     
@@ -736,7 +737,7 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
     postQuestion: async (title, body, tags) => {
         set({ loading: true, error: null });
         try {
-            const newQuestion = await communityApi.createQuestion({ title, body, tags });
+            const newQuestion = await communityApi.createQuestion({ title, body, tags }) as CommunityQuestion;
             set(state => ({ 
                 questions: [newQuestion, ...state.questions],
                 loading: false 
@@ -753,7 +754,7 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
     postAnswer: async (questionId, body) => {
         set({ loading: true, error: null });
         try {
-            const newAnswer = await communityApi.createAnswer(questionId, { body });
+            const newAnswer = await communityApi.createAnswer(questionId, { body }) as CommunityAnswer;
             set(state => ({ 
                 answers: [...state.answers, newAnswer],
                 currentQuestion: state.currentQuestion 
@@ -857,7 +858,7 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
                 category: story.category || 'other',
                 lifeWheelAreaId: story.lifeWheelAreaId,
                 metrics: story.metrics,
-            });
+            }) as SuccessStory;
             set(state => ({ 
                 stories: [newStory, ...state.stories],
                 loading: false 
@@ -1067,7 +1068,7 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
         }));
         
         try {
-            const result = await communityApi.votePoll(pollId, optionId);
+            const result = await communityApi.votePoll(pollId, optionId) as CommunityPoll;
             set({ activePoll: result });
         } catch (error) {
             // Rollback
@@ -1115,7 +1116,7 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
     
     sendKudos: async (toUserId, message, category) => {
         try {
-            const newKudos = await communityApi.sendKudos({ toUserId, message, category });
+            const newKudos = await communityApi.sendKudos({ toUserId, message, category }) as PublicKudos;
             set(state => ({
                 publicKudos: [newKudos, ...state.publicKudos],
             }));
@@ -1128,7 +1129,7 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
     submitFeatureRequest: async (title, description) => {
         set({ loading: true, error: null });
         try {
-            const newRequest = await communityApi.submitFeatureRequest({ title, description });
+            const newRequest = await communityApi.submitFeatureRequest({ title, description }) as FeatureRequest;
             set(state => ({
                 featureRequests: [newRequest, ...state.featureRequests],
                 loading: false,

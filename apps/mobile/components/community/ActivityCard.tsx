@@ -1,3 +1,4 @@
+import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { CommunityActivity, ActivityType } from '../../types/models';
@@ -20,7 +21,7 @@ const ACTIVITY_ICONS: Record<ActivityType, { icon: string; color: string }> = {
     level_up: { icon: 'arrow-up-circle', color: '#F59E0B' },
 };
 
-export function ActivityCard({ activity, onCelebrate }: ActivityCardProps) {
+export const ActivityCard = React.memo(function ActivityCard({ activity, onCelebrate }: ActivityCardProps) {
     const { colors } = useThemeContext();
     const config = ACTIVITY_ICONS[activity.type];
     
@@ -88,4 +89,4 @@ export function ActivityCard({ activity, onCelebrate }: ActivityCardProps) {
             </View>
         </View>
     );
-}
+});

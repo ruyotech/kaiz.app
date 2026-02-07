@@ -101,7 +101,7 @@ export default function ChallengesScreen() {
     
     const loadLifeWheelAreas = async () => {
         const areas = await lifeWheelApi.getLifeWheelAreas();
-        setLifeWheelAreas(areas);
+        setLifeWheelAreas(areas as LifeWheelArea[]);
     };
     
     const onRefresh = async () => {

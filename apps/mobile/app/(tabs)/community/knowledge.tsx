@@ -1,4 +1,5 @@
-import { View, Text, ScrollView, TouchableOpacity, Image, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
+import { Image } from 'expo-image';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -245,7 +246,8 @@ export default function KnowledgeHubScreen() {
                                         <Image 
                                             source={{ uri: article.coverImageUrl }}
                                             className="w-full h-40"
-                                            resizeMode="cover"
+                                            contentFit="cover"
+                                            cachePolicy="memory-disk"
                                         />
                                     )}
                                     <View className="p-4">

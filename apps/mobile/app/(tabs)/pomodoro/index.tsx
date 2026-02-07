@@ -166,7 +166,7 @@ export default function PomodoroScreen() {
                 borderLeftColor: getQuadrantColor(selectedTask.quadrant),
                 backgroundColor: colors.card
               }}
-              onPress={() => router.push(`/(tabs)/sdlc/task/${selectedTask.id}` as any)}
+              onPress={() => router.push(`/(tabs)/sprints/task/${selectedTask.id}` as any)}
             >
               <View className="flex-row items-center justify-between mb-1">
                 <Text className="text-lg font-bold flex-1" style={{ color: colors.text }} numberOfLines={2}>
@@ -202,7 +202,7 @@ export default function PomodoroScreen() {
                 <TouchableOpacity
                   className="rounded-lg p-2.5 flex-row items-center justify-center"
                   style={{ backgroundColor: isDark ? 'rgba(59, 130, 246, 0.2)' : '#DBEAFE' }}
-                  onPress={() => router.push(`/(tabs)/sdlc/task/${returnToTask}` as any)}
+                  onPress={() => router.push(`/(tabs)/sprints/task/${returnToTask}` as any)}
                 >
                   <MaterialCommunityIcons name="arrow-left" size={18} color={colors.primary} />
                   <Text className="text-sm font-semibold ml-2" style={{ color: colors.primary }}>{t('pomodoro.backToTask')}</Text>

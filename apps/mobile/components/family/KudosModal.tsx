@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 /**
  * KudosModal.tsx - Send Kudos Modal Component
  * 
@@ -51,7 +52,7 @@ export function KudosModal({ visible, onClose, recipient }: KudosModalProps) {
                 handleClose();
             }, 2000);
         } catch (error) {
-            console.error('Failed to send kudos:', error);
+            logger.error('Failed to send kudos:', error);
         }
     };
     

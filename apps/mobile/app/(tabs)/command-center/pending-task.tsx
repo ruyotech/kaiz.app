@@ -1,3 +1,4 @@
+import { logger } from '../../../utils/logger';
 /**
  * Pending Task Detail Screen
  * 
@@ -22,7 +23,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Container } from '../../../components/layout/Container';
 import { ScreenHeader } from '../../../components/layout/ScreenHeader';
-import { commandCenterService } from '../../../services/commandCenter';
+import { commandCenterApi } from '../../../services/api';
 import { taskApi } from '../../../services/api';
 import { useThemeContext } from '../../../providers/ThemeProvider';
 
@@ -183,10 +184,10 @@ export default function PendingTaskDetailScreen() {
         if (taskData && typeof taskData === 'object' && 'id' in taskData) {
           setTask(taskData as TaskDetail);
         } else {
-          console.error('Invalid task data received:', taskData);
+          logger.error('Invalid task data received:', taskData);
         }
       } catch (error) {
-        console.error('Failed to fetch task:', error);
+        logger.error('Failed to fetch task:', error);
         Alert.alert('Error', 'Failed to load task details');
       } finally {
         setIsLoading(false);
@@ -221,12 +222,12 @@ export default function PendingTaskDetailScreen() {
           onPress: async () => {
             setProcessingAction('reject');
             try {
-              const response = await commandCenterService.rejectPendingTask(task.id);
+              const response = await commandCenterApi.rejectPendingTask(task.id);
               if (response.success) {
                 // Go back to chat (conversation continues)
                 router.back();
               } else {
-                Alert.alert('Error', response.error || 'Failed to reject task');
+                Alert.alert('Error', String(response.error || 'Failed to reject task'));
               }
             } catch (error) {
               Alert.alert('Error', 'Failed to reject task');

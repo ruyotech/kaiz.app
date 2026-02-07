@@ -17,8 +17,8 @@ export function MoreMenu() {
     const { t } = useTranslation();
     const { colors, isDark } = useThemeContext();
 
-    // Fallback to sdlc menu items if current app doesn't have a menu defined
-    const menuItems = MORE_MENUS[currentApp] || MORE_MENUS['sdlc'] || [];
+    // Fallback to sprints menu items if current app doesn't have a menu defined
+    const menuItems = MORE_MENUS[currentApp] || MORE_MENUS['sprints'] || [];
 
     const handleItemPress = (route: string) => {
         // Handle special actions

@@ -10,7 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeContext } from '../../providers/ThemeProvider';
 
 // App groupings
-const SPRINT_APP = APPS.find(app => app.id === 'sdlc')!;
+const SPRINT_APP = APPS.find(app => app.id === 'sprints')!;
 const SPRINT_SUB_APPS = APPS.filter(app => ['backlog', 'epics', 'taskSearch', 'templates'].includes(app.id));
 const PRODUCTIVITY_APPS = APPS.filter(app => ['sensai', 'pomodoro', 'challenges'].includes(app.id));
 const GROWTH_APPS = APPS.filter(app => ['mindset', 'essentia'].includes(app.id));
@@ -128,8 +128,8 @@ export function AppSwitcher() {
                             className="rounded-2xl p-4 mb-3"
                             style={{ 
                                 backgroundColor: colors.card,
-                                borderColor: currentApp === 'sdlc' ? '#3B82F6' : colors.border,
-                                borderWidth: currentApp === 'sdlc' ? 2 : 1,
+                                borderColor: currentApp === 'sprints' ? '#3B82F6' : colors.border,
+                                borderWidth: currentApp === 'sprints' ? 2 : 1,
                             }}
                         >
                             <View className="flex-row items-center">
@@ -143,7 +143,7 @@ export function AppSwitcher() {
                                     <Text className="font-semibold text-base" style={{ color: colors.text }}>{t(SPRINT_APP.nameKey)}</Text>
                                     <Text className="text-xs mt-0.5" style={{ color: colors.textTertiary }}>Plan & track your sprints</Text>
                                 </View>
-                                {currentApp === 'sdlc' && (
+                                {currentApp === 'sprints' && (
                                     <View className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: colors.success }} />
                                 )}
                                 <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
@@ -358,7 +358,7 @@ export function AppSwitcher() {
 
                 {/* Bottom Navigation Bar */}
                 {(() => {
-                    const icons = NAV_CONFIGS[currentApp as AppContext] || NAV_CONFIGS['sdlc'];
+                    const icons = NAV_CONFIGS[currentApp as AppContext] || NAV_CONFIGS['sprints'];
                     const mainIcon = icons[0];
                     const moreIcon = icons[icons.length - 1];
                     

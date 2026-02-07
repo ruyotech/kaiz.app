@@ -1,3 +1,4 @@
+import { logger } from '../../../utils/logger';
 /**
  * Quick Intake Screen
  * 
@@ -60,7 +61,7 @@ export default function IntakeScreen() {
             setRecentIntakes([{ text: input, result: intakeResult }, ...recentIntakes.slice(0, 4)]);
             setInput('');
         } catch (error) {
-            console.error('Intake processing failed:', error);
+            logger.error('Intake processing failed:', error);
         }
         setIsProcessing(false);
     };

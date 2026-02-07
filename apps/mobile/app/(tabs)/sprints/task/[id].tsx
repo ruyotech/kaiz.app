@@ -1,5 +1,7 @@
+import { logger } from '../../../../utils/logger';
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Modal, Pressable, Image, Linking } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, Modal, Pressable, Linking } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Task, TaskComment, TaskHistory } from '../../../../types/models';
@@ -103,11 +105,11 @@ export default function TaskWorkView() {
         try {
             setCommentsLoading(true);
             const fetchedComments = await taskApi.getTaskComments(taskId);
-            setComments(fetchedComments || []);
+            setComments((fetchedComments || []) as TaskComment[]);
         } catch (error) {
             // Ignore auth expired errors - redirect is handled automatically
             if (error instanceof AuthExpiredError) return;
-            console.error('Error loading comments:', error);
+            logger.error('Error loading comments:', error);
         } finally {
             setCommentsLoading(false);
         }
@@ -118,11 +120,11 @@ export default function TaskWorkView() {
         try {
             setHistoryLoading(true);
             const fetchedHistory = await taskApi.getTaskHistory(taskId);
-            setHistory(fetchedHistory || []);
+            setHistory((fetchedHistory || []) as TaskHistory[]);
         } catch (error) {
             // Ignore auth expired errors - redirect is handled automatically
             if (error instanceof AuthExpiredError) return;
-            console.error('Error loading history:', error);
+            logger.error('Error loading history:', error);
         } finally {
             setHistoryLoading(false);
         }
@@ -141,7 +143,7 @@ export default function TaskWorkView() {
         } catch (error) {
             // Ignore auth expired errors - redirect is handled automatically
             if (error instanceof AuthExpiredError) return;
-            console.error('Error loading task:', error);
+            logger.error('Error loading task:', error);
         } finally {
             setLoading(false);
         }
@@ -150,11 +152,11 @@ export default function TaskWorkView() {
     const loadLifeWheelAreas = async () => {
         try {
             const areas = await lifeWheelApi.getLifeWheelAreas();
-            setLifeWheelAreas(areas);
+            setLifeWheelAreas(areas as LifeWheelArea[]);
         } catch (error) {
             // Ignore auth expired errors - redirect is handled automatically
             if (error instanceof AuthExpiredError) return;
-            console.error('Error loading life wheel areas:', error);
+            logger.error('Error loading life wheel areas:', error);
         }
     };
 
@@ -165,7 +167,7 @@ export default function TaskWorkView() {
             setTask(foundTask);
             
             // Debug: Log task recurrence info
-            console.log('📋 Task Detail - task:', {
+            logger.log('📋 Task Detail - task:', {
                 title: foundTask.title,
                 isRecurring: foundTask.isRecurring,
                 recurrence: foundTask.recurrence,
@@ -291,7 +293,7 @@ export default function TaskWorkView() {
                 // Reload history to get the updated history from backend
                 loadHistory(task.id);
             } catch (error) {
-                console.error('Error updating status:', error);
+                logger.error('Error updating status:', error);
                 // Revert on error
                 setTask({ ...task, status: oldStatus });
             }
@@ -312,7 +314,7 @@ export default function TaskWorkView() {
                 }> = [];
 
                 if (commentAttachments.length > 0) {
-                    console.log('📤 Uploading comment attachments...');
+                    logger.log('📤 Uploading comment attachments...');
                     for (const attachment of commentAttachments) {
                         const uploadResult = await fileUploadApi.uploadFile({
                             uri: attachment.uri,
@@ -328,11 +330,11 @@ export default function TaskWorkView() {
                                 fileSize: uploadResult.data.fileSize,
                             });
                         } else {
-                            console.error('Failed to upload attachment:', attachment.name, uploadResult.error);
+                            logger.error('Failed to upload attachment:', attachment.name, uploadResult.error);
                             throw new Error(`Failed to upload ${attachment.name}`);
                         }
                     }
-                    console.log('✅ All attachments uploaded:', uploadedAttachments.length);
+                    logger.log('✅ All attachments uploaded:', uploadedAttachments.length);
                 }
 
                 // Now add the comment with attachments
@@ -342,11 +344,11 @@ export default function TaskWorkView() {
                 });
                 
                 // Add the new comment to the list
-                setComments([...comments, createdComment]);
+                setComments([...comments, createdComment as TaskComment]);
                 setNewComment('');
                 setCommentAttachments([]);
             } catch (error) {
-                console.error('Error adding comment:', error);
+                logger.error('Error adding comment:', error);
             } finally {
                 setSubmittingComment(false);
             }
@@ -425,7 +427,7 @@ export default function TaskWorkView() {
                             <MaterialCommunityIcons name={currentStatus.icon as any} size={18} color="white" />
                         </TouchableOpacity>
                         <TouchableOpacity
-                            onPress={() => router.push(`/(tabs)/sdlc/task/edit?id=${task.id}` as any)}
+                            onPress={() => router.push(`/(tabs)/sprints/task/edit?id=${task.id}` as any)}
                             className="w-9 h-9 bg-white/20 rounded-lg items-center justify-center border border-white/40"
                         >
                             <MaterialCommunityIcons name="pencil" size={18} color="white" />
@@ -693,7 +695,7 @@ export default function TaskWorkView() {
                                                         <Image 
                                                             source={{ uri: attachment.fileUrl }} 
                                                             className="w-10 h-10 rounded"
-                                                            resizeMode="cover"
+                                                            contentFit="cover"
                                                         />
                                                     ) : (
                                                         <View className="w-10 h-10 rounded items-center justify-center" style={{ backgroundColor: colors.backgroundTertiary }}>
@@ -763,7 +765,7 @@ export default function TaskWorkView() {
                                                             <Image 
                                                                 source={{ uri: attachment.fileUrl }} 
                                                                 className="w-10 h-10 rounded"
-                                                                resizeMode="cover"
+                                                                contentFit="cover"
                                                             />
                                                         ) : attachment.fileType?.startsWith('audio/') ? (
                                                             <View className="w-10 h-10 rounded items-center justify-center" style={{ backgroundColor: isDark ? 'rgba(147, 51, 234, 0.2)' : '#F3E8FF' }}>

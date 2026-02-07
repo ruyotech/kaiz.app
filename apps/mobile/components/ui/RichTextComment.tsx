@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 /**
  * RichTextComment.tsx - Rich Text Rendering for Comments
  * 
@@ -50,7 +51,7 @@ export function RichTextComment({
                 Alert.alert('Cannot Open Link', `Unable to open: ${url}`);
             }
         } catch (error) {
-            console.error('Error opening link:', error);
+            logger.error('Error opening link:', error);
             Alert.alert('Error', 'Failed to open link');
         }
     }, []);

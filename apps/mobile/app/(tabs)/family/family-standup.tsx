@@ -624,10 +624,7 @@ export default function FamilyStandupScreen() {
                         setShowKudosModal(false);
                         setSelectedMember(null);
                     }}
-                    member={selectedMember}
-                    onSend={async (kudosType, message, isPrivate) => {
-                        await sendKudos(selectedMember.userId, kudosType, message, isPrivate);
-                    }}
+                    recipient={selectedMember}
                 />
             )}
         </View>

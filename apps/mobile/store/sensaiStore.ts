@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 /**
  * SensAI Store - AI Scrum Master & Life Coach State Management
  * 
@@ -190,7 +191,7 @@ export const useSensAIStore = create<SensAIState>((set, get) => ({
             const velocity = await sensaiApi.getVelocityMetrics();
             set({ velocityMetrics: velocity });
         } catch (error) {
-            console.error('Failed to calculate velocity:', error);
+            logger.error('Failed to calculate velocity:', error);
         }
     },
 
@@ -200,7 +201,7 @@ export const useSensAIStore = create<SensAIState>((set, get) => ({
             set({ currentSprintHealth: health });
             return health;
         } catch (error) {
-            console.error('Failed to get sprint health:', error);
+            logger.error('Failed to get sprint health:', error);
             throw error;
         }
     },
@@ -215,7 +216,7 @@ export const useSensAIStore = create<SensAIState>((set, get) => ({
             });
             return response.standup;
         } catch (error) {
-            console.error('Failed to get today standup:', error);
+            logger.error('Failed to get today standup:', error);
             return null;
         }
     },
@@ -255,7 +256,7 @@ export const useSensAIStore = create<SensAIState>((set, get) => ({
                 set({ todayStandup: { ...standup, status: 'skipped' } });
             }
         } catch (error) {
-            console.error('Failed to skip standup:', error);
+            logger.error('Failed to skip standup:', error);
         }
     },
 
@@ -270,7 +271,7 @@ export const useSensAIStore = create<SensAIState>((set, get) => ({
                 set({ todayStandup: { ...standup, blockers: updatedBlockers } });
             }
         } catch (error) {
-            console.error('Failed to convert blocker to task:', error);
+            logger.error('Failed to convert blocker to task:', error);
         }
     },
 
@@ -280,7 +281,7 @@ export const useSensAIStore = create<SensAIState>((set, get) => ({
             const interventions = await sensaiApi.getActiveInterventions();
             set({ activeInterventions: interventions });
         } catch (error) {
-            console.error('Failed to fetch interventions:', error);
+            logger.error('Failed to fetch interventions:', error);
         }
     },
 
@@ -320,7 +321,7 @@ export const useSensAIStore = create<SensAIState>((set, get) => ({
                 upcomingCeremonies: [...state.upcomingCeremonies, ceremony],
             }));
         } catch (error) {
-            console.error(`Failed to start ${type} ceremony:`, error);
+            logger.error(`Failed to start ${type} ceremony:`, error);
         }
     },
 
@@ -331,7 +332,7 @@ export const useSensAIStore = create<SensAIState>((set, get) => ({
                 upcomingCeremonies: [...state.upcomingCeremonies, ceremony],
             }));
         } catch (error) {
-            console.error('Failed to start sprint planning:', error);
+            logger.error('Failed to start sprint planning:', error);
         }
     },
 
@@ -369,7 +370,7 @@ export const useSensAIStore = create<SensAIState>((set, get) => ({
                 upcomingCeremonies: [...state.upcomingCeremonies, ceremony],
             }));
         } catch (error) {
-            console.error('Failed to start sprint review:', error);
+            logger.error('Failed to start sprint review:', error);
         }
     },
 
@@ -391,7 +392,7 @@ export const useSensAIStore = create<SensAIState>((set, get) => ({
                 upcomingCeremonies: [...state.upcomingCeremonies, ceremony],
             }));
         } catch (error) {
-            console.error('Failed to start retrospective:', error);
+            logger.error('Failed to start retrospective:', error);
         }
     },
 
@@ -415,7 +416,7 @@ export const useSensAIStore = create<SensAIState>((set, get) => ({
             const metrics = await sensaiApi.getLifeWheelMetrics();
             set({ lifeWheelMetrics: metrics });
         } catch (error) {
-            console.error('Failed to fetch life wheel metrics:', error);
+            logger.error('Failed to fetch life wheel metrics:', error);
         }
     },
 
@@ -431,7 +432,7 @@ export const useSensAIStore = create<SensAIState>((set, get) => ({
                 read: false,
             });
         } catch (error) {
-            console.error('Failed to add recovery task:', error);
+            logger.error('Failed to add recovery task:', error);
         }
     },
 
@@ -461,7 +462,7 @@ export const useSensAIStore = create<SensAIState>((set, get) => ({
                 unreadMessageCount: messages.filter(m => !m.read).length,
             });
         } catch (error) {
-            console.error('Failed to fetch coach messages:', error);
+            logger.error('Failed to fetch coach messages:', error);
         }
     },
 
@@ -521,7 +522,7 @@ export const useSensAIStore = create<SensAIState>((set, get) => ({
             const settings = await sensaiApi.getSettings();
             set({ settings });
         } catch (error) {
-            console.error('Failed to fetch settings:', error);
+            logger.error('Failed to fetch settings:', error);
         }
     },
 
@@ -541,7 +542,7 @@ export const useSensAIStore = create<SensAIState>((set, get) => ({
             const analytics = await sensaiApi.getAnalytics(period);
             set({ analytics });
         } catch (error) {
-            console.error('Failed to fetch analytics:', error);
+            logger.error('Failed to fetch analytics:', error);
         }
     },
 

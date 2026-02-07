@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity, Image } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { FamilyMember, ROLE_CONFIGURATIONS } from '../../types/family.types';
 import { useThemeContext } from '../../providers/ThemeProvider';

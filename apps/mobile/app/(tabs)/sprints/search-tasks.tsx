@@ -36,8 +36,8 @@ export default function SearchTasksScreen() {
             lifeWheelApi.getLifeWheelAreas(),
             lifeWheelApi.getEisenhowerQuadrants()
         ]);
-        setLifeWheelAreas(areas);
-        setEisenhowerQuadrants(quadrants);
+        setLifeWheelAreas(areas as LifeWheelArea[]);
+        setEisenhowerQuadrants(quadrants as EisenhowerQuadrant[]);
         // Epics are loaded from epicStore
     };
 
@@ -138,7 +138,7 @@ export default function SearchTasksScreen() {
         const style = getQuadrantStyle(item.eisenhowerQuadrantId || 'eq-2');
 
         return (
-            <Pressable onPress={() => router.push(`/(tabs)/sdlc/task/${item.id}` as any)}>
+            <Pressable onPress={() => router.push(`/(tabs)/sprints/task/${item.id}` as any)}>
                 <View 
                     className="mb-3 p-4 rounded-xl"
                     style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}

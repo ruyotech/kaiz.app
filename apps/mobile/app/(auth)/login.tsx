@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 /**
  * LoginScreen.tsx - Authentication screen with Face ID support
  * 
@@ -116,9 +117,9 @@ export default function LoginScreen() {
         try {
             await login(email, password);
             // @ts-ignore - Dynamic route
-            router.replace('/(tabs)/sdlc/calendar');
-        } catch (error: any) {
-            const message = error?.message || authError || 'Invalid email or password. Please try again.';
+            router.replace('/(tabs)/sprints/calendar');
+        } catch (error: unknown) {
+            const message = (error instanceof Error ? error.message : undefined) || authError || 'Invalid email or password. Please try again.';
             Alert.alert('Login Failed', message, [{ text: 'OK' }]);
         }
     };
@@ -140,23 +141,23 @@ export default function LoginScreen() {
         setIsBiometricLoggingIn(true);
 
         try {
-            console.log('🔐 Attempting biometric login...');
+            logger.log('🔐 Attempting biometric login...');
             const success = await authenticateWithBiometric();
 
             if (success) {
-                console.log('✅ Biometric authentication successful');
+                logger.log('✅ Biometric authentication successful');
                 
                 // Retrieve stored credentials
                 const credentials = await getStoredCredentials();
                 
                 if (credentials) {
-                    console.log('🔐 Found stored credentials, logging in...');
+                    logger.log('🔐 Found stored credentials, logging in...');
                     try {
                         await login(credentials.email, credentials.password);
                         // @ts-ignore - Dynamic route
-                        router.replace('/(tabs)/sdlc/calendar');
-                    } catch (loginError: any) {
-                        console.error('❌ Login with stored credentials failed:', loginError);
+                        router.replace('/(tabs)/sprints/calendar');
+                    } catch (loginError: unknown) {
+                        logger.error('❌ Login with stored credentials failed:', loginError);
                         Alert.alert(
                             'Login Failed',
                             'Stored credentials are invalid. Please login with your password.',
@@ -164,7 +165,7 @@ export default function LoginScreen() {
                         );
                     }
                 } else {
-                    console.log('⚠️ No stored credentials found');
+                    logger.log('⚠️ No stored credentials found');
                     // Fallback: prefill email and ask for password
                     setEmail(enrolledEmail);
                     Alert.alert(
@@ -174,11 +175,11 @@ export default function LoginScreen() {
                     );
                 }
             } else {
-                console.log('❌ Biometric authentication failed');
+                logger.log('❌ Biometric authentication failed');
                 // Don't show alert here - the biometric store handles specific errors
             }
         } catch (error) {
-            console.error('❌ Biometric login error:', error);
+            logger.error('❌ Biometric login error:', error);
             Alert.alert(
                 'Error',
                 'Failed to authenticate. Please try again or use your password.',
@@ -276,7 +277,7 @@ export default function LoginScreen() {
                                     />
                                     <Text 
                                         className="text-sm mx-4"
-                                        style={{ color: colors.textMuted }}
+                                        style={{ color: colors.textSecondary }}
                                     >
                                         {t('auth.login.orSignInWithEmail')}
                                     </Text>

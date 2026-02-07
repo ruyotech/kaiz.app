@@ -8,7 +8,7 @@ export default function DashboardScreen() {
 
     useEffect(() => {
         // Redirect to sprint calendar
-        router.replace('/(tabs)/sdlc/calendar' as any);
+        router.replace('/(tabs)/sprints/calendar' as any);
     }, []);
 
     return null;

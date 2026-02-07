@@ -52,7 +52,7 @@ const getMetricIcon = (metricType: string): string => {
     return icons[metricType] || '📊';
 };
 
-export function ChallengeCard({ challenge, onQuickLog }: ChallengeCardProps) {
+export const ChallengeCard = React.memo(function ChallengeCard({ challenge, onQuickLog }: ChallengeCardProps) {
     const router = useRouter();
     const color = getLifeWheelColor(challenge.lifeWheelAreaId);
     
@@ -168,4 +168,4 @@ export function ChallengeCard({ challenge, onQuickLog }: ChallengeCardProps) {
             </Card>
         </TouchableOpacity>
     );
-}
+});

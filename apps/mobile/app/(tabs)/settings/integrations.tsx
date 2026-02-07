@@ -1,3 +1,4 @@
+import { logger } from '../../../utils/logger';
 /**
  * IntegrationsScreen.tsx - External Calendar Integrations for Kaiz 
  * 
@@ -750,7 +751,7 @@ export default function IntegrationsScreen() {
     useEffect(() => {
         (['apple', 'google', 'microsoft'] as CalendarProvider[]).forEach((provider) => {
             if (connections[provider].status === 'connecting') {
-                console.log(`[Integrations] Resetting stuck connecting state for ${provider}`);
+                logger.log(`[Integrations] Resetting stuck connecting state for ${provider}`);
                 disconnectProvider(provider);
             }
         });

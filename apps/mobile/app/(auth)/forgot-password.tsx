@@ -43,8 +43,8 @@ export default function ForgotPasswordScreen() {
         try {
             await resetPassword(email);
             setEmailSent(true);
-        } catch (error: any) {
-            const message = error?.message || authError || t('auth.forgotPassword.sendError');
+        } catch (error: unknown) {
+            const message = (error instanceof Error ? error.message : undefined) || authError || t('auth.forgotPassword.sendError');
             Alert.alert(t('common.error'), message);
         } finally {
             setLoading(false);
@@ -56,8 +56,8 @@ export default function ForgotPasswordScreen() {
         try {
             await resetPassword(email);
             Alert.alert(t('common.success'), t('auth.forgotPassword.resendSuccess'));
-        } catch (error: any) {
-            const message = error?.message || t('auth.forgotPassword.resendError');
+        } catch (error: unknown) {
+            const message = (error instanceof Error ? error.message : undefined) || t('auth.forgotPassword.resendError');
             Alert.alert(t('common.error'), message);
         } finally {
             setLoading(false);

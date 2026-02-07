@@ -123,7 +123,7 @@ export default function SensAIDashboard() {
                 </View>
 
                 {/* Quick Actions */}
-                <QuickActionsBar actions={quickActions} />
+                <QuickActionsBar actions={quickActions as any} />
 
                 {/* Coach Message */}
                 {latestMessage && (
