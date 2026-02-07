@@ -611,7 +611,7 @@ public class NotificationTriggerService {
               actions);
 
       return notificationService.createNotification(request);
-    } catch (Exception e) {
+    } catch (org.springframework.dao.DataAccessException e) {
       log.error("Failed to create notification for user {}: {}", userId, e.getMessage(), e);
       return null;
     }
@@ -648,7 +648,7 @@ public class NotificationTriggerService {
               null);
 
       return notificationService.createNotification(request);
-    } catch (Exception e) {
+    } catch (org.springframework.dao.DataAccessException e) {
       log.error("Failed to create notification for user {}: {}", userId, e.getMessage(), e);
       return null;
     }

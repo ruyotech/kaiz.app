@@ -112,7 +112,7 @@ public class CloudStorageService {
       boolean deleted = getStorage().delete(blobId);
       log.info("File deletion result for {}: {}", objectPath, deleted);
       return deleted;
-    } catch (Exception e) {
+    } catch (com.google.cloud.storage.StorageException | IOException e) {
       log.error("Failed to delete file: {}", e.getMessage(), e);
       return false;
     }

@@ -4,11 +4,11 @@ import app.kaiz.admin.domain.AdminUser;
 import app.kaiz.admin.domain.crm.Lead;
 import app.kaiz.admin.domain.crm.LeadActivity;
 import app.kaiz.admin.domain.crm.LeadTask;
-import app.kaiz.admin.repository.AdminUserRepository;
-import app.kaiz.admin.repository.LeadRepository;
+import app.kaiz.admin.infrastructure.AdminUserRepository;
+import app.kaiz.admin.infrastructure.LeadRepository;
 import app.kaiz.identity.domain.User;
 import app.kaiz.identity.infrastructure.UserRepository;
-import app.kaiz.shared.exception.NotFoundException;
+import app.kaiz.shared.exception.ResourceNotFoundException;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -38,7 +38,7 @@ public class CrmService {
       // Return existing lead instead of throwing
       return leadRepository
           .findByEmail(request.email())
-          .orElseThrow(() -> new NotFoundException("Lead not found"));
+          .orElseThrow(() -> new ResourceNotFoundException("Lead not found"));
     }
 
     Lead lead =
@@ -92,7 +92,7 @@ public class CrmService {
   public Lead getLeadById(UUID leadId) {
     return leadRepository
         .findById(leadId)
-        .orElseThrow(() -> new NotFoundException("Lead not found: " + leadId));
+        .orElseThrow(() -> new ResourceNotFoundException("Lead not found: " + leadId));
   }
 
   @Transactional(readOnly = true)
@@ -108,7 +108,7 @@ public class CrmService {
 
   public void deleteLead(UUID leadId) {
     if (!leadRepository.existsById(leadId)) {
-      throw new NotFoundException("Lead not found: " + leadId);
+      throw new ResourceNotFoundException("Lead not found: " + leadId);
     }
     leadRepository.deleteById(leadId);
     log.info("Deleted lead: {}", leadId);

@@ -13,12 +13,15 @@ import app.kaiz.shared.exception.ResourceNotFoundException;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@Slf4j
 public class EssentiaService {
 
   private final EssentiaBookRepository bookRepository;
@@ -26,6 +29,7 @@ public class EssentiaService {
   private final UserRepository userRepository;
   private final EssentiaMapper mapper;
 
+  @Cacheable("essentiaBooks")
   public List<EssentiaBookDto> getAllBooks() {
     return bookRepository.findAll().stream().map(mapper::toBookDtoWithoutCards).toList();
   }
@@ -68,6 +72,7 @@ public class EssentiaService {
         .toList();
   }
 
+  @Cacheable("essentiaCategories")
   public List<String> getAllCategories() {
     return bookRepository.findAllCategories();
   }

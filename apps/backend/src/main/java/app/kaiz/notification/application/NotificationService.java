@@ -372,7 +372,7 @@ public class NotificationService {
   // ============ Scheduled Tasks ============
 
   /** Archive expired notifications daily at 2 AM. */
-  @Scheduled(cron = "0 0 2 * * *")
+  @Scheduled(cron = "0 0 2 * * *", zone = "UTC")
   @Transactional
   public void archiveExpiredNotifications() {
     int count = notificationRepository.archiveExpiredNotifications(Instant.now());

@@ -2,14 +2,17 @@ package app.kaiz.command_center.api;
 
 import app.kaiz.admin.application.AdminCommandCenterService;
 import app.kaiz.admin.application.dto.CommandCenterAdminDtos.TestAttachmentResponse;
-import app.kaiz.command_center.api.dto.*;
-import app.kaiz.command_center.api.dto.CommandCenterAIResponse.AttachmentSummary;
 import app.kaiz.command_center.application.CommandCenterAIService;
 import app.kaiz.command_center.application.DraftApprovalService;
 import app.kaiz.command_center.application.SmartInputAIService;
+import app.kaiz.command_center.application.StreamingAIService;
+import app.kaiz.command_center.application.dto.*;
+import app.kaiz.command_center.application.dto.CommandCenterAIResponse.AttachmentSummary;
+import app.kaiz.command_center.application.dto.SmartInputResponse;
 import app.kaiz.command_center.domain.DraftStatus;
 import app.kaiz.command_center.domain.PendingDraft;
 import app.kaiz.command_center.infrastructure.PendingDraftRepository;
+import app.kaiz.shared.exception.ResourceNotFoundException;
 import app.kaiz.shared.security.CurrentUser;
 import app.kaiz.shared.util.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -27,6 +30,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RestController
 @RequestMapping("/api/v1/command-center")
@@ -38,6 +42,7 @@ public class CommandCenterController {
 
   private final CommandCenterAIService aiService;
   private final SmartInputAIService smartInputService;
+  private final StreamingAIService streamingService;
   private final DraftApprovalService approvalService;
   private final PendingDraftRepository draftRepository;
   private final AdminCommandCenterService adminService;
@@ -55,34 +60,32 @@ public class CommandCenterController {
   public ResponseEntity<ApiResponse<SmartInputResponse>> processSmartInput(
       @CurrentUser UUID userId, @Valid @RequestBody SmartInputRequest request) {
 
-    log.info("🧠 [Smart Input] Processing for user: {}", userId);
-    log.info("🧠 [Smart Input] Text: {}", request.text());
-    log.info(
-        "🧠 [Smart Input] Attachments: {}",
+    log.info("Processing smart input for user: {}", userId);
+    log.debug(
+        "Smart input text: {}, attachments: {}",
+        request.text(),
         request.attachments() != null ? request.attachments().size() : 0);
-
-    // Debug: Log each attachment details
-    if (request.attachments() != null && !request.attachments().isEmpty()) {
-      for (int i = 0; i < request.attachments().size(); i++) {
-        var att = request.attachments().get(i);
-        log.info(
-            "🧠 [Smart Input] Attachment[{}]: name={}, type={}, mimeType={}, testAttachmentId={}",
-            i,
-            att.name(),
-            att.type(),
-            att.mimeType(),
-            att.testAttachmentId());
-      }
-    }
 
     SmartInputResponse response = smartInputService.processInput(userId, request);
 
     log.info(
-        "✅ [Smart Input] Response status: {}, intent: {}",
-        response.status(),
-        response.intentDetected());
+        "Smart input response: status={}, intent={}", response.status(), response.intentDetected());
 
     return ResponseEntity.ok(ApiResponse.success(response));
+  }
+
+  @PostMapping(value = "/smart-input/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+  @Operation(
+      summary = "Stream smart input AI response via SSE",
+      description =
+          "Send text/attachments to AI and receive streaming response via Server-Sent Events. "
+              + "Events: 'token' (incremental text), 'done' (complete JSON response), 'error' (failure). "
+              + "Use this for real-time UX — tokens arrive as Claude generates them.")
+  public SseEmitter streamSmartInput(
+      @CurrentUser UUID userId, @Valid @RequestBody SmartInputRequest request) {
+
+    log.info("Starting streaming smart input for user: {}", userId);
+    return streamingService.streamSmartInput(userId, request);
   }
 
   @PostMapping("/smart-input/clarify")
@@ -94,7 +97,7 @@ public class CommandCenterController {
   public ResponseEntity<ApiResponse<SmartInputResponse>> submitClarificationAnswers(
       @CurrentUser UUID userId, @Valid @RequestBody ClarificationAnswersRequest request) {
 
-    log.info("🧠 [Smart Input] Submitting clarification for session: {}", request.sessionId());
+    log.info("Submitting clarification for session: {}", request.sessionId());
 
     SmartInputResponse response = smartInputService.submitClarificationAnswers(userId, request);
 
@@ -110,7 +113,7 @@ public class CommandCenterController {
   public ResponseEntity<ApiResponse<Map<String, Object>>> saveToPending(
       @CurrentUser UUID userId, @PathVariable UUID sessionId) {
 
-    log.info("💾 [Smart Input] Saving session {} as pending task for user {}", sessionId, userId);
+    log.info("Saving session {} as pending task for user {}", sessionId, userId);
 
     try {
       UUID taskId = smartInputService.saveToPending(userId, sessionId);
@@ -121,7 +124,7 @@ public class CommandCenterController {
                   "status", "PENDING_APPROVAL",
                   "message", "Task saved for approval")));
     } catch (IllegalStateException e) {
-      log.error("💾 [Smart Input] Session not found: {}", sessionId);
+      log.warn("Session not found: {}", sessionId);
       return ResponseEntity.badRequest()
           .body(ApiResponse.error("Session not found or expired: " + sessionId));
     }
@@ -137,22 +140,16 @@ public class CommandCenterController {
   public ResponseEntity<ApiResponse<Map<String, Object>>> createPendingFromDraft(
       @CurrentUser UUID userId, @Valid @RequestBody CreatePendingDraftRequest request) {
 
-    log.info("💾 [Create Pending] Creating pending task from draft for user: {}", userId);
-    log.info("💾 [Create Pending] Draft type: {}, title: {}", request.draftType(), request.title());
+    log.info(
+        "Creating pending task from draft for user: {}, type: {}", userId, request.draftType());
 
-    try {
-      UUID taskId = smartInputService.createPendingFromDraft(userId, request);
-      return ResponseEntity.ok(
-          ApiResponse.success(
-              Map.of(
-                  "taskId", taskId.toString(),
-                  "status", "PENDING_APPROVAL",
-                  "message", "Task saved for approval")));
-    } catch (Exception e) {
-      log.error("💾 [Create Pending] Failed to create pending task: {}", e.getMessage());
-      return ResponseEntity.badRequest()
-          .body(ApiResponse.error("Failed to create pending task: " + e.getMessage()));
-    }
+    UUID taskId = smartInputService.createPendingFromDraft(userId, request);
+    return ResponseEntity.ok(
+        ApiResponse.success(
+            Map.of(
+                "taskId", taskId.toString(),
+                "status", "PENDING_APPROVAL",
+                "message", "Task saved for approval")));
   }
 
   @PostMapping("/smart-input/{sessionId}/confirm-alternative")
@@ -164,10 +161,7 @@ public class CommandCenterController {
   public ResponseEntity<ApiResponse<SmartInputResponse>> confirmAlternative(
       @CurrentUser UUID userId, @PathVariable UUID sessionId, @RequestParam boolean accepted) {
 
-    log.info(
-        "🧠 [Smart Input] Confirming alternative for session: {}, accepted: {}",
-        sessionId,
-        accepted);
+    log.info("Confirming alternative for session: {}, accepted: {}", sessionId, accepted);
 
     SmartInputResponse response = smartInputService.confirmAlternative(sessionId, accepted);
 
@@ -191,10 +185,11 @@ public class CommandCenterController {
       @RequestPart(value = "text", required = false) String text,
       @RequestPart(value = "attachments", required = false) List<MultipartFile> attachments) {
 
-    log.info("📥 [Command Center] Processing AI input for user: {}", userId);
-    log.info("📥 [Command Center] Text: {}", text);
     log.info(
-        "📥 [Command Center] Attachments count: {}", attachments != null ? attachments.size() : 0);
+        "Processing AI input for user: {}, attachments: {}",
+        userId,
+        attachments != null ? attachments.size() : 0);
+    log.debug("AI input text: {}", text);
 
     // Build attachment summaries
     List<AttachmentSummary> attachmentSummaries = buildAttachmentSummaries(attachments);
@@ -204,7 +199,7 @@ public class CommandCenterController {
         aiService.processInput(userId, text, attachmentSummaries, null);
 
     log.info(
-        "✅ [Command Center] AI processed: intent={}, confidence={}",
+        "AI processed: intent={}, confidence={}",
         response.intentDetected(),
         response.confidenceScore());
 
@@ -220,7 +215,7 @@ public class CommandCenterController {
   public ResponseEntity<ApiResponse<CommandCenterAIResponse>> processInputJson(
       @CurrentUser UUID userId, @RequestBody CommandInputRequest request) {
 
-    log.info("📥 [Command Center] Processing AI JSON input for user: {}", userId);
+    log.info("Processing AI JSON input for user: {}", userId);
 
     // Convert to attachment summaries
     List<AttachmentSummary> attachmentSummaries = new ArrayList<>();
@@ -257,11 +252,7 @@ public class CommandCenterController {
       @PathVariable UUID draftId,
       @Valid @RequestBody DraftActionRequest request) {
 
-    log.info(
-        "📝 [Command Center] Draft action: {} on draft {} for user {}",
-        request.action(),
-        draftId,
-        userId);
+    log.info("Draft action: {} on draft {} for user {}", request.action(), draftId, userId);
 
     // Ensure the draftId in path matches body
     if (!draftId.equals(request.draftId())) {
@@ -312,7 +303,7 @@ public class CommandCenterController {
     PendingDraft draft =
         draftRepository
             .findByIdAndUserId(draftId, userId)
-            .orElseThrow(() -> new IllegalArgumentException("Draft not found: " + draftId));
+            .orElseThrow(() -> new ResourceNotFoundException("Draft", draftId.toString()));
 
     CommandCenterAIResponse response =
         CommandCenterAIResponse.of(
@@ -341,7 +332,7 @@ public class CommandCenterController {
   public ResponseEntity<ApiResponse<List<TestAttachmentResponse>>> getTestAttachments(
       @CurrentUser UUID userId, @RequestParam(required = false) String type) {
 
-    log.info("🧪 [Command Center] Fetching test attachments for user: {}, type: {}", userId, type);
+    log.debug("Fetching test attachments for user: {}, type: {}", userId, type);
 
     List<TestAttachmentResponse> attachments;
     if (type != null && !type.isEmpty()) {
@@ -360,7 +351,7 @@ public class CommandCenterController {
   public ResponseEntity<ApiResponse<TestAttachmentResponse>> getTestAttachment(
       @CurrentUser UUID userId, @PathVariable UUID id) {
 
-    log.info("🧪 [Command Center] Fetching test attachment: {} for user: {}", id, userId);
+    log.debug("Fetching test attachment: {} for user: {}", id, userId);
     TestAttachmentResponse attachment = adminService.getTestAttachment(id);
     return ResponseEntity.ok(ApiResponse.success(attachment));
   }
@@ -372,7 +363,7 @@ public class CommandCenterController {
   public ResponseEntity<byte[]> downloadTestAttachment(
       @CurrentUser UUID userId, @PathVariable UUID id) {
 
-    log.info("⬇️ [Command Center] Downloading test attachment: {} for user: {}", id, userId);
+    log.debug("Downloading test attachment: {} for user: {}", id, userId);
     TestAttachmentResponse attachment = adminService.getTestAttachment(id);
     byte[] data = adminService.getTestAttachmentData(id);
 
@@ -400,22 +391,20 @@ public class CommandCenterController {
         if ("image".equals(type)) {
           try {
             extractedText = aiService.extractTextFromImage(file);
-            log.info(
-                "🔍 [OCR] Extracted text from {}: {} chars",
+            log.debug(
+                "OCR extracted from {}: {} chars",
                 file.getOriginalFilename(),
                 extractedText != null ? extractedText.length() : 0);
           } catch (Exception e) {
             log.warn(
-                "🔍 [OCR] Failed to extract text from {}: {}",
-                file.getOriginalFilename(),
-                e.getMessage());
+                "Failed to extract text from {}: {}", file.getOriginalFilename(), e.getMessage());
             extractedText =
                 "[Image uploaded: " + file.getOriginalFilename() + " - OCR processing failed]";
           }
         }
         // Handle voice/audio files - add description for AI to understand
         else if ("voice".equals(type)) {
-          log.info("🎤 [Audio] Voice attachment detected: {}", file.getOriginalFilename());
+          log.debug("Voice attachment detected: {}", file.getOriginalFilename());
           extractedText =
               "[Audio file uploaded: "
                   + file.getOriginalFilename()
@@ -426,7 +415,7 @@ public class CommandCenterController {
         else if ("file".equals(type)
             && file.getContentType() != null
             && file.getContentType().contains("pdf")) {
-          log.info("📄 [PDF] Document detected: {}", file.getOriginalFilename());
+          log.debug("PDF document detected: {}", file.getOriginalFilename());
           extractedText =
               "[PDF document uploaded: "
                   + file.getOriginalFilename()

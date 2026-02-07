@@ -6,12 +6,14 @@ import app.kaiz.life_wheel.infrastructure.EisenhowerQuadrantRepository;
 import app.kaiz.life_wheel.infrastructure.LifeWheelAreaRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class LifeWheelService {
 
   private final LifeWheelAreaRepository lifeWheelAreaRepository;

@@ -5,10 +5,14 @@ import app.kaiz.sensai.domain.*;
 import java.util.List;
 import java.util.Map;
 import org.mapstruct.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** MapStruct mapper for SensAI DTOs. */
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface SensAIMapper {
+
+  Logger log = LoggerFactory.getLogger(SensAIMapper.class);
 
   // DailyStandup mappings
   DailyStandupDto toDto(DailyStandup entity);
@@ -52,7 +56,8 @@ public interface SensAIMapper {
           new com.fasterxml.jackson.databind.ObjectMapper();
       return mapper.readValue(
           json, new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
-    } catch (Exception e) {
+    } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+      log.warn("Failed to parse JSON map: {}", e.getMessage());
       return Map.of();
     }
   }
@@ -66,7 +71,8 @@ public interface SensAIMapper {
           new com.fasterxml.jackson.databind.ObjectMapper();
       return mapper.readValue(
           json, new com.fasterxml.jackson.core.type.TypeReference<Map<String, Integer>>() {});
-    } catch (Exception e) {
+    } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+      log.warn("Failed to parse JSON int map: {}", e.getMessage());
       return Map.of();
     }
   }
@@ -80,7 +86,8 @@ public interface SensAIMapper {
           new com.fasterxml.jackson.databind.ObjectMapper();
       return mapper.readValue(
           json, new com.fasterxml.jackson.core.type.TypeReference<List<String>>() {});
-    } catch (Exception e) {
+    } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+      log.warn("Failed to parse JSON list: {}", e.getMessage());
       return List.of();
     }
   }
@@ -93,7 +100,8 @@ public interface SensAIMapper {
       com.fasterxml.jackson.databind.ObjectMapper mapper =
           new com.fasterxml.jackson.databind.ObjectMapper();
       return mapper.readValue(json, SprintCeremonyDto.CeremonyOutcomes.class);
-    } catch (Exception e) {
+    } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+      log.warn("Failed to parse ceremony outcomes: {}", e.getMessage());
       return null;
     }
   }
@@ -106,7 +114,8 @@ public interface SensAIMapper {
       com.fasterxml.jackson.databind.ObjectMapper mapper =
           new com.fasterxml.jackson.databind.ObjectMapper();
       return mapper.writeValueAsString(obj);
-    } catch (Exception e) {
+    } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+      log.warn("Failed to serialize to JSON: {}", e.getMessage());
       return null;
     }
   }

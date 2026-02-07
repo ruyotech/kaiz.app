@@ -35,7 +35,7 @@ public class NotificationScheduler {
   // TASK DEADLINE NOTIFICATIONS
   // Runs every 15 minutes to check for upcoming deadlines
   // ============================================================
-  @Scheduled(cron = "0 */15 * * * *") // Every 15 minutes
+  @Scheduled(cron = "0 */15 * * * *", zone = "UTC") // Every 15 minutes
   @Transactional(readOnly = true)
   public void checkTaskDeadlines() {
     log.debug("Running task deadline check...");
@@ -89,7 +89,7 @@ public class NotificationScheduler {
   // BIRTHDAY REMINDERS
   // Runs daily at 8 AM to notify about today's birthdays
   // ============================================================
-  @Scheduled(cron = "0 0 8 * * *") // Every day at 8 AM
+  @Scheduled(cron = "0 0 8 * * *", zone = "UTC") // Every day at 8 AM
   @Transactional(readOnly = true)
   public void checkBirthdays() {
     log.info("Running birthday reminder check...");
@@ -125,7 +125,7 @@ public class NotificationScheduler {
   // EVENT REMINDERS
   // Runs every 5 minutes to check for upcoming events
   // ============================================================
-  @Scheduled(cron = "0 */5 * * * *") // Every 5 minutes
+  @Scheduled(cron = "0 */5 * * * *", zone = "UTC") // Every 5 minutes
   @Transactional(readOnly = true)
   public void checkEventReminders() {
     log.debug("Running event reminder check...");
@@ -173,7 +173,7 @@ public class NotificationScheduler {
   // CHALLENGE DAILY REMINDERS
   // Runs daily at 9 AM to remind users about active challenges
   // ============================================================
-  @Scheduled(cron = "0 0 9 * * *") // Every day at 9 AM
+  @Scheduled(cron = "0 0 9 * * *", zone = "UTC") // Every day at 9 AM
   @Transactional(readOnly = true)
   public void sendChallengeReminders() {
     log.info("Running challenge daily reminder check...");
@@ -200,7 +200,7 @@ public class NotificationScheduler {
   // STREAK WARNING
   // Runs at 8 PM to warn users whose streaks are at risk
   // ============================================================
-  @Scheduled(cron = "0 0 20 * * *") // Every day at 8 PM
+  @Scheduled(cron = "0 0 20 * * *", zone = "UTC") // Every day at 8 PM
   @Transactional(readOnly = true)
   public void checkStreaksAtRisk() {
     log.info("Running streak-at-risk check...");
@@ -226,7 +226,7 @@ public class NotificationScheduler {
   // WEEKLY AI REPORT
   // Runs every Sunday at 10 AM
   // ============================================================
-  @Scheduled(cron = "0 0 10 * * SUN") // Every Sunday at 10 AM
+  @Scheduled(cron = "0 0 10 * * SUN", zone = "UTC") // Every Sunday at 10 AM
   @Transactional(readOnly = true)
   public void generateWeeklyReports() {
     log.info("Generating weekly reports...");
@@ -255,7 +255,7 @@ public class NotificationScheduler {
   // BILL PAYMENT REMINDERS
   // Runs daily at 9 AM to check for upcoming bills
   // ============================================================
-  @Scheduled(cron = "0 0 9 * * *") // Every day at 9 AM
+  @Scheduled(cron = "0 0 9 * * *", zone = "UTC") // Every day at 9 AM
   @Transactional(readOnly = true)
   public void checkBillReminders() {
     log.debug("Running bill payment reminder check...");
@@ -287,7 +287,7 @@ public class NotificationScheduler {
   // ANNIVERSARY REMINDERS
   // Runs daily at 8 AM to check for anniversaries
   // ============================================================
-  @Scheduled(cron = "0 0 8 * * *") // Every day at 8 AM
+  @Scheduled(cron = "0 0 8 * * *", zone = "UTC") // Every day at 8 AM
   @Transactional(readOnly = true)
   public void checkAnniversaries() {
     log.debug("Running anniversary reminder check...");
@@ -319,7 +319,7 @@ public class NotificationScheduler {
   // CLEAN UP EXPIRED NOTIFICATIONS
   // Runs daily at 2 AM
   // ============================================================
-  @Scheduled(cron = "0 0 2 * * *") // Every day at 2 AM
+  @Scheduled(cron = "0 0 2 * * *", zone = "UTC") // Every day at 2 AM
   @Transactional
   public void cleanupExpiredNotifications() {
     log.info("Running notification cleanup...");

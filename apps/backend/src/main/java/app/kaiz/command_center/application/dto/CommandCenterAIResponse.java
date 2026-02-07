@@ -1,4 +1,4 @@
-package app.kaiz.command_center.api.dto;
+package app.kaiz.command_center.application.dto;
 
 import app.kaiz.command_center.domain.Draft;
 import app.kaiz.command_center.domain.DraftStatus;
@@ -93,8 +93,8 @@ public record CommandCenterAIResponse(
         draft,
         reasoning,
         suggestions,
-        clarifyingQuestions != null && !clarifyingQuestions.isEmpty() 
-            ? clarifyingQuestions 
+        clarifyingQuestions != null && !clarifyingQuestions.isEmpty()
+            ? clarifyingQuestions
             : (draft instanceof Draft.NoteDraft note ? note.clarifyingQuestions() : List.of()),
         new OriginalInput(originalText, attachments, voiceTranscription),
         Instant.now(),

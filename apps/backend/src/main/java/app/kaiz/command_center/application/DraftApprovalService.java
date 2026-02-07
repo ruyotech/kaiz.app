@@ -4,10 +4,11 @@ import app.kaiz.challenge.application.ChallengeService;
 import app.kaiz.challenge.application.dto.ChallengeDto;
 import app.kaiz.challenge.domain.MetricType;
 import app.kaiz.challenge.domain.Recurrence;
-import app.kaiz.command_center.api.dto.DraftActionRequest;
-import app.kaiz.command_center.api.dto.DraftActionResponse;
+import app.kaiz.command_center.application.dto.DraftActionRequest;
+import app.kaiz.command_center.application.dto.DraftActionResponse;
 import app.kaiz.command_center.domain.*;
 import app.kaiz.command_center.infrastructure.PendingDraftRepository;
+import app.kaiz.shared.exception.ResourceNotFoundException;
 import app.kaiz.tasks.application.EpicService;
 import app.kaiz.tasks.application.TaskService;
 import app.kaiz.tasks.application.dto.EpicDto;
@@ -45,7 +46,7 @@ public class DraftApprovalService {
         draftRepository
             .findByIdAndUserId(request.draftId(), userId)
             .orElseThrow(
-                () -> new IllegalArgumentException("Draft not found: " + request.draftId()));
+                () -> new ResourceNotFoundException("Draft", request.draftId().toString()));
 
     // Check if already processed
     if (draft.getStatus() != DraftStatus.PENDING_APPROVAL) {

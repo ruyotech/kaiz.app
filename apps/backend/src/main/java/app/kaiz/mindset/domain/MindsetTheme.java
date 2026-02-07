@@ -28,7 +28,7 @@ public class MindsetTheme extends BaseEntity {
   @Column(name = "accent_color", length = 20)
   private String accentColor;
 
-  @ElementCollection(fetch = FetchType.EAGER)
+  @ElementCollection(fetch = FetchType.LAZY)
   @CollectionTable(
       name = "mindset_theme_gradient_colors",
       joinColumns = @JoinColumn(name = "mindset_theme_id"))

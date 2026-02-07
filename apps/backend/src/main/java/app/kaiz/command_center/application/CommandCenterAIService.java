@@ -1,21 +1,20 @@
 package app.kaiz.command_center.application;
 
-import app.kaiz.command_center.api.dto.CommandCenterAIResponse;
-import app.kaiz.command_center.api.dto.CommandCenterAIResponse.AttachmentSummary;
 import app.kaiz.command_center.application.AIConversationLogger.AttachmentInfo;
 import app.kaiz.command_center.application.AIConversationLogger.ConversationLog;
 import app.kaiz.command_center.application.AIConversationLogger.ProviderInfo;
+import app.kaiz.command_center.application.dto.CommandCenterAIResponse;
+import app.kaiz.command_center.application.dto.CommandCenterAIResponse.AttachmentSummary;
 import app.kaiz.command_center.domain.*;
 import app.kaiz.command_center.infrastructure.PendingDraftRepository;
 import app.kaiz.identity.domain.User;
 import app.kaiz.identity.infrastructure.UserRepository;
+import app.kaiz.shared.exception.ResourceNotFoundException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -23,7 +22,6 @@ import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.anthropic.AnthropicChatModel;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.content.Media;
@@ -43,12 +41,13 @@ import org.springframework.web.multipart.MultipartFile;
 @Slf4j
 public class CommandCenterAIService {
 
-  private final AnthropicChatModel chatModel;
+  private final ChatModelProvider chatModelProvider;
   private final ObjectMapper objectMapper;
   private final PendingDraftRepository draftRepository;
   private final UserRepository userRepository;
   private final AIConversationLogger aiLogger;
   private final SystemPromptService systemPromptService;
+  private final AIResponseParser aiResponseParser;
 
   // Draft expiration time (24 hours)
   private static final long DRAFT_EXPIRATION_HOURS = 24;
@@ -121,7 +120,7 @@ public class CommandCenterAIService {
       User user =
           userRepository
               .findById(userId)
-              .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+              .orElseThrow(() -> new ResourceNotFoundException("User", userId.toString()));
 
       PendingDraft pendingDraft =
           PendingDraft.builder()
@@ -143,11 +142,13 @@ public class CommandCenterAIService {
       conversation.complete(saved.getId().toString(), parsed.draft().type().name());
 
       // Determine the response status based on AI's status
-      DraftStatus responseStatus = switch (parsed.status()) {
-        case "NEEDS_CLARIFICATION" -> DraftStatus.NEEDS_CLARIFICATION;
-        case "SUGGEST_ALTERNATIVE" -> DraftStatus.NEEDS_CLARIFICATION; // Treat similar to clarification
-        default -> DraftStatus.PENDING_APPROVAL;
-      };
+      DraftStatus responseStatus =
+          switch (parsed.status()) {
+            case "NEEDS_CLARIFICATION" -> DraftStatus.NEEDS_CLARIFICATION;
+            case "SUGGEST_ALTERNATIVE" ->
+                DraftStatus.NEEDS_CLARIFICATION; // Treat similar to clarification
+            default -> DraftStatus.PENDING_APPROVAL;
+          };
 
       // Build response with proper status
       return CommandCenterAIResponse.withStatus(
@@ -179,7 +180,7 @@ public class CommandCenterAIService {
                   new org.springframework.ai.chat.messages.SystemMessage(systemPrompt),
                   new UserMessage(userPrompt)));
 
-      var response = chatModel.call(prompt);
+      var response = chatModelProvider.getChatModel().call(prompt);
       return response.getResult().getOutput().getText();
     } catch (Exception e) {
       throw new AIProcessingException("Failed to process with AI: " + e.getMessage(), e);
@@ -204,7 +205,7 @@ public class CommandCenterAIService {
 
       MimeType mimeType = getMimeTypeForImage(contentType);
       if (mimeType == null) {
-        log.warn("🔍 [OCR] Unsupported image type: {}", contentType);
+        log.warn("Unsupported image type for OCR: {}", contentType);
         return null;
       }
 
@@ -216,7 +217,7 @@ public class CommandCenterAIService {
 
       long startTime = System.currentTimeMillis();
       var prompt = new Prompt(List.of(userMessage));
-      var response = chatModel.call(prompt);
+      var response = chatModelProvider.getChatModel().call(prompt);
       String extractedText = response.getResult().getOutput().getText();
       long duration = System.currentTimeMillis() - startTime;
 
@@ -248,7 +249,7 @@ public class CommandCenterAIService {
       // Determine MIME type
       MimeType mimeType = getMimeTypeForImage(file.getContentType());
       if (mimeType == null) {
-        log.warn("🔍 [OCR] Unsupported image type: {}", file.getContentType());
+        log.warn("Unsupported image type for OCR: {}", file.getContentType());
         return null;
       }
 
@@ -264,7 +265,7 @@ public class CommandCenterAIService {
 
       long startTime = System.currentTimeMillis();
       var prompt = new Prompt(List.of(userMessage));
-      var response = chatModel.call(prompt);
+      var response = chatModelProvider.getChatModel().call(prompt);
       String extractedText = response.getResult().getOutput().getText();
       long duration = System.currentTimeMillis() - startTime;
 
@@ -369,7 +370,7 @@ public class CommandCenterAIService {
   private AIResponseParsed parseAIResponse(String jsonResponse) {
     try {
       // Clean up the response (remove markdown code blocks if present)
-      String cleaned = cleanJsonResponse(jsonResponse);
+      String cleaned = aiResponseParser.cleanJsonResponse(jsonResponse);
 
       JsonNode root = objectMapper.readTree(cleaned);
 
@@ -431,25 +432,31 @@ public class CommandCenterAIService {
       if (draftNode.isNull() || draftNode.isMissingNode()) {
         // For NEEDS_CLARIFICATION with no draft, create a placeholder
         if ("NEEDS_CLARIFICATION".equals(status)) {
-          draft = new Draft.NoteDraft(
-              "Clarification Needed",
-              "Please provide more details about what you'd like to create.",
-              "lw-4",
-              List.of("clarification"),
-              clarifyingQuestions);
+          draft =
+              new Draft.NoteDraft(
+                  "Clarification Needed",
+                  "Please provide more details about what you'd like to create.",
+                  "lw-4",
+                  List.of("clarification"),
+                  clarifyingQuestions);
         } else {
-          draft = parseDraft(intentDetected, draftNode);
+          draft = aiResponseParser.parseDraftByTypeName(intentDetected, draftNode);
         }
       } else {
-        draft = parseDraft(intentDetected, draftNode);
+        draft = aiResponseParser.parseDraftByTypeName(intentDetected, draftNode);
       }
 
-      log.info("📊 [AI Parse] status={}, intent={}, confidence={}, clarifyQuestions={}", 
-          status, intentDetected, confidenceScore, clarifyingQuestions.size());
+      log.info(
+          "AI parse result: status={}, intent={}, confidence={}, clarifyQuestions={}",
+          status,
+          intentDetected,
+          confidenceScore,
+          clarifyingQuestions.size());
 
-      return new AIResponseParsed(status, draft, confidenceScore, reasoning, suggestions, clarifyingQuestions);
+      return new AIResponseParsed(
+          status, draft, confidenceScore, reasoning, suggestions, clarifyingQuestions);
     } catch (Exception e) {
-      log.error("🤖 [AI] Error parsing AI response: {}", e.getMessage(), e);
+      log.error("Error parsing AI response: {}", e.getMessage(), e);
       // Return a fallback note draft
       return new AIResponseParsed(
           "READY",
@@ -464,206 +471,6 @@ public class CommandCenterAIService {
           List.of(),
           List.of("What would you like to create?", "Can you provide more details?"));
     }
-  }
-
-  /** Parse draft JSON based on detected type. */
-  private Draft parseDraft(String type, JsonNode node) {
-    return switch (type.toLowerCase()) {
-      case "task" -> parseTaskDraft(node);
-      case "epic" -> parseEpicDraft(node);
-      case "challenge" -> parseChallengeDraft(node);
-      case "event" -> parseEventDraft(node);
-      case "bill" -> parseBillDraft(node);
-      default -> parseNoteDraft(node);
-    };
-  }
-
-  private Draft.TaskDraft parseTaskDraft(JsonNode node) {
-    return new Draft.TaskDraft(
-        node.path("title").asText("Untitled Task"),
-        node.path("description").asText(""),
-        node.path("lifeWheelAreaId").asText("lw-4"),
-        node.path("eisenhowerQuadrantId").asText("q2"),
-        node.path("storyPoints").asInt(3),
-        nullIfEmpty(node.path("suggestedEpicId").asText(null)),
-        nullIfEmpty(node.path("suggestedSprintId").asText(null)),
-        parseLocalDate(node.path("dueDate").asText(null)),
-        node.path("isRecurring").asBoolean(false),
-        parseRecurrencePattern(node.path("recurrencePattern")));
-  }
-
-  private Draft.EpicDraft parseEpicDraft(JsonNode node) {
-    List<Draft.TaskDraft> suggestedTasks = new ArrayList<>();
-    if (node.has("suggestedTasks") && node.get("suggestedTasks").isArray()) {
-      for (JsonNode taskNode : node.get("suggestedTasks")) {
-        suggestedTasks.add(parseTaskDraft(taskNode));
-      }
-    }
-
-    return new Draft.EpicDraft(
-        node.path("title").asText("Untitled Epic"),
-        node.path("description").asText(""),
-        node.path("lifeWheelAreaId").asText("lw-4"),
-        suggestedTasks,
-        node.path("color").asText("#3B82F6"),
-        node.path("icon").asText(null),
-        parseLocalDate(node.path("startDate").asText(null)),
-        parseLocalDate(node.path("endDate").asText(null)));
-  }
-
-  private Draft.ChallengeDraft parseChallengeDraft(JsonNode node) {
-    return new Draft.ChallengeDraft(
-        node.path("name").asText("Untitled Challenge"),
-        node.path("description").asText(""),
-        node.path("lifeWheelAreaId").asText("lw-4"),
-        node.path("metricType").asText("yesno"),
-        parseDecimal(node.path("targetValue")),
-        nullIfEmpty(node.path("unit").asText(null)),
-        node.path("duration").asInt(30),
-        node.path("recurrence").asText("daily"),
-        nullIfEmpty(node.path("whyStatement").asText(null)),
-        nullIfEmpty(node.path("rewardDescription").asText(null)),
-        node.path("graceDays").asInt(2),
-        parseLocalTime(node.path("reminderTime").asText(null)));
-  }
-
-  private Draft.EventDraft parseEventDraft(JsonNode node) {
-    List<String> attendees = new ArrayList<>();
-    if (node.has("attendees") && node.get("attendees").isArray()) {
-      for (JsonNode attendee : node.get("attendees")) {
-        attendees.add(attendee.asText());
-      }
-    }
-
-    return new Draft.EventDraft(
-        node.path("title").asText("Untitled Event"),
-        node.path("description").asText(""),
-        node.path("lifeWheelAreaId").asText("lw-4"),
-        parseLocalDate(node.path("date").asText(null)),
-        parseLocalTime(node.path("startTime").asText(null)),
-        parseLocalTime(node.path("endTime").asText(null)),
-        nullIfEmpty(node.path("location").asText(null)),
-        node.path("isAllDay").asBoolean(false),
-        node.path("recurrence").asText(null),
-        attendees);
-  }
-
-  private Draft.BillDraft parseBillDraft(JsonNode node) {
-    return new Draft.BillDraft(
-        node.path("vendorName").asText("Unknown Vendor"),
-        parseDecimal(node.path("amount")),
-        node.path("currency").asText("USD"),
-        parseLocalDate(node.path("dueDate").asText(null)),
-        nullIfEmpty(node.path("category").asText(null)),
-        "lw-3", // Bills always go to Finance
-        node.path("isRecurring").asBoolean(false),
-        node.path("recurrence").asText(null),
-        nullIfEmpty(node.path("notes").asText(null)));
-  }
-
-  private Draft.NoteDraft parseNoteDraft(JsonNode node) {
-    List<String> tags = new ArrayList<>();
-    if (node.has("tags") && node.get("tags").isArray()) {
-      for (JsonNode tag : node.get("tags")) {
-        tags.add(tag.asText());
-      }
-    }
-
-    List<String> questions = new ArrayList<>();
-    if (node.has("clarifyingQuestions") && node.get("clarifyingQuestions").isArray()) {
-      for (JsonNode q : node.get("clarifyingQuestions")) {
-        questions.add(q.asText());
-      }
-    }
-
-    return new Draft.NoteDraft(
-        node.path("title").asText("Quick Note"),
-        node.path("content").asText(""),
-        node.path("lifeWheelAreaId").asText("lw-4"),
-        tags,
-        questions);
-  }
-
-  private Draft.RecurrencePattern parseRecurrencePattern(JsonNode node) {
-    if (node == null || node.isNull() || node.isMissingNode()) {
-      return null;
-    }
-    return new Draft.RecurrencePattern(
-        node.path("frequency").asText("daily"),
-        node.path("interval").asInt(1),
-        parseLocalDate(node.path("endDate").asText(null)));
-  }
-
-  // Helper methods
-  private String cleanJsonResponse(String response) {
-    String cleaned = response.trim();
-
-    // Remove markdown code blocks - handle various formats
-    // Check for ```json or ``` at start
-    if (cleaned.startsWith("```json")) {
-      cleaned = cleaned.substring(7);
-    } else if (cleaned.startsWith("```JSON")) {
-      cleaned = cleaned.substring(7);
-    } else if (cleaned.startsWith("```")) {
-      cleaned = cleaned.substring(3);
-    }
-
-    // Remove trailing ``` - could be anywhere at the end
-    if (cleaned.endsWith("```")) {
-      cleaned = cleaned.substring(0, cleaned.length() - 3);
-    }
-
-    cleaned = cleaned.trim();
-
-    // If the response still doesn't start with {, try to extract JSON from the middle
-    if (!cleaned.startsWith("{") && !cleaned.startsWith("[")) {
-      // Look for JSON object start
-      int jsonStart = cleaned.indexOf("{");
-      int jsonEnd = cleaned.lastIndexOf("}");
-      if (jsonStart >= 0 && jsonEnd > jsonStart) {
-        cleaned = cleaned.substring(jsonStart, jsonEnd + 1);
-        log.debug("🧹 [AI] Extracted JSON from position {} to {}", jsonStart, jsonEnd);
-      }
-    }
-
-    return cleaned.trim();
-  }
-
-  private LocalDate parseLocalDate(String value) {
-    if (value == null || value.isBlank() || "null".equals(value)) {
-      return null;
-    }
-    try {
-      return LocalDate.parse(value);
-    } catch (Exception e) {
-      return null;
-    }
-  }
-
-  private LocalTime parseLocalTime(String value) {
-    if (value == null || value.isBlank() || "null".equals(value)) {
-      return null;
-    }
-    try {
-      return LocalTime.parse(value);
-    } catch (Exception e) {
-      return null;
-    }
-  }
-
-  private BigDecimal parseDecimal(JsonNode node) {
-    if (node == null || node.isNull() || node.isMissingNode()) {
-      return null;
-    }
-    try {
-      return new BigDecimal(node.asText("0"));
-    } catch (Exception e) {
-      return null;
-    }
-  }
-
-  private String nullIfEmpty(String value) {
-    return (value == null || value.isBlank() || "null".equals(value)) ? null : value;
   }
 
   /** Internal record for parsed AI response. */

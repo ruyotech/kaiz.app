@@ -1,21 +1,20 @@
 package app.kaiz.command_center.application;
 
 import app.kaiz.admin.domain.SystemPrompt;
-import app.kaiz.admin.repository.SystemPromptRepository;
+import app.kaiz.admin.infrastructure.SystemPromptRepository;
 import java.time.LocalDate;
 import java.util.Optional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 /**
  * Service to fetch system prompts from the database. Falls back to hardcoded prompts if database
  * prompts are not available.
  */
+@Slf4j
 @Service
 public class SystemPromptService {
-
-  private static final Logger log = LoggerFactory.getLogger(SystemPromptService.class);
 
   // Prompt keys
   public static final String SMART_INPUT_MAIN = "smart_input_main";
@@ -61,6 +60,7 @@ public class SystemPromptService {
    * @param fallbackDescription description for logging if fallback is used
    * @return the prompt content with date variables replaced
    */
+  @Cacheable(value = "systemPrompts", key = "#promptKey")
   public String getPromptByKey(String promptKey, String fallbackDescription) {
     try {
       Optional<SystemPrompt> promptOpt = systemPromptRepository.findByPromptKey(promptKey);
@@ -68,20 +68,20 @@ public class SystemPromptService {
       if (promptOpt.isPresent() && promptOpt.get().isActive()) {
         String content = promptOpt.get().getPromptContent();
         log.info(
-            "✅ Using DATABASE prompt: {} (version {}, length={})", 
-            promptKey, 
+            "Using DATABASE prompt: {} (version {}, length={})",
+            promptKey,
             promptOpt.get().getVersion(),
             content.length());
         return replaceDateVariables(content);
       } else {
         log.warn(
-            "⚠️ Prompt '{}' not found or inactive in database, using HARDCODED fallback for {}",
+            "Prompt '{}' not found or inactive in database, using fallback for {}",
             promptKey,
             fallbackDescription);
         return getFallbackPrompt(promptKey);
       }
-    } catch (Exception e) {
-      log.error("❌ Error fetching prompt '{}' from database: {}", promptKey, e.getMessage());
+    } catch (org.springframework.dao.DataAccessException e) {
+      log.error("Error fetching prompt '{}' from database: {}", promptKey, e.getMessage());
       return getFallbackPrompt(promptKey);
     }
   }

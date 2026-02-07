@@ -280,48 +280,173 @@ export const config = { matcher: ['/(dashboard)/:path*', '/admin/:path*', '/(aut
 
 ---
 
-## 3. BACKEND — Java 21 + Spring Boot 3.4
+## 3. BACKEND — Java 21 + Spring Boot 3.4.1
 
 ### Stack
 
 - Java 21 (LTS)
-- Spring Boot 3.4
-- Spring Security + JWT
-- PostgreSQL 16 + Flyway
-- Docker + GCP Cloud Run
+- Spring Boot 3.4.1
+- Spring Security 6.x + JWT (JJWT)
+- Spring AI 1.0.0 (Anthropic — Claude claude-sonnet-4-20250514)
+- PostgreSQL 16 + Flyway (29 migrations, V1–V29)
+- Caffeine (in-process caching, 3 tiers)
+- MapStruct 1.6.3 + Lombok (mapping & boilerplate)
+- Spotless (code formatting — enforced on every build)
+- Docker multi-stage + GCP Cloud Run
+- Bucket4j 8.10.1 (rate limiting — dependency available)
 
-### Project Structure
+### Project Structure — Hexagonal Per Module
 
 ```
-apps/backend/src/main/java/com/kaiz/
-├── config/                 # Security, CORS, WebMvc, OpenAPI configs
-├── common/                 # Base entities, DTOs, exceptions, utils
-│   ├── entity/             # BaseEntity with audit fields
-│   ├── dto/                # ApiResponse, PagedResponse
-│   └── exception/          # GlobalExceptionHandler, custom exceptions
-├── modules/
-│   ├── identity/           # User, Auth, RefreshToken
-│   │   ├── controller/
-│   │   ├── service/
-│   │   ├── repository/
-│   │   ├── entity/
-│   │   └── dto/
-│   ├── tasks/              # Tasks, Epics, Sprints
-│   ├── challenges/
-│   ├── sensai/
-│   ├── admin/
-│   └── ... (each domain follows same structure)
-└── KaizApplication.java
+apps/backend/src/main/java/app/kaiz/
+├── KaizApplication.java
+├── shared/                         # Cross-cutting concerns
+│   ├── config/                     # SecurityConfig, CacheConfig, CorsConfig, JwtProperties
+│   ├── exception/                  # GlobalExceptionHandler, ResourceNotFoundException,
+│   │                               # BadRequestException, ForbiddenException, UnauthorizedException,
+│   │                               # AIProcessingException
+│   ├── persistence/                # BaseEntity (audit fields)
+│   ├── security/                   # JwtAuthFilter, JwtProvider, JwtAuthEntryPoint
+│   ├── storage/                    # CloudStorageService (GCS)
+│   └── util/                       # MessageService (i18n)
+│
+├── identity/                       # User, Auth, RefreshToken
+│   ├── api/                        # AuthController, UserController
+│   ├── application/                # AuthService, UserService, UserMapper
+│   │   └── dto/                    # LoginRequest, RegisterRequest, UserResponse, etc.
+│   ├── domain/                     # User, RefreshToken entities
+│   └── infrastructure/             # UserRepository, RefreshTokenRepository
+│
+├── admin/                          # Admin panel (separate auth flow)
+│   ├── api/                        # AdminAuthController, AdminContentController, etc.
+│   ├── application/                # AdminAuthService, AdminContentService,
+│   │   │                           # AdminCommandCenterService, KnowledgeHubService
+│   │   └── dto/                    # AdminDtos (records)
+│   ├── domain/                     # AdminUser, SiteContent, Faq, PricingTier,
+│   │   │                           # LlmProvider, SystemPrompt, etc.
+│   │   └── crm/                    # Lead, Testimonial
+│   └── infrastructure/             # All admin repositories (AdminUserRepository, LeadRepository, etc.)
+│
+├── tasks/                          # Tasks, Epics, Sprints, Tags, Templates
+│   ├── api/                        # TaskController, EpicController, SprintController, etc.
+│   ├── application/                # TaskService, EpicService, SprintService,
+│   │   │                           # TaskTemplateService, UserTagService, OnboardingService, SdlcMapper
+│   │   └── dto/                    # TaskDto, EpicDto, SprintDto (records)
+│   ├── domain/                     # Task, Epic, Sprint, UserTag, TaskTemplate, etc.
+│   └── infrastructure/             # TaskRepository, EpicRepository, SprintRepository, etc.
+│
+├── command_center/                 # AI Smart Input, Drafts, Streaming
+│   ├── api/                        # CommandCenterController (REST + SSE streaming)
+│   ├── application/                # CommandCenterAIService, StreamingAIService,
+│   │   │                           # DraftApprovalService, ChatModelProvider,
+│   │   │                           # AIResponseParser (shared parsing utility),
+│   │   │                           # AIConversationLogger, SystemPromptService
+│   │   └── dto/                    # CommandCenterAIResponse, SmartInputResponse,
+│   │                               # DraftActionRequest/Response, SmartInputRequest, etc.
+│   ├── domain/                     # PendingDraft, Draft (sealed), DraftType, DraftStatus
+│   └── infrastructure/             # PendingDraftRepository
+│
+├── sensai/                         # SensAI conversational AI assistant
+│   ├── api/                        # SensAIController, SmartInputController
+│   ├── application/                # SensAIService, SmartInputAIService (orchestrator),
+│   │   │                           # SmartInputResponseParser, DraftPersistenceService,
+│   │   │                           # ConversationSessionStore, SensAIMapper
+│   │   └── dto/                    # SensAI DTOs
+│   ├── domain/                     # SensAIConversation, SensAIMessage
+│   └── infrastructure/             # SensAIConversationRepository, etc.
+│
+├── challenge/                      # Challenges, Templates, Entries, Participants
+├── community/                      # Articles, Q&A, Stories, Groups (CommunityService = facade)
+├── essentia/                       # Books, categories, user library
+├── family/                         # Family members, invitations
+├── life_wheel/                     # LifeWheelArea, EisenhowerQuadrant (cached lookups)
+├── mindset/                        # MindsetTheme, MindsetContent (cached)
+└── notification/                   # Notifications, preferences, scheduling
+    # Each module follows: api/ → application/ (+ dto/) → domain/ → infrastructure/
 ```
 
-### Architecture Rules
+### Architecture Rules — ENFORCED
 
-- **Layered per module**: Controller → Service → Repository. No skipping layers.
-- Controllers: only request mapping, validation, delegation. No business logic.
-- Services: all business logic. Annotated `@Service` + `@Transactional` where needed.
+- **Hexagonal per module**: `api/` → `application/` → `domain/` → `infrastructure/`. **No skipping layers.**
+- **ArchUnit tests enforce**: Controllers in `api`, Services in `application`, Repositories in `infrastructure`.
+- Controllers: only request mapping, `@Valid`, delegation. **Zero business logic.**
+- Services: all business logic. `@Service` + `@Transactional` (class-level `readOnly = true`, method-level `@Transactional` for writes).
 - Repositories: extend `JpaRepository`. Custom queries via `@Query` or Specifications.
-- DTOs: separate Request and Response DTOs. **Never expose entities in API responses.**
-- Use `record` types for DTOs where possible (Java 21).
+- DTOs: **Java records** for Request/Response. **Never expose entities in API responses.**
+- Mappers: **MapStruct interfaces** (`@Mapper(componentModel = "spring")`), one per module. **No manual mapping in services.**
+- **Facade pattern** for god-object prevention: If a service exceeds ~400 lines, split into focused sub-services and create a thin facade that delegates. Examples: `CommunityService` (facade → 8 sub-services), `SmartInputAIService` (orchestrator → 3 sub-services).
+
+### Dependency Injection — Hard Rules
+
+- **Always `@RequiredArgsConstructor`** (Lombok) — constructor injection only.
+- **NEVER `@Autowired` on fields.** No exceptions.
+- If a service needs many dependencies (>7), it's a sign to split the service.
+
+### Logging — Hard Rules
+
+- **Every `@Service` class MUST have `@Slf4j`** (Lombok annotation). No exceptions.
+- **NEVER use `System.out.println`** or `System.err.println` — use `log.info/debug/warn/error`.
+- Log at these levels:
+  - `log.debug(...)` — method entry/exit, detailed flow (disabled in prod)
+  - `log.info(...)` — business events: entity created, state changed, cache hit/miss
+  - `log.warn(...)` — recoverable issues: validation failures, fallback activated
+  - `log.error(...)` — unexpected failures, always include exception: `log.error("msg", e)`
+- **All public service methods must have at least one meaningful log statement.**
+- Use structured format: `log.info("Task created: userId={}, taskId={}", userId, task.getId())`
+- **AI services**: Log provider info, request/response timing, token usage, parse results.
+
+### Exception Handling — Hard Rules
+
+- **Use project exceptions only** — all live in `shared/exception/`:
+  - `ResourceNotFoundException` — 404 (entity not found by ID)
+  - `BadRequestException` — 400 (invalid input beyond validation)
+  - `ForbiddenException` — 403 (access denied)
+  - `UnauthorizedException` — 401 (auth failure)
+  - `ApiException` — 500 (generic server error)
+- **NEVER throw raw `RuntimeException` or `IllegalArgumentException` for business logic.**
+  - ✅ `throw new ResourceNotFoundException("Task", taskId)`
+  - ❌ `throw new RuntimeException("Task not found")`
+- **NEVER use empty catch blocks**: `catch (Exception e) {}` — always log + handle or rethrow.
+- **Narrow your catches**: Catch the specific exception, not `Exception`:
+  - ✅ `catch (JsonProcessingException e)` — JSON parsing
+  - ✅ `catch (DataAccessException e)` — database errors
+  - ✅ `catch (JwtException e)` — JWT validation
+  - ❌ `catch (Exception e)` — only as last-resort fallback with full logging
+- **Acceptable broad catch pattern** (AI services only): When AI responses are unpredictable, a broad catch with logging + meaningful fallback is OK:
+  ```java
+  try { ... }
+  catch (Exception e) {
+    log.error("Failed to parse AI response: {}", e.getMessage(), e);
+    return fallbackDraft();  // MUST provide a fallback, never swallow
+  }
+  ```
+- **`Optional` usage**: NEVER call `.get()` — use `.orElseThrow(() -> new ResourceNotFoundException(...))`.
+- `GlobalExceptionHandler` maps all project exceptions to proper HTTP status codes.
+
+### Entity & JPA Rules
+
+- **All entities extend `BaseEntity`** which provides audit fields: `created_at`, `updated_at`, `created_by`, `updated_by`.
+- **NEVER use `FetchType.EAGER`** on relationships. Default is LAZY for all:
+  - `@ManyToOne(fetch = FetchType.LAZY)` — already the JPA default for `@ManyToOne` but be explicit.
+  - `@OneToMany(fetch = FetchType.LAZY)` — default, state it.
+  - `@ElementCollection(fetch = FetchType.LAZY)` — **NOT the default**, must be explicit.
+- Use `@EntityGraph` or `JOIN FETCH` queries when you need eager loading for specific use cases.
+- Use `@Enumerated(EnumType.STRING)` — **NEVER use ordinal**.
+- Entity classes: `@Entity`, `@Table`, `@Builder`, `@Getter`, `@Setter`, `@NoArgsConstructor`, `@AllArgsConstructor`.
+
+### AI / Spring AI — Architecture
+
+- **Single AI provider**: Anthropic (Claude) via `spring-ai-starter-model-anthropic`.
+- **ChatModelProvider** (`command_center/application/`): Bridges admin DB config → runtime `ChatModel`. Reads `LlmProvider` settings from admin panel, caches the model instance.
+- **AIResponseParser** (`command_center/application/`): **Shared utility** for parsing AI JSON responses into domain `Draft` objects. Used by both `CommandCenterAIService` and `SmartInputAIService`. **NEVER duplicate parsing logic** — always delegate to `AIResponseParser`.
+- **StreamingAIService**: SSE streaming endpoint for real-time AI responses to mobile.
+- **SystemPromptService**: Loads prompts from DB (`system_prompts` table), cached 15 min.
+- **AIConversationLogger**: Structured logging for all AI conversations (input, prompt, response, timing).
+- When adding new AI features:
+  1. Reuse `ChatModelProvider` — never create a new `ChatModel` instance.
+  2. Reuse `AIResponseParser` for any JSON → Draft parsing.
+  3. Log every AI call via `AIConversationLogger`.
+  4. Keep prompts in DB (Flyway seed), not hardcoded in Java.
 
 ### API Design
 
@@ -330,22 +455,34 @@ apps/backend/src/main/java/com/kaiz/
 - Pagination: `PagedResponse<T>` wrapper with `page`, `size`, `totalElements`
 - Error responses: consistent `ApiResponse` wrapper with `success`, `message`, `data`, `errors`
 - Validation: `@Valid` on request bodies + Jakarta validation annotations
+- SSE streaming: `text/event-stream` media type for AI streaming endpoints
 
 ### Security / Auth
 
 - JWT access token (15 min expiry) + refresh token (7 day expiry)
 - Access token in `Authorization: Bearer` header
 - Refresh token in DB (`refresh_tokens` table) — revocable
-- Spring Security filter chain validates JWT on every request
-- Role-based: `@PreAuthorize("hasRole('ADMIN')")` on admin endpoints
+- Spring Security filter chain validates JWT on every request — catches `JwtException` specifically.
+- CORS: **Property-driven whitelist** via `kaiz.cors.allowed-origins` in `application.yml`. **NEVER use wildcard `*` in production.**
+- Role-based: `@PreAuthorize("hasRole('ADMIN')")` on all admin endpoints
 - Admin auth is a separate flow: `/api/v1/admin/auth/*`
+- `@EnableMethodSecurity` on `SecurityConfig` — method-level security is active.
 
-### Caching
+### Caching — Caffeine (3 Tiers)
 
-- Use Spring Cache abstraction (`@Cacheable`, `@CacheEvict`, `@CachePut`)
-- Cache static/slow-changing data: site content, FAQs, pricing, mindset themes
-- Cache keys must include user context where data is user-specific
-- Evict on mutations — never serve stale data after writes
+All caches are defined in `CacheConfig.java` with explicit TTL and max-size bounds. **Every cache name used in `@Cacheable` MUST have a matching entry in `CacheConfig`.**
+
+| Tier | TTL | Max Entries | Caches |
+|------|-----|-------------|--------|
+| **Static data** | 30 min | 100–200 | `lifeWheelAreas`, `eisenhowerQuadrants`, `mindsetThemes`, `mindsetContent`, `challengeTemplates`, `essentiaBooks`, `essentiaCategories`, `globalTemplates` |
+| **Admin-managed** | 15 min | 50–200 | `siteContent`, `faqs`, `features`, `pricing`, `systemPrompts`, `knowledgeCategories`, `knowledgeItems` |
+| **Per-user** | 5 min | 500 | `currentSprint` |
+
+**Hard rules:**
+- **Every `@Cacheable` must have a matching `@CacheEvict`** on the mutation path. Never serve stale data after writes.
+- **NEVER define a cache in `CacheConfig` without a corresponding `@Cacheable` annotation** — dead caches waste memory.
+- Cache keys must include user context when data is user-specific: `@Cacheable(value = "currentSprint", key = "#userId")`
+- When adding a new cache: add to `CacheConfig` → add `@Cacheable` on read → add `@CacheEvict` on write.
 
 ```java
 @Cacheable(value = "siteContent", key = "#section")
@@ -359,42 +496,61 @@ public SiteContentResponse updateSiteContent(UpdateSiteContentRequest request) {
 
 **Read these. Violations break production.**
 
-1. **NEVER modify migrations V1–V14** — they are deployed. Create V15+ for changes.
-2. **Version numbers are sequential** — check `db/migration/` for next number.
+1. **NEVER modify migrations V1–V29** — they are deployed. Create V30+ for changes.
+2. **Version numbers are sequential** — check `db/migration/` for next number. Currently at **V29**.
 3. **Enum values UPPERCASE** in CHECK constraints (matches `@Enumerated(EnumType.STRING)`).
 4. **Defensive SQL**: `IF NOT EXISTS` / `IF EXISTS` on all DDL.
 5. **Audit columns on every entity table**: `created_at`, `updated_at`, `created_by`, `updated_by`.
 6. **Naming**: `V{N}__{snake_case_description}.sql` (double underscore).
+7. **`ddl-auto: validate`** in production — Hibernate validates schema against entities but **never** modifies it. Only Flyway changes the schema.
+8. **`ddl-auto: update`** in dev only (`application-dev.yml`).
 
 ```sql
--- Adding a column (V15+)
+-- Adding a column (V30+)
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS priority VARCHAR(20)
   CHECK (priority IS NULL OR priority IN ('LOW', 'MEDIUM', 'HIGH', 'URGENT'));
 ```
+
+### Code Formatting — Spotless
+
+- **Spotless Maven Plugin** is configured and enforced. Run before every commit:
+  ```bash
+  ./mvnw spotless:apply   # Auto-format
+  ./mvnw spotless:check   # Verify formatting (CI gate)
+  ```
+- **Always run `./mvnw spotless:apply` after any code change** — Spotless controls import ordering, indentation, and line wrapping.
+- Import order is managed by Spotless — **do not manually reorder imports**.
 
 ### Build & Deploy Workflow — MANDATORY
 
 **Every backend change follows this exact sequence. No shortcuts.**
 
 ```bash
-# Step 1: Local build + test
+# Step 0: Format + compile (ALWAYS first)
 cd apps/backend
+./mvnw spotless:apply && ./mvnw compile -q
+
+# Step 1: Run tests
+./mvnw test -q
+# Known: 5 pre-existing ArchUnit failures (admin/repository package). Zero other failures allowed.
+
+# Step 2: Local Docker build + test
 docker-compose down
 docker-compose up --build -d
 sleep 15
 docker-compose logs app  # CHECK: no errors, Flyway success, "Started" message
 
-# Step 2: Local health check
+# Step 3: Local health check
 curl -s http://localhost:8080/actuator/health | jq .
 # MUST return: {"status":"UP"}
 
-# Step 3: ONLY if Step 1+2 pass → deploy to GCP
+# Step 4: ONLY if Step 1+2+3 pass → deploy to GCP
 gcloud builds submit --tag us-central1-docker.pkg.dev/majestic-tape-485503-f9/kaiz-repo/kaiz-api
 gcloud run deploy kaiz-api \
   --image us-central1-docker.pkg.dev/majestic-tape-485503-f9/kaiz-repo/kaiz-api:latest \
   --region us-central1 --platform managed
 
-# Step 4: Verify GCP
+# Step 5: Verify GCP
 curl -s https://kaiz-api-213334506754.us-central1.run.app/actuator/health
 ```
 
@@ -444,15 +600,34 @@ gcloud run revisions list --service=kaiz-api --region=us-central1 --limit=5
 - Health endpoint returns DOWN or non-200
 - Any `Exception` or `Error` in logs
 
-### Code Quality Rules
+### Code Quality Rules — Summary
 
-- No `@Autowired` on fields — use constructor injection (Lombok `@RequiredArgsConstructor`)
-- No `Optional.get()` without `isPresent()` — use `orElseThrow()` with custom exception
-- No raw SQL strings in Java code — use Flyway migrations or `@Query`
-- No `System.out.println` — use SLF4J `@Slf4j`
-- No `catch (Exception e) {}` — handle or rethrow with context
-- Methods > 30 lines → refactor
-- All public service methods must have meaningful logging at DEBUG/INFO level
+| Rule | Why | Violation Fix |
+|------|-----|---------------|
+| `@RequiredArgsConstructor` only | Constructor injection, testable | Remove `@Autowired` field injection |
+| `@Slf4j` on every `@Service` | Observability, debugging | Add annotation + meaningful log calls |
+| No `Optional.get()` | NPE risk | Use `.orElseThrow(ResourceNotFoundException::new)` |
+| No raw SQL in Java | Flyway is single DDL source | Use `@Query` for reads, Flyway for schema |
+| No `System.out.println` | Production logging | Use `log.*` via `@Slf4j` |
+| No empty catch blocks | Silent failures | Log + handle or rethrow with context |
+| Narrow catches | Precision error handling | `catch (SpecificException e)` not `catch (Exception e)` |
+| No `FetchType.EAGER` | N+1 queries, perf | Use `LAZY` + `@EntityGraph` / `JOIN FETCH` |
+| No entity in API response | Coupling, security | Use DTOs (records) + MapStruct |
+| No duplicate code | DRY principle | Extract to shared utility (e.g., `AIResponseParser`) |
+| Services < 400 lines | SRP / maintainability | Split into facade + focused sub-services |
+| Methods < 30 lines | Readability | Extract private methods |
+| Records for DTOs | Immutability, less boilerplate | `public record FooRequest(String name) {}` |
+| `@Transactional(readOnly = true)` class-level | Default safe mode | Override with `@Transactional` on writes |
+| Run `spotless:apply` | Consistent formatting | Before every commit |
+
+### Application Profiles
+
+| Profile | File | Purpose |
+|---------|------|---------|
+| default | `application.yml` | Shared config, `ddl-auto: validate`, SQL logging WARN |
+| dev | `application-dev.yml` | `ddl-auto: update`, debug logging, JWT dev fallback |
+| prod | `application-prod.yml` | Production CORS domains, strict security |
+| test | `application-test.yml` | Test database, isolated config |
 
 ---
 

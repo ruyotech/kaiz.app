@@ -7,7 +7,7 @@ import app.kaiz.identity.domain.User;
 import app.kaiz.identity.infrastructure.UserRepository;
 import app.kaiz.shared.exception.BadRequestException;
 import app.kaiz.shared.exception.ForbiddenException;
-import app.kaiz.shared.exception.NotFoundException;
+import app.kaiz.shared.exception.ResourceNotFoundException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.security.SecureRandom;
@@ -99,7 +99,7 @@ public class FamilyService {
     Family family =
         familyRepository
             .findByUserMembership(userId)
-            .orElseThrow(() -> new NotFoundException("You are not a member of any family"));
+            .orElseThrow(() -> new ResourceNotFoundException("You are not a member of any family"));
     return mapToFamilyResponse(family);
   }
 
@@ -109,7 +109,7 @@ public class FamilyService {
     FamilyMember member =
         memberRepository
             .findByUserId(userId)
-            .orElseThrow(() -> new NotFoundException("You are not a member of any family"));
+            .orElseThrow(() -> new ResourceNotFoundException("You are not a member of any family"));
 
     Family family = member.getFamily();
     return new MembershipResponse(
@@ -232,7 +232,7 @@ public class FamilyService {
     Family family =
         familyRepository
             .findByInviteCode(request.inviteCode())
-            .orElseThrow(() -> new NotFoundException("Invalid invite code"));
+            .orElseThrow(() -> new ResourceNotFoundException("Invalid invite code"));
 
     // Check if invite code is expired
     if (family.getInviteCodeExpiresAt() != null
@@ -287,7 +287,7 @@ public class FamilyService {
     FamilyMember member =
         memberRepository
             .findById(memberId)
-            .orElseThrow(() -> new NotFoundException("Member not found"));
+            .orElseThrow(() -> new ResourceNotFoundException("Member not found"));
 
     // Cannot change owner's role
     if (member.getRole() == FamilyRole.OWNER) {
@@ -317,7 +317,7 @@ public class FamilyService {
     FamilyMember member =
         memberRepository
             .findById(memberId)
-            .orElseThrow(() -> new NotFoundException("Member not found"));
+            .orElseThrow(() -> new ResourceNotFoundException("Member not found"));
 
     // Cannot remove owner
     if (member.getRole() == FamilyRole.OWNER) {
@@ -340,7 +340,7 @@ public class FamilyService {
     FamilyMember member =
         memberRepository
             .findByUserId(userId)
-            .orElseThrow(() -> new NotFoundException("You are not a member of any family"));
+            .orElseThrow(() -> new ResourceNotFoundException("You are not a member of any family"));
 
     Family family = member.getFamily();
 
@@ -382,7 +382,7 @@ public class FamilyService {
     FamilyInvite invite =
         inviteRepository
             .findById(inviteId)
-            .orElseThrow(() -> new NotFoundException("Invite not found"));
+            .orElseThrow(() -> new ResourceNotFoundException("Invite not found"));
 
     if (!invite.getFamily().getId().equals(familyId)) {
       throw new ForbiddenException("Invite does not belong to this family");
@@ -440,13 +440,13 @@ public class FamilyService {
   private User getUserOrThrow(UUID userId) {
     return userRepository
         .findById(userId)
-        .orElseThrow(() -> new NotFoundException("User not found"));
+        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
   }
 
   private Family getFamilyOrThrow(UUID familyId) {
     return familyRepository
         .findById(familyId)
-        .orElseThrow(() -> new NotFoundException("Family not found"));
+        .orElseThrow(() -> new ResourceNotFoundException("Family not found"));
   }
 
   private void validateFamilyAccess(UUID userId, Family family) {

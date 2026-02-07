@@ -1,4 +1,4 @@
-package app.kaiz.admin.repository;
+package app.kaiz.admin.infrastructure;
 
 import app.kaiz.admin.domain.AdminRefreshToken;
 import app.kaiz.admin.domain.AdminUser;

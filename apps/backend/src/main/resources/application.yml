@@ -17,7 +17,7 @@ spring:
   jpa:
     open-in-view: false
     hibernate:
-      ddl-auto: update  # Changed from validate - let Hibernate create missing tables
+      ddl-auto: validate  # Validates entities match Flyway migrations; never auto-alters schema
     properties:
       hibernate:
         format_sql: true
@@ -77,7 +77,7 @@ springdoc:
 
 # JWT Configuration
 jwt:
-  secret: ${JWT_SECRET:default-dev-secret-key-that-is-at-least-256-bits-long-for-hs256}
+  secret: ${JWT_SECRET:#{null}}
   issuer: kaiz
   audience: kaiz-mobile-app
   access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:900000}
@@ -100,8 +100,8 @@ logging:
     root: INFO
     app.kaiz: DEBUG
     org.springframework.security: INFO
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql: TRACE
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql: WARN
 
 # Security - Swagger IP restriction (disabled in dev, enabled in prod)
 security:
@@ -125,6 +125,8 @@ spring.ai:
 # Command Center Configuration
 # ============================================================================
 kaiz:
+  cors:
+    allowed-origins: ${KAIZ_CORS_ORIGINS:http://localhost:*,http://127.0.0.1:*}
   command-center:
     # Draft expiration in hours
     draft-expiration-hours: 24

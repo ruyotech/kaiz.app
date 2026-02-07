@@ -2,8 +2,8 @@ package app.kaiz.admin.application;
 
 import app.kaiz.admin.domain.AdminRefreshToken;
 import app.kaiz.admin.domain.AdminUser;
-import app.kaiz.admin.repository.AdminRefreshTokenRepository;
-import app.kaiz.admin.repository.AdminUserRepository;
+import app.kaiz.admin.infrastructure.AdminRefreshTokenRepository;
+import app.kaiz.admin.infrastructure.AdminUserRepository;
 import app.kaiz.shared.exception.ApiException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -169,7 +169,8 @@ public class AdminAuthService {
       }
 
       return UUID.fromString(claims.getSubject());
-    } catch (Exception e) {
+    } catch (io.jsonwebtoken.JwtException | IllegalArgumentException e) {
+      log.debug("Admin token validation failed: {}", e.getMessage());
       return null;
     }
   }
@@ -221,7 +222,7 @@ public class AdminAuthService {
       byte[] hash = digest.digest(token.getBytes(StandardCharsets.UTF_8));
       return Base64.getEncoder().encodeToString(hash);
     } catch (NoSuchAlgorithmException e) {
-      throw new RuntimeException("SHA-256 algorithm not available", e);
+      throw new IllegalStateException("SHA-256 algorithm not available", e);
     }
   }
 

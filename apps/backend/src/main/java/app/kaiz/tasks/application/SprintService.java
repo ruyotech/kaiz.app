@@ -10,6 +10,8 @@ import java.time.temporal.WeekFields;
 import java.util.List;
 import java.util.Locale;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@Slf4j
 public class SprintService {
 
   private final SprintRepository sprintRepository;
@@ -68,6 +71,7 @@ public class SprintService {
     return sdlcMapper.toSprintDtoList(sprints.size() > limit ? sprints.subList(0, limit) : sprints);
   }
 
+  @CacheEvict(value = "currentSprint", allEntries = true)
   @Transactional
   public SprintDto activateSprint(String sprintId) {
     // Deactivate any currently active sprint

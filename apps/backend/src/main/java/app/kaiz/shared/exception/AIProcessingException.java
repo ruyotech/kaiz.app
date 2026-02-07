@@ -1,4 +1,4 @@
-package app.kaiz.command_center.domain;
+package app.kaiz.shared.exception;
 
 /** Exception thrown when AI processing encounters an error. */
 public class AIProcessingException extends RuntimeException {

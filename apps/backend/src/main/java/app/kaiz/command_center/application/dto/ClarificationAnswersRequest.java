@@ -1,4 +1,4 @@
-package app.kaiz.command_center.api.dto;
+package app.kaiz.command_center.application.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

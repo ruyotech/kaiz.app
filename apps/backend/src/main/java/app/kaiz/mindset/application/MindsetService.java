@@ -11,18 +11,23 @@ import app.kaiz.shared.exception.ResourceNotFoundException;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@Slf4j
 public class MindsetService {
 
   private final MindsetContentRepository contentRepository;
   private final MindsetThemeRepository themeRepository;
   private final MindsetMapper mapper;
 
+  @Cacheable("mindsetContent")
   public List<MindsetContentDto> getAllContent() {
     return contentRepository.findAllOrderByInterventionWeight().stream()
         .map(mapper::toContentDto)
@@ -51,6 +56,7 @@ public class MindsetService {
     return contentRepository.findByIsFavoriteTrue().stream().map(mapper::toContentDto).toList();
   }
 
+  @CacheEvict(value = "mindsetContent", allEntries = true)
   @Transactional
   public MindsetContentDto toggleFavorite(String id) {
     MindsetContent content =
@@ -61,6 +67,7 @@ public class MindsetService {
     return mapper.toContentDto(contentRepository.save(content));
   }
 
+  @Cacheable("mindsetThemes")
   public List<MindsetThemeDto> getAllThemes() {
     return themeRepository.findAll().stream().map(mapper::toThemeDto).toList();
   }

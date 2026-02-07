@@ -1,32 +1,19 @@
 package app.kaiz.command_center.application;
 
 import app.kaiz.admin.domain.TestAttachment;
-import app.kaiz.admin.repository.TestAttachmentRepository;
-import app.kaiz.command_center.api.dto.ClarificationAnswersRequest;
-import app.kaiz.command_center.api.dto.SmartInputRequest;
-import app.kaiz.command_center.api.dto.SmartInputResponse;
-import app.kaiz.command_center.api.dto.SmartInputResponse.*;
+import app.kaiz.admin.infrastructure.TestAttachmentRepository;
+import app.kaiz.command_center.application.ConversationSessionStore.ConversationSession;
+import app.kaiz.command_center.application.SmartInputResponseParser.ParsedAIResponse;
+import app.kaiz.command_center.application.dto.ClarificationAnswersRequest;
+import app.kaiz.command_center.application.dto.SmartInputRequest;
+import app.kaiz.command_center.application.dto.SmartInputResponse;
+import app.kaiz.command_center.application.dto.SmartInputResponse.*;
 import app.kaiz.command_center.domain.*;
-import app.kaiz.identity.domain.User;
-import app.kaiz.identity.infrastructure.UserRepository;
-import app.kaiz.life_wheel.domain.EisenhowerQuadrant;
-import app.kaiz.life_wheel.domain.LifeWheelArea;
-import app.kaiz.life_wheel.infrastructure.EisenhowerQuadrantRepository;
-import app.kaiz.life_wheel.infrastructure.LifeWheelAreaRepository;
-import app.kaiz.shared.exception.ResourceNotFoundException;
-import app.kaiz.tasks.domain.Task;
-import app.kaiz.tasks.domain.TaskStatus;
-import app.kaiz.tasks.infrastructure.TaskRepository;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.math.BigDecimal;
-import java.time.*;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.ai.anthropic.AnthropicChatModel;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
@@ -37,61 +24,52 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Enhanced AI service with smart clarification flow. Handles multi-turn conversations with a
- * maximum of 3-5 questions.
+ * Orchestrator for the Smart Input AI pipeline. Coordinates session management, AI calls, response
+ * parsing, clarification flows, and draft persistence — delegating each concern to a focused
+ * service.
  */
+@Slf4j
 @Service
 public class SmartInputAIService {
 
-  private static final Logger log = LoggerFactory.getLogger(SmartInputAIService.class);
   private static final int MAX_QUESTIONS = 5;
 
-  private final AnthropicChatModel chatModel;
-  private final ObjectMapper objectMapper;
-  private final Duration draftExpirationDuration;
-  private final TestAttachmentRepository testAttachmentRepository;
+  private final ChatModelProvider chatModelProvider;
+  private final ConversationSessionStore sessionStore;
+  private final SmartInputResponseParser responseParser;
+  private final DraftPersistenceService draftPersistenceService;
   private final CommandCenterAIService commandCenterAIService;
-  private final TaskRepository taskRepository;
-  private final UserRepository userRepository;
-  private final LifeWheelAreaRepository lifeWheelAreaRepository;
-  private final EisenhowerQuadrantRepository eisenhowerQuadrantRepository;
+  private final TestAttachmentRepository testAttachmentRepository;
   private final SystemPromptService systemPromptService;
-
-  // In-memory session storage (use Redis in production)
-  private final Map<UUID, ConversationSession> sessions = new ConcurrentHashMap<>();
+  private final Duration draftExpirationDuration;
 
   public SmartInputAIService(
-      AnthropicChatModel chatModel,
-      ObjectMapper objectMapper,
-      TestAttachmentRepository testAttachmentRepository,
+      ChatModelProvider chatModelProvider,
+      ConversationSessionStore sessionStore,
+      SmartInputResponseParser responseParser,
+      DraftPersistenceService draftPersistenceService,
       CommandCenterAIService commandCenterAIService,
-      TaskRepository taskRepository,
-      UserRepository userRepository,
-      LifeWheelAreaRepository lifeWheelAreaRepository,
-      EisenhowerQuadrantRepository eisenhowerQuadrantRepository,
+      TestAttachmentRepository testAttachmentRepository,
       SystemPromptService systemPromptService,
       @Value("${kaiz.command-center.draft-expiration-hours:24}") int expirationHours) {
 
-    this.chatModel = chatModel;
-    this.objectMapper = objectMapper;
-    this.testAttachmentRepository = testAttachmentRepository;
+    this.chatModelProvider = chatModelProvider;
+    this.sessionStore = sessionStore;
+    this.responseParser = responseParser;
+    this.draftPersistenceService = draftPersistenceService;
     this.commandCenterAIService = commandCenterAIService;
-    this.taskRepository = taskRepository;
-    this.userRepository = userRepository;
-    this.lifeWheelAreaRepository = lifeWheelAreaRepository;
-    this.eisenhowerQuadrantRepository = eisenhowerQuadrantRepository;
+    this.testAttachmentRepository = testAttachmentRepository;
     this.systemPromptService = systemPromptService;
     this.draftExpirationDuration = Duration.ofHours(expirationHours);
   }
 
-  /** Process new user input. */
+  /** Process new user input through the AI pipeline. */
   public SmartInputResponse processInput(UUID userId, SmartInputRequest request) {
     UUID sessionId = UUID.randomUUID();
     OriginalInput originalInput = captureOriginalInput(request);
 
     String userPrompt = buildUserPrompt(userId, request);
 
-    // Determine input type and get appropriate prompt from database
     boolean hasImage =
         request.attachments() != null
             && request.attachments().stream()
@@ -105,7 +83,6 @@ public class SmartInputAIService {
                             && (a.type().toLowerCase().contains("audio")
                                 || a.type().toLowerCase().contains("voice")));
 
-    // Get the appropriate system prompt from database based on input type
     String currentSystemPrompt = systemPromptService.getPromptForInputType(hasImage, hasVoice);
     log.debug("Using prompt for input type - hasImage: {}, hasVoice: {}", hasImage, hasVoice);
 
@@ -113,10 +90,10 @@ public class SmartInputAIService {
         List.of(new SystemMessage(currentSystemPrompt), new UserMessage(userPrompt));
 
     try {
-      ChatResponse response = chatModel.call(new Prompt(messages));
+      ChatResponse response = chatModelProvider.getChatModel().call(new Prompt(messages));
       String aiContent = response.getResult().getOutput().getText();
 
-      return parseAIResponse(sessionId, userId, aiContent, originalInput);
+      return handleParsedResponse(sessionId, userId, aiContent, originalInput);
 
     } catch (Exception e) {
       log.error("AI processing failed", e);
@@ -127,20 +104,19 @@ public class SmartInputAIService {
   /** Submit answers to clarification questions. */
   public SmartInputResponse submitClarificationAnswers(
       UUID userId, ClarificationAnswersRequest request) {
-    ConversationSession session = sessions.get(request.sessionId());
+    ConversationSession session = sessionStore.get(request.sessionId());
     if (session == null) {
       throw new IllegalStateException("Session not found or expired: " + request.sessionId());
     }
 
-    // Merge answers into partial draft
-    Draft updatedDraft = applyAnswersToDraft(session.partialDraft(), request.answers());
+    Draft updatedDraft =
+        responseParser.applyAnswersToDraft(session.partialDraft(), request.answers());
 
-    // Check if we need more clarification
-    List<String> missingFields = findMissingCriticalFields(updatedDraft);
+    List<String> missingFields = responseParser.findMissingCriticalFields(updatedDraft);
     if (!missingFields.isEmpty() && session.questionCount() < MAX_QUESTIONS) {
-      // Generate follow-up questions
       AIInterpretation.ClarificationFlow followUp =
-          generateFollowUpQuestions(updatedDraft, missingFields, session.questionCount());
+          responseParser.generateFollowUpQuestions(
+              updatedDraft, missingFields, session.questionCount());
 
       session.questionCount(session.questionCount() + followUp.questions().size());
       session.partialDraft(updatedDraft);
@@ -156,8 +132,7 @@ public class SmartInputAIService {
           session.originalInput());
     }
 
-    // Draft is ready
-    sessions.remove(request.sessionId());
+    sessionStore.remove(request.sessionId());
     return SmartInputResponse.ready(
         request.sessionId(),
         session.intentType(),
@@ -171,13 +146,13 @@ public class SmartInputAIService {
 
   /** Confirm alternative suggestion (e.g., Task → Challenge). */
   public SmartInputResponse confirmAlternative(UUID sessionId, boolean accepted) {
-    ConversationSession session = sessions.get(sessionId);
+    ConversationSession session = sessionStore.get(sessionId);
     if (session == null) {
       throw new IllegalStateException("Session not found or expired");
     }
 
     if (accepted) {
-      sessions.remove(sessionId);
+      sessionStore.remove(sessionId);
       return SmartInputResponse.ready(
           sessionId,
           session.intentType(),
@@ -188,23 +163,15 @@ public class SmartInputAIService {
           session.originalInput(),
           Instant.now().plus(draftExpirationDuration));
     } else {
-      // User wants original type - offer to create basic version
-      sessions.remove(sessionId);
+      sessionStore.remove(sessionId);
       return createBasicDraftFromSession(session);
     }
   }
 
-  /**
-   * Save the draft from a session directly as a Task with PENDING_APPROVAL status. This bypasses
-   * the PendingDraft entity and creates the actual Task for approval.
-   *
-   * @param userId The user ID
-   * @param sessionId The session ID containing the draft
-   * @return The saved Task ID
-   */
+  /** Save the draft from a session directly as a Task with PENDING_APPROVAL status. */
   @Transactional
   public UUID saveToPending(UUID userId, UUID sessionId) {
-    ConversationSession session = sessions.get(sessionId);
+    ConversationSession session = sessionStore.get(sessionId);
     if (session == null) {
       throw new IllegalStateException("Session not found or expired: " + sessionId);
     }
@@ -214,242 +181,110 @@ public class SmartInputAIService {
       throw new IllegalStateException("No draft found in session: " + sessionId);
     }
 
-    log.info(
-        "💾 [SaveToPending] Converting draft to task for user: {}, session: {}", userId, sessionId);
+    log.info("Converting draft to task for user: {}, session: {}", userId, sessionId);
 
-    // Get user
-    User user =
-        userRepository
-            .findById(userId)
-            .orElseThrow(() -> new ResourceNotFoundException("User", userId.toString()));
-
-    // Handle based on draft type (Task or Event both become Task entity)
-    Task savedTask =
-        switch (draft) {
-          case Draft.TaskDraft taskDraft -> createTaskFromDraft(user, sessionId, taskDraft, false);
-          case Draft.EventDraft eventDraft -> createTaskFromEventDraft(user, sessionId, eventDraft);
-          default ->
-              throw new IllegalArgumentException(
-                  "Unsupported draft type for pending: " + draft.type());
-        };
-
-    // Remove session after successful save
-    sessions.remove(sessionId);
-
-    log.info(
-        "✅ [SaveToPending] Task created with ID: {}, status: PENDING_APPROVAL", savedTask.getId());
-    return savedTask.getId();
+    UUID taskId = draftPersistenceService.saveDraftAsTask(userId, sessionId, draft);
+    sessionStore.remove(sessionId);
+    return taskId;
   }
 
-  /**
-   * Create a Task entity directly from draft data (bypasses session lookup). This is useful when
-   * the session has expired or when user has edited the draft fields.
-   *
-   * @param userId The user ID
-   * @param request The draft data from frontend (potentially edited by user)
-   * @return The saved Task ID
-   */
+  /** Create a Task entity directly from draft data (bypasses session lookup). */
   @Transactional
   public UUID createPendingFromDraft(
-      UUID userId, app.kaiz.command_center.api.dto.CreatePendingDraftRequest request) {
-    log.info(
-        "💾 [CreatePendingFromDraft] Creating task from draft for user: {}, type: {}",
-        userId,
-        request.draftType());
-
-    // Get user
-    User user =
-        userRepository
-            .findById(userId)
-            .orElseThrow(() -> new ResourceNotFoundException("User", userId.toString()));
-
-    // Resolve life wheel area
-    String lifeWheelId = request.lifeWheelAreaId() != null ? request.lifeWheelAreaId() : "lw-4";
-    LifeWheelArea lifeWheelArea =
-        lifeWheelAreaRepository
-            .findById(lifeWheelId)
-            .orElseGet(
-                () ->
-                    lifeWheelAreaRepository
-                        .findById("lw-4")
-                        .orElseThrow(() -> new ResourceNotFoundException("LifeWheelArea", "lw-4")));
-
-    // Resolve eisenhower quadrant
-    String quadrantId =
-        request.eisenhowerQuadrantId() != null ? request.eisenhowerQuadrantId() : "eq-2";
-    EisenhowerQuadrant eisenhowerQuadrant =
-        eisenhowerQuadrantRepository
-            .findById(quadrantId)
-            .orElseGet(
-                () ->
-                    eisenhowerQuadrantRepository
-                        .findById("eq-2")
-                        .orElseThrow(
-                            () -> new ResourceNotFoundException("EisenhowerQuadrant", "eq-2")));
-
-    // Determine if this is an event
-    boolean isEvent = request.isEvent();
-
-    // Convert dates to Instant
-    Instant targetDate = null;
-    Instant eventStartTime = null;
-    Instant eventEndTime = null;
-    ZoneId zone = ZoneId.systemDefault();
-
-    LocalDate effectiveDate = request.getEffectiveDate();
-    if (effectiveDate != null) {
-      targetDate = effectiveDate.atStartOfDay(zone).toInstant();
-
-      if (request.startTime() != null) {
-        eventStartTime = effectiveDate.atTime(request.startTime()).atZone(zone).toInstant();
-      }
-      if (request.endTime() != null) {
-        eventEndTime = effectiveDate.atTime(request.endTime()).atZone(zone).toInstant();
-      }
-    }
-
-    // Story points default
-    int storyPoints = request.storyPoints() != null ? request.storyPoints() : 3;
-
-    Task task =
-        Task.builder()
-            .title(request.title())
-            .description(request.description())
-            .user(user)
-            .lifeWheelArea(lifeWheelArea)
-            .eisenhowerQuadrant(eisenhowerQuadrant)
-            .storyPoints(storyPoints)
-            .status(TaskStatus.PENDING_APPROVAL)
-            .aiConfidence(BigDecimal.valueOf(0.85))
-            .targetDate(targetDate)
-            .isRecurring(request.isRecurring() != null ? request.isRecurring() : false)
-            .isEvent(isEvent)
-            .eventStartTime(eventStartTime)
-            .eventEndTime(eventEndTime)
-            .location(request.location())
-            .build();
-
-    Task savedTask = taskRepository.save(task);
-
-    log.info(
-        "✅ [CreatePendingFromDraft] Task created with ID: {}, isEvent: {}",
-        savedTask.getId(),
-        isEvent);
-    return savedTask.getId();
-  }
-
-  /** Create a Task entity from TaskDraft with PENDING_APPROVAL status. */
-  private Task createTaskFromDraft(
-      User user, UUID sessionId, Draft.TaskDraft taskDraft, boolean isEvent) {
-    // Resolve life wheel area
-    LifeWheelArea lifeWheelArea =
-        lifeWheelAreaRepository
-            .findById(taskDraft.lifeWheelAreaId())
-            .orElseGet(
-                () ->
-                    lifeWheelAreaRepository
-                        .findById("lw-4")
-                        .orElseThrow(() -> new ResourceNotFoundException("LifeWheelArea", "lw-4")));
-
-    // Resolve eisenhower quadrant
-    EisenhowerQuadrant eisenhowerQuadrant =
-        eisenhowerQuadrantRepository
-            .findById(taskDraft.eisenhowerQuadrantId())
-            .orElseGet(
-                () ->
-                    eisenhowerQuadrantRepository
-                        .findById("eq-2")
-                        .orElseThrow(
-                            () -> new ResourceNotFoundException("EisenhowerQuadrant", "eq-2")));
-
-    // Convert LocalDate to Instant for targetDate
-    Instant targetDate = null;
-    if (taskDraft.dueDate() != null) {
-      targetDate = taskDraft.dueDate().atStartOfDay(ZoneId.systemDefault()).toInstant();
-    }
-
-    Task task =
-        Task.builder()
-            .title(taskDraft.title())
-            .description(taskDraft.description())
-            .user(user)
-            .lifeWheelArea(lifeWheelArea)
-            .eisenhowerQuadrant(eisenhowerQuadrant)
-            .storyPoints(taskDraft.storyPoints())
-            .status(TaskStatus.PENDING_APPROVAL)
-            .aiConfidence(BigDecimal.valueOf(0.85))
-            .aiSessionId(sessionId)
-            .targetDate(targetDate)
-            .isRecurring(taskDraft.isRecurring())
-            .isEvent(isEvent)
-            .build();
-
-    return taskRepository.save(task);
-  }
-
-  /**
-   * Create a Task entity from EventDraft with PENDING_APPROVAL status. Events are stored as tasks
-   * with isEvent=true.
-   */
-  private Task createTaskFromEventDraft(User user, UUID sessionId, Draft.EventDraft eventDraft) {
-    // Resolve life wheel area
-    LifeWheelArea lifeWheelArea =
-        lifeWheelAreaRepository
-            .findById(eventDraft.lifeWheelAreaId())
-            .orElseGet(
-                () ->
-                    lifeWheelAreaRepository
-                        .findById("lw-4")
-                        .orElseThrow(() -> new ResourceNotFoundException("LifeWheelArea", "lw-4")));
-
-    // Use Q2 (Schedule) for events by default
-    EisenhowerQuadrant eisenhowerQuadrant =
-        eisenhowerQuadrantRepository
-            .findById("eq-2")
-            .orElseThrow(() -> new ResourceNotFoundException("EisenhowerQuadrant", "eq-2"));
-
-    // Convert date and times to Instant
-    Instant targetDate = null;
-    Instant eventStartTime = null;
-    Instant eventEndTime = null;
-
-    if (eventDraft.date() != null) {
-      ZoneId zone = ZoneId.systemDefault();
-      targetDate = eventDraft.date().atStartOfDay(zone).toInstant();
-
-      if (eventDraft.startTime() != null) {
-        eventStartTime = eventDraft.date().atTime(eventDraft.startTime()).atZone(zone).toInstant();
-      }
-      if (eventDraft.endTime() != null) {
-        eventEndTime = eventDraft.date().atTime(eventDraft.endTime()).atZone(zone).toInstant();
-      }
-    }
-
-    Task task =
-        Task.builder()
-            .title(eventDraft.title())
-            .description(eventDraft.description())
-            .user(user)
-            .lifeWheelArea(lifeWheelArea)
-            .eisenhowerQuadrant(eisenhowerQuadrant)
-            .storyPoints(3) // Default story points for events
-            .status(TaskStatus.PENDING_APPROVAL)
-            .aiConfidence(BigDecimal.valueOf(0.85))
-            .aiSessionId(sessionId)
-            .targetDate(targetDate)
-            .isEvent(true)
-            .location(eventDraft.location())
-            .isAllDay(eventDraft.isAllDay())
-            .eventStartTime(eventStartTime)
-            .eventEndTime(eventEndTime)
-            .build();
-
-    return taskRepository.save(task);
+      UUID userId, app.kaiz.command_center.application.dto.CreatePendingDraftRequest request) {
+    return draftPersistenceService.createFromRequest(userId, request);
   }
 
   // =========================================================================
-  // Internal methods
+  // Internal orchestration
   // =========================================================================
+
+  private SmartInputResponse handleParsedResponse(
+      UUID sessionId, UUID userId, String aiContent, OriginalInput originalInput) {
+    try {
+      ParsedAIResponse parsed = responseParser.parseAIResponse(aiContent);
+
+      log.debug(
+          "Parsed status='{}', intentDetected='{}'", parsed.status(), parsed.draftType().name());
+
+      return switch (parsed.status()) {
+        case "READY" ->
+            SmartInputResponse.ready(
+                sessionId,
+                parsed.draftType(),
+                parsed.confidence(),
+                parsed.draft(),
+                parsed.reasoning(),
+                parsed.suggestions(),
+                originalInput,
+                Instant.now().plus(draftExpirationDuration));
+
+        case "NEEDS_CLARIFICATION" -> {
+          sessionStore.put(
+              sessionId,
+              new ConversationSession(
+                  sessionId,
+                  userId,
+                  parsed.draftType(),
+                  parsed.draft(),
+                  originalInput,
+                  parsed.clarificationFlow() != null
+                      ? parsed.clarificationFlow().questions().size()
+                      : 0,
+                  Instant.now().plus(Duration.ofHours(1))));
+
+          yield SmartInputResponse.needsClarification(
+              sessionId,
+              parsed.draftType(),
+              parsed.draft(),
+              parsed.reasoning(),
+              parsed.clarificationFlowDTO(),
+              parsed.imageAnalysis(),
+              originalInput);
+        }
+
+        case "SUGGEST_ALTERNATIVE" -> {
+          AIInterpretation.ClarificationFlow confirmFlow =
+              responseParser.createConfirmationFlow(parsed.draftType(), parsed.alternativeReason());
+
+          sessionStore.put(
+              sessionId,
+              new ConversationSession(
+                  sessionId,
+                  userId,
+                  parsed.draftType(),
+                  parsed.draft(),
+                  originalInput,
+                  1,
+                  Instant.now().plus(Duration.ofHours(1))));
+
+          yield SmartInputResponse.suggestAlternative(
+              sessionId,
+              parsed.draftType(),
+              parsed.draft(),
+              parsed.reasoning(),
+              parsed.suggestions(),
+              ClarificationFlowDTO.from(confirmFlow),
+              originalInput);
+        }
+
+        default ->
+            SmartInputResponse.ready(
+                sessionId,
+                parsed.draftType(),
+                parsed.confidence(),
+                parsed.draft(),
+                parsed.reasoning(),
+                parsed.suggestions(),
+                originalInput,
+                Instant.now().plus(draftExpirationDuration));
+      };
+
+    } catch (Exception e) {
+      log.error("Failed to parse AI response: {}", aiContent, e);
+      return createErrorResponse(sessionId, originalInput);
+    }
+  }
 
   private String buildUserPrompt(UUID userId, SmartInputRequest request) {
     StringBuilder prompt = new StringBuilder();
@@ -462,12 +297,10 @@ public class SmartInputAIService {
 
         String extractedText = attachment.extractedText();
 
-        // Handle test attachment - fetch image and extract text via OCR
         if (attachment.isTestAttachment()) {
           try {
             TestAttachment testAttachment =
                 testAttachmentRepository.findById(attachment.testAttachmentId()).orElse(null);
-
             if (testAttachment != null && testAttachment.getFileData() != null) {
               log.info(
                   "Processing test attachment image via OCR: {}",
@@ -500,446 +333,29 @@ public class SmartInputAIService {
 
     prompt.append("\n\nContext: User ID=").append(userId);
     prompt.append(", Current time=").append(Instant.now());
-    prompt.append(", Timezone=").append(ZoneId.systemDefault());
+    prompt.append(", Timezone=").append(java.time.ZoneId.systemDefault());
 
     return prompt.toString();
   }
 
-  private SmartInputResponse parseAIResponse(
-      UUID sessionId, UUID userId, String aiContent, OriginalInput originalInput) {
+  private OriginalInput captureOriginalInput(SmartInputRequest request) {
+    List<OriginalInput.AttachmentSummary> attachments =
+        request.attachments() == null
+            ? List.of()
+            : request.attachments().stream()
+                .map(
+                    a ->
+                        new OriginalInput.AttachmentSummary(
+                            a.name(), a.type(), a.mimeType(), a.size(), a.extractedText()))
+                .toList();
 
-    try {
-      // Clean up the response (remove markdown code blocks if present)
-      String cleaned = cleanJsonResponse(aiContent);
-      
-      // DEBUG: Log the raw AI response to understand what's being returned
-      log.info("AI raw response for input '{}': {}", originalInput.text(), cleaned);
-      
-      JsonNode root = objectMapper.readTree(cleaned);
-
-      String status = root.path("status").asText("READY");
-      
-      // DEBUG: Log parsed status and intent
-      log.info("Parsed status='{}', intentDetected='{}'", 
-          status, 
-          root.has("intentDetected") ? root.path("intentDetected").asText() : root.path("intentType").asText());
-      // Support both "intentDetected" (prompt schema) and "intentType" (legacy)
-      String intentType =
-          root.has("intentDetected")
-              ? root.path("intentDetected").asText("TASK").toUpperCase()
-              : root.path("intentType").asText("TASK").toUpperCase();
-      // Support both "confidenceScore" (prompt schema) and "confidence" (legacy)
-      double confidence =
-          root.has("confidenceScore")
-              ? root.path("confidenceScore").asDouble(0.8)
-              : root.path("confidence").asDouble(0.8);
-      String reasoning = root.path("reasoning").asText("");
-
-      DraftType draftType = DraftType.valueOf(intentType);
-      Draft draft = parseDraft(root.path("draft"), draftType);
-
-      // Get suggestions
-      List<String> suggestions = new ArrayList<>();
-      root.path("suggestions").forEach(s -> suggestions.add(s.asText()));
-
-      return switch (status) {
-        case "READY" ->
-            SmartInputResponse.ready(
-                sessionId,
-                draftType,
-                confidence,
-                draft,
-                reasoning,
-                suggestions,
-                originalInput,
-                Instant.now().plus(draftExpirationDuration));
-
-        case "NEEDS_CLARIFICATION" -> {
-          // Support both "clarificationFlow" (prompt schema) and "clarification" (legacy)
-          JsonNode clarificationNode =
-              root.has("clarificationFlow")
-                  ? root.path("clarificationFlow")
-                  : root.path("clarification");
-          AIInterpretation.ClarificationFlow flow = parseClarificationFlow(clarificationNode);
-          ImageAnalysisDTO imageAnalysis = parseImageAnalysis(root.path("imageAnalysis"));
-
-          // Store session
-          sessions.put(
-              sessionId,
-              new ConversationSession(
-                  sessionId,
-                  userId,
-                  draftType,
-                  draft,
-                  originalInput,
-                  flow.questions().size(),
-                  Instant.now().plus(Duration.ofHours(1))));
-
-          yield SmartInputResponse.needsClarification(
-              sessionId,
-              draftType,
-              draft,
-              reasoning,
-              ClarificationFlowDTO.from(flow),
-              imageAnalysis,
-              originalInput);
-        }
-
-        case "SUGGEST_ALTERNATIVE" -> {
-          AIInterpretation.ClarificationFlow confirmFlow =
-              createConfirmationFlow(draftType, root.path("alternativeReason").asText());
-
-          sessions.put(
-              sessionId,
-              new ConversationSession(
-                  sessionId,
-                  userId,
-                  draftType,
-                  draft,
-                  originalInput,
-                  1,
-                  Instant.now().plus(Duration.ofHours(1))));
-
-          yield SmartInputResponse.suggestAlternative(
-              sessionId,
-              draftType,
-              draft,
-              reasoning,
-              suggestions,
-              ClarificationFlowDTO.from(confirmFlow),
-              originalInput);
-        }
-
-        default ->
-            SmartInputResponse.ready(
-                sessionId,
-                draftType,
-                confidence,
-                draft,
-                reasoning,
-                suggestions,
-                originalInput,
-                Instant.now().plus(draftExpirationDuration));
-      };
-
-    } catch (JsonProcessingException e) {
-      log.error("Failed to parse AI response: {}", aiContent, e);
-      return createErrorResponse(sessionId, originalInput);
-    }
-  }
-
-  private Draft parseDraft(JsonNode draftNode, DraftType type) {
-    return switch (type) {
-      case TASK ->
-          new Draft.TaskDraft(
-              draftNode.path("title").asText(""),
-              draftNode.path("description").asText(""),
-              draftNode.path("lifeWheelAreaId").asText("lw-4"),
-              draftNode.path("eisenhowerQuadrantId").asText("eq-2"),
-              draftNode.path("storyPoints").asInt(3),
-              draftNode.path("suggestedEpicId").asText(null),
-              draftNode.path("suggestedSprintId").asText(null),
-              parseDate(draftNode.path("dueDate").asText(null)),
-              draftNode.path("isRecurring").asBoolean(false),
-              parseRecurrencePattern(draftNode.path("recurrencePattern")));
-
-      case EPIC ->
-          new Draft.EpicDraft(
-              draftNode.path("title").asText(""),
-              draftNode.path("description").asText(""),
-              draftNode.path("lifeWheelAreaId").asText("lw-4"),
-              List.of(), // suggestedTasks - can be parsed separately if needed
-              draftNode.path("color").asText("#3B82F6"),
-              draftNode.path("icon").asText(null),
-              parseDate(draftNode.path("startDate").asText(null)),
-              parseDate(draftNode.path("endDate").asText(null)));
-
-      case CHALLENGE ->
-          new Draft.ChallengeDraft(
-              draftNode.path("name").asText(""),
-              draftNode.path("description").asText(""),
-              draftNode.path("lifeWheelAreaId").asText("lw-4"),
-              draftNode.path("metricType").asText("yesno"),
-              draftNode.path("targetValue").decimalValue(),
-              draftNode.path("unit").asText(null),
-              draftNode.path("duration").asInt(30),
-              draftNode.path("recurrence").asText("daily"),
-              draftNode.path("whyStatement").asText(null),
-              draftNode.path("rewardDescription").asText(null),
-              draftNode.path("graceDays").asInt(2),
-              parseTime(draftNode.path("reminderTime").asText(null)));
-
-      case EVENT ->
-          new Draft.EventDraft(
-              draftNode.path("title").asText(""),
-              draftNode.path("description").asText(""),
-              draftNode.path("lifeWheelAreaId").asText("lw-4"),
-              parseDate(draftNode.path("date").asText(null)),
-              parseTime(draftNode.path("startTime").asText(null)),
-              parseTime(draftNode.path("endTime").asText(null)),
-              draftNode.path("location").asText(null),
-              draftNode.path("isAllDay").asBoolean(false),
-              draftNode.path("recurrence").asText(null),
-              parseAttendees(draftNode.path("attendees")));
-
-      case BILL ->
-          new Draft.BillDraft(
-              draftNode.path("vendorName").asText(""),
-              draftNode.path("amount").decimalValue(),
-              draftNode.path("currency").asText("USD"),
-              parseDate(draftNode.path("dueDate").asText(null)),
-              draftNode.path("category").asText(null),
-              draftNode.path("lifeWheelAreaId").asText("lw-3"),
-              draftNode.path("isRecurring").asBoolean(false),
-              draftNode.path("recurrence").asText(null),
-              draftNode.path("notes").asText(null));
-
-      case NOTE ->
-          new Draft.NoteDraft(
-              draftNode.path("title").asText("Quick Note"),
-              draftNode.path("content").asText(""),
-              draftNode.path("lifeWheelAreaId").asText("lw-4"),
-              parseLabels(draftNode.path("tags")),
-              parseLabels(draftNode.path("clarifyingQuestions")));
-
-      case CLARIFICATION_NEEDED ->
-          new Draft.NoteDraft(
-              "Clarification Needed",
-              draftNode.path("content").asText(""),
-              "lw-4",
-              List.of(),
-              List.of());
-    };
-  }
-
-  private Draft.RecurrencePattern parseRecurrencePattern(JsonNode node) {
-    if (node == null || node.isMissingNode()) return null;
-    return new Draft.RecurrencePattern(
-        node.path("frequency").asText("daily"),
-        node.path("interval").asInt(1),
-        parseDate(node.path("endDate").asText(null)));
-  }
-
-  private LocalTime parseTime(String value) {
-    if (value == null || value.isBlank()) return null;
-    try {
-      return LocalTime.parse(value);
-    } catch (Exception e) {
-      return null;
-    }
-  }
-
-  private AIInterpretation.ClarificationFlow parseClarificationFlow(JsonNode flowNode) {
-    List<ClarificationQuestion> questions = new ArrayList<>();
-    flowNode
-        .path("questions")
-        .forEach(
-            q -> {
-              List<ClarificationQuestion.QuestionOption> options = new ArrayList<>();
-              q.path("options")
-                  .forEach(
-                      o ->
-                          options.add(
-                              new ClarificationQuestion.QuestionOption(
-                                  o.path("value").asText(),
-                                  o.path("label").asText(),
-                                  o.path("icon").asText(null),
-                                  o.path("description").asText(null))));
-
-              questions.add(
-                  new ClarificationQuestion(
-                      q.path("id").asText(),
-                      q.path("question").asText(),
-                      ClarificationQuestion.QuestionType.valueOf(
-                          q.path("type").asText("SINGLE_CHOICE")),
-                      options,
-                      q.path("fieldToPopulate").asText(),
-                      q.path("required").asBoolean(true),
-                      q.path("defaultValue").asText(null)));
-            });
-
-    return new AIInterpretation.ClarificationFlow(
-        UUID.randomUUID().toString(),
-        flowNode.path("title").asText("Quick Questions"),
-        flowNode.path("description").asText("Help us understand your request better"),
-        questions,
-        0,
-        MAX_QUESTIONS);
-  }
-
-  private ImageAnalysisDTO parseImageAnalysis(JsonNode imageNode) {
-    if (imageNode.isMissingNode()) return null;
-
-    JsonNode dataNode = imageNode.path("extractedData");
-    ImageAnalysisDTO.ExtractedDataDTO extractedData =
-        new ImageAnalysisDTO.ExtractedDataDTO(
-            dataNode.path("eventTitle").asText(null),
-            dataNode.path("eventDate").asText(null),
-            dataNode.path("eventTime").asText(null),
-            dataNode.path("eventLocation").asText(null),
-            parseStringList(dataNode.path("attendees")),
-            dataNode.path("vendorName").asText(null),
-            dataNode.path("amount").asText(null),
-            dataNode.path("currency").asText(null),
-            dataNode.path("dueDate").asText(null),
-            dataNode.path("occasionType").asText(null),
-            dataNode.path("personName").asText(null),
-            dataNode.path("rawText").asText(null));
-
-    return new ImageAnalysisDTO(
-        imageNode.path("detectedType").asText("UNKNOWN"),
-        imageNode.path("extractedText").asText(null),
-        extractedData,
-        imageNode.path("confidence").asDouble(0.8));
-  }
-
-  private AIInterpretation.ClarificationFlow createConfirmationFlow(
-      DraftType suggestedType, String reason) {
-    return new AIInterpretation.ClarificationFlow(
-        UUID.randomUUID().toString(),
-        "Quick Suggestion",
-        reason,
-        List.of(
-            new ClarificationQuestion(
-                "confirm",
-                "Would you like to create a " + suggestedType.name().toLowerCase() + " instead?",
-                ClarificationQuestion.QuestionType.YES_NO,
-                List.of(
-                    ClarificationQuestion.QuestionOption.of("yes", "Yes, sounds good!", "👍"),
-                    ClarificationQuestion.QuestionOption.of(
-                        "no", "No, keep my original idea", "↩️")),
-                "confirmation",
-                true,
-                null)),
-        0,
-        1);
-  }
-
-  private AIInterpretation.ClarificationFlow generateFollowUpQuestions(
-      Draft draft, List<String> missingFields, int currentCount) {
-
-    List<ClarificationQuestion> questions = new ArrayList<>();
-    int remaining = MAX_QUESTIONS - currentCount;
-
-    for (int i = 0; i < Math.min(missingFields.size(), remaining); i++) {
-      String field = missingFields.get(i);
-      questions.add(ClarificationQuestion.forField(field));
-    }
-
-    return new AIInterpretation.ClarificationFlow(
-        UUID.randomUUID().toString(),
-        "Almost there!",
-        "Just " + questions.size() + " more question" + (questions.size() > 1 ? "s" : ""),
-        questions,
-        0,
-        MAX_QUESTIONS);
-  }
-
-  private List<String> findMissingCriticalFields(Draft draft) {
-    List<String> missing = new ArrayList<>();
-
-    switch (draft) {
-      case Draft.TaskDraft t -> {
-        if (t.title() == null || t.title().isBlank()) missing.add("title");
-        if (t.lifeWheelAreaId() == null) missing.add("lifeWheelAreaId");
-      }
-      case Draft.ChallengeDraft c -> {
-        if (c.name() == null || c.name().isBlank()) missing.add("name");
-        if (c.lifeWheelAreaId() == null) missing.add("lifeWheelAreaId");
-        if (c.duration() <= 0) missing.add("duration");
-      }
-      case Draft.EventDraft e -> {
-        if (e.title() == null || e.title().isBlank()) missing.add("title");
-        if (e.date() == null) missing.add("date");
-      }
-      case Draft.BillDraft b -> {
-        if (b.vendorName() == null || b.vendorName().isBlank()) missing.add("vendorName");
-        if (b.dueDate() == null) missing.add("dueDate");
-      }
-      default -> {
-        // EpicDraft and NoteDraft have fewer required fields
-      }
-    }
-
-    return missing;
-  }
-
-  private Draft applyAnswersToDraft(Draft draft, List<ClarificationAnswersRequest.Answer> answers) {
-    // Create a map of field -> value
-    Map<String, String> updates = new HashMap<>();
-    for (var answer : answers) {
-      updates.put(answer.questionId(), answer.value());
-    }
-
-    // Apply updates based on draft type
-    return switch (draft) {
-      case Draft.TaskDraft t ->
-          new Draft.TaskDraft(
-              updates.getOrDefault("title", t.title()),
-              updates.getOrDefault("description", t.description()),
-              updates.getOrDefault("lifeWheelAreaId", t.lifeWheelAreaId()),
-              updates.getOrDefault("eisenhowerQuadrantId", t.eisenhowerQuadrantId()),
-              updates.containsKey("storyPoints")
-                  ? Integer.parseInt(updates.get("storyPoints"))
-                  : t.storyPoints(),
-              updates.getOrDefault("suggestedEpicId", t.suggestedEpicId()),
-              updates.getOrDefault("suggestedSprintId", t.suggestedSprintId()),
-              updates.containsKey("dueDate") ? parseDate(updates.get("dueDate")) : t.dueDate(),
-              t.isRecurring(),
-              t.recurrencePattern());
-
-      case Draft.ChallengeDraft c ->
-          new Draft.ChallengeDraft(
-              updates.getOrDefault("name", c.name()),
-              updates.getOrDefault("description", c.description()),
-              updates.getOrDefault("lifeWheelAreaId", c.lifeWheelAreaId()),
-              updates.getOrDefault("metricType", c.metricType()),
-              c.targetValue(),
-              c.unit(),
-              updates.containsKey("duration")
-                  ? Integer.parseInt(updates.get("duration"))
-                  : c.duration(),
-              updates.getOrDefault("recurrence", c.recurrence()),
-              updates.getOrDefault("whyStatement", c.whyStatement()),
-              updates.getOrDefault("rewardDescription", c.rewardDescription()),
-              c.graceDays(),
-              c.reminderTime());
-
-      case Draft.EventDraft e ->
-          new Draft.EventDraft(
-              updates.getOrDefault("title", e.title()),
-              updates.getOrDefault("description", e.description()),
-              updates.getOrDefault("lifeWheelAreaId", e.lifeWheelAreaId()),
-              updates.containsKey("date") ? parseDate(updates.get("date")) : e.date(),
-              updates.containsKey("startTime")
-                  ? parseTime(updates.get("startTime"))
-                  : e.startTime(),
-              updates.containsKey("endTime") ? parseTime(updates.get("endTime")) : e.endTime(),
-              updates.getOrDefault("location", e.location()),
-              e.isAllDay(),
-              updates.getOrDefault("recurrence", e.recurrence()),
-              e.attendees());
-
-      case Draft.BillDraft b ->
-          new Draft.BillDraft(
-              updates.getOrDefault("vendorName", b.vendorName()),
-              b.amount(),
-              b.currency(),
-              updates.containsKey("dueDate") ? parseDate(updates.get("dueDate")) : b.dueDate(),
-              updates.getOrDefault("category", b.category()),
-              updates.getOrDefault("lifeWheelAreaId", b.lifeWheelAreaId()),
-              b.isRecurring(),
-              updates.getOrDefault("recurrence", b.recurrence()),
-              updates.getOrDefault("notes", b.notes()));
-
-      default -> draft;
-    };
+    return new OriginalInput(request.text(), attachments, request.voiceTranscription());
   }
 
   private SmartInputResponse createBasicDraftFromSession(ConversationSession session) {
     return SmartInputResponse.ready(
         session.sessionId(),
-        DraftType.TASK, // Default to task
+        DraftType.TASK,
         0.6,
         session.partialDraft(),
         "Created as originally requested. You can edit the details.",
@@ -958,152 +374,5 @@ public class SmartInputAIService {
         List.of("Edit to add more details", "Convert to a different type"),
         originalInput,
         Instant.now().plus(draftExpirationDuration));
-  }
-
-  private OriginalInput captureOriginalInput(SmartInputRequest request) {
-    List<OriginalInput.AttachmentSummary> attachments =
-        request.attachments() == null
-            ? List.of()
-            : request.attachments().stream()
-                .map(
-                    a ->
-                        new OriginalInput.AttachmentSummary(
-                            a.name(), a.type(), a.mimeType(), a.size(), a.extractedText()))
-                .toList();
-
-    return new OriginalInput(request.text(), attachments, request.voiceTranscription());
-  }
-
-  // =========================================================================
-  // Parsing helpers
-  // =========================================================================
-
-  private LocalDate parseDate(String value) {
-    if (value == null || value.isBlank()) return null;
-    try {
-      return LocalDate.parse(value);
-    } catch (Exception e) {
-      return null;
-    }
-  }
-
-  private List<String> parseLabels(JsonNode node) {
-    List<String> labels = new ArrayList<>();
-    if (node != null && node.isArray()) {
-      node.forEach(n -> labels.add(n.asText()));
-    }
-    return labels;
-  }
-
-  private List<String> parseAttendees(JsonNode node) {
-    return parseLabels(node); // Same logic
-  }
-
-  private List<String> parseStringList(JsonNode node) {
-    return parseLabels(node); // Same logic
-  }
-
-  // =========================================================================
-  // Session management
-  // =========================================================================
-
-  private static class ConversationSession {
-    private final UUID sessionId;
-    private final UUID userId;
-    private DraftType intentType;
-    private Draft partialDraft;
-    private final OriginalInput originalInput;
-    private int questionCount;
-    private final Instant expiresAt;
-
-    ConversationSession(
-        UUID sessionId,
-        UUID userId,
-        DraftType intentType,
-        Draft partialDraft,
-        OriginalInput originalInput,
-        int questionCount,
-        Instant expiresAt) {
-      this.sessionId = sessionId;
-      this.userId = userId;
-      this.intentType = intentType;
-      this.partialDraft = partialDraft;
-      this.originalInput = originalInput;
-      this.questionCount = questionCount;
-      this.expiresAt = expiresAt;
-    }
-
-    UUID sessionId() {
-      return sessionId;
-    }
-
-    UUID userId() {
-      return userId;
-    }
-
-    DraftType intentType() {
-      return intentType;
-    }
-
-    Draft partialDraft() {
-      return partialDraft;
-    }
-
-    OriginalInput originalInput() {
-      return originalInput;
-    }
-
-    int questionCount() {
-      return questionCount;
-    }
-
-    Instant expiresAt() {
-      return expiresAt;
-    }
-
-    void intentType(DraftType type) {
-      this.intentType = type;
-    }
-
-    void partialDraft(Draft draft) {
-      this.partialDraft = draft;
-    }
-
-    void questionCount(int count) {
-      this.questionCount = count;
-    }
-  }
-
-  /** Clean JSON response by removing markdown code blocks and extracting JSON. */
-  private String cleanJsonResponse(String response) {
-    String cleaned = response.trim();
-
-    // Remove markdown code blocks - handle various formats
-    if (cleaned.startsWith("```json")) {
-      cleaned = cleaned.substring(7);
-    } else if (cleaned.startsWith("```JSON")) {
-      cleaned = cleaned.substring(7);
-    } else if (cleaned.startsWith("```")) {
-      cleaned = cleaned.substring(3);
-    }
-
-    // Remove trailing ```
-    if (cleaned.endsWith("```")) {
-      cleaned = cleaned.substring(0, cleaned.length() - 3);
-    }
-
-    cleaned = cleaned.trim();
-
-    // If the response still doesn't start with {, try to extract JSON from the middle
-    if (!cleaned.startsWith("{") && !cleaned.startsWith("[")) {
-      int jsonStart = cleaned.indexOf("{");
-      int jsonEnd = cleaned.lastIndexOf("}");
-      if (jsonStart >= 0 && jsonEnd > jsonStart) {
-        cleaned = cleaned.substring(jsonStart, jsonEnd + 1);
-        log.debug("🧹 [SmartInput] Extracted JSON from position {} to {}", jsonStart, jsonEnd);
-      }
-    }
-
-    return cleaned.trim();
   }
 }

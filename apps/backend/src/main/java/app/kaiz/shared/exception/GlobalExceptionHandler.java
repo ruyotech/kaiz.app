@@ -1,6 +1,5 @@
 package app.kaiz.shared.exception;
 
-import app.kaiz.command_center.domain.AIProcessingException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
@@ -83,10 +82,19 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(AIProcessingException.class)
   public ResponseEntity<ErrorResponse> handleAIProcessingException(
       AIProcessingException ex, HttpServletRequest request) {
-    log.error("🤖 [AI] Processing error: {}", ex.getMessage(), ex);
+    log.error("AI Processing error: {}", ex.getMessage(), ex);
     ErrorResponse response =
         new ErrorResponse("AI_PROCESSING_ERROR", ex.getMessage(), request.getRequestURI());
     return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(response);
+  }
+
+  @ExceptionHandler(IllegalArgumentException.class)
+  public ResponseEntity<ErrorResponse> handleIllegalArgumentException(
+      IllegalArgumentException ex, HttpServletRequest request) {
+    log.warn("Illegal argument: {}", ex.getMessage());
+    ErrorResponse response =
+        new ErrorResponse("BAD_REQUEST", ex.getMessage(), request.getRequestURI());
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
   }
 
   @ExceptionHandler(Exception.class)

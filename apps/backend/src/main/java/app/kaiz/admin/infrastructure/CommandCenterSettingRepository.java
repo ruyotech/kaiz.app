@@ -1,4 +1,4 @@
-package app.kaiz.admin.repository;
+package app.kaiz.admin.infrastructure;
 
 import app.kaiz.admin.domain.CommandCenterSetting;
 import java.util.List;

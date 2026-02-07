@@ -16,12 +16,16 @@ import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@Slf4j
 public class TaskTemplateService {
 
   private final TaskTemplateRepository taskTemplateRepository;
@@ -182,6 +186,7 @@ public class TaskTemplateService {
 
   // ============ Global Templates ============
 
+  @Cacheable("globalTemplates")
   public List<TaskTemplateDto> getGlobalTemplates(UUID userId) {
     List<TaskTemplate> templates =
         taskTemplateRepository.findByCreatorTypeOrderByRatingDesc(CreatorType.SYSTEM);
@@ -397,6 +402,7 @@ public class TaskTemplateService {
     return sdlcMapper.toTaskTemplateDto(template);
   }
 
+  @CacheEvict(value = "globalTemplates", allEntries = true)
   @Transactional
   public TaskTemplateDto createSystemTemplate(CreateTaskTemplateRequest request) {
     TaskTemplate template =
@@ -449,6 +455,7 @@ public class TaskTemplateService {
     return sdlcMapper.toTaskTemplateDto(taskTemplateRepository.save(template));
   }
 
+  @CacheEvict(value = "globalTemplates", allEntries = true)
   @Transactional
   public TaskTemplateDto updateSystemTemplate(UUID templateId, UpdateTaskTemplateRequest request) {
     TaskTemplate template =
@@ -501,6 +508,7 @@ public class TaskTemplateService {
     return sdlcMapper.toTaskTemplateDto(taskTemplateRepository.save(template));
   }
 
+  @CacheEvict(value = "globalTemplates", allEntries = true)
   @Transactional
   public void deleteSystemTemplate(UUID templateId) {
     TaskTemplate template =
@@ -512,6 +520,7 @@ public class TaskTemplateService {
     taskTemplateRepository.delete(template);
   }
 
+  @CacheEvict(value = "globalTemplates", allEntries = true)
   @Transactional
   public app.kaiz.tasks.application.dto.AdminTemplateDto.BulkOperationResponse
       bulkCreateSystemTemplates(
@@ -537,6 +546,7 @@ public class TaskTemplateService {
         request.templates().size(), created.size(), errors.size(), errors, created);
   }
 
+  @CacheEvict(value = "globalTemplates", allEntries = true)
   @Transactional
   public app.kaiz.tasks.application.dto.AdminTemplateDto.BulkOperationResponse
       bulkUpdateSystemTemplates(
@@ -561,6 +571,7 @@ public class TaskTemplateService {
         request.templates().size(), updated.size(), errors.size(), errors, updated);
   }
 
+  @CacheEvict(value = "globalTemplates", allEntries = true)
   @Transactional
   public app.kaiz.tasks.application.dto.AdminTemplateDto.BulkOperationResponse
       bulkDeleteSystemTemplates(

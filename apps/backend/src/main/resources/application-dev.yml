@@ -10,6 +10,8 @@ spring:
 
   jpa:
     show-sql: true
+    hibernate:
+      ddl-auto: update  # Only dev allows Hibernate auto-alter; prod uses 'none', base uses 'validate'
     properties:
       hibernate:
         format_sql: true
@@ -19,6 +21,10 @@ spring:
     compose:
       enabled: true
       lifecycle-management: start_and_stop
+
+# Dev-only JWT fallback secret (production MUST set JWT_SECRET env var)
+jwt:
+  secret: ${JWT_SECRET:default-dev-secret-key-that-is-at-least-256-bits-long-for-hs256}
 
 logging:
   level:

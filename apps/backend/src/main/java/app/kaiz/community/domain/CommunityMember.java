@@ -47,7 +47,7 @@ public class CommunityMember extends BaseEntity {
   @Builder.Default
   private Integer reputationPoints = 0;
 
-  @ElementCollection(fetch = FetchType.EAGER)
+  @ElementCollection(fetch = FetchType.LAZY)
   @CollectionTable(name = "community_member_badges", joinColumns = @JoinColumn(name = "member_id"))
   @Enumerated(EnumType.STRING)
   @Column(name = "badge_type")

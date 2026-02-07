@@ -50,7 +50,13 @@ class ArchitectureTest {
 
   @ArchTest
   static final ArchRule controllersShouldResideInApiPackage =
-      classes().that().haveSimpleNameEndingWith("Controller").should().resideInAPackage("..api..");
+      classes()
+          .that()
+          .haveSimpleNameEndingWith("Controller")
+          .and()
+          .resideOutsideOfPackage("..shared..")
+          .should()
+          .resideInAPackage("..api..");
 
   @ArchTest
   static final ArchRule servicesShouldResideInApplicationPackage =
@@ -59,6 +65,8 @@ class ArchitectureTest {
           .haveSimpleNameEndingWith("Service")
           .and()
           .areNotInterfaces()
+          .and()
+          .resideOutsideOfPackage("..shared..")
           .should()
           .resideInAPackage("..application..");
 

@@ -30,7 +30,7 @@ public class MindsetContent extends BaseEntity {
   @Column(name = "dimension_tag", length = 50)
   private String dimensionTag;
 
-  @ElementCollection(fetch = FetchType.EAGER)
+  @ElementCollection(fetch = FetchType.LAZY)
   @CollectionTable(
       name = "mindset_content_tags",
       joinColumns = @JoinColumn(name = "mindset_content_id"))

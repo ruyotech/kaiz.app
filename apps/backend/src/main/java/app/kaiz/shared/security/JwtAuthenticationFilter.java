@@ -91,7 +91,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
       } else if (StringUtils.hasText(token)) {
         log.info("Token validation failed for {}", uri);
       }
-    } catch (Exception e) {
+    } catch (io.jsonwebtoken.JwtException | IllegalArgumentException e) {
       log.warn(
           "Could not set user authentication for {}: {}", request.getRequestURI(), e.getMessage());
     }

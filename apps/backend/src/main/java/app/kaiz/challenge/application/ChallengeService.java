@@ -13,12 +13,15 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@Slf4j
 public class ChallengeService {
 
   private final ChallengeRepository challengeRepository;
@@ -30,6 +33,7 @@ public class ChallengeService {
   private final ChallengeMapper challengeMapper;
 
   // Template methods
+  @Cacheable("challengeTemplates")
   public List<ChallengeTemplateDto> getAllTemplates() {
     return challengeMapper.toChallengeTemplateDtoList(
         challengeTemplateRepository.findAllByOrderByPopularityScoreDesc());

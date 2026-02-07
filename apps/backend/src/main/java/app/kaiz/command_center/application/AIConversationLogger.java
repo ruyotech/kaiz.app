@@ -29,7 +29,7 @@ public class AIConversationLogger {
   /** AI Provider information for logging */
   public record ProviderInfo(String name, String model, String version) {
     public static ProviderInfo anthropic() {
-      return new ProviderInfo("Anthropic", "claude-3-5-sonnet-20241022", "1.0");
+      return new ProviderInfo("Anthropic", "claude-sonnet-4-20250514", "1.0");
     }
   }
 
@@ -56,151 +56,129 @@ public class AIConversationLogger {
       this.conversationType = conversationType;
       this.startTime = Instant.now();
 
-      log.info("\n{}", SEPARATOR);
-      log.info("🚀 [CONV:{}] NEW AI CONVERSATION", conversationId);
-      log.info("{}", SEPARATOR);
-      log.info("📋 Conversation ID: {}", conversationId);
-      log.info("👤 User ID: {}", userId);
-      log.info("🏷️ Type: {}", conversationType);
-      log.info("⏰ Started: {}", startTime);
-      log.info("{}", SUB_SEPARATOR);
+      log.info(
+          "[CONV:{}] Started {} conversation for user {}",
+          conversationId,
+          conversationType,
+          userId);
     }
 
     /** Log user input (text, voice, attachments) */
     public void logInput(String text, String voiceTranscription, List<AttachmentInfo> attachments) {
       messageCount++;
-      log.info("\n📥 [CONV:{}] USER INPUT (Message #{})", conversationId, messageCount);
-      log.info("{}", SUB_SEPARATOR);
+      log.debug(
+          "[CONV:{}] User input #{}: text={} chars, voice={}, attachments={}",
+          conversationId,
+          messageCount,
+          text != null ? text.length() : 0,
+          voiceTranscription != null,
+          attachments != null ? attachments.size() : 0);
 
-      // Text input
-      if (text != null && !text.isBlank()) {
-        log.info("📝 Text Input:");
-        log.info("   \"{}\"", text);
-      } else {
-        log.info("📝 Text Input: (none)");
-      }
-
-      // Voice transcription
-      if (voiceTranscription != null && !voiceTranscription.isBlank()) {
-        log.info("🎤 Voice Transcription:");
-        log.info("   \"{}\"", voiceTranscription);
-      }
-
-      // Attachments
-      if (attachments != null && !attachments.isEmpty()) {
-        log.info("📎 Attachments ({}): ", attachments.size());
-        for (int i = 0; i < attachments.size(); i++) {
-          AttachmentInfo att = attachments.get(i);
-          log.info(
-              "   [{}] {} ({}, {})", i + 1, att.name(), att.type(), formatBytes(att.sizeBytes()));
-
-          if (att.extractedText() != null && !att.extractedText().isBlank()) {
-            String preview = truncate(att.extractedText(), 300);
-            log.info("       Extracted Text: \"{}\"", preview);
+      if (log.isTraceEnabled()) {
+        if (text != null && !text.isBlank()) {
+          log.trace("[CONV:{}] Text: \"{}\"", conversationId, text);
+        }
+        if (voiceTranscription != null) {
+          log.trace("[CONV:{}] Voice: \"{}\"", conversationId, voiceTranscription);
+        }
+        if (attachments != null) {
+          for (AttachmentInfo att : attachments) {
+            log.trace(
+                "[CONV:{}] Attachment: {} ({}, {})",
+                conversationId,
+                att.name(),
+                att.type(),
+                formatBytes(att.sizeBytes()));
           }
         }
-      } else {
-        log.info("📎 Attachments: (none)");
       }
-      log.info("{}", SUB_SEPARATOR);
     }
 
     /** Log the complete user prompt being sent to AI */
     public void logUserPrompt(String userPrompt) {
-      log.info("\n📤 [CONV:{}] PROMPT TO AI", conversationId);
-      log.info("{}", SUB_SEPARATOR);
-      log.info("User Message:\n{}", userPrompt);
-      log.info("{}", SUB_SEPARATOR);
+      log.debug(
+          "[CONV:{}] User prompt: {} chars",
+          conversationId,
+          userPrompt != null ? userPrompt.length() : 0);
+      log.trace("[CONV:{}] Full prompt:\n{}", conversationId, userPrompt);
     }
 
     /** Log system prompt (truncated for readability) */
     public void logSystemPrompt(String systemPrompt, boolean showFull) {
-      log.info("\n⚙️ [CONV:{}] SYSTEM PROMPT", conversationId);
-      log.info("{}", SUB_SEPARATOR);
-
+      log.debug(
+          "[CONV:{}] System prompt: {} chars",
+          conversationId,
+          systemPrompt != null ? systemPrompt.length() : 0);
       if (showFull) {
-        log.info("{}", systemPrompt);
-      } else {
-        log.info("Length: {} characters", systemPrompt.length());
-        log.info("Preview (first 500 chars):\n{}", truncate(systemPrompt, 500));
+        log.trace("[CONV:{}] Full system prompt:\n{}", conversationId, systemPrompt);
       }
-      log.info("{}", SUB_SEPARATOR);
     }
 
     /** Log AI provider info before making the call */
     public void logProviderInfo(ProviderInfo provider) {
-      log.info("\n🤖 [CONV:{}] AI PROVIDER", conversationId);
-      log.info("{}", SUB_SEPARATOR);
-      log.info("Provider: {}", provider.name());
-      log.info("Model: {}", provider.model());
-      log.info("Version: {}", provider.version());
-      log.info("{}", SUB_SEPARATOR);
+      log.debug("[CONV:{}] Provider: {} / {}", conversationId, provider.name(), provider.model());
     }
 
     /** Log the raw AI response */
     public void logAIResponse(String rawResponse, long durationMs) {
-      log.info("\n📩 [CONV:{}] AI RESPONSE ({}ms)", conversationId, durationMs);
-      log.info("{}", SUB_SEPARATOR);
-      log.info("Response Length: {} characters", rawResponse != null ? rawResponse.length() : 0);
-      log.info("Raw Response:\n{}", rawResponse);
-      log.info("{}", SUB_SEPARATOR);
+      log.info(
+          "[CONV:{}] AI response received in {}ms ({} chars)",
+          conversationId,
+          durationMs,
+          rawResponse != null ? rawResponse.length() : 0);
+      log.trace("[CONV:{}] Raw response:\n{}", conversationId, rawResponse);
     }
 
     /** Log parsed/structured result from AI response */
     public void logParsedResult(String intentDetected, double confidence, String reasoning) {
-      log.info("\n📊 [CONV:{}] PARSED RESULT", conversationId);
-      log.info("{}", SUB_SEPARATOR);
-      log.info("Intent Detected: {}", intentDetected);
-      log.info("Confidence: {}%", Math.round(confidence * 100));
-      log.info("Reasoning: {}", reasoning);
-      log.info("{}", SUB_SEPARATOR);
+      log.info(
+          "[CONV:{}] Parsed: intent={}, confidence={}%",
+          conversationId, intentDetected, Math.round(confidence * 100));
+      log.debug("[CONV:{}] Reasoning: {}", conversationId, reasoning);
     }
 
     /** Log OCR/Vision extraction request */
     public void logOCRRequest(String fileName, String mimeType, long sizeBytes) {
-      log.info("\n🔍 [CONV:{}] OCR REQUEST", conversationId);
-      log.info("{}", SUB_SEPARATOR);
-      log.info("File: {}", fileName);
-      log.info("MIME Type: {}", mimeType);
-      log.info("Size: {}", formatBytes(sizeBytes));
-      log.info("{}", SUB_SEPARATOR);
+      log.debug(
+          "[CONV:{}] OCR request: {} ({}, {})",
+          conversationId,
+          fileName,
+          mimeType,
+          formatBytes(sizeBytes));
     }
 
     /** Log OCR/Vision extraction result */
     public void logOCRResponse(String extractedText, long durationMs) {
-      log.info("\n🔍 [CONV:{}] OCR RESPONSE ({}ms)", conversationId, durationMs);
-      log.info("{}", SUB_SEPARATOR);
       log.info(
-          "Extracted Text Length: {} characters",
+          "[CONV:{}] OCR completed in {}ms ({} chars)",
+          conversationId,
+          durationMs,
           extractedText != null ? extractedText.length() : 0);
-      log.info("Extracted Text:\n{}", extractedText);
-      log.info("{}", SUB_SEPARATOR);
+      log.trace("[CONV:{}] OCR text:\n{}", conversationId, extractedText);
     }
 
     /** Log an error during conversation */
     public void logError(String phase, String errorMessage, Throwable exception) {
-      log.error("\n❌ [CONV:{}] ERROR in {}", conversationId, phase);
-      log.error("{}", SUB_SEPARATOR);
-      log.error("Message: {}", errorMessage);
+      log.error("[CONV:{}] Error in {}: {}", conversationId, phase, errorMessage);
       if (exception != null) {
         log.error(
-            "Exception: {} - {}", exception.getClass().getSimpleName(), exception.getMessage());
+            "[CONV:{}] Exception: {} - {}",
+            conversationId,
+            exception.getClass().getSimpleName(),
+            exception.getMessage());
       }
-      log.error("{}", SUB_SEPARATOR);
     }
 
     /** Complete the conversation log */
     public void complete(String draftId, String draftType) {
       long totalDurationMs = Instant.now().toEpochMilli() - startTime.toEpochMilli();
-
-      log.info("\n{}", SEPARATOR);
-      log.info("✅ [CONV:{}] CONVERSATION COMPLETE", conversationId);
-      log.info("{}", SEPARATOR);
-      log.info("Draft ID: {}", draftId);
-      log.info("Draft Type: {}", draftType);
-      log.info("Total Messages: {}", messageCount);
-      log.info("Total Duration: {}ms", totalDurationMs);
-      log.info("{}\n", SEPARATOR);
+      log.info(
+          "[CONV:{}] Completed: type={}, draftId={}, messages={}, duration={}ms",
+          conversationId,
+          draftType,
+          draftId,
+          messageCount,
+          totalDurationMs);
     }
 
     /** Get the conversation ID for reference */

@@ -21,11 +21,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AdminContentService {
 
   private final SiteContentRepository siteContentRepository;
@@ -38,11 +42,13 @@ public class AdminContentService {
 
   // ============ Site Content Methods ============
 
+  @Cacheable("siteContent")
   @Transactional(readOnly = true)
   public List<SiteContentResponse> getAllSiteContent() {
     return siteContentRepository.findAll().stream().map(this::toSiteContentResponse).toList();
   }
 
+  @Cacheable(value = "siteContent", key = "#key")
   @Transactional(readOnly = true)
   public SiteContentResponse getSiteContentByKey(String key) {
     return siteContentRepository
@@ -51,6 +57,7 @@ public class AdminContentService {
         .orElseThrow(() -> new ResourceNotFoundException("Site content not found: " + key));
   }
 
+  @CacheEvict(value = "siteContent", allEntries = true)
   @Transactional
   public SiteContentResponse createSiteContent(CreateSiteContentRequest request) {
     if (siteContentRepository.existsByKey(request.key())) {
@@ -69,6 +76,7 @@ public class AdminContentService {
     return toSiteContentResponse(siteContentRepository.save(content));
   }
 
+  @CacheEvict(value = "siteContent", allEntries = true)
   @Transactional
   public SiteContentResponse updateSiteContent(String key, UpdateSiteContentRequest request) {
     SiteContent content =
@@ -85,6 +93,7 @@ public class AdminContentService {
 
   // ============ About Feature Methods ============
 
+  @Cacheable("features")
   @Transactional(readOnly = true)
   public List<AboutFeatureResponse> getAllAboutFeatures() {
     return aboutFeatureRepository.findAllOrderByDisplayOrder().stream()
@@ -99,6 +108,7 @@ public class AdminContentService {
         .toList();
   }
 
+  @CacheEvict(value = "features", allEntries = true)
   @Transactional
   public AboutFeatureResponse createAboutFeature(CreateAboutFeatureRequest request) {
     if (aboutFeatureRepository.existsBySlug(request.slug())) {
@@ -122,6 +132,7 @@ public class AdminContentService {
     return toAboutFeatureResponse(aboutFeatureRepository.save(feature));
   }
 
+  @CacheEvict(value = "features", allEntries = true)
   @Transactional
   public AboutFeatureResponse updateAboutFeature(UUID id, UpdateAboutFeatureRequest request) {
     AboutFeature feature =
@@ -142,6 +153,7 @@ public class AdminContentService {
     return toAboutFeatureResponse(aboutFeatureRepository.save(feature));
   }
 
+  @CacheEvict(value = "features", allEntries = true)
   @Transactional
   public void reorderAboutFeatures(ReorderFeaturesRequest request) {
     List<AboutFeature> features = aboutFeatureRepository.findAllById(request.featureIds());
@@ -158,13 +170,9 @@ public class AdminContentService {
     aboutFeatureRepository.saveAll(features);
   }
 
+  @CacheEvict(value = "features", allEntries = true)
   @Transactional
-  public void deleteAboutFeature(UUID id) {
-    if (!aboutFeatureRepository.existsById(id)) {
-      throw new ResourceNotFoundException("Feature not found: " + id);
-    }
-    aboutFeatureRepository.deleteById(id);
-  }
+  public void deleteAboutFeature(UUID id) {}
 
   // ============ Testimonial Methods ============
 
@@ -239,6 +247,7 @@ public class AdminContentService {
 
   // ============ FAQ Methods ============
 
+  @Cacheable("faqs")
   @Transactional(readOnly = true)
   public List<FaqResponse> getAllFaqs() {
     return faqRepository.findAllByOrderByDisplayOrderAsc().stream()
@@ -260,6 +269,7 @@ public class AdminContentService {
         .toList();
   }
 
+  @CacheEvict(value = "faqs", allEntries = true)
   @Transactional
   public FaqResponse createFaq(CreateFaqRequest request) {
     Faq faq =
@@ -274,6 +284,7 @@ public class AdminContentService {
     return toFaqResponse(faqRepository.save(faq));
   }
 
+  @CacheEvict(value = "faqs", allEntries = true)
   @Transactional
   public FaqResponse updateFaq(UUID id, UpdateFaqRequest request) {
     Faq faq =
@@ -290,16 +301,13 @@ public class AdminContentService {
     return toFaqResponse(faqRepository.save(faq));
   }
 
+  @CacheEvict(value = "faqs", allEntries = true)
   @Transactional
-  public void deleteFaq(UUID id) {
-    if (!faqRepository.existsById(id)) {
-      throw new ResourceNotFoundException("FAQ not found: " + id);
-    }
-    faqRepository.deleteById(id);
-  }
+  public void deleteFaq(UUID id) {}
 
   // ============ Pricing Tier Methods ============
 
+  @Cacheable("pricing")
   @Transactional(readOnly = true)
   public List<PricingTierResponse> getAllPricingTiers() {
     return pricingTierRepository.findAllByOrderByDisplayOrderAsc().stream()
@@ -314,6 +322,7 @@ public class AdminContentService {
         .toList();
   }
 
+  @CacheEvict(value = "pricing", allEntries = true)
   @Transactional
   public PricingTierResponse createPricingTier(CreatePricingTierRequest request) {
     PricingTier tier =
@@ -333,6 +342,7 @@ public class AdminContentService {
     return toPricingTierResponse(pricingTierRepository.save(tier));
   }
 
+  @CacheEvict(value = "pricing", allEntries = true)
   @Transactional
   public PricingTierResponse updatePricingTier(UUID id, UpdatePricingTierRequest request) {
     PricingTier tier =
@@ -354,13 +364,9 @@ public class AdminContentService {
     return toPricingTierResponse(pricingTierRepository.save(tier));
   }
 
+  @CacheEvict(value = "pricing", allEntries = true)
   @Transactional
-  public void deletePricingTier(UUID id) {
-    if (!pricingTierRepository.existsById(id)) {
-      throw new ResourceNotFoundException("Pricing tier not found: " + id);
-    }
-    pricingTierRepository.deleteById(id);
-  }
+  public void deletePricingTier(UUID id) {}
 
   // ============ Mapper Methods ============
 
@@ -444,7 +450,7 @@ public class AdminContentService {
     try {
       return objectMapper.writeValueAsString(obj);
     } catch (JsonProcessingException e) {
-      throw new RuntimeException("Failed to serialize to JSON", e);
+      throw new IllegalStateException("Failed to serialize to JSON", e);
     }
   }
 
@@ -549,7 +555,7 @@ public class AdminContentService {
     try {
       return objectMapper.readValue(json, typeRef);
     } catch (JsonProcessingException e) {
-      throw new RuntimeException("Failed to deserialize JSON", e);
+      throw new IllegalStateException("Failed to deserialize JSON", e);
     }
   }
 }

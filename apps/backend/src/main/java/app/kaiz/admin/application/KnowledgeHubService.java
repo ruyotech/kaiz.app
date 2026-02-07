@@ -2,17 +2,22 @@ package app.kaiz.admin.application;
 
 import app.kaiz.admin.domain.KnowledgeCategory;
 import app.kaiz.admin.domain.KnowledgeItem;
-import app.kaiz.admin.repository.KnowledgeCategoryRepository;
-import app.kaiz.admin.repository.KnowledgeItemRepository;
+import app.kaiz.admin.infrastructure.KnowledgeCategoryRepository;
+import app.kaiz.admin.infrastructure.KnowledgeItemRepository;
+import app.kaiz.shared.exception.ResourceNotFoundException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class KnowledgeHubService {
 
   private final KnowledgeCategoryRepository categoryRepository;
@@ -20,6 +25,7 @@ public class KnowledgeHubService {
 
   // ============ Categories ============
 
+  @Cacheable("knowledgeCategories")
   public List<KnowledgeCategory> getAllCategories() {
     return categoryRepository.findAllByOrderByDisplayOrderAsc();
   }
@@ -36,11 +42,13 @@ public class KnowledgeHubService {
     return categoryRepository.findBySlug(slug);
   }
 
+  @CacheEvict(value = "knowledgeCategories", allEntries = true)
   @Transactional
   public KnowledgeCategory createCategory(KnowledgeCategory category) {
     return categoryRepository.save(category);
   }
 
+  @CacheEvict(value = "knowledgeCategories", allEntries = true)
   @Transactional
   public KnowledgeCategory updateCategory(UUID id, KnowledgeCategory updated) {
     return categoryRepository
@@ -56,9 +64,10 @@ public class KnowledgeHubService {
               existing.setStatus(updated.getStatus());
               return categoryRepository.save(existing);
             })
-        .orElseThrow(() -> new RuntimeException("Category not found: " + id));
+        .orElseThrow(() -> new ResourceNotFoundException("Category not found: " + id));
   }
 
+  @CacheEvict(value = "knowledgeCategories", allEntries = true)
   @Transactional
   public void deleteCategory(UUID id) {
     categoryRepository.deleteById(id);
@@ -66,6 +75,7 @@ public class KnowledgeHubService {
 
   // ============ Items ============
 
+  @Cacheable("knowledgeItems")
   public List<KnowledgeItem> getAllItems() {
     List<KnowledgeItem> items = itemRepository.findAll();
     enrichWithCategoryNames(items);
@@ -121,6 +131,7 @@ public class KnowledgeHubService {
     return items;
   }
 
+  @CacheEvict(value = "knowledgeItems", allEntries = true)
   @Transactional
   public KnowledgeItem createItem(KnowledgeItem item) {
     KnowledgeItem saved = itemRepository.save(item);
@@ -129,6 +140,7 @@ public class KnowledgeHubService {
     return saved;
   }
 
+  @CacheEvict(value = "knowledgeItems", allEntries = true)
   @Transactional
   public KnowledgeItem updateItem(UUID id, KnowledgeItem updated) {
     return itemRepository
@@ -158,9 +170,10 @@ public class KnowledgeHubService {
               enrichWithCategoryName(saved);
               return saved;
             })
-        .orElseThrow(() -> new RuntimeException("Item not found: " + id));
+        .orElseThrow(() -> new ResourceNotFoundException("Item not found: " + id));
   }
 
+  @CacheEvict(value = "knowledgeItems", allEntries = true)
   @Transactional
   public void deleteItem(UUID id) {
     itemRepository
@@ -173,6 +186,7 @@ public class KnowledgeHubService {
             });
   }
 
+  @CacheEvict(value = "knowledgeItems", allEntries = true)
   @Transactional
   public void updateItemStatus(UUID id, String status) {
     itemRepository
@@ -195,6 +209,7 @@ public class KnowledgeHubService {
     itemRepository.incrementHelpfulCount(id);
   }
 
+  @CacheEvict(value = "knowledgeItems", allEntries = true)
   @Transactional
   public List<KnowledgeItem> bulkImportItems(List<KnowledgeItem> items) {
     List<KnowledgeItem> saved = itemRepository.saveAll(items);

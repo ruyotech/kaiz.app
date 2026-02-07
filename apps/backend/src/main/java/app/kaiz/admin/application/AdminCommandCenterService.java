@@ -2,12 +2,15 @@ package app.kaiz.admin.application;
 
 import app.kaiz.admin.application.dto.CommandCenterAdminDtos.*;
 import app.kaiz.admin.domain.*;
-import app.kaiz.admin.repository.*;
+import app.kaiz.admin.infrastructure.*;
+import app.kaiz.command_center.application.ChatModelProvider;
+import app.kaiz.shared.exception.ResourceNotFoundException;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -27,6 +30,7 @@ public class AdminCommandCenterService {
   private final TestAttachmentRepository testAttachmentRepository;
   private final CommandCenterSettingRepository settingRepository;
   private final CommandCenterFeatureFlagRepository featureFlagRepository;
+  private final ChatModelProvider chatModelProvider;
 
   // =============== LLM Providers ===============
 
@@ -42,7 +46,7 @@ public class AdminCommandCenterService {
     return llmProviderRepository
         .findById(id)
         .map(this::toProviderResponse)
-        .orElseThrow(() -> new IllegalArgumentException("Provider not found: " + id));
+        .orElseThrow(() -> new ResourceNotFoundException("Provider", id.toString()));
   }
 
   public LlmProviderResponse createProvider(CreateLlmProviderRequest request) {
@@ -74,7 +78,7 @@ public class AdminCommandCenterService {
     LlmProvider provider =
         llmProviderRepository
             .findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("Provider not found: " + id));
+            .orElseThrow(() -> new ResourceNotFoundException("Provider", id.toString()));
 
     if (request.displayName() != null) provider.setDisplayName(request.displayName());
     if (request.apiBaseUrl() != null) provider.setApiBaseUrl(request.apiBaseUrl());
@@ -106,10 +110,15 @@ public class AdminCommandCenterService {
     LlmProvider provider =
         llmProviderRepository
             .findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("Provider not found: " + id));
+            .orElseThrow(() -> new ResourceNotFoundException("Provider", id.toString()));
     provider.setDefault(true);
     provider.setActive(true);
     llmProviderRepository.save(provider);
+
+    // Evict cached ChatModel so AI services pick up the new default on next call
+    chatModelProvider.evictCachedModel();
+    log.info(
+        "Default provider set to: {} ({})", provider.getDisplayName(), provider.getProviderType());
   }
 
   public void deleteProvider(UUID id) {
@@ -139,7 +148,7 @@ public class AdminCommandCenterService {
     return systemPromptRepository
         .findById(id)
         .map(this::toPromptResponse)
-        .orElseThrow(() -> new IllegalArgumentException("Prompt not found: " + id));
+        .orElseThrow(() -> new ResourceNotFoundException("Prompt", id.toString()));
   }
 
   @Transactional(readOnly = true)
@@ -147,9 +156,10 @@ public class AdminCommandCenterService {
     return systemPromptRepository
         .findByPromptKey(key)
         .map(this::toPromptResponse)
-        .orElseThrow(() -> new IllegalArgumentException("Prompt not found: " + key));
+        .orElseThrow(() -> new ResourceNotFoundException("Prompt", key));
   }
 
+  @CacheEvict(value = "systemPrompts", allEntries = true)
   public SystemPromptResponse createPrompt(CreateSystemPromptRequest request) {
     log.info("Creating system prompt: {}", request.promptKey());
 
@@ -168,13 +178,14 @@ public class AdminCommandCenterService {
     return toPromptResponse(systemPromptRepository.save(prompt));
   }
 
+  @CacheEvict(value = "systemPrompts", allEntries = true)
   public SystemPromptResponse updatePrompt(UUID id, UpdateSystemPromptRequest request) {
     log.info("Updating system prompt: {}", id);
 
     SystemPrompt prompt =
         systemPromptRepository
             .findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("Prompt not found: " + id));
+            .orElseThrow(() -> new ResourceNotFoundException("Prompt", id.toString()));
 
     if (request.promptName() != null) prompt.setPromptName(request.promptName());
     if (request.promptContent() != null) {
@@ -188,10 +199,8 @@ public class AdminCommandCenterService {
     return toPromptResponse(systemPromptRepository.save(prompt));
   }
 
-  public void deletePrompt(UUID id) {
-    log.info("Deleting system prompt: {}", id);
-    systemPromptRepository.deleteById(id);
-  }
+  @CacheEvict(value = "systemPrompts", allEntries = true)
+  public void deletePrompt(UUID id) {}
 
   // =============== Test Attachments ===============
 
@@ -215,7 +224,7 @@ public class AdminCommandCenterService {
     return testAttachmentRepository
         .findById(id)
         .map(this::toAttachmentResponse)
-        .orElseThrow(() -> new IllegalArgumentException("Test attachment not found: " + id));
+        .orElseThrow(() -> new ResourceNotFoundException("TestAttachment", id.toString()));
   }
 
   public TestAttachmentResponse createTestAttachment(
@@ -240,7 +249,7 @@ public class AdminCommandCenterService {
         attachment.setFileSizeBytes(file.getSize());
       } catch (Exception e) {
         log.error("Failed to read file: {}", e.getMessage());
-        throw new RuntimeException("Failed to process uploaded file", e);
+        throw new IllegalStateException("Failed to process uploaded file", e);
       }
     } else if (request.fileUrl() != null) {
       attachment.setFileUrl(request.fileUrl());
@@ -255,7 +264,7 @@ public class AdminCommandCenterService {
     TestAttachment attachment =
         testAttachmentRepository
             .findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("Test attachment not found: " + id));
+            .orElseThrow(() -> new ResourceNotFoundException("TestAttachment", id.toString()));
 
     if (request.attachmentName() != null) attachment.setAttachmentName(request.attachmentName());
     if (request.description() != null) attachment.setDescription(request.description());
@@ -277,7 +286,7 @@ public class AdminCommandCenterService {
     TestAttachment attachment =
         testAttachmentRepository
             .findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("Test attachment not found: " + id));
+            .orElseThrow(() -> new ResourceNotFoundException("TestAttachment", id.toString()));
     return attachment.getFileData();
   }
 
@@ -295,7 +304,7 @@ public class AdminCommandCenterService {
     return settingRepository
         .findBySettingKey(key)
         .map(this::toSettingResponse)
-        .orElseThrow(() -> new IllegalArgumentException("Setting not found: " + key));
+        .orElseThrow(() -> new ResourceNotFoundException("Setting", key));
   }
 
   public SettingResponse updateSetting(String key, UpdateSettingRequest request) {
@@ -304,7 +313,7 @@ public class AdminCommandCenterService {
     CommandCenterSetting setting =
         settingRepository
             .findBySettingKey(key)
-            .orElseThrow(() -> new IllegalArgumentException("Setting not found: " + key));
+            .orElseThrow(() -> new ResourceNotFoundException("Setting", key));
 
     if (request.settingValue() != null) setting.setSettingValue(request.settingValue());
     if (request.description() != null) setting.setDescription(request.description());
@@ -327,7 +336,7 @@ public class AdminCommandCenterService {
     return featureFlagRepository
         .findByFlagKey(key)
         .map(this::toFeatureFlagResponse)
-        .orElseThrow(() -> new IllegalArgumentException("Feature flag not found: " + key));
+        .orElseThrow(() -> new ResourceNotFoundException("FeatureFlag", key));
   }
 
   public FeatureFlagResponse updateFeatureFlag(String key, UpdateFeatureFlagRequest request) {
@@ -336,7 +345,7 @@ public class AdminCommandCenterService {
     CommandCenterFeatureFlag flag =
         featureFlagRepository
             .findByFlagKey(key)
-            .orElseThrow(() -> new IllegalArgumentException("Feature flag not found: " + key));
+            .orElseThrow(() -> new ResourceNotFoundException("FeatureFlag", key));
 
     if (request.isEnabled() != null) flag.setEnabled(request.isEnabled());
     if (request.rolloutPercentage() != null) flag.setRolloutPercentage(request.rolloutPercentage());
