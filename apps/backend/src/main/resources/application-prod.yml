@@ -48,4 +48,4 @@ management:
 # Production CORS — restrict to actual domains
 kaiz:
   cors:
-    allowed-origins: ${KAIZ_CORS_ORIGINS:https://kaiz.app,https://www.kaiz.app,https://admin.kaiz.app}
+    allowed-origins: ${KAIZ_CORS_ORIGINS:https://kaiz.app,https://www.kaiz.app,https://admin.kaiz.app,https://*.vercel.app}
