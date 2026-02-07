@@ -22,6 +22,18 @@ const GROWTH_APPS = APPS.filter(app => ['mindset', 'essentia'].includes(app.id))
 const COMMUNITY_APP = APPS.find(app => app.id === 'community')!;
 const FAMILY_APP = APPS.find(app => app.id === 'family');
 
+// Short descriptions for each app card
+const APP_DESCRIPTIONS: Partial<Record<string, string>> = {
+    sprints: 'Plan & track your sprints',
+    sensai: 'AI coaching & ceremonies',
+    challenges: 'Track your challenges',
+    pomodoro: 'Focus & time management',
+    essentia: 'Books & knowledge',
+    mindset: 'Quotes & inspiration',
+    community: 'Connect with others',
+    family: 'Collaborate with family',
+};
+
 // ============================================================================
 // Sub-App Grid — reusable 4-column grid component
 // ============================================================================
@@ -143,7 +155,7 @@ export function AppSwitcher() {
                                 </View>
                                 <View className="ml-3 flex-1">
                                     <Text className="font-semibold text-base" style={{ color: colors.text }}>{t(SPRINT_APP.nameKey)}</Text>
-                                    <Text className="text-xs mt-0.5" style={{ color: colors.textTertiary }}>Plan & track your sprints</Text>
+                                    <Text className="text-xs mt-0.5" style={{ color: colors.textTertiary }}>{APP_DESCRIPTIONS.sprints}</Text>
                                 </View>
                                 {currentApp === 'sprints' && (
                                     <View className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: colors.success }} />
@@ -156,110 +168,96 @@ export function AppSwitcher() {
                         <SubAppGrid subApps={allSprintSubApps} onSelect={handleSubAppSelect} colors={colors} t={t} />
                     </View>
 
-                    {/* ====== Productivity Section — SensAI, Focus, Challenges ====== */}
+                    {/* ====== Productivity Section — SensAI, Challenges, Focus ====== */}
                     <View className="mb-5">
                         <View className="flex-row items-center mb-3 px-1">
                             <AppIcon icon={sectionIcons.rocketLaunch} size={16} color="#10B981" />
                             <Text className="text-xs font-semibold uppercase tracking-wider ml-1.5" style={{ color: colors.textSecondary }}>Productivity</Text>
                         </View>
 
-                        <View className="flex-row" style={{ marginHorizontal: -6 }}>
-                            {PRODUCTIVITY_APPS.map((app) => (
-                                <View key={app.id} style={{ flex: 1, paddingHorizontal: 6 }}>
-                                    <TouchableOpacity
-                                        onPress={() => handleAppSelect(app)}
-                                        activeOpacity={0.7}
-                                        className="rounded-2xl p-3 items-center"
-                                        style={{
-                                            backgroundColor: colors.card,
-                                            borderColor: currentApp === app.id ? app.color : colors.border,
-                                            borderWidth: currentApp === app.id ? 2 : 1,
-                                        }}
-                                    >
+                        {PRODUCTIVITY_APPS.map((app) => (
+                            <View key={app.id} className="mb-3">
+                                <TouchableOpacity
+                                    onPress={() => handleAppSelect(app)}
+                                    activeOpacity={0.7}
+                                    className="rounded-2xl p-4"
+                                    style={{
+                                        backgroundColor: colors.card,
+                                        borderColor: currentApp === app.id ? app.color : colors.border,
+                                        borderWidth: currentApp === app.id ? 2 : 1,
+                                    }}
+                                >
+                                    <View className="flex-row items-center">
                                         <View
-                                            className="w-12 h-12 rounded-xl items-center justify-center mb-2"
+                                            className="w-12 h-12 rounded-xl items-center justify-center"
                                             style={{ backgroundColor: app.color + '20' }}
                                         >
                                             <AppIcon icon={app.icon} size={26} color={app.color} />
                                         </View>
-                                        <Text className="text-xs font-medium text-center" style={{ color: colors.textSecondary }} numberOfLines={1}>
-                                            {t(app.nameKey)}
-                                        </Text>
+                                        <View className="ml-3 flex-1">
+                                            <Text className="font-semibold text-base" style={{ color: colors.text }}>{t(app.nameKey)}</Text>
+                                            <Text className="text-xs mt-0.5" style={{ color: colors.textTertiary }}>
+                                                {APP_DESCRIPTIONS[app.id] ?? ''}
+                                            </Text>
+                                        </View>
                                         {currentApp === app.id && (
-                                            <View className="w-1.5 h-1.5 rounded-full mt-1.5" style={{ backgroundColor: colors.success }} />
+                                            <View className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: colors.success }} />
                                         )}
-                                    </TouchableOpacity>
+                                        <AppIcon icon={navIcons.chevronRight} size={20} color={colors.textTertiary} />
+                                    </View>
+                                </TouchableOpacity>
 
-                                    {/* Sub-apps grid for each productivity app */}
-                                    {SUB_APPS[app.id as AppContext] && SUB_APPS[app.id as AppContext]!.length > 0 && currentApp === app.id && (
-                                        <SubAppGrid subApps={SUB_APPS[app.id as AppContext]!} onSelect={handleSubAppSelect} colors={colors} t={t} />
-                                    )}
-                                </View>
-                            ))}
-                        </View>
-
-                        {/* Expanded sub-apps for the active productivity app (full width beneath the row) */}
-                        {PRODUCTIVITY_APPS.some(app => currentApp === app.id && SUB_APPS[app.id as AppContext]) && (
-                            <SubAppGrid
-                                subApps={SUB_APPS[currentApp as AppContext] ?? []}
-                                onSelect={handleSubAppSelect}
-                                colors={colors}
-                                t={t}
-                            />
-                        )}
+                                {SUB_APPS[app.id as AppContext] && SUB_APPS[app.id as AppContext]!.length > 0 && (
+                                    <SubAppGrid subApps={SUB_APPS[app.id as AppContext]!} onSelect={handleSubAppSelect} colors={colors} t={t} />
+                                )}
+                            </View>
+                        ))}
                     </View>
 
-                    {/* ====== Growth Section — Mindset & Essentia ====== */}
+                    {/* ====== Growth Section — Essentia & Mindset ====== */}
                     <View className="mb-5">
                         <View className="flex-row items-center mb-3 px-1">
                             <AppIcon icon={sectionIcons.trendingUp} size={16} color="#8B5CF6" />
                             <Text className="text-xs font-semibold uppercase tracking-wider ml-1.5" style={{ color: colors.textSecondary }}>Growth & Inspiration</Text>
                         </View>
 
-                        <View className="flex-row" style={{ marginHorizontal: -6 }}>
-                            {GROWTH_APPS.map((app) => (
-                                <View key={app.id} style={{ flex: 1, paddingHorizontal: 6 }}>
-                                    <TouchableOpacity
-                                        onPress={() => handleAppSelect(app)}
-                                        activeOpacity={0.7}
-                                        className="rounded-2xl p-4 flex-row items-center"
-                                        style={{
-                                            backgroundColor: colors.card,
-                                            borderColor: currentApp === app.id ? app.color : colors.border,
-                                            borderWidth: currentApp === app.id ? 2 : 1,
-                                        }}
-                                    >
+                        {GROWTH_APPS.map((app) => (
+                            <View key={app.id} className="mb-3">
+                                <TouchableOpacity
+                                    onPress={() => handleAppSelect(app)}
+                                    activeOpacity={0.7}
+                                    className="rounded-2xl p-4"
+                                    style={{
+                                        backgroundColor: colors.card,
+                                        borderColor: currentApp === app.id ? app.color : colors.border,
+                                        borderWidth: currentApp === app.id ? 2 : 1,
+                                    }}
+                                >
+                                    <View className="flex-row items-center">
                                         <View
-                                            className="w-10 h-10 rounded-xl items-center justify-center"
+                                            className="w-12 h-12 rounded-xl items-center justify-center"
                                             style={{ backgroundColor: app.color + '20' }}
                                         >
-                                            <AppIcon icon={app.icon} size={22} color={app.color} />
+                                            <AppIcon icon={app.icon} size={26} color={app.color} />
                                         </View>
-                                        <View className="ml-2.5 flex-1">
-                                            <Text className="text-sm font-medium" style={{ color: colors.textSecondary }} numberOfLines={1}>
-                                                {t(app.nameKey)}
-                                            </Text>
-                                            <Text className="text-[10px]" style={{ color: colors.textTertiary }} numberOfLines={1}>
-                                                {app.id === 'mindset' ? 'Quotes' : 'Books'}
+                                        <View className="ml-3 flex-1">
+                                            <Text className="font-semibold text-base" style={{ color: colors.text }}>{t(app.nameKey)}</Text>
+                                            <Text className="text-xs mt-0.5" style={{ color: colors.textTertiary }}>
+                                                {APP_DESCRIPTIONS[app.id] ?? ''}
                                             </Text>
                                         </View>
                                         {currentApp === app.id && (
-                                            <View className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: colors.success }} />
+                                            <View className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: colors.success }} />
                                         )}
-                                    </TouchableOpacity>
-                                </View>
-                            ))}
-                        </View>
+                                        <AppIcon icon={navIcons.chevronRight} size={20} color={colors.textTertiary} />
+                                    </View>
+                                </TouchableOpacity>
 
-                        {/* Expanded sub-apps for the active growth app */}
-                        {GROWTH_APPS.some(app => currentApp === app.id && SUB_APPS[app.id as AppContext]) && (
-                            <SubAppGrid
-                                subApps={SUB_APPS[currentApp as AppContext] ?? []}
-                                onSelect={handleSubAppSelect}
-                                colors={colors}
-                                t={t}
-                            />
-                        )}
+                                {SUB_APPS[app.id as AppContext] && SUB_APPS[app.id as AppContext]!.length > 0 && (
+                                    <SubAppGrid subApps={SUB_APPS[app.id as AppContext]!} onSelect={handleSubAppSelect} colors={colors} t={t} />
+                                )}
+                            </View>
+                        ))}
                     </View>
 
                     {/* ====== Community Section ====== */}
@@ -287,7 +285,7 @@ export function AppSwitcher() {
                             </View>
                             <View className="ml-3 flex-1">
                                 <Text className="font-semibold text-base" style={{ color: colors.text }}>{t(COMMUNITY_APP.nameKey)}</Text>
-                                <Text className="text-xs mt-0.5" style={{ color: colors.textTertiary }}>Connect with others</Text>
+                                <Text className="text-xs mt-0.5" style={{ color: colors.textTertiary }}>{APP_DESCRIPTIONS.community}</Text>
                             </View>
                             {currentApp === 'community' && (
                                 <View className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: colors.success }} />
@@ -334,7 +332,7 @@ export function AppSwitcher() {
                                 <View className="ml-3 flex-1">
                                     <Text className="font-semibold text-base" style={{ color: colors.text }}>{t(FAMILY_APP.nameKey)}</Text>
                                     <Text className="text-xs mt-0.5" style={{ color: colors.textTertiary }}>
-                                        {hasFamilyAccess ? 'Collaborate with family' : 'Upgrade to unlock'}
+                                        {hasFamilyAccess ? APP_DESCRIPTIONS.family : 'Upgrade to unlock'}
                                     </Text>
                                 </View>
                                 {currentApp === 'family' && hasFamilyAccess && (
