@@ -1,6 +1,6 @@
 import { View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { NotificationCenter } from '../components/notifications';
+import { NotificationCenter } from '../components/notifications/NotificationCenter';
 import { useThemeContext } from '../providers/ThemeProvider';
 
 export default function NotificationsScreen() {

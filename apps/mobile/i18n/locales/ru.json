@@ -223,6 +223,7 @@
       "bills": "Счета",
       "hub": "Хаб",
       "inbox": "Входящие",
+      "dashboard": "Панель",
       "more": "Ещё"
     },
     "sprints": {
@@ -1219,5 +1220,16 @@
     "hoursAgo": "{{count}} часов назад",
     "minutesAgo": "{{count}} минут назад",
     "justNow": "Только что"
+  },
+  "dashboard": {
+    "greetingMorning": "Доброе утро",
+    "greetingAfternoon": "Добрый день",
+    "greetingEvening": "Добрый вечер",
+    "notifications": "Уведомления",
+    "quickStats": {
+      "sprints": "Спринты",
+      "challenges": "Задачи",
+      "sensai": "SensAI"
+    }
   }
 }

@@ -1,23 +1,19 @@
 import { create } from 'zustand';
 
-export type AppContext = 'sprints' | 'sensai' | 'mindset' | 'essentia' | 'bills' | 'challenges' | 'pomodoro' | 'community' | 'family' | 'settings' | 'notifications' | 'backlog' | 'epics' | 'taskSearch' | 'templates';
+export type AppContext = 'sprints' | 'sensai' | 'mindset' | 'essentia' | 'bills' | 'challenges' | 'pomodoro' | 'community' | 'family' | 'settings' | 'notifications' | 'dashboard' | 'backlog' | 'epics' | 'taskSearch' | 'templates';
 
 interface NavigationState {
     currentApp: AppContext;
     isAppSwitcherOpen: boolean;
-    isMoreMenuOpen: boolean;
     setCurrentApp: (app: AppContext) => void;
     toggleAppSwitcher: () => void;
-    toggleMoreMenu: () => void;
     closeModals: () => void;
 }
 
 export const useNavigationStore = create<NavigationState>((set) => ({
     currentApp: 'sprints',
     isAppSwitcherOpen: false,
-    isMoreMenuOpen: false,
-    setCurrentApp: (app) => set({ currentApp: app, isMoreMenuOpen: false }),
+    setCurrentApp: (app) => set({ currentApp: app }),
     toggleAppSwitcher: () => set((state) => ({ isAppSwitcherOpen: !state.isAppSwitcherOpen })),
-    toggleMoreMenu: () => set((state) => ({ isMoreMenuOpen: !state.isMoreMenuOpen })),
-    closeModals: () => set({ isAppSwitcherOpen: false, isMoreMenuOpen: false }),
+    closeModals: () => set({ isAppSwitcherOpen: false }),
 }));

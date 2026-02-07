@@ -9,7 +9,8 @@ import { useNotificationStore } from '../../store/notificationStore';
 import { NAV_CONFIGS } from '../../utils/navigationConfig';
 import { useRouter, usePathname } from 'expo-router';
 import { AppSwitcher } from './AppSwitcher';
-import { MoreMenu } from './MoreMenu';
+import { AppIcon } from '../ui/AppIcon';
+import { navIcons, moduleIcons, actionIcons } from '../../constants/icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import * as ImagePicker from 'expo-image-picker';
@@ -42,7 +43,7 @@ type AttachmentType = {
 type PendingAction = 'camera' | 'image' | 'file' | 'voice' | null;
 
 export function CustomTabBar() {
-    const { currentApp, toggleAppSwitcher, toggleMoreMenu } = useNavigationStore();
+    const { currentApp, toggleAppSwitcher } = useNavigationStore();
     const { isActive: isPomodoroActive, timeRemaining, isPaused } = usePomodoroStore();
     const { unreadCount } = useNotificationStore();
     const router = useRouter();
@@ -705,22 +706,17 @@ export function CustomTabBar() {
     };
 
     // Navigation helpers for normal tab bar
-    const icons = NAV_CONFIGS[currentApp as AppContext] || NAV_CONFIGS['sprints'];
-    const mainIcon = icons[0];
-    const moreIcon = icons[icons.length - 1];
+    const mainIcon = NAV_CONFIGS[currentApp as AppContext] ?? NAV_CONFIGS['sprints'];
 
     const handleIconPress = (route: string) => {
-        if (route === 'more') {
-            toggleMoreMenu();
-        } else {
-            router.push(route as any);
-        }
+        router.push(route as any);
     };
 
     const isActive = (route: string) => {
-        if (route === 'more') return false;
         return pathname.startsWith(route);
     };
+
+    const isDashboardActive = pathname.startsWith('/(tabs)/dashboard');
 
     // Check if we're on the Command Center screen
     const isOnCommandCenter = pathname.includes('/command-center');
@@ -894,27 +890,13 @@ export function CustomTabBar() {
                 ) : (
                     // Clean Tab Bar - All icons bigger with colored backgrounds
                     <View className="flex-row items-center justify-between px-6 pb-1" style={{ paddingTop: 8 }}>
-                        {/* 1. Apps Icon - Orange/Amber background with notification badge */}
+                        {/* 1. Apps Icon - Orange/Amber background */}
                         <TouchableOpacity
                             className="items-center"
                             onPress={toggleAppSwitcher}
                         >
-                            <View className="relative">
-                                <View className="w-12 h-12 rounded-2xl items-center justify-center" style={{ backgroundColor: '#FEF3C7' }}>
-                                    <MaterialCommunityIcons
-                                        name="view-grid"
-                                        size={28}
-                                        color="#F59E0B"
-                                    />
-                                </View>
-                                {/* Notification badge on Apps icon */}
-                                {unreadCount > 0 && (
-                                    <View className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 rounded-full items-center justify-center px-1 border-2 border-white">
-                                        <Text className="text-white text-[9px] font-bold">
-                                            {unreadCount > 99 ? '99+' : unreadCount}
-                                        </Text>
-                                    </View>
-                                )}
+                            <View className="w-12 h-12 rounded-2xl items-center justify-center" style={{ backgroundColor: '#FEF3C7' }}>
+                                <AppIcon icon={navIcons.apps} size={28} color="#F59E0B" />
                             </View>
                             <Text className="text-[10px] font-medium mt-0.5" style={{ color: '#F59E0B' }}>{t('navigation.appSwitcher.title')}</Text>
                         </TouchableOpacity>
@@ -928,8 +910,8 @@ export function CustomTabBar() {
                                 className="w-12 h-12 rounded-2xl items-center justify-center" 
                                 style={{ backgroundColor: isActive(mainIcon.route) ? '#DBEAFE' : '#EFF6FF' }}
                             >
-                                <MaterialCommunityIcons
-                                    name={mainIcon.icon as any}
+                                <AppIcon
+                                    icon={mainIcon.icon}
                                     size={28}
                                     color={isActive(mainIcon.route) ? '#2563EB' : '#3B82F6'}
                                 />
@@ -942,20 +924,35 @@ export function CustomTabBar() {
                             </Text>
                         </TouchableOpacity>
 
-                        {/* 3. More Icon - Purple background */}
+                        {/* 3. Dashboard (replaces More) - Blue background + notification badge */}
                         <TouchableOpacity
                             className="items-center"
-                            onPress={() => handleIconPress(moreIcon.route)}
+                            onPress={() => handleIconPress('/(tabs)/dashboard')}
                         >
-                            <View className="w-12 h-12 rounded-2xl items-center justify-center" style={{ backgroundColor: '#F3E8FF' }}>
-                                <MaterialCommunityIcons
-                                    name={moreIcon.icon as any}
-                                    size={28}
-                                    color="#8B5CF6"
-                                />
+                            <View className="relative">
+                                <View
+                                    className="w-12 h-12 rounded-2xl items-center justify-center"
+                                    style={{ backgroundColor: isDashboardActive ? '#DBEAFE' : '#EFF6FF' }}
+                                >
+                                    <AppIcon
+                                        icon={moduleIcons.dashboard}
+                                        size={28}
+                                        color={isDashboardActive ? '#2563EB' : '#3B82F6'}
+                                    />
+                                </View>
+                                {unreadCount > 0 && (
+                                    <View className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 rounded-full items-center justify-center px-1 border-2 border-white">
+                                        <Text className="text-white text-[9px] font-bold">
+                                            {unreadCount > 99 ? '99+' : unreadCount}
+                                        </Text>
+                                    </View>
+                                )}
                             </View>
-                            <Text className="text-[10px] font-semibold mt-0.5" style={{ color: '#8B5CF6' }}>
-                                {t(moreIcon.nameKey)}
+                            <Text
+                                className="text-[10px] font-semibold mt-0.5"
+                                style={{ color: isDashboardActive ? '#2563EB' : '#3B82F6' }}
+                            >
+                                {t('navigation.tabs.dashboard')}
                             </Text>
                         </TouchableOpacity>
 
@@ -968,8 +965,8 @@ export function CustomTabBar() {
                                 className="w-12 h-12 rounded-2xl items-center justify-center" 
                                 style={{ backgroundColor: isOnCommandCenter ? '#D1FAE5' : '#ECFDF5' }}
                             >
-                                <MaterialCommunityIcons
-                                    name="plus-circle"
+                                <AppIcon
+                                    icon={actionIcons.addCircle}
                                     size={28}
                                     color={isOnCommandCenter ? '#059669' : '#10B981'}
                                 />
@@ -986,7 +983,6 @@ export function CustomTabBar() {
             </View>
 
             <AppSwitcher />
-            <MoreMenu />
 
             {/* Create & Attachment Options Modal */}
             <Modal visible={showCreateMenu} transparent animationType="slide">

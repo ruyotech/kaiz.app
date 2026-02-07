@@ -225,6 +225,7 @@
       "hub": "Hub",
       "inbox": "Inbox",
       "family": "Family",
+      "dashboard": "Dashboard",
       "more": "More"
     },
     "sprints": {
@@ -1439,6 +1440,17 @@
       "joinedFamily": "joined the family",
       "createdEpic": "created a shared epic",
       "startedCeremony": "started a ceremony"
+    }
+  },
+  "dashboard": {
+    "greetingMorning": "Good Morning",
+    "greetingAfternoon": "Good Afternoon",
+    "greetingEvening": "Good Evening",
+    "notifications": "Notifications",
+    "quickStats": {
+      "sprints": "Sprints",
+      "challenges": "Challenges",
+      "sensai": "SensAI"
     }
   }
 }

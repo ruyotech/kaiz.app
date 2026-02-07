@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { NotificationToastContainer } from '../components/notifications';
+import { NotificationToastContainer } from '../components/notifications/NotificationToast';
 import { TranslationProvider } from '../i18n/TranslationProvider';
 import { ThemeProvider } from '../providers/ThemeProvider';
 import { QueryProvider } from '../providers/QueryProvider';

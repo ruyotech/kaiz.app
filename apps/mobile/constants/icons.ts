@@ -25,7 +25,7 @@ function mci(name: string): IconDef {
 
 export const navIcons = {
   apps: mci('view-grid'),
-  more: mci('dots-horizontal'),
+  dashboard: mci('view-dashboard'),
   create: mci('plus-circle'),
   back: mci('arrow-left'),
   close: mci('close'),
@@ -36,6 +36,8 @@ export const navIcons = {
   filter: mci('filter-variant'),
   sort: mci('sort'),
   menu: mci('menu'),
+  bellRing: mci('bell-ring'),
+  bellOutline: mci('bell-outline'),
 } as const;
 
 // ============================================================================
@@ -58,6 +60,19 @@ export const moduleIcons = {
   epics: mci('bookmark-multiple'),
   taskSearch: mci('format-list-checkbox'),
   templates: mci('file-document-multiple'),
+  dashboard: mci('view-dashboard'),
+} as const;
+
+// ============================================================================
+// Section Header Icons (AppSwitcher categories)
+// ============================================================================
+
+export const sectionIcons = {
+  lightningBolt: mci('lightning-bolt'),
+  rocketLaunch: mci('rocket-launch'),
+  trendingUp: mci('trending-up'),
+  accountGroupOutline: mci('account-group-outline'),
+  heartOutline: mci('heart-outline'),
 } as const;
 
 // ============================================================================
@@ -209,6 +224,7 @@ export const mindsetIcons = {
 export const icons = {
   nav: navIcons,
   module: moduleIcons,
+  section: sectionIcons,
   action: actionIcons,
   status: statusIcons,
   sprint: sprintIcons,

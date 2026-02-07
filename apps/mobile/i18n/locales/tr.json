@@ -223,6 +223,7 @@
       "bills": "Faturalar",
       "hub": "Merkez",
       "inbox": "Gelen Kutusu",
+      "dashboard": "Panel",
       "more": "Daha Fazla"
     },
     "sprints": {
@@ -1126,5 +1127,16 @@
     "hoursAgo": "{{count}} saat önce",
     "minutesAgo": "{{count}} dakika önce",
     "justNow": "Az önce"
+  },
+  "dashboard": {
+    "greetingMorning": "Günaydın",
+    "greetingAfternoon": "İyi Günler",
+    "greetingEvening": "İyi Akşamlar",
+    "notifications": "Bildirimler",
+    "quickStats": {
+      "sprints": "Sprintler",
+      "challenges": "Görevler",
+      "sensai": "SensAI"
+    }
   }
 }

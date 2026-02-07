@@ -10,6 +10,7 @@ export default function TabsLayout() {
         <View className="flex-1" style={{ backgroundColor: colors.background }}>
             <Stack screenOptions={{ headerShown: false }}>
                 <Stack.Screen name="index" />
+                <Stack.Screen name="dashboard" />
                 <Stack.Screen name="sprints" />
                 <Stack.Screen name="sensai" />
                 <Stack.Screen name="challenges" />
@@ -18,6 +19,7 @@ export default function TabsLayout() {
                 <Stack.Screen name="command-center" />
                 <Stack.Screen name="community" />
                 <Stack.Screen name="family" />
+                <Stack.Screen name="pomodoro" />
                 <Stack.Screen name="settings" />
                 <Stack.Screen name="notifications" />
             </Stack>

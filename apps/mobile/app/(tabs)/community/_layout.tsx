@@ -13,6 +13,7 @@ export default function CommunityLayout() {
             <Stack.Screen name="profile" />
             <Stack.Screen name="article" />
             <Stack.Screen name="question-detail" />
+            <Stack.Screen name="knowledge-item" />
         </Stack>
     );
 }
