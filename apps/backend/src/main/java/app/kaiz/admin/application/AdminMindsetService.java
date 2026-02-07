@@ -256,7 +256,9 @@ public class AdminMindsetService {
         content.getBody(),
         content.getAuthor(),
         content.getDimensionTag(),
-        content.getSecondaryTags(),
+        content.getSecondaryTags() != null
+            ? new ArrayList<>(content.getSecondaryTags())
+            : List.of(),
         content.getThemePreset(),
         content.getInterventionWeight(),
         content.getEmotionalTone(),
@@ -276,7 +278,7 @@ public class AdminMindsetService {
         theme.getBackgroundColor(),
         theme.getTextColor(),
         theme.getAccentColor(),
-        theme.getGradientColors(),
+        theme.getGradientColors() != null ? new ArrayList<>(theme.getGradientColors()) : List.of(),
         theme.getDefaultAsset(),
         theme.getCreatedAt(),
         theme.getUpdatedAt());
