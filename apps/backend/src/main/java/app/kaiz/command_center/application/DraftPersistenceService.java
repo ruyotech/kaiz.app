@@ -12,6 +12,7 @@ import app.kaiz.shared.exception.BadRequestException;
 import app.kaiz.shared.exception.ResourceNotFoundException;
 import app.kaiz.tasks.domain.Task;
 import app.kaiz.tasks.domain.TaskStatus;
+import app.kaiz.tasks.domain.TaskType;
 import app.kaiz.tasks.infrastructure.TaskRepository;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -54,7 +55,8 @@ public class DraftPersistenceService {
 
     Task savedTask =
         switch (draft) {
-          case Draft.TaskDraft taskDraft -> createTaskFromDraft(user, sessionId, taskDraft, false);
+          case Draft.TaskDraft taskDraft ->
+              createTaskFromDraft(user, sessionId, taskDraft, TaskType.TASK);
           case Draft.EventDraft eventDraft -> createTaskFromEventDraft(user, sessionId, eventDraft);
           default ->
               throw new BadRequestException("Unsupported draft type for pending: " + draft.type());
@@ -81,7 +83,7 @@ public class DraftPersistenceService {
     EisenhowerQuadrant eisenhowerQuadrant =
         resolveEisenhowerQuadrant(request.eisenhowerQuadrantId());
 
-    boolean isEvent = request.isEvent();
+    TaskType taskType = request.isEvent() ? TaskType.EVENT : TaskType.TASK;
     ZoneId zone = ZoneId.systemDefault();
 
     Instant targetDate = null;
@@ -113,19 +115,20 @@ public class DraftPersistenceService {
             .aiConfidence(BigDecimal.valueOf(0.85))
             .targetDate(targetDate)
             .isRecurring(request.isRecurring() != null ? request.isRecurring() : false)
-            .isEvent(isEvent)
+            .taskType(taskType)
             .eventStartTime(eventStartTime)
             .eventEndTime(eventEndTime)
             .location(request.location())
             .build();
 
     Task savedTask = taskRepository.save(task);
-    log.info("Task created with ID: {}, isEvent: {}", savedTask.getId(), isEvent);
+    log.info("Task created with ID: {}, taskType: {}", savedTask.getId(), taskType);
     return savedTask.getId();
   }
 
   /** Create a Task entity from TaskDraft with PENDING_APPROVAL status. */
-  Task createTaskFromDraft(User user, UUID sessionId, Draft.TaskDraft taskDraft, boolean isEvent) {
+  Task createTaskFromDraft(
+      User user, UUID sessionId, Draft.TaskDraft taskDraft, TaskType taskType) {
     LifeWheelArea lifeWheelArea = resolveLifeWheelArea(taskDraft.lifeWheelAreaId());
     EisenhowerQuadrant eisenhowerQuadrant =
         resolveEisenhowerQuadrant(taskDraft.eisenhowerQuadrantId());
@@ -148,13 +151,13 @@ public class DraftPersistenceService {
             .aiSessionId(sessionId)
             .targetDate(targetDate)
             .isRecurring(taskDraft.isRecurring())
-            .isEvent(isEvent)
+            .taskType(taskType)
             .build();
 
     return taskRepository.save(task);
   }
 
-  /** Create a Task entity from EventDraft. Events are stored as tasks with isEvent=true. */
+  /** Create a Task entity from EventDraft. Events are stored as tasks with taskType=EVENT. */
   Task createTaskFromEventDraft(User user, UUID sessionId, Draft.EventDraft eventDraft) {
     LifeWheelArea lifeWheelArea = resolveLifeWheelArea(eventDraft.lifeWheelAreaId());
     EisenhowerQuadrant eisenhowerQuadrant = resolveEisenhowerQuadrant("eq-2");
@@ -186,7 +189,7 @@ public class DraftPersistenceService {
             .aiConfidence(BigDecimal.valueOf(0.85))
             .aiSessionId(sessionId)
             .targetDate(targetDate)
-            .isEvent(true)
+            .taskType(TaskType.EVENT)
             .location(eventDraft.location())
             .isAllDay(eventDraft.isAllDay())
             .eventStartTime(eventStartTime)

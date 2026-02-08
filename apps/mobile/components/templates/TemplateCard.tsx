@@ -63,7 +63,8 @@ export const TemplateCard = React.memo(function TemplateCard({
 }: TemplateCardProps) {
     const { colors, isDark } = useThemeContext();
     const wheelConfig = getLifeWheelConfig(template.defaultLifeWheelAreaId || '');
-    const isEvent = template.type === 'event';
+    const templateType = template.type || 'task';
+    const isEventLike = templateType === 'event' || templateType === 'birthday';
 
     if (compact) {
         return (
@@ -146,8 +147,8 @@ export const TemplateCard = React.memo(function TemplateCard({
 
                     {/* Type Badge + Favorite */}
                     <View className="flex-row items-center">
-                        <Badge variant={isEvent ? 'info' : 'default'} size="sm">
-                            {isEvent ? '📅 Event' : '✅ Task'}
+                        <Badge variant={templateType === 'event' ? 'info' : templateType === 'birthday' ? 'warning' : 'default'} size="sm">
+                            {templateType === 'event' ? '📅 Event' : templateType === 'birthday' ? '🎂 Birthday' : '✅ Task'}
                         </Badge>
                         {showActions && (
                             <Pressable

@@ -145,7 +145,8 @@ public class DraftApprovalService {
                     null, // targetDate
                     false, // isRecurring
                     null, // recurrence
-                    false, // isEvent
+                    null, // taskType - defaults to TASK
+                    null, // alertBefore - defaults to NONE
                     null, // location
                     false, // isAllDay
                     null, // eventStartTime

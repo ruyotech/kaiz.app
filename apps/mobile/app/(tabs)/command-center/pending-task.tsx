@@ -40,7 +40,7 @@ interface TaskDetail {
   storyPoints: number;
   status: string;
   targetDate?: string;
-  isEvent: boolean;
+  taskType?: string;
   location?: string;
   isAllDay?: boolean;
   eventStartTime?: string;
@@ -198,10 +198,11 @@ export default function PendingTaskDetailScreen() {
   }, [params.taskId]);
   
   // Get display values
-  const isEvent = task?.isEvent ?? false;
-  const typeColor = isEvent ? '#8B5CF6' : '#3B82F6';
-  const typeIcon = isEvent ? 'calendar' : 'checkbox-marked-circle-outline';
-  const typeName = isEvent ? 'Event' : 'Task';
+  const taskType = task?.taskType || 'TASK';
+  const isEventLike = taskType === 'EVENT' || taskType === 'BIRTHDAY';
+  const typeColor = taskType === 'EVENT' ? '#8B5CF6' : taskType === 'BIRTHDAY' ? '#EC4899' : '#3B82F6';
+  const typeIcon = taskType === 'EVENT' ? 'calendar' : taskType === 'BIRTHDAY' ? 'cake-variant' : 'checkbox-marked-circle-outline';
+  const typeName = taskType === 'EVENT' ? 'Event' : taskType === 'BIRTHDAY' ? 'Birthday' : 'Task';
   
   const lifeWheelInfo = task ? LIFE_WHEEL_AREAS[task.lifeWheelAreaId] : null;
   const quadrantInfo = task ? EISENHOWER_QUADRANTS[task.eisenhowerQuadrantId] : null;
@@ -263,7 +264,7 @@ export default function PendingTaskDetailScreen() {
         taskId: task.id,
         title: task.title,
         description: task.description || '',
-        isEvent: task.isEvent ? 'true' : 'false',
+        taskType: task.taskType || 'TASK',
         targetDate: task.targetDate || '',
         lifeWheelAreaId: task.lifeWheelAreaId?.toString() || '1',
         eisenhowerQuadrantId: task.eisenhowerQuadrantId?.toString() || '4',
@@ -403,7 +404,7 @@ export default function PendingTaskDetailScreen() {
           />
           
           {/* Time (for events) */}
-          {isEvent && task.eventStartTime && (
+          {isEventLike && task.eventStartTime && (
             <DetailField
               icon="clock-outline"
               label="Time"
@@ -414,7 +415,7 @@ export default function PendingTaskDetailScreen() {
           )}
           
           {/* Location (for events) */}
-          {isEvent && task.location && (
+          {isEventLike && task.location && (
             <DetailField
               icon="map-marker"
               label="Location"

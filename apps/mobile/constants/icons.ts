@@ -220,6 +220,25 @@ export const mindsetIcons = {
   themes: mci('palette-swatch'),
 } as const;
 
+// ============================================================================
+// Schedule / Task Scheduler Icons
+// ============================================================================
+
+export const scheduleIcons = {
+  task: mci('checkbox-marked-outline'),
+  event: mci('calendar-clock'),
+  birthday: mci('cake-variant'),
+  allDay: mci('clock-outline'),
+  recurrence: mci('repeat'),
+  alert: mci('bell-outline'),
+  location: mci('map-marker-outline'),
+  chevron: mci('chevron-right'),
+  chevronUp: mci('chevron-up'),
+  chevronDown: mci('chevron-down'),
+  noEnd: mci('infinity'),
+  endDate: mci('calendar-end'),
+} as const;
+
 // Combined export for quick access
 export const icons = {
   nav: navIcons,
@@ -234,4 +253,5 @@ export const icons = {
   settings: settingsIcons,
   family: familyIcons,
   mindset: mindsetIcons,
+  schedule: scheduleIcons,
 } as const;

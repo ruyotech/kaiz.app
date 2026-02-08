@@ -8,8 +8,8 @@ import React from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import type { TaskType } from '../../types/schedule.types';
 
-// Task type from API
 interface PendingTask {
   id: string;
   title: string;
@@ -19,7 +19,7 @@ interface PendingTask {
   storyPoints: number;
   status: string;
   targetDate?: string;
-  isEvent: boolean;
+  taskType?: TaskType;
   location?: string;
   isAllDay?: boolean;
   eventStartTime?: string;
@@ -89,10 +89,11 @@ export function PendingTaskCard({
 }: PendingTaskCardProps) {
   const router = useRouter();
   
-  const isEvent = task.isEvent;
-  const typeColor = isEvent ? '#8B5CF6' : '#3B82F6';
-  const typeIcon = isEvent ? 'calendar' : 'checkbox-marked-circle-outline';
-  const typeName = isEvent ? 'Event' : 'Task';
+  const taskType = task.taskType || 'TASK';
+  const isEventLike = taskType === 'EVENT' || taskType === 'BIRTHDAY';
+  const typeColor = taskType === 'EVENT' ? '#8B5CF6' : taskType === 'BIRTHDAY' ? '#EC4899' : '#3B82F6';
+  const typeIcon = taskType === 'EVENT' ? 'calendar' : taskType === 'BIRTHDAY' ? 'cake-variant' : 'checkbox-marked-circle-outline';
+  const typeName = taskType === 'EVENT' ? 'Event' : taskType === 'BIRTHDAY' ? 'Birthday' : 'Task';
   
   const lifeWheelArea = LIFE_WHEEL_AREAS[task.lifeWheelAreaId] || task.lifeWheelAreaId;
   const effortLabel = EFFORT_LABELS[task.storyPoints] || `${task.storyPoints} SP`;
@@ -174,7 +175,7 @@ export function PendingTaskCard({
         )}
 
         {/* Time (for events) */}
-        {isEvent && task.eventStartTime && (
+        {isEventLike && task.eventStartTime && (
           <View className="flex-row items-center bg-purple-50 px-2 py-1 rounded-lg">
             <MaterialCommunityIcons name="clock-outline" size={12} color="#8B5CF6" />
             <Text className="text-xs text-purple-600 ml-1">
@@ -184,7 +185,7 @@ export function PendingTaskCard({
         )}
 
         {/* Location (for events) */}
-        {isEvent && task.location && (
+        {isEventLike && task.location && (
           <View className="flex-row items-center bg-green-50 px-2 py-1 rounded-lg">
             <MaterialCommunityIcons name="map-marker" size={12} color="#10B981" />
             <Text className="text-xs text-green-600 ml-1" numberOfLines={1}>
@@ -212,7 +213,7 @@ export function PendingTaskCard({
             <>
               <MaterialCommunityIcons name="plus" size={18} color="white" />
               <Text className="text-sm font-semibold text-white ml-1">
-                {task.isEvent ? 'Create Event' : 'Create Task'}
+                {isEventLike ? 'Create Event' : 'Create Task'}
               </Text>
             </>
           )}

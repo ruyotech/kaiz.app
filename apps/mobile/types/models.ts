@@ -145,7 +145,7 @@ export interface TaskTemplate {
     id: string;
     name: string;
     description: string;
-    type: 'task' | 'event';
+    type: 'task' | 'event' | 'birthday';
     creatorType: 'system' | 'user';
     userId: string | null; // null for system templates
     

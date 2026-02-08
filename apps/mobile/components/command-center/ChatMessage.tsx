@@ -330,7 +330,7 @@ function DraftPreviewCard({ draft, onApprove, onReject, onEdit, onPress, onConfi
     const builtData = {
       title: draft.title || draftDetails?.title || '',
       description: draft.description || draftDetails?.description || '',
-      isEvent: shouldBeEvent,
+      taskType: shouldBeEvent ? 'EVENT' : 'TASK',
       dueDate: dateStr,
       startTime: startTimeStr,
       endTime: endTimeStr,

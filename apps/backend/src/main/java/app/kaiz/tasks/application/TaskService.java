@@ -149,7 +149,8 @@ public class TaskService {
             .status(status)
             .targetDate(request.targetDate())
             .isRecurring(request.isRecurring())
-            .isEvent(request.isEvent())
+            .taskType(request.taskType() != null ? request.taskType() : TaskType.TASK)
+            .alertBefore(request.alertBefore() != null ? request.alertBefore() : AlertBefore.NONE)
             .location(request.location())
             .isAllDay(request.isAllDay())
             .eventStartTime(request.eventStartTime())
@@ -341,6 +342,14 @@ public class TaskService {
     // Update target date
     if (request.targetDate() != null) {
       task.setTargetDate(request.targetDate());
+    }
+
+    // Update task type and alert
+    if (request.taskType() != null) {
+      task.setTaskType(request.taskType());
+    }
+    if (request.alertBefore() != null) {
+      task.setAlertBefore(request.alertBefore());
     }
 
     // Update event fields

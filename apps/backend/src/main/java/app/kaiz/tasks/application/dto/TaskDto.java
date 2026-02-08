@@ -1,7 +1,9 @@
 package app.kaiz.tasks.application.dto;
 
+import app.kaiz.tasks.domain.AlertBefore;
 import app.kaiz.tasks.domain.RecurrenceFrequency;
 import app.kaiz.tasks.domain.TaskStatus;
+import app.kaiz.tasks.domain.TaskType;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -28,7 +30,8 @@ public record TaskDto(
     Instant targetDate,
     boolean isRecurring,
     RecurrenceDto recurrence,
-    boolean isEvent,
+    TaskType taskType,
+    AlertBefore alertBefore,
     String location,
     boolean isAllDay,
     Instant eventStartTime,
@@ -98,8 +101,9 @@ public record TaskDto(
       // Recurrence settings
       boolean isRecurring,
       RecurrenceRequest recurrence,
-      // Event settings
-      boolean isEvent,
+      // Task type and alert
+      TaskType taskType,
+      AlertBefore alertBefore,
       @Size(max = 500) String location,
       boolean isAllDay,
       Instant eventStartTime,
@@ -121,7 +125,9 @@ public record TaskDto(
       @Min(1) @Max(21) Integer storyPoints,
       TaskStatus status,
       Instant targetDate,
-      // Event settings
+      // Task type and alert
+      TaskType taskType,
+      AlertBefore alertBefore,
       @Size(max = 500) String location,
       boolean isAllDay,
       Instant eventStartTime,

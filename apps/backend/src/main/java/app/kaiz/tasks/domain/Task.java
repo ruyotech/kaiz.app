@@ -122,10 +122,17 @@ public class Task extends BaseEntity {
       fetch = FetchType.LAZY)
   private TaskRecurrence recurrence;
 
-  // Event fields (for tasks created from event templates)
-  @Column(name = "is_event", nullable = false)
+  // Task type discriminator (TASK, EVENT, BIRTHDAY)
+  @Enumerated(EnumType.STRING)
+  @Column(name = "task_type", nullable = false, length = 20)
   @Builder.Default
-  private boolean isEvent = false;
+  private TaskType taskType = TaskType.TASK;
+
+  // Alert/reminder before event time
+  @Enumerated(EnumType.STRING)
+  @Column(name = "alert_before", nullable = false, length = 20)
+  @Builder.Default
+  private AlertBefore alertBefore = AlertBefore.NONE;
 
   @Column(name = "location", length = 500)
   private String location;

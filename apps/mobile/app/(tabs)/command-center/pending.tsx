@@ -25,6 +25,7 @@ import { ScreenHeader } from '../../../components/layout/ScreenHeader';
 import { PendingTaskCard } from '../../../components/command-center/PendingTaskCard';
 import { commandCenterApi } from '../../../services/api';
 import { useThemeContext } from '../../../providers/ThemeProvider';
+import type { TaskType } from '../../../types/schedule.types';
 
 // ============================================================================
 // Empty State Component
@@ -135,7 +136,7 @@ interface PendingTask {
   storyPoints: number;
   status: string;
   targetDate?: string;
-  isEvent: boolean;
+  taskType?: TaskType;
   location?: string;
   isAllDay?: boolean;
   eventStartTime?: string;
@@ -194,7 +195,7 @@ export default function PendingDraftsScreen() {
       eisenhowerQuadrantId: task.eisenhowerQuadrantId,
       storyPoints: task.storyPoints || 2,
       dueDate: task.targetDate || '',
-      isEvent: task.isEvent,
+      taskType: task.taskType || 'TASK',
       startTime: task.eventStartTime || '',
       endTime: task.eventEndTime || '',
       location: task.location || '',
@@ -217,20 +218,21 @@ export default function PendingDraftsScreen() {
 
   // Count tasks by type (task vs event)
   const taskCounts = tasks.reduce((acc, task) => {
-    const type = task.isEvent ? 'EVENT' : 'TASK';
+    const type = task.taskType || 'TASK';
     acc[type] = (acc[type] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 
   // Filter tasks
   const filteredTasks = selectedFilter 
-    ? tasks.filter(t => (t.isEvent ? 'EVENT' : 'TASK') === selectedFilter)
+    ? tasks.filter(t => (t.taskType || 'TASK') === selectedFilter)
     : tasks;
 
   // Available filter types
   const filterTypes = [
     { type: 'TASK', label: 'Tasks', icon: 'checkbox-marked-circle-outline', color: '#3B82F6' },
     { type: 'EVENT', label: 'Events', icon: 'calendar', color: '#8B5CF6' },
+    { type: 'BIRTHDAY', label: 'Birthdays', icon: 'cake-variant', color: '#EC4899' },
   ].filter(f => taskCounts[f.type] > 0);
 
   // =========================================================================

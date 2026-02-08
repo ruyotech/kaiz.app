@@ -532,7 +532,7 @@ export interface PendingApprovalTask {
   eisenhowerQuadrantId?: string;
   storyPoints?: number;
   targetDate?: string;
-  isEvent?: boolean;
+  taskType?: string;
   aiConfidence?: number;
   aiReasoning?: string;
   createdAt: string;
