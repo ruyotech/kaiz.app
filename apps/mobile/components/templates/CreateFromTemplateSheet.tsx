@@ -19,6 +19,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { TaskTemplate } from '../../types/models';
 import { LIFE_WHEEL_CONFIG } from './TemplateCard';
 import { useTemplateStore } from '../../store/templateStore';
+import { useThemeContext } from '../../providers/ThemeProvider';
 import { taskApi, sprintApi, lifeWheelApi, fileUploadApi } from '../../services/api';
 import { STORY_POINTS } from '../../utils/constants';
 import { AttachmentPicker, AttachmentPreview, CommentAttachment } from '../ui/AttachmentPicker';
@@ -58,6 +59,7 @@ export function CreateFromTemplateSheet({
     onSuccess,
 }: CreateFromTemplateSheetProps) {
     const { useTemplate } = useTemplateStore();
+    const { colors, isDark } = useThemeContext();
 
     // Sprint data (for auto-resolution)
     const [sprints, setSprints] = useState<Sprint[]>([]);
@@ -394,13 +396,13 @@ export function CreateFromTemplateSheet({
             presentationStyle="pageSheet"
             onRequestClose={onClose}
         >
-                <View className="flex-1 bg-white">
+                <View className="flex-1" style={{ backgroundColor: colors.background }}>
                     {/* Header */}
-                    <View className="flex-row items-center justify-between px-4 py-4 border-b border-gray-100">
+                    <View className="flex-row items-center justify-between px-4 py-4 border-b" style={{ borderBottomColor: colors.border }}>
                         <TouchableOpacity onPress={onClose} className="p-2 -ml-2">
-                            <Ionicons name="close" size={28} color="#374151" />
+                            <Ionicons name="close" size={28} color={colors.text} />
                         </TouchableOpacity>
-                        <Text className="text-lg font-semibold">
+                        <Text className="text-lg font-semibold" style={{ color: colors.text }}>
                             Create {typeLabel}
                         </Text>
                         <View className="w-10" />
@@ -423,8 +425,8 @@ export function CreateFromTemplateSheet({
                             >
                                 <Text className="text-2xl mr-3">{template.icon || currentWheelConfig.emoji}</Text>
                                 <View className="flex-1">
-                                    <Text className="text-sm text-gray-500">From template</Text>
-                                    <Text className="font-semibold text-gray-900">{template.name}</Text>
+                                <Text className="text-sm" style={{ color: colors.textSecondary }}>From template</Text>
+                                    <Text className="font-semibold" style={{ color: colors.text }}>{template.name}</Text>
                                 </View>
                                 <TouchableOpacity
                                     onPress={() => setShowLifeWheelPicker(true)}
@@ -442,11 +444,12 @@ export function CreateFromTemplateSheet({
                         <View className="px-4 py-4">
                             {/* Title */}
                             <View className="mb-4">
-                                <Text className="text-sm font-medium text-gray-700 mb-2">Title *</Text>
+                                <Text className="text-sm font-medium mb-2" style={{ color: colors.text }}>Title *</Text>
                                 <TextInput
-                                    className="bg-gray-50 rounded-xl px-4 py-3 text-gray-900"
+                                    className="rounded-xl px-4 py-3"
+                                    style={{ backgroundColor: colors.inputBackground, color: colors.text }}
                                     placeholder="Enter title..."
-                                    placeholderTextColor="#9ca3af"
+                                    placeholderTextColor={colors.placeholder}
                                     value={title}
                                     onChangeText={setTitle}
                                 />
@@ -454,11 +457,12 @@ export function CreateFromTemplateSheet({
 
                             {/* Description */}
                             <View className="mb-4">
-                                <Text className="text-sm font-medium text-gray-700 mb-2">Description</Text>
+                                <Text className="text-sm font-medium mb-2" style={{ color: colors.text }}>Description</Text>
                                 <TextInput
-                                    className="bg-gray-50 rounded-xl px-4 py-3 text-gray-900"
+                                    className="rounded-xl px-4 py-3"
+                                    style={{ backgroundColor: colors.inputBackground, color: colors.text }}
                                     placeholder="Add description..."
-                                    placeholderTextColor="#9ca3af"
+                                    placeholderTextColor={colors.placeholder}
                                     value={description}
                                     onChangeText={setDescription}
                                     multiline
@@ -477,21 +481,21 @@ export function CreateFromTemplateSheet({
 
                             {/* Story Points - Like Sprint View */}
                             <View className="mb-5">
-                                <Text className="text-sm font-semibold text-gray-700 mb-3">Point Size</Text>
+                                <Text className="text-sm font-semibold mb-3" style={{ color: colors.text }}>Point Size</Text>
                                 <View className="flex-row flex-wrap gap-3">
                                     {STORY_POINTS.map((points) => (
                                         <TouchableOpacity
                                             key={points}
                                             onPress={() => setStoryPoints(points)}
-                                            className={`w-12 h-12 rounded-xl items-center justify-center border-2 ${
-                                                storyPoints === points 
-                                                    ? 'bg-blue-600 border-blue-600' 
-                                                    : 'bg-white border-gray-200'
-                                            }`}
+                                            className={`w-12 h-12 rounded-xl items-center justify-center border-2`}
+                                            style={{
+                                                backgroundColor: storyPoints === points ? colors.primary : colors.card,
+                                                borderColor: storyPoints === points ? colors.primary : colors.border,
+                                            }}
                                         >
-                                            <Text className={`text-base font-bold ${
-                                                storyPoints === points ? 'text-white' : 'text-gray-700'
-                                            }`}>
+                                            <Text className={`text-base font-bold`} style={{
+                                                color: storyPoints === points ? '#ffffff' : colors.text,
+                                            }}>
                                                 {points}
                                             </Text>
                                         </TouchableOpacity>
@@ -501,10 +505,10 @@ export function CreateFromTemplateSheet({
 
                             {/* Eisenhower Matrix - 2x2 Grid */}
                             <View className="mb-5">
-                                <Text className="text-sm font-semibold text-gray-700 mb-3">Priority</Text>
+                                <Text className="text-sm font-semibold mb-3" style={{ color: colors.text }}>Priority</Text>
                                 {loadingQuadrants ? (
                                     <View className="py-4 items-center">
-                                        <ActivityIndicator size="small" color="#3b82f6" />
+                                        <ActivityIndicator size="small" color={colors.primary} />
                                     </View>
                                 ) : (
                                     <View className="flex-row flex-wrap gap-2">
@@ -512,21 +516,16 @@ export function CreateFromTemplateSheet({
                                             <TouchableOpacity
                                                 key={quad.id}
                                                 onPress={() => setEisenhowerQuadrantId(quad.id)}
-                                                className={`w-[48%] p-3 rounded-xl border-2 ${
-                                                    eisenhowerQuadrantId === quad.id 
-                                                        ? 'border-gray-900' 
-                                                        : 'border-gray-200'
-                                                }`}
+                                                className={`w-[48%] p-3 rounded-xl border-2`}
                                                 style={{
+                                                    borderColor: eisenhowerQuadrantId === quad.id ? colors.text : colors.border,
                                                     backgroundColor: eisenhowerQuadrantId === quad.id 
                                                         ? quad.color + '15' 
-                                                        : 'white'
+                                                        : colors.card,
                                                 }}
                                             >
                                                 <View className="flex-row items-center justify-between mb-1">
-                                                    <Text className={`font-bold text-sm ${
-                                                        eisenhowerQuadrantId === quad.id ? 'text-gray-900' : 'text-gray-700'
-                                                    }`} numberOfLines={1}>
+                                                    <Text className="font-bold text-sm" style={{ color: colors.text }} numberOfLines={1}>
                                                         {quad.name}
                                                     </Text>
                                                     {eisenhowerQuadrantId === quad.id && (
@@ -538,7 +537,7 @@ export function CreateFromTemplateSheet({
                                                         </View>
                                                     )}
                                                 </View>
-                                                <Text className="text-xs text-gray-500" numberOfLines={1}>
+                                                <Text className="text-xs" style={{ color: colors.textSecondary }} numberOfLines={1}>
                                                     {quad.label}
                                                 </Text>
                                             </TouchableOpacity>
@@ -549,26 +548,28 @@ export function CreateFromTemplateSheet({
 
                             {/* Tags */}
                             <View className="mb-5">
-                                <Text className="text-sm font-semibold text-gray-700 mb-3">Tags</Text>
+                                <Text className="text-sm font-semibold mb-3" style={{ color: colors.text }}>Tags</Text>
                                 <View className="flex-row flex-wrap gap-2">
                                     {tags.map((tag) => (
                                         <View
                                             key={tag}
-                                            className="flex-row items-center bg-gray-100 rounded-full px-3 py-1.5"
+                                            className="flex-row items-center rounded-full px-3 py-1.5"
+                                            style={{ backgroundColor: colors.backgroundTertiary }}
                                         >
-                                            <Text className="text-sm text-gray-700 mr-1">#{tag}</Text>
+                                            <Text className="text-sm mr-1" style={{ color: colors.text }}>#{tag}</Text>
                                             <TouchableOpacity onPress={() => handleRemoveTag(tag)}>
-                                                <Ionicons name="close-circle" size={16} color="#9CA3AF" />
+                                                <Ionicons name="close-circle" size={16} color={colors.textTertiary} />
                                             </TouchableOpacity>
                                         </View>
                                     ))}
                                     {showTagInput ? (
-                                        <View className="flex-row items-center bg-gray-50 rounded-full px-3 py-1 border border-gray-200">
-                                            <Text className="text-gray-400">#</Text>
+                                        <View className="flex-row items-center rounded-full px-3 py-1 border" style={{ backgroundColor: colors.inputBackground, borderColor: colors.border }}>
+                                            <Text style={{ color: colors.textTertiary }}>#</Text>
                                             <TextInput
-                                                className="text-sm text-gray-900 py-0.5 min-w-[60px]"
+                                                className="text-sm py-0.5 min-w-[60px]"
+                                                style={{ color: colors.text }}
                                                 placeholder="tag"
-                                                placeholderTextColor="#9CA3AF"
+                                                placeholderTextColor={colors.placeholder}
                                                 value={newTag}
                                                 onChangeText={setNewTag}
                                                 onSubmitEditing={handleAddTag}
@@ -576,16 +577,17 @@ export function CreateFromTemplateSheet({
                                                 returnKeyType="done"
                                             />
                                             <TouchableOpacity onPress={() => { setShowTagInput(false); setNewTag(''); }}>
-                                                <Ionicons name="close" size={16} color="#9CA3AF" />
+                                                <Ionicons name="close" size={16} color={colors.textTertiary} />
                                             </TouchableOpacity>
                                         </View>
                                     ) : (
                                         <TouchableOpacity
                                             onPress={() => setShowTagInput(true)}
-                                            className="flex-row items-center bg-gray-50 rounded-full px-3 py-1.5 border border-dashed border-gray-300"
+                                            className="flex-row items-center rounded-full px-3 py-1.5 border border-dashed"
+                                            style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderSecondary }}
                                         >
-                                            <Ionicons name="add" size={16} color="#6B7280" />
-                                            <Text className="text-sm text-gray-500 ml-1">Add tag</Text>
+                                            <Ionicons name="add" size={16} color={colors.textSecondary} />
+                                            <Text className="text-sm ml-1" style={{ color: colors.textSecondary }}>Add tag</Text>
                                         </TouchableOpacity>
                                     )}
                                 </View>
@@ -593,51 +595,49 @@ export function CreateFromTemplateSheet({
 
                             {/* Comment with Rich Text */}
                             <View className="mb-5">
-                                <Text className="text-sm font-semibold text-gray-700 mb-3">Comment</Text>
-                                <View className="bg-gray-50 rounded-xl overflow-hidden border border-gray-200">
+                                <Text className="text-sm font-semibold mb-3" style={{ color: colors.text }}>Comment</Text>
+                                <View className="rounded-xl overflow-hidden border" style={{ backgroundColor: colors.inputBackground, borderColor: colors.border }}>
                                     {/* Rich Text Toolbar */}
-                                    <View className="flex-row items-center px-3 py-2 border-b border-gray-200 bg-white">
+                                    <View className="flex-row items-center px-3 py-2 border-b" style={{ borderBottomColor: colors.border, backgroundColor: colors.card }}>
                                         <TouchableOpacity
                                             onPress={() => setCommentBold(!commentBold)}
-                                            className={`w-8 h-8 rounded-lg items-center justify-center mr-1 ${
-                                                commentBold ? 'bg-blue-100' : ''
-                                            }`}
+                                            className={`w-8 h-8 rounded-lg items-center justify-center mr-1`}
+                                            style={{ backgroundColor: commentBold ? (isDark ? colors.primaryLight : '#dbeafe') : 'transparent' }}
                                         >
-                                            <Text className={`font-bold ${commentBold ? 'text-blue-600' : 'text-gray-600'}`}>B</Text>
+                                            <Text className={`font-bold`} style={{ color: commentBold ? colors.primary : colors.textSecondary }}>B</Text>
                                         </TouchableOpacity>
                                         <TouchableOpacity
                                             onPress={() => setCommentItalic(!commentItalic)}
-                                            className={`w-8 h-8 rounded-lg items-center justify-center mr-1 ${
-                                                commentItalic ? 'bg-blue-100' : ''
-                                            }`}
+                                            className={`w-8 h-8 rounded-lg items-center justify-center mr-1`}
+                                            style={{ backgroundColor: commentItalic ? (isDark ? colors.primaryLight : '#dbeafe') : 'transparent' }}
                                         >
-                                            <Text className={`italic ${commentItalic ? 'text-blue-600' : 'text-gray-600'}`}>I</Text>
+                                            <Text className={`italic`} style={{ color: commentItalic ? colors.primary : colors.textSecondary }}>I</Text>
                                         </TouchableOpacity>
                                         <TouchableOpacity
                                             onPress={() => setCommentBulletList(!commentBulletList)}
-                                            className={`w-8 h-8 rounded-lg items-center justify-center mr-1 ${
-                                                commentBulletList ? 'bg-blue-100' : ''
-                                            }`}
+                                            className={`w-8 h-8 rounded-lg items-center justify-center mr-1`}
+                                            style={{ backgroundColor: commentBulletList ? (isDark ? colors.primaryLight : '#dbeafe') : 'transparent' }}
                                         >
-                                            <Ionicons name="list" size={18} color={commentBulletList ? '#2563eb' : '#6b7280'} />
+                                            <Ionicons name="list" size={18} color={commentBulletList ? colors.primary : colors.textSecondary} />
                                         </TouchableOpacity>
                                         
-                                        <View className="h-5 w-px bg-gray-300 mx-2" />
+                                        <View className="h-5 w-px mx-2" style={{ backgroundColor: colors.border }} />
                                         
                                         {/* Attachment Button - Opens Picker Modal */}
                                         <TouchableOpacity
                                             onPress={() => setShowAttachmentPicker(true)}
                                             className="w-8 h-8 rounded-lg items-center justify-center"
                                         >
-                                            <Ionicons name="attach" size={18} color="#6b7280" />
+                                            <Ionicons name="attach" size={18} color={colors.textSecondary} />
                                         </TouchableOpacity>
                                     </View>
                                     
                                     {/* Text Input */}
                                     <TextInput
-                                        className="px-4 py-3 text-gray-900"
+                                        className="px-4 py-3"
+                                        style={{ color: colors.text }}
                                         placeholder="Add a comment..."
-                                        placeholderTextColor="#9ca3af"
+                                        placeholderTextColor={colors.placeholder}
                                         value={comment}
                                         onChangeText={setComment}
                                         multiline
@@ -664,12 +664,12 @@ export function CreateFromTemplateSheet({
                             </View>
 
                             {/* AI Refinement */}
-                            <View className="flex-row items-center justify-between mb-4 bg-purple-50 rounded-xl px-4 py-3">
+                            <View className="flex-row items-center justify-between mb-4 rounded-xl px-4 py-3" style={{ backgroundColor: isDark ? colors.backgroundTertiary : '#faf5ff' }}>
                                 <View className="flex-row items-center flex-1">
                                     <Text className="text-xl">✨</Text>
                                     <View className="ml-3 flex-1">
-                                        <Text className="text-gray-900 font-medium">AI Refinement</Text>
-                                        <Text className="text-xs text-gray-500">
+                                        <Text className="font-medium" style={{ color: colors.text }}>AI Refinement</Text>
+                                        <Text className="text-xs" style={{ color: colors.textSecondary }}>
                                             Enhance with SensAI suggestions
                                         </Text>
                                     </View>
@@ -685,21 +685,34 @@ export function CreateFromTemplateSheet({
                     </KeyboardAwareScrollView>
 
                     {/* Native Bottom Action Button */}
-                    <View style={ctStyles.buttonContainer}>
+                    <View style={{
+                        paddingHorizontal: 16,
+                        paddingTop: 12,
+                        paddingBottom: Platform.OS === 'ios' ? 34 : 16,
+                        backgroundColor: colors.background,
+                        borderTopWidth: StyleSheet.hairlineWidth,
+                        borderTopColor: colors.border,
+                    }}>
                         <Pressable
                             onPress={handleCreate}
                             disabled={isLoading}
-                            style={({ pressed }) => [
-                                ctStyles.createButton,
-                                { opacity: pressed ? 0.85 : isLoading ? 0.6 : 1 },
-                            ]}
+                            style={({ pressed }) => [{
+                                backgroundColor: colors.primary,
+                                borderRadius: 14,
+                                paddingVertical: 16,
+                                flexDirection: 'row' as const,
+                                alignItems: 'center' as const,
+                                justifyContent: 'center' as const,
+                                gap: 8,
+                                opacity: pressed ? 0.85 : isLoading ? 0.6 : 1,
+                            }]}
                         >
                             {isLoading ? (
                                 <ActivityIndicator size="small" color="#FFFFFF" />
                             ) : (
                                 <>
                                     <Ionicons name="checkmark-circle" size={22} color="#FFFFFF" />
-                                    <Text style={ctStyles.createButtonText}>
+                                    <Text style={{ color: '#FFFFFF', fontSize: 17, fontWeight: '700' }}>
                                         Create {typeLabel}
                                     </Text>
                                 </>
@@ -716,12 +729,12 @@ export function CreateFromTemplateSheet({
                     presentationStyle="pageSheet"
                     onRequestClose={() => setShowLifeWheelPicker(false)}
                 >
-                    <View className="flex-1 bg-white">
-                        <View className="flex-row items-center justify-between px-4 py-4 border-b border-gray-100">
+                    <View className="flex-1" style={{ backgroundColor: colors.background }}>
+                        <View className="flex-row items-center justify-between px-4 py-4 border-b" style={{ borderBottomColor: colors.border }}>
                             <TouchableOpacity onPress={() => setShowLifeWheelPicker(false)} className="p-2 -ml-2">
-                                <Ionicons name="close" size={28} color="#374151" />
+                                <Ionicons name="close" size={28} color={colors.text} />
                             </TouchableOpacity>
-                            <Text className="text-lg font-semibold">Select Life Area</Text>
+                            <Text className="text-lg font-semibold" style={{ color: colors.text }}>Select Life Area</Text>
                             <View className="w-10" />
                         </View>
                         <ScrollView className="flex-1 p-4">
@@ -732,16 +745,15 @@ export function CreateFromTemplateSheet({
                                         setSelectedLifeWheelAreaId(id);
                                         setShowLifeWheelPicker(false);
                                     }}
-                                    className={`p-4 rounded-xl mb-3 border-2 flex-row items-center ${
-                                        selectedLifeWheelAreaId === id 
-                                            ? 'border-blue-500' 
-                                            : 'border-gray-200'
-                                    }`}
-                                    style={{ backgroundColor: selectedLifeWheelAreaId === id ? config.color + '15' : '#f9fafb' }}
+                                    className={`p-4 rounded-xl mb-3 border-2 flex-row items-center`}
+                                    style={{
+                                        borderColor: selectedLifeWheelAreaId === id ? colors.primary : colors.border,
+                                        backgroundColor: selectedLifeWheelAreaId === id ? config.color + '15' : colors.backgroundTertiary,
+                                    }}
                                 >
                                     <Text className="text-2xl mr-3">{config.emoji}</Text>
                                     <Text 
-                                        className={`flex-1 font-medium ${selectedLifeWheelAreaId === id ? 'text-gray-900' : 'text-gray-700'}`}
+                                        className="flex-1 font-medium" style={{ color: colors.text }}
                                     >
                                         {config.name}
                                     </Text>
@@ -771,28 +783,3 @@ export function CreateFromTemplateSheet({
 }
 
 export default CreateFromTemplateSheet;
-
-const ctStyles = StyleSheet.create({
-    buttonContainer: {
-        paddingHorizontal: 16,
-        paddingTop: 12,
-        paddingBottom: Platform.OS === 'ios' ? 34 : 16,
-        backgroundColor: '#FFFFFF',
-        borderTopWidth: StyleSheet.hairlineWidth,
-        borderTopColor: '#E5E7EB',
-    },
-    createButton: {
-        backgroundColor: '#2563EB',
-        borderRadius: 14,
-        paddingVertical: 16,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-    },
-    createButtonText: {
-        color: '#FFFFFF',
-        fontSize: 17,
-        fontWeight: '700',
-    },
-});

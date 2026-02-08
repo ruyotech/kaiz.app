@@ -22,6 +22,7 @@ import {
 } from '../../../components/templates';
 import { LIFE_WHEEL_CONFIG } from '../../../components/templates/TemplateCard';
 import { useTranslation } from '../../../hooks';
+import { useThemeContext } from '../../../providers/ThemeProvider';
 
 type SourceTab = 'global' | 'my' | 'favorites' | 'rated';
 
@@ -41,6 +42,7 @@ export default function TemplatesScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const { t } = useTranslation();
+    const { colors, isDark } = useThemeContext();
     const {
         globalTemplates,
         userTemplates,
@@ -187,7 +189,7 @@ export default function TemplatesScreen() {
                 activeOpacity={0.7}
                 className="mx-2 my-1.5 rounded-xl overflow-hidden"
                 style={{ 
-                    backgroundColor: index % 2 === 0 ? '#fafafa' : '#ffffff',
+                    backgroundColor: index % 2 === 0 ? colors.backgroundTertiary : colors.card,
                 }}
             >
                 {/* Left accent + content */}
@@ -214,7 +216,7 @@ export default function TemplatesScreen() {
                         <View className="flex-1">
                         {/* Title Row with Life Wheel */}
                         <View className="flex-row items-center justify-between">
-                            <Text className="font-bold text-gray-900 text-base flex-1 mr-2" numberOfLines={1}>
+                            <Text className="font-bold text-base flex-1 mr-2" style={{ color: colors.text }} numberOfLines={1}>
                                 {item.name}
                             </Text>
                             <View 
@@ -232,12 +234,12 @@ export default function TemplatesScreen() {
                         <View className="flex-row items-center mt-1.5 gap-3">
                             <View className="flex-row items-center">
                                 <Ionicons name="star" size={12} color="#f59e0b" />
-                                <Text className="text-xs text-gray-600 ml-1 font-medium">
+                                <Text className="text-xs ml-1 font-medium" style={{ color: colors.textSecondary }}>
                                     {item.rating.toFixed(1)}
                                 </Text>
                             </View>
                             
-                            <Text className="text-xs text-gray-400">
+                            <Text className="text-xs" style={{ color: colors.textTertiary }}>
                                 {item.usageCount.toLocaleString()} uses
                             </Text>
 
@@ -262,10 +264,10 @@ export default function TemplatesScreen() {
                                     >
                                         <View 
                                             className="w-0 h-0 border-t-[10px] border-b-[10px] border-r-[6px] border-t-transparent border-b-transparent"
-                                            style={{ borderRightColor: '#dbeafe' }}
+                                            style={{ borderRightColor: isDark ? colors.primaryLight : '#dbeafe' }}
                                         />
-                                        <View className="flex-row items-center bg-blue-100 px-2 py-1 rounded-r-md">
-                                            <Text className="text-[11px] text-blue-600 font-medium">
+                                        <View className="flex-row items-center px-2 py-1 rounded-r-md" style={{ backgroundColor: isDark ? colors.primaryLight : '#dbeafe' }}>
+                                            <Text className="text-[11px] font-medium" style={{ color: colors.primary }}>
                                                 {tag}
                                             </Text>
                                         </View>
@@ -279,10 +281,10 @@ export default function TemplatesScreen() {
                                     >
                                         <View 
                                             className="w-0 h-0 border-t-[10px] border-b-[10px] border-r-[6px] border-t-transparent border-b-transparent"
-                                            style={{ borderRightColor: '#f3f4f6' }}
+                                            style={{ borderRightColor: colors.backgroundTertiary }}
                                         />
-                                        <View className="flex-row items-center bg-gray-100 px-2 py-1 rounded-r-md">
-                                            <Text className="text-[11px] text-gray-600 font-medium">
+                                        <View className="flex-row items-center px-2 py-1 rounded-r-md" style={{ backgroundColor: colors.backgroundTertiary }}>
+                                            <Text className="text-[11px] font-medium" style={{ color: colors.textSecondary }}>
                                                 {tag}
                                             </Text>
                                         </View>
@@ -290,7 +292,7 @@ export default function TemplatesScreen() {
                                 ))}
                                 {/* Show count of remaining tags */}
                                 {((item.userTags?.length || 0) + (item.tags?.length || 0)) > 3 && (
-                                    <Text className="text-[11px] text-gray-400 self-center">
+                                    <Text className="text-[11px] self-center" style={{ color: colors.textTertiary }}>
                                         +{((item.userTags?.length || 0) + (item.tags?.length || 0)) - 3}
                                     </Text>
                                 )}
@@ -305,47 +307,50 @@ export default function TemplatesScreen() {
 
     const renderEmpty = () => (
         <View className="items-center justify-center py-16">
-            <View className="w-20 h-20 rounded-full bg-gray-100 items-center justify-center mb-4">
-                <Ionicons name="document-text-outline" size={40} color="#d1d5db" />
+            <View className="w-20 h-20 rounded-full items-center justify-center mb-4" style={{ backgroundColor: colors.backgroundTertiary }}>
+                <Ionicons name="document-text-outline" size={40} color={colors.textTertiary} />
             </View>
-            <Text className="text-gray-500 text-base text-center">{getEmptyMessage()}</Text>
+            <Text className="text-base text-center" style={{ color: colors.textSecondary }}>{getEmptyMessage()}</Text>
             {(searchQuery || selectedArea !== 'all') && (
                 <TouchableOpacity
                     onPress={() => {
                         setSearchQuery('');
                         setSelectedArea('all');
                     }}
-                    className="mt-4 px-4 py-2 bg-blue-50 rounded-full"
+                    className="mt-4 px-4 py-2 rounded-full"
+                    style={{ backgroundColor: isDark ? colors.primaryLight : '#EFF6FF' }}
                 >
-                    <Text className="text-blue-600 font-medium">Clear Filters</Text>
+                    <Text className="font-medium" style={{ color: colors.primary }}>Clear Filters</Text>
                 </TouchableOpacity>
             )}
         </View>
     );
 
     return (
-        <View className="flex-1 bg-white">
+        <View className="flex-1" style={{ backgroundColor: colors.background }}>
             <StatusBar barStyle="light-content" />
 
             {/* Header - extends into unsafe area */}
             <View 
-                className="bg-blue-600"
-                style={{ paddingTop: insets.top }}
+                style={{ paddingTop: insets.top, backgroundColor: isDark ? colors.backgroundSecondary : '#2563EB' }}
             >
                 {/* Title row - in safe area */}
                 <View className="px-4 py-3 flex-row items-center justify-between">
-                    <Text className="text-lg font-bold text-white">Templates</Text>
+                    <Text className="text-lg font-bold" style={{ color: isDark ? colors.text : '#FFFFFF' }}>Templates</Text>
                     <TouchableOpacity
                         onPress={() => router.push('/(tabs)/sprints/create-template' as any)}
                         className="p-1 -mr-1"
                     >
-                        <Ionicons name="add" size={26} color="white" />
+                        <Ionicons name="add" size={26} color={isDark ? colors.primary : 'white'} />
                     </TouchableOpacity>
                 </View>
 
                 {/* Combined Filter Row: Source + Type */}
                 <View className="px-4 pb-3">
-                    <View className="flex-row bg-white/20 rounded-xl p-1">
+                    <View
+                        className="flex-row rounded-xl p-1"
+                        style={{ backgroundColor: isDark ? colors.backgroundTertiary : 'rgba(255,255,255,0.2)' }}
+                    >
                         {/* Source Tabs */}
                         {[
                             { key: 'global', label: '🌐', fullLabel: 'Global' },
@@ -356,18 +361,19 @@ export default function TemplatesScreen() {
                             <React.Fragment key={tab.key}>
                                 <TouchableOpacity
                                     onPress={() => setSourceTab(tab.key as SourceTab)}
-                                    className={`flex-1 py-2 rounded-lg items-center ${
-                                        sourceTab === tab.key ? 'bg-white' : ''
-                                    }`}
+                                    className={`flex-1 py-2 rounded-lg items-center`}
+                                    style={sourceTab === tab.key ? { backgroundColor: isDark ? colors.card : '#FFFFFF' } : {}}
                                 >
-                                    <Text className={`text-xs font-semibold ${
-                                        sourceTab === tab.key ? 'text-blue-600' : 'text-white'
-                                    }`}>
+                                    <Text className="text-xs font-semibold" style={{
+                                        color: sourceTab === tab.key
+                                            ? (isDark ? colors.primary : '#2563EB')
+                                            : (isDark ? colors.textSecondary : '#FFFFFF')
+                                    }}>
                                         {tab.label} {tab.fullLabel}
                                     </Text>
                                 </TouchableOpacity>
                                 {idx < 3 && (
-                                    <View className="w-px h-6 bg-white/30 my-auto" />
+                                    <View className="w-px h-6 my-auto" style={{ backgroundColor: isDark ? colors.border : 'rgba(255,255,255,0.3)' }} />
                                 )}
                             </React.Fragment>
                         ))}
@@ -376,22 +382,26 @@ export default function TemplatesScreen() {
             </View>
 
             {/* Filter Bar */}
-            <View className="bg-gray-50 border-b border-gray-100">
+            <View style={{ backgroundColor: colors.backgroundSecondary, borderBottomWidth: 1, borderBottomColor: colors.borderSecondary }}>
                 {/* Search + Type Filter Row */}
                 <View className="px-4 py-2 flex-row items-center gap-2">
                     {/* Search */}
-                    <View className="flex-1 flex-row items-center bg-white rounded-lg px-3 py-2 border border-gray-200">
-                        <Ionicons name="search" size={16} color="#9ca3af" />
+                    <View
+                        className="flex-1 flex-row items-center rounded-lg px-3 py-2"
+                        style={{ backgroundColor: colors.inputBackground, borderWidth: 1, borderColor: colors.border }}
+                    >
+                        <Ionicons name="search" size={16} color={colors.placeholder} />
                         <TextInput
-                            className="flex-1 ml-2 text-sm text-gray-900"
+                            className="flex-1 ml-2 text-sm"
+                            style={{ color: colors.text }}
                             placeholder="Search templates..."
-                            placeholderTextColor="#9ca3af"
+                            placeholderTextColor={colors.placeholder}
                             value={searchQuery}
                             onChangeText={setSearchQuery}
                         />
                         {searchQuery.length > 0 && (
                             <TouchableOpacity onPress={() => setSearchQuery('')}>
-                                <Ionicons name="close-circle" size={16} color="#9ca3af" />
+                                <Ionicons name="close-circle" size={16} color={colors.placeholder} />
                             </TouchableOpacity>
                         )}
                     </View>
@@ -410,15 +420,16 @@ export default function TemplatesScreen() {
                             <TouchableOpacity
                                 key={area.id}
                                 onPress={() => setSelectedArea(area.id)}
-                                className={`px-3 py-1.5 rounded-full flex-row items-center ${
-                                    isSelected ? '' : 'bg-white border border-gray-200'
-                                }`}
-                                style={isSelected ? { backgroundColor: area.color } : {}}
+                                className={`px-3 py-1.5 rounded-full flex-row items-center`}
+                                style={isSelected
+                                    ? { backgroundColor: area.color }
+                                    : { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }
+                                }
                             >
                                 <Text className="text-xs">{area.emoji}</Text>
-                                <Text className={`text-xs font-medium ml-1 ${
-                                    isSelected ? 'text-white' : 'text-gray-600'
-                                }`}>
+                                <Text className={`text-xs font-medium ml-1`} style={{
+                                    color: isSelected ? '#FFFFFF' : colors.textSecondary
+                                }}>
                                     {area.name}
                                 </Text>
                             </TouchableOpacity>
@@ -429,17 +440,17 @@ export default function TemplatesScreen() {
 
             {/* Error Banner */}
             {error && (
-                <View className="bg-red-50 px-4 py-2 flex-row items-center justify-between">
-                    <Text className="text-red-700 text-sm flex-1">{error}</Text>
+                <View className="px-4 py-2 flex-row items-center justify-between" style={{ backgroundColor: colors.errorLight }}>
+                    <Text className="text-sm flex-1" style={{ color: colors.error }}>{error}</Text>
                     <TouchableOpacity onPress={clearError}>
-                        <Ionicons name="close" size={18} color="#b91c1c" />
+                        <Ionicons name="close" size={18} color={colors.error} />
                     </TouchableOpacity>
                 </View>
             )}
 
             {/* Results Count */}
-            <View className="px-4 py-2 flex-row justify-between items-center bg-white border-b border-gray-50">
-                <Text className="text-xs text-gray-400">
+            <View className="px-4 py-2 flex-row justify-between items-center" style={{ backgroundColor: colors.background, borderBottomWidth: 1, borderBottomColor: colors.borderSecondary }}>
+                <Text className="text-xs" style={{ color: colors.textTertiary }}>
                     {filteredTemplates.length} template{filteredTemplates.length !== 1 ? 's' : ''}
                 </Text>
             </View>
@@ -447,8 +458,8 @@ export default function TemplatesScreen() {
             {/* Template List */}
             {loading && filteredTemplates.length === 0 ? (
                 <View className="flex-1 items-center justify-center">
-                    <ActivityIndicator size="large" color="#3b82f6" />
-                    <Text className="text-gray-500 mt-3 text-sm">Loading templates...</Text>
+                    <ActivityIndicator size="large" color={colors.primary} />
+                    <Text className="mt-3 text-sm" style={{ color: colors.textSecondary }}>Loading templates...</Text>
                 </View>
             ) : (
                 <FlashList
@@ -462,8 +473,8 @@ export default function TemplatesScreen() {
                         <RefreshControl
                             refreshing={refreshing}
                             onRefresh={handleRefresh}
-                            colors={['#3b82f6']}
-                            tintColor="#3b82f6"
+                            colors={[colors.primary]}
+                            tintColor={colors.primary}
                         />
                     }
                 />

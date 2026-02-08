@@ -15,6 +15,7 @@ import { TaskTemplate } from '../../types/models';
 import { LIFE_WHEEL_CONFIG } from './TemplateCard';
 import { Badge } from '../ui/Badge';
 import { useTemplateStore } from '../../store/templateStore';
+import { useThemeContext } from '../../providers/ThemeProvider';
 
 interface TemplateDetailModalProps {
     visible: boolean;
@@ -56,6 +57,7 @@ export function TemplateDetailModal({
     onCloneTemplate,
 }: TemplateDetailModalProps) {
     const { toggleFavorite, rateTemplate, addTemplateTag, removeTemplateTag, getTemplateById } = useTemplateStore();
+    const { colors, isDark } = useThemeContext();
     const [userRating, setUserRating] = useState<number>(template?.userRating || 0);
     const [isRating, setIsRating] = useState(false);
     const [isFavorite, setIsFavorite] = useState<boolean>(template?.isFavorite || false);
@@ -166,18 +168,18 @@ export function TemplateDetailModal({
             presentationStyle="pageSheet"
             onRequestClose={onClose}
         >
-            <View className="flex-1 bg-white">
+            <View className="flex-1" style={{ backgroundColor: colors.background }}>
                 {/* Header */}
-                <View className="flex-row items-center justify-between px-4 py-4 border-b border-gray-100">
+                <View className="flex-row items-center justify-between px-4 py-4" style={{ borderBottomWidth: 1, borderBottomColor: colors.border }}>
                     <TouchableOpacity onPress={onClose} className="p-2 -ml-2">
-                        <Ionicons name="close" size={28} color="#374151" />
+                        <Ionicons name="close" size={28} color={colors.text} />
                     </TouchableOpacity>
-                    <Text className="text-lg font-semibold">Template Details</Text>
+                    <Text className="text-lg font-semibold" style={{ color: colors.text }}>Template Details</Text>
                     <TouchableOpacity onPress={handleFavorite} className="p-2 -mr-2">
                         <Ionicons
                             name={isFavorite ? 'heart' : 'heart-outline'}
                             size={28}
-                            color={isFavorite ? '#ef4444' : '#374151'}
+                            color={isFavorite ? '#ef4444' : colors.textSecondary}
                         />
                     </TouchableOpacity>
                 </View>
@@ -210,7 +212,7 @@ export function TemplateDetailModal({
                             >
                                 <Text className="text-4xl">{template.icon || wheelConfig.emoji}</Text>
                             </View>
-                            <Text className="text-2xl font-bold text-gray-900 text-center mb-2">
+                            <Text className="text-2xl font-bold text-center mb-2" style={{ color: colors.text }}>
                                 {template.name}
                             </Text>
                             
@@ -230,32 +232,32 @@ export function TemplateDetailModal({
                         {/* Description */}
                         {template.description && (
                             <View className="mb-6">
-                                <Text className="text-sm font-medium text-gray-500 mb-2">Description</Text>
-                                <Text className="text-gray-700 leading-6">{template.description}</Text>
+                                <Text className="text-sm font-medium mb-2" style={{ color: colors.textSecondary }}>Description</Text>
+                                <Text className="leading-6" style={{ color: colors.text }}>{template.description}</Text>
                             </View>
                         )}
 
                         {/* Stats Grid */}
                         <View className="flex-row mb-6">
-                            <View className="flex-1 bg-gray-50 rounded-xl p-4 mr-2 items-center">
+                            <View className="flex-1 rounded-xl p-4 mr-2 items-center" style={{ backgroundColor: colors.backgroundTertiary }}>
                                 <View className="flex-row mb-1">
                                     {renderStars(template.rating, 16)}
                                 </View>
-                                <Text className="text-lg font-bold text-gray-900">{template.rating.toFixed(1)}</Text>
-                                <Text className="text-xs text-gray-500">{template.ratingCount} ratings</Text>
+                                <Text className="text-lg font-bold" style={{ color: colors.text }}>{template.rating.toFixed(1)}</Text>
+                                <Text className="text-xs" style={{ color: colors.textSecondary }}>{template.ratingCount} ratings</Text>
                             </View>
-                            <View className="flex-1 bg-gray-50 rounded-xl p-4 ml-2 items-center">
-                                <Ionicons name="people" size={24} color="#6b7280" />
-                                <Text className="text-lg font-bold text-gray-900">{template.usageCount.toLocaleString()}</Text>
-                                <Text className="text-xs text-gray-500">uses</Text>
+                            <View className="flex-1 rounded-xl p-4 ml-2 items-center" style={{ backgroundColor: colors.backgroundTertiary }}>
+                                <Ionicons name="people" size={24} color={colors.textSecondary} />
+                                <Text className="text-lg font-bold" style={{ color: colors.text }}>{template.usageCount.toLocaleString()}</Text>
+                                <Text className="text-xs" style={{ color: colors.textSecondary }}>uses</Text>
                             </View>
                         </View>
 
                         {/* Rate this template */}
-                        <View className="mb-6 p-4 rounded-xl border-2 border-blue-200" style={{ backgroundColor: '#eff6ff' }}>
+                        <View className="mb-6 p-4 rounded-xl border-2" style={{ backgroundColor: isDark ? colors.primaryLight : '#eff6ff', borderColor: isDark ? colors.border : '#bfdbfe' }}>
                             <View className="flex-row items-center justify-center mb-3">
-                                <Ionicons name="star" size={18} color="#3b82f6" />
-                                <Text className="text-base font-semibold text-blue-700 ml-2">
+                                <Ionicons name="star" size={18} color={colors.primary} />
+                                <Text className="text-base font-semibold ml-2" style={{ color: colors.primary }}>
                                     Rate this template
                                 </Text>
                             </View>
@@ -287,15 +289,15 @@ export function TemplateDetailModal({
 
                         {/* Details Section */}
                         <View className="mb-6">
-                            <Text className="text-sm font-medium text-gray-500 mb-3">Default Settings</Text>
+                            <Text className="text-sm font-medium mb-3" style={{ color: colors.textSecondary }}>Default Settings</Text>
                             
-                            <View className="bg-gray-50 rounded-xl p-4 space-y-3">
+                            <View className="rounded-xl p-4 space-y-3" style={{ backgroundColor: colors.backgroundTertiary }}>
                                 {/* Duration */}
                                 {template.defaultDuration && (
                                     <View className="flex-row items-center">
-                                        <Ionicons name="time-outline" size={20} color="#6b7280" />
-                                        <Text className="text-gray-700 ml-3 flex-1">Duration</Text>
-                                        <Text className="font-medium text-gray-900">
+                                        <Ionicons name="time-outline" size={20} color={colors.textSecondary} />
+                                        <Text className="ml-3 flex-1" style={{ color: colors.text }}>Duration</Text>
+                                        <Text className="font-medium" style={{ color: colors.text }}>
                                             {template.defaultDuration} minutes
                                         </Text>
                                     </View>
@@ -304,9 +306,9 @@ export function TemplateDetailModal({
                                 {/* Story Points */}
                                 {template.defaultStoryPoints && (
                                     <View className="flex-row items-center mt-3">
-                                        <Ionicons name="star-outline" size={20} color="#6b7280" />
-                                        <Text className="text-gray-700 ml-3 flex-1">Story Points</Text>
-                                        <Text className="font-medium text-gray-900">
+                                        <Ionicons name="star-outline" size={20} color={colors.textSecondary} />
+                                        <Text className="ml-3 flex-1" style={{ color: colors.text }}>Story Points</Text>
+                                        <Text className="font-medium" style={{ color: colors.text }}>
                                             {template.defaultStoryPoints} pts
                                         </Text>
                                     </View>
@@ -315,9 +317,9 @@ export function TemplateDetailModal({
                                 {/* Recurrence */}
                                 {template.recurrencePattern && (
                                     <View className="flex-row items-center mt-3">
-                                        <Ionicons name="repeat" size={20} color="#6b7280" />
-                                        <Text className="text-gray-700 ml-3 flex-1">Recurrence</Text>
-                                        <Text className="font-medium text-gray-900">
+                                        <Ionicons name="repeat" size={20} color={colors.textSecondary} />
+                                        <Text className="ml-3 flex-1" style={{ color: colors.text }}>Recurrence</Text>
+                                        <Text className="font-medium" style={{ color: colors.text }}>
                                             {getRecurrenceText()}
                                         </Text>
                                     </View>
@@ -326,9 +328,9 @@ export function TemplateDetailModal({
                                 {/* Sprint Suggestion */}
                                 {template.suggestedSprint && (
                                     <View className="flex-row items-center mt-3">
-                                        <Ionicons name="calendar-outline" size={20} color="#6b7280" />
-                                        <Text className="text-gray-700 ml-3 flex-1">Suggested Sprint</Text>
-                                        <Text className="font-medium text-gray-900 capitalize">
+                                        <Ionicons name="calendar-outline" size={20} color={colors.textSecondary} />
+                                        <Text className="ml-3 flex-1" style={{ color: colors.text }}>Suggested Sprint</Text>
+                                        <Text className="font-medium capitalize" style={{ color: colors.text }}>
                                             {template.suggestedSprint.toLowerCase().replace('_', ' ')}
                                         </Text>
                                     </View>
@@ -339,18 +341,18 @@ export function TemplateDetailModal({
                                     <>
                                         {template.defaultLocation && (
                                             <View className="flex-row items-center mt-3">
-                                                <Ionicons name="location-outline" size={20} color="#6b7280" />
-                                                <Text className="text-gray-700 ml-3 flex-1">Location</Text>
-                                                <Text className="font-medium text-gray-900">
+                                                <Ionicons name="location-outline" size={20} color={colors.textSecondary} />
+                                                <Text className="ml-3 flex-1" style={{ color: colors.text }}>Location</Text>
+                                                <Text className="font-medium" style={{ color: colors.text }}>
                                                     {template.defaultLocation}
                                                 </Text>
                                             </View>
                                         )}
                                         {template.isAllDay !== undefined && (
                                             <View className="flex-row items-center mt-3">
-                                                <Ionicons name="sunny-outline" size={20} color="#6b7280" />
-                                                <Text className="text-gray-700 ml-3 flex-1">All Day</Text>
-                                                <Text className="font-medium text-gray-900">
+                                                <Ionicons name="sunny-outline" size={20} color={colors.textSecondary} />
+                                                <Text className="ml-3 flex-1" style={{ color: colors.text }}>All Day</Text>
+                                                <Text className="font-medium" style={{ color: colors.text }}>
                                                     {template.isAllDay ? 'Yes' : 'No'}
                                                 </Text>
                                             </View>
@@ -363,7 +365,7 @@ export function TemplateDetailModal({
                         {/* Tags Section - Combined view */}
                         <View className="mb-6">
                             <View className="flex-row items-center justify-between mb-3">
-                                <Text className="text-sm font-medium text-gray-500">Tags</Text>
+                                <Text className="text-sm font-medium" style={{ color: colors.textSecondary }}>Tags</Text>
                                 <TouchableOpacity 
                                     onPress={() => setShowTagInput(!showTagInput)}
                                     className="flex-row items-center"
@@ -371,9 +373,9 @@ export function TemplateDetailModal({
                                     <Ionicons 
                                         name={showTagInput ? "close-circle" : "add-circle"} 
                                         size={20} 
-                                        color="#3b82f6" 
+                                        color={colors.primary} 
                                     />
-                                    <Text className="text-blue-500 text-sm ml-1">
+                                    <Text className="text-sm ml-1" style={{ color: colors.primary }}>
                                         {showTagInput ? 'Cancel' : 'Add Tag'}
                                     </Text>
                                 </TouchableOpacity>
@@ -381,13 +383,14 @@ export function TemplateDetailModal({
                             
                             {/* Tag Input - Always at top when visible */}
                             {showTagInput && (
-                                <View className="flex-row items-center mb-3 bg-blue-50 rounded-xl p-2">
+                                <View className="flex-row items-center mb-3 rounded-xl p-2" style={{ backgroundColor: isDark ? colors.primaryLight : '#eff6ff' }}>
                                     <TextInput
                                         value={newTag}
                                         onChangeText={setNewTag}
                                         placeholder="Enter tag name..."
-                                        placeholderTextColor="#9ca3af"
-                                        className="flex-1 px-3 py-2 text-gray-800"
+                                        placeholderTextColor={colors.placeholder}
+                                        className="flex-1 px-3 py-2"
+                                        style={{ color: colors.text }}
                                         autoFocus
                                         autoCapitalize="none"
                                         onSubmitEditing={handleAddTag}
@@ -395,7 +398,8 @@ export function TemplateDetailModal({
                                     <TouchableOpacity
                                         onPress={handleAddTag}
                                         disabled={!newTag.trim() || isAddingTag}
-                                        className={`px-4 py-2 rounded-lg ${newTag.trim() ? 'bg-blue-500' : 'bg-gray-300'}`}
+                                        className={`px-4 py-2 rounded-lg`}
+                                        style={{ backgroundColor: newTag.trim() ? colors.primary : colors.border }}
                                     >
                                         {isAddingTag ? (
                                             <ActivityIndicator size="small" color="white" />
@@ -412,9 +416,10 @@ export function TemplateDetailModal({
                                 {userTags.map((tag, index) => (
                                     <View
                                         key={`user-${index}`}
-                                        className="px-3 py-1.5 bg-blue-100 rounded-full flex-row items-center"
+                                        className="px-3 py-1.5 rounded-full flex-row items-center"
+                                        style={{ backgroundColor: isDark ? colors.primaryLight : '#dbeafe' }}
                                     >
-                                        <Text className="text-blue-700">#{tag}</Text>
+                                        <Text style={{ color: colors.primary }}>#{tag}</Text>
                                         <TouchableOpacity
                                             onPress={() => handleRemoveTag(tag)}
                                             disabled={removingTagId === tag}
@@ -433,16 +438,17 @@ export function TemplateDetailModal({
                                 {template.tags && template.tags.map((tag, index) => (
                                     <View
                                         key={`global-${index}`}
-                                        className="px-3 py-1.5 bg-gray-100 rounded-full flex-row items-center"
+                                        className="px-3 py-1.5 rounded-full flex-row items-center"
+                                        style={{ backgroundColor: colors.backgroundTertiary }}
                                     >
-                                        <Text className="text-gray-600">#{tag}</Text>
-                                        <Ionicons name="globe-outline" size={12} color="#9ca3af" className="ml-1" />
+                                        <Text style={{ color: colors.textSecondary }}>#{tag}</Text>
+                                        <Ionicons name="globe-outline" size={12} color={colors.textTertiary} className="ml-1" />
                                     </View>
                                 ))}
                                 
                                 {/* Empty state */}
                                 {userTags.length === 0 && (!template.tags || template.tags.length === 0) && (
-                                    <Text className="text-gray-400 text-sm italic">
+                                    <Text className="text-sm italic" style={{ color: colors.textTertiary }}>
                                         No tags yet. Add your personal tags to organize this template.
                                     </Text>
                                 )}
@@ -452,13 +458,13 @@ export function TemplateDetailModal({
                             {(userTags.length > 0 || (template.tags && template.tags.length > 0)) && (
                                 <View className="flex-row items-center mt-3 gap-4">
                                     <View className="flex-row items-center">
-                                        <View className="w-3 h-3 rounded-full bg-blue-100 mr-1" />
-                                        <Text className="text-xs text-gray-500">My tags</Text>
+                                        <View className="w-3 h-3 rounded-full mr-1" style={{ backgroundColor: isDark ? colors.primaryLight : '#dbeafe' }} />
+                                        <Text className="text-xs" style={{ color: colors.textSecondary }}>My tags</Text>
                                     </View>
                                     {template.tags && template.tags.length > 0 && (
                                         <View className="flex-row items-center">
-                                            <View className="w-3 h-3 rounded-full bg-gray-100 mr-1" />
-                                            <Text className="text-xs text-gray-500">Template tags</Text>
+                                            <View className="w-3 h-3 rounded-full mr-1" style={{ backgroundColor: colors.backgroundTertiary }} />
+                                            <Text className="text-xs" style={{ color: colors.textSecondary }}>Template tags</Text>
                                         </View>
                                     )}
                                 </View>
@@ -469,10 +475,11 @@ export function TemplateDetailModal({
                         {template.creatorType === 'system' && onCloneTemplate && (
                             <TouchableOpacity
                                 onPress={() => onCloneTemplate(template)}
-                                className="mb-4 border border-gray-200 rounded-xl py-3 items-center flex-row justify-center"
+                                className="mb-4 border rounded-xl py-3 items-center flex-row justify-center"
+                                style={{ borderColor: colors.border }}
                             >
-                                <Ionicons name="copy-outline" size={20} color="#6b7280" />
-                                <Text className="text-gray-700 font-medium ml-2">
+                                <Ionicons name="copy-outline" size={20} color={colors.textSecondary} />
+                                <Text className="font-medium ml-2" style={{ color: colors.text }}>
                                     Clone to My Templates
                                 </Text>
                             </TouchableOpacity>
@@ -481,10 +488,11 @@ export function TemplateDetailModal({
                 </ScrollView>
 
                 {/* Action Button */}
-                <View className="px-4 py-4 border-t border-gray-100">
+                <View className="px-4 py-4 border-t" style={{ borderTopColor: colors.border, backgroundColor: colors.background }}>
                     <TouchableOpacity
                         onPress={() => onUseTemplate(template)}
-                        className="bg-blue-600 rounded-xl py-4 items-center flex-row justify-center"
+                        className="rounded-xl py-4 items-center flex-row justify-center"
+                        style={{ backgroundColor: colors.primary }}
                         activeOpacity={0.8}
                     >
                         <Ionicons name="add-circle" size={24} color="white" />
