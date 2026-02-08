@@ -21,6 +21,9 @@ public record SensAISettingsDto(
     boolean standupRemindersEnabled,
     boolean ceremonyRemindersEnabled,
     boolean weeklyDigestEnabled,
+    int targetVelocity,
+    String planningDayOfWeek,
+    String planningTime,
     Instant createdAt,
     Instant updatedAt) {
 
@@ -37,5 +40,9 @@ public record SensAISettingsDto(
       Map<String, Integer> dimensionPriorities,
       Boolean standupRemindersEnabled,
       Boolean ceremonyRemindersEnabled,
-      Boolean weeklyDigestEnabled) {}
+      Boolean weeklyDigestEnabled,
+      @Min(20) @Max(100) Integer targetVelocity,
+      String planningDayOfWeek,
+      @Pattern(regexp = "^([01]\\d|2[0-3]):[0-5]\\d$", message = "Time must be in HH:mm format")
+          String planningTime) {}
 }

@@ -1,15 +1,16 @@
 import { logger } from '../../../utils/logger';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { addDays, subDays, format } from 'date-fns';
+import { addDays, subDays, format, isThisWeek, getDay } from 'date-fns';
 import { getSprintName, getWeekNumber, getWeekStartDate } from '../../../utils/dateHelpers';
 import { getMonthShort, formatLocalized } from '../../../utils/localizedDate';
 import { WeekHeader } from '../../../components/calendar/WeekHeader';
 import { MonthSelector } from '../../../components/calendar/MonthSelector';
 import { DayScheduleView } from '../../../components/calendar/DayScheduleView';
 import { EnhancedTaskCard } from '../../../components/calendar/EnhancedTaskCard';
+import { CeremonyCard } from '../../../components/sprints/CeremonyCard';
 import { FamilyScopeSwitcher } from '../../../components/family/FamilyScopeSwitcher';
 import { taskApi, sprintApi, epicApi, lifeWheelApi, AuthExpiredError } from '../../../services/api';
 import { Task } from '../../../types/models';
@@ -181,6 +182,82 @@ export default function SprintCalendar() {
     const displayedTasks = viewType === 'day'
         ? scopeFilteredTasks.filter(task => shouldShowTaskOnDay(task, currentDate))
         : scopeFilteredTasks;
+
+    // Empty sprint / mid-week guidance detection
+    const isCurrentWeek = isThisWeek(currentDate, { weekStartsOn: 1 }); // Monday start
+    const dayOfWeek = getDay(new Date()); // 0=Sun, 1=Mon, ...
+    const isMidWeek = dayOfWeek >= 3 && dayOfWeek <= 5; // Wed-Fri
+    const sprintNotCommitted = isCurrentWeek && currentSprint && !currentSprint.committedAt;
+    const sprintEmpty = isCurrentWeek && currentSprint && weekTasks.length === 0;
+    const showPlanningNudge = sprintNotCommitted || sprintEmpty;
+    const isSunday = dayOfWeek === 0;
+
+    const renderPlanningNudge = () => {
+        if (!showPlanningNudge || loading) return null;
+
+        const isUrgent = isMidWeek;
+        const nudgeColor = isUrgent ? '#EF4444' : '#3B82F6';
+        const nudgeBg = isUrgent
+            ? isDark ? 'rgba(239, 68, 68, 0.15)' : '#FEF2F2'
+            : isDark ? 'rgba(59, 130, 246, 0.15)' : '#EFF6FF';
+
+        return (
+            <View
+                className="mx-4 mt-4 rounded-2xl p-5 overflow-hidden"
+                style={{
+                    backgroundColor: nudgeBg,
+                    borderWidth: 1,
+                    borderColor: nudgeColor + '40',
+                }}
+            >
+                <View className="flex-row items-center mb-3">
+                    <View
+                        className="w-10 h-10 rounded-full items-center justify-center mr-3"
+                        style={{ backgroundColor: nudgeColor + '20' }}
+                    >
+                        <MaterialCommunityIcons
+                            name={isUrgent ? 'alert-circle' : isSunday ? 'calendar-star' : 'clipboard-text-play'}
+                            size={24}
+                            color={nudgeColor}
+                        />
+                    </View>
+                    <View className="flex-1">
+                        <Text className="text-base font-bold" style={{ color: colors.text }}>
+                            {isSunday
+                                ? '🌟 Sunday Planning Ceremony'
+                                : isUrgent
+                                    ? '⚠️ Sprint Not Planned Yet'
+                                    : 'Plan Your Week'}
+                        </Text>
+                        <Text className="text-sm mt-0.5" style={{ color: colors.textSecondary }}>
+                            {sprintEmpty
+                                ? 'Your sprint is empty — add tasks to make progress this week.'
+                                : isUrgent
+                                    ? "It's mid-week and your sprint isn't committed. Plan now to stay on track."
+                                    : 'Select tasks from your backlog, templates, or create new ones.'}
+                        </Text>
+                    </View>
+                </View>
+
+                <TouchableOpacity
+                    onPress={() => router.push('/(tabs)/sprints/planning' as any)}
+                    className="flex-row items-center justify-center py-3 rounded-xl"
+                    style={{ backgroundColor: nudgeColor }}
+                >
+                    <MaterialCommunityIcons name="rocket-launch" size={18} color="#fff" />
+                    <Text className="text-white font-semibold ml-2">
+                        {isSunday ? 'Start Planning Ceremony' : 'Open Sprint Planning'}
+                    </Text>
+                </TouchableOpacity>
+
+                {weekTasks.length > 0 && !currentSprint?.committedAt && (
+                    <Text className="text-xs text-center mt-2" style={{ color: colors.textTertiary }}>
+                        You have {weekTasks.length} task{weekTasks.length !== 1 ? 's' : ''} but haven't committed the sprint yet.
+                    </Text>
+                )}
+            </View>
+        );
+    };
 
     const handleDatePress = (date: Date) => {
         setCurrentDate(date);
@@ -659,16 +736,47 @@ export default function SprintCalendar() {
                     />
                 ) : (
                     <ScrollView className="flex-1">
+                        {renderPlanningNudge()}
+
+                        {/* Sunday Ceremony Cards */}
+                        {viewType === 'week' && isSunday && isCurrentWeek && (
+                            <View className="px-4 mt-4">
+                                <Text className="text-xs uppercase tracking-wide mb-2" style={{ color: colors.textTertiary }}>
+                                    Today's Ceremonies
+                                </Text>
+                                <CeremonyCard
+                                    type="planning"
+                                    onStart={() => router.push('/(tabs)/sprints/planning' as any)}
+                                    isAvailable={!currentSprint?.committedAt}
+                                    ceremony={currentSprint?.committedAt ? {
+                                        id: 'planning-done',
+                                        type: 'planning',
+                                        status: 'completed',
+                                        completedAt: currentSprint.committedAt,
+                                    } as any : undefined}
+                                />
+                            </View>
+                        )}
+
                         {viewMode === 'eisenhower' && renderEisenhowerView()}
                         {viewMode === 'status' && renderStatusView()}
                         {viewMode === 'size' && renderSizeView()}
 
-                        {displayedTasks.length === 0 && (
+                        {displayedTasks.length === 0 && !showPlanningNudge && (
                             <View className="items-center justify-center py-12">
                                 <MaterialCommunityIcons name="calendar-blank" size={64} color={colors.textTertiary} />
                                 <Text style={{ color: colors.textTertiary, marginTop: 16 }}>
                                     {t('calendar.noTasksSprint')}
                                 </Text>
+                                {isCurrentWeek && (
+                                    <TouchableOpacity
+                                        onPress={() => router.push('/(tabs)/sprints/planning' as any)}
+                                        className="mt-4 px-6 py-3 rounded-xl"
+                                        style={{ backgroundColor: colors.primary }}
+                                    >
+                                        <Text className="text-white font-semibold">Plan This Sprint</Text>
+                                    </TouchableOpacity>
+                                )}
                             </View>
                         )}
                     </ScrollView>

@@ -597,6 +597,11 @@ export interface SensAISettings {
     maxDailyCapacity: number;           // Max points per day
     sprintLengthDays: number;           // Sprint length in days (7 or 14)
     
+    // Sprint planning
+    targetVelocity: number;             // Default 56 (8 pts × 7 days)
+    planningDayOfWeek: string;          // 'SUNDAY' | 'MONDAY' | etc.
+    planningTime: string;               // "10:00" HH:mm format
+    
     // Calendar integration
     calendarIntegrationEnabled: boolean;
     calendarSources: string[];

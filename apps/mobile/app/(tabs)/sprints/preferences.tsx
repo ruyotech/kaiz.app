@@ -14,6 +14,11 @@ import { router } from 'expo-router';
 import { useSprintPreferences, useUpdateSprintPreferences } from '../../../hooks/queries';
 import { useThemeContext } from '../../../providers/ThemeProvider';
 import { logger } from '../../../utils/logger';
+import {
+    schedulePlanningNotification,
+    scheduleStandupNotifications,
+    parseTimeString,
+} from '../../../utils/notifications';
 
 type VelocityDisplay = 'average' | 'last_sprint';
 
@@ -54,6 +59,9 @@ export default function PreferencesScreen() {
     // Max daily capacity
     const [maxDailyCapacity, setMaxDailyCapacity] = useState(settings?.maxDailyCapacity || 8);
 
+    // Target velocity (points per sprint)
+    const [targetVelocity, setTargetVelocity] = useState(settings?.targetVelocity || 56);
+
     const [showDsyPicker, setShowDsyPicker] = useState(false);
     const [showPlanningPicker, setShowPlanningPicker] = useState(false);
     const [showRetroPicker, setShowRetroPicker] = useState(false);
@@ -67,15 +75,24 @@ export default function PreferencesScreen() {
                 planningTime,
                 retroTime,
                 maxDailyCapacity,
+                targetVelocity,
                 sprintLengthDays: 7, // always 1 week
             } as any);
+
+            // Schedule local notifications based on saved preferences
+            const planningParsed = parseTimeString(planningTime);
+            await schedulePlanningNotification(planningParsed.hour, planningParsed.minute);
+
+            const dsyParsed = parseTimeString(dsyTime);
+            await scheduleStandupNotifications(dsyParsed.hour, dsyParsed.minute, dsyWeekends);
+
             Alert.alert('Saved', 'Sprint preferences updated successfully.');
             router.back();
         } catch (error: unknown) {
             logger.error('PreferencesScreen', 'Failed to save preferences', error);
             Alert.alert('Error', 'Failed to save preferences. Please try again.');
         }
-    }, [dsyTime, dsyWeekends, velocityDisplay, planningTime, retroTime, maxDailyCapacity, updateMutation]);
+    }, [dsyTime, dsyWeekends, velocityDisplay, planningTime, retroTime, maxDailyCapacity, targetVelocity, updateMutation]);
 
     const renderSection = (title: string, subtitle: string | null, children: React.ReactNode) => (
         <View className="mb-6">
@@ -285,6 +302,39 @@ export default function PreferencesScreen() {
                             </View>
                         </TouchableOpacity>
                         {showPlanningPicker && renderTimePicker(PLANNING_TIME_OPTIONS, planningTime, setPlanningTime, () => setShowPlanningPicker(false))}
+
+                        {/* Target Velocity */}
+                        <View
+                            className="flex-row items-center p-4"
+                            style={{ borderTopWidth: 1, borderTopColor: colors.border }}
+                        >
+                            <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: colors.backgroundSecondary }}>
+                                <MaterialCommunityIcons name="speedometer" size={20} color="#3B82F6" />
+                            </View>
+                            <View className="flex-1">
+                                <Text className="font-medium" style={{ color: colors.text }}>Target Velocity</Text>
+                                <Text className="text-sm" style={{ color: colors.textSecondary }}>Points per sprint (8pts/day × 7 = 56)</Text>
+                            </View>
+                            <View className="flex-row items-center">
+                                <TouchableOpacity
+                                    onPress={() => setTargetVelocity(Math.max(20, targetVelocity - 1))}
+                                    className="w-8 h-8 rounded-full items-center justify-center"
+                                    style={{ backgroundColor: colors.backgroundSecondary }}
+                                >
+                                    <MaterialCommunityIcons name="minus" size={16} color={colors.text} />
+                                </TouchableOpacity>
+                                <Text className="mx-3 w-8 text-center font-semibold" style={{ color: '#3B82F6' }}>
+                                    {targetVelocity}
+                                </Text>
+                                <TouchableOpacity
+                                    onPress={() => setTargetVelocity(Math.min(100, targetVelocity + 1))}
+                                    className="w-8 h-8 rounded-full items-center justify-center"
+                                    style={{ backgroundColor: colors.backgroundSecondary }}
+                                >
+                                    <MaterialCommunityIcons name="plus" size={16} color={colors.text} />
+                                </TouchableOpacity>
+                            </View>
+                        </View>
                     </>
                 ))}
 

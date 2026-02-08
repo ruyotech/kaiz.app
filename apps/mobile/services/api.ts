@@ -294,6 +294,10 @@ export const sprintApi = {
   async getUpcomingSprints(limit = 4) { return apiGet<unknown[]>(`/sprints/upcoming?limit=${limit}`); },
   async getSprintById(id: string) { return apiGet<unknown>(`/sprints/${id}`); },
   async activateSprint(id: string) { return apiPost<unknown>(`/sprints/${id}/activate`); },
+  async commitSprint(id: string, data: { taskIds: string[]; sprintGoal?: string }) {
+    return apiPost<unknown>(`/sprints/${id}/commit`, data);
+  },
+  async getSprintTasks(sprintId: string) { return apiGet<unknown[]>(`/tasks/sprint/${sprintId}`); },
 };
 
 // ============================================================================

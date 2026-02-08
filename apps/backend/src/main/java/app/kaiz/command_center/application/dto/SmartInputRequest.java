@@ -14,7 +14,8 @@ public record SmartInputRequest(
     String voiceTranscription,
     List<Attachment> attachments,
     String sessionId, // For multi-turn conversations
-    Context context) {
+    Context context,
+    PlanningContext planningContext) {
 
   /** Attachment (image, file, etc.) */
   public record Attachment(
@@ -54,4 +55,11 @@ public record SmartInputRequest(
       String currentScreen,
       List<String> recentLabels,
       Map<String, Object> userPreferences) {}
+
+  /** Sprint planning context — sent when user requests AI task suggestions during planning. */
+  public record PlanningContext(
+      int remainingCapacity,
+      int remainingDays,
+      List<String> neglectedAreaIds,
+      List<String> currentTaskTitles) {}
 }

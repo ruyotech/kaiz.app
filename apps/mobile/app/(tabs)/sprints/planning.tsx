@@ -1,430 +1,594 @@
 /**
- * Sprint Planning Screen
+ * Sprint Planning Screen — Full wizard with real data
  *
- * Facilitates sprint planning ceremony with capacity-based task selection,
- * commitment visualization, and balanced dimension distribution.
+ * 4-step flow: Capacity → Select Tasks → Review Balance → Commit
+ * Sources: Backlog, Templates, AI Suggestions
+ * Persistent floating capacity bar throughout.
  */
 
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import React, { useState, useMemo, useCallback } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { useVelocityMetrics, useStartCeremony } from '../../../hooks/queries';
+import { router, useLocalSearchParams } from 'expo-router';
+import {
+    useCurrentSprint,
+    useCommitSprint,
+    useSprintTasks,
+} from '../../../hooks/queries/useSprints';
+import { useBacklogTasks, useCreateTask } from '../../../hooks/queries/useTasks';
+import { useLifeWheelAreas } from '../../../hooks/queries';
+import { useSprintPreferences } from '../../../hooks/queries/useSprintCeremonies';
 import { useThemeContext } from '../../../providers/ThemeProvider';
+import { LifeWheelBalance, CapacityBar } from '../../../components/sprints/LifeWheelBalance';
+import { cancelMidWeekNudge } from '../../../utils/notifications';
+import { logger } from '../../../utils/logger';
+import { Task } from '../../../types/models';
 
-interface PlanningTask {
+interface SelectableTask {
     id: string;
     title: string;
-    points: number;
-    dimension: string;
-    selected: boolean;
+    storyPoints: number;
+    lifeWheelAreaId: string;
+    epicId?: string;
+    source: 'backlog' | 'template' | 'created';
 }
 
-const DIMENSION_COLORS: Record<string, string> = {
-    career: '#3B82F6',
-    health: '#10B981',
-    family: '#EC4899',
-    finance: '#F59E0B',
-    growth: '#8B5CF6',
-    social: '#06B6D4',
-    spirit: '#6366F1',
-    creativity: '#F97316',
-    environment: '#14B8A6',
+const DIMENSION_META: Record<string, { color: string; name: string }> = {
+    'lw-1': { color: '#EF4444', name: 'Health' },
+    'lw-2': { color: '#3B82F6', name: 'Career' },
+    'lw-3': { color: '#EC4899', name: 'Family' },
+    'lw-4': { color: '#F59E0B', name: 'Finance' },
+    'lw-5': { color: '#8B5CF6', name: 'Growth' },
+    'lw-6': { color: '#06B6D4', name: 'Friends' },
+    'lw-7': { color: '#F97316', name: 'Fun' },
+    'lw-8': { color: '#14B8A6', name: 'Environment' },
 };
+
+type PlanningStep = 'capacity' | 'select' | 'review' | 'commit';
+type SourceTab = 'backlog' | 'templates' | 'quick-add';
 
 export default function SprintPlanningScreen() {
     const { colors, isDark } = useThemeContext();
-    const { data: velocityMetrics } = useVelocityMetrics();
-    const startCeremonyMutation = useStartCeremony();
+    const params = useLocalSearchParams<{ sprintId?: string }>();
 
-    const [step, setStep] = useState<'capacity' | 'select' | 'review' | 'commit'>('capacity');
-    const [capacity, setCapacity] = useState(velocityMetrics?.averageCompleted || 40);
-    const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
+    // Data hooks
+    const { data: currentSprintRaw } = useCurrentSprint();
+    const currentSprint = currentSprintRaw as { id: string; weekNumber: number; year: number; startDate: string; endDate: string; totalPoints: number; status: string } | undefined;
+    const sprintId = params.sprintId || currentSprint?.id || '';
+
+    const { data: backlogRaw = [] } = useBacklogTasks();
+    const { data: sprintTasksRaw = [] } = useSprintTasks(sprintId);
+    const { data: settingsRaw } = useSprintPreferences();
+    const { data: lifeWheelRaw = [] } = useLifeWheelAreas();
+    const commitMutation = useCommitSprint();
+    const createTaskMutation = useCreateTask();
+
+    const settings = settingsRaw as { targetVelocity?: number } | undefined;
+    const targetVelocity = settings?.targetVelocity || 56;
+
+    // Cast backlog data
+    const backlogTasks: SelectableTask[] = useMemo(() => {
+        const raw = Array.isArray(backlogRaw) ? backlogRaw : [];
+        return raw.map((t: Task) => ({
+            id: t.id,
+            title: t.title,
+            storyPoints: t.storyPoints || 3,
+            lifeWheelAreaId: t.lifeWheelAreaId || 'lw-2',
+            epicId: t.epicId || undefined,
+            source: 'backlog' as const,
+        }));
+    }, [backlogRaw]);
+
+    // State
+    const [step, setStep] = useState<PlanningStep>('capacity');
+    const [capacity, setCapacity] = useState(targetVelocity);
+    const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
+    const [createdTasks, setCreatedTasks] = useState<SelectableTask[]>([]);
     const [sprintGoal, setSprintGoal] = useState('');
-    const [isStarted, setIsStarted] = useState(false);
+    const [sourceTab, setSourceTab] = useState<SourceTab>('backlog');
+    const [quickAddTitle, setQuickAddTitle] = useState('');
+    const [quickAddPoints, setQuickAddPoints] = useState(3);
 
-    // Mock backlog tasks
-    const [backlogTasks] = useState<PlanningTask[]>([
-        { id: '1', title: 'Complete project proposal', points: 5, dimension: 'career', selected: false },
-        { id: '2', title: 'Morning workout routine', points: 3, dimension: 'health', selected: false },
-        { id: '3', title: 'Family dinner planning', points: 2, dimension: 'family', selected: false },
-        { id: '4', title: 'Review investment portfolio', points: 5, dimension: 'finance', selected: false },
-        { id: '5', title: 'Read 3 chapters of book', points: 3, dimension: 'growth', selected: false },
-        { id: '6', title: 'Coffee with friend', points: 2, dimension: 'social', selected: false },
-        { id: '7', title: 'Meditation practice', points: 2, dimension: 'spirit', selected: false },
-        { id: '8', title: 'Creative writing session', points: 3, dimension: 'creativity', selected: false },
-        { id: '9', title: 'Declutter home office', points: 4, dimension: 'environment', selected: false },
-    ]);
+    // All available tasks (backlog + user-created during planning)
+    const allTasks = useMemo(() => [...backlogTasks, ...createdTasks], [backlogTasks, createdTasks]);
 
-    const selectedPoints = backlogTasks
-        .filter(t => selectedTasks.includes(t.id))
-        .reduce((sum, t) => sum + t.points, 0);
+    // Derived
+    const selectedTasks = useMemo(() => allTasks.filter(t => selectedTaskIds.includes(t.id)), [allTasks, selectedTaskIds]);
+    const selectedPoints = useMemo(() => selectedTasks.reduce((sum, t) => sum + t.storyPoints, 0), [selectedTasks]);
+    const capacityPercent = capacity > 0 ? Math.round((selectedPoints / capacity) * 100) : 0;
 
-    const capacityUsed = Math.round((selectedPoints / capacity) * 100);
-    const isOvercommitted = capacityUsed > 100;
+    // Dimension distribution for Life Wheel Balance
+    const dimensionDistribution = useMemo(() => {
+        const allDimIds = Object.keys(DIMENSION_META);
+        const map: Record<string, number> = {};
+        allDimIds.forEach(id => { map[id] = 0; });
+        selectedTasks.forEach(t => {
+            const area = t.lifeWheelAreaId || 'lw-2';
+            map[area] = (map[area] || 0) + t.storyPoints;
+        });
+        return allDimIds.map(id => ({ areaId: id, points: map[id] || 0 }));
+    }, [selectedTasks]);
 
-    const dimensionCounts = selectedTasks.reduce((acc, taskId) => {
-        const task = backlogTasks.find(t => t.id === taskId);
-        if (task) {
-            acc[task.dimension] = (acc[task.dimension] || 0) + 1;
-        }
-        return acc;
-    }, {} as Record<string, number>);
-
-    const handleStartPlanning = async () => {
-        await startCeremonyMutation.mutateAsync('planning');
-        setIsStarted(true);
-    };
-
-    const toggleTaskSelection = (taskId: string) => {
-        setSelectedTasks(prev =>
+    const toggleTask = useCallback((taskId: string) => {
+        setSelectedTaskIds(prev =>
             prev.includes(taskId)
                 ? prev.filter(id => id !== taskId)
                 : [...prev, taskId]
         );
-    };
+    }, []);
 
-    const getDimensionColor = (dimension: string) => DIMENSION_COLORS[dimension] || '#6B7280';
+    const handleQuickAdd = useCallback(async () => {
+        if (!quickAddTitle.trim()) return;
+        try {
+            const result = await createTaskMutation.mutateAsync({
+                title: quickAddTitle.trim(),
+                storyPoints: quickAddPoints,
+                status: 'TODO',
+            });
+            const newTask: SelectableTask = {
+                id: (result as Record<string, unknown>)?.id as string || `quick-${Date.now()}`,
+                title: quickAddTitle.trim(),
+                storyPoints: quickAddPoints,
+                lifeWheelAreaId: 'lw-2',
+                source: 'created',
+            };
+            setCreatedTasks(prev => [...prev, newTask]);
+            setSelectedTaskIds(prev => [...prev, newTask.id]);
+            setQuickAddTitle('');
+            setQuickAddPoints(3);
+        } catch (error: unknown) {
+            logger.error('Planning', 'Quick add failed', error);
+        }
+    }, [quickAddTitle, quickAddPoints, createTaskMutation]);
 
+    const handleCommit = useCallback(async () => {
+        if (!sprintId || selectedTaskIds.length === 0) return;
+        try {
+            await commitMutation.mutateAsync({
+                sprintId,
+                data: {
+                    taskIds: selectedTaskIds,
+                    sprintGoal: sprintGoal.trim() || undefined,
+                },
+            });
+            // Sprint committed — cancel any mid-week nudge
+            await cancelMidWeekNudge();
+            setStep('commit');
+        } catch (error: unknown) {
+            logger.error('Planning', 'Sprint commit failed', error);
+            Alert.alert('Commit Failed', 'Could not commit sprint. Please try again.');
+        }
+    }, [sprintId, selectedTaskIds, sprintGoal, commitMutation]);
+
+    const getDimColor = (areaId: string) => DIMENSION_META[areaId]?.color || '#6B7280';
+    const getDimName = (areaId: string) => DIMENSION_META[areaId]?.name || areaId;
+
+    // ── Step 1: Capacity ────────────────────────────────────────────────────
     const renderCapacityStep = () => (
-        <View className="flex-1 p-4">
-            <View className="rounded-2xl p-6 mb-6" style={{ backgroundColor: colors.card }}>
-                <Text className="text-xl font-semibold mb-2" style={{ color: colors.text }}>Set Your Sprint Capacity</Text>
+        <ScrollView className="flex-1 p-4">
+            <View className="rounded-2xl p-6 mb-4" style={{ backgroundColor: colors.card }}>
+                <Text className="text-xl font-semibold mb-2" style={{ color: colors.text }}>Set Sprint Capacity</Text>
                 <Text className="mb-6" style={{ color: colors.textSecondary }}>
-                    Based on your velocity, I recommend {velocityMetrics?.averageCompleted || 40} points for this sprint.
+                    Your target velocity is {targetVelocity} points/sprint. Adjust based on this week's availability.
                 </Text>
 
                 <View className="flex-row items-center justify-between mb-4">
                     <TouchableOpacity
                         onPress={() => setCapacity(Math.max(10, capacity - 5))}
-                        className="w-12 h-12 rounded-full items-center justify-center"
+                        className="w-14 h-14 rounded-full items-center justify-center"
                         style={{ backgroundColor: colors.backgroundSecondary }}
                     >
                         <MaterialCommunityIcons name="minus" size={24} color={colors.text} />
                     </TouchableOpacity>
 
                     <View className="items-center">
-                        <Text className="text-4xl font-bold" style={{ color: colors.text }}>{capacity}</Text>
-                        <Text style={{ color: colors.textSecondary }}>points</Text>
+                        <Text className="text-5xl font-bold" style={{ color: colors.text }}>{capacity}</Text>
+                        <Text style={{ color: colors.textSecondary }}>points this sprint</Text>
                     </View>
 
                     <TouchableOpacity
                         onPress={() => setCapacity(capacity + 5)}
-                        className="w-12 h-12 rounded-full items-center justify-center"
+                        className="w-14 h-14 rounded-full items-center justify-center"
                         style={{ backgroundColor: colors.backgroundSecondary }}
                     >
                         <MaterialCommunityIcons name="plus" size={24} color={colors.text} />
                     </TouchableOpacity>
                 </View>
 
-                {capacity > (velocityMetrics?.averageCompleted || 40) * 1.2 && (
-                    <View className="p-3 rounded-lg flex-row items-center" style={{ backgroundColor: isDark ? 'rgba(234, 179, 8, 0.2)' : '#FEF9C3' }}>
+                {capacity > targetVelocity * 1.2 && (
+                    <View className="p-3 rounded-xl flex-row items-center" style={{ backgroundColor: '#FEF9C320' }}>
                         <MaterialCommunityIcons name="alert" size={20} color="#EAB308" />
-                        <Text className="ml-2 flex-1" style={{ color: isDark ? '#FDE047' : '#A16207' }}>
-                            This is 20%+ above your average. Consider realistic commitments.
+                        <Text className="ml-2 flex-1 text-sm" style={{ color: '#EAB308' }}>
+                            This is 20%+ above your target. Consider realistic commitments.
                         </Text>
                     </View>
                 )}
             </View>
 
-            <View className="rounded-2xl p-6" style={{ backgroundColor: colors.card }}>
-                <Text className="text-lg font-semibold mb-4" style={{ color: colors.text }}>Your Velocity History</Text>
-                <View className="flex-row justify-between">
-                    <View className="items-center">
-                        <Text className="text-sm" style={{ color: colors.textSecondary }}>Average</Text>
-                        <Text className="text-xl font-bold" style={{ color: colors.text }}>{velocityMetrics?.averageCompleted || 38}</Text>
-                    </View>
-                    <View className="items-center">
-                        <Text className="text-sm" style={{ color: colors.textSecondary }}>Best Sprint</Text>
-                        <Text className="text-xl font-bold" style={{ color: colors.success }}>52</Text>
-                    </View>
-                    <View className="items-center">
-                        <Text className="text-sm" style={{ color: colors.textSecondary }}>Last Sprint</Text>
-                        <Text className="text-xl font-bold" style={{ color: colors.text }}>{velocityMetrics?.currentSprintCompleted || 35}</Text>
-                    </View>
+            {/* Sprint info */}
+            {currentSprint && (
+                <View className="rounded-2xl p-5 mb-4" style={{ backgroundColor: colors.card }}>
+                    <Text className="text-sm font-semibold mb-2" style={{ color: colors.textSecondary }}>Planning for</Text>
+                    <Text className="text-lg font-bold" style={{ color: colors.text }}>
+                        Week {currentSprint.weekNumber} • {currentSprint.year}
+                    </Text>
+                    <Text className="text-sm mt-1" style={{ color: colors.textSecondary }}>
+                        {currentSprint.startDate} → {currentSprint.endDate}
+                    </Text>
                 </View>
-            </View>
+            )}
 
             <TouchableOpacity
                 onPress={() => setStep('select')}
-                className="mt-6 p-4 rounded-xl"
-                style={{ backgroundColor: colors.success }}
+                className="p-4 rounded-xl flex-row items-center justify-center"
+                style={{ backgroundColor: colors.primary }}
             >
-                <Text className="text-white text-center font-semibold text-lg">Continue to Task Selection</Text>
+                <Text className="text-white font-bold text-lg">Select Tasks →</Text>
             </TouchableOpacity>
-        </View>
+        </ScrollView>
     );
 
+    // ── Step 2: Select Tasks (3 source tabs) ────────────────────────────────
     const renderSelectStep = () => (
-        <View className="flex-1 p-4">
-            <View className="rounded-2xl p-4 mb-4" style={{ backgroundColor: colors.card }}>
-                <View className="flex-row justify-between items-center mb-2">
-                    <Text className="font-semibold" style={{ color: colors.text }}>Capacity: {selectedPoints}/{capacity} points</Text>
-                    <Text style={{ color: isOvercommitted ? colors.error : colors.success }}>
-                        {capacityUsed}%
-                    </Text>
-                </View>
-                <View className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: colors.backgroundSecondary }}>
-                    <View
-                        className="h-full"
-                        style={{
-                            width: `${Math.min(capacityUsed, 100)}%`,
-                            backgroundColor: isOvercommitted ? colors.error : capacityUsed > 85 ? colors.warning : colors.success,
-                        }}
-                    />
-                </View>
-            </View>
-
-            <View className="flex-row flex-wrap mb-4">
-                {Object.entries(dimensionCounts).map(([dim, count]) => (
-                    <View
-                        key={dim}
-                        className="px-3 py-1 rounded-full mr-2 mb-2"
-                        style={{ backgroundColor: getDimensionColor(dim) + '30' }}
-                    >
-                        <Text style={{ color: getDimensionColor(dim) }}>{dim}: {count}</Text>
-                    </View>
-                ))}
-            </View>
-
-            <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-                <Text className="text-sm mb-3" style={{ color: colors.textSecondary }}>Select tasks for this sprint:</Text>
-                {backlogTasks.map(task => (
+        <View className="flex-1">
+            {/* Source tabs */}
+            <View className="flex-row px-4 pt-3 pb-1">
+                {([
+                    { key: 'backlog' as const, label: 'Backlog', icon: 'inbox' },
+                    { key: 'templates' as const, label: 'Templates', icon: 'file-document-outline' },
+                    { key: 'quick-add' as const, label: 'Quick Add', icon: 'plus-circle-outline' },
+                ] as const).map(tab => (
                     <TouchableOpacity
-                        key={task.id}
-                        onPress={() => toggleTaskSelection(task.id)}
-                        className="p-4 rounded-xl mb-3 flex-row items-center"
+                        key={tab.key}
+                        onPress={() => setSourceTab(tab.key)}
+                        className="flex-1 items-center py-3 rounded-xl mx-1"
                         style={{
-                            backgroundColor: colors.card,
-                            borderWidth: 2,
-                            borderColor: selectedTasks.includes(task.id) ? colors.success : 'transparent',
+                            backgroundColor: sourceTab === tab.key ? colors.primary + '15' : colors.backgroundSecondary,
+                            borderWidth: sourceTab === tab.key ? 1.5 : 0,
+                            borderColor: sourceTab === tab.key ? colors.primary : 'transparent',
                         }}
                     >
-                        <View
-                            className="w-10 h-10 rounded-full items-center justify-center mr-3"
-                            style={{ backgroundColor: getDimensionColor(task.dimension) + '30' }}
-                        >
-                            <MaterialCommunityIcons
-                                name={selectedTasks.includes(task.id) ? 'check' : 'plus'}
-                                size={20}
-                                color={selectedTasks.includes(task.id) ? colors.success : getDimensionColor(task.dimension)}
-                            />
-                        </View>
-                        <View className="flex-1">
-                            <Text className="font-medium" style={{ color: colors.text }}>{task.title}</Text>
-                            <Text className="text-sm" style={{ color: colors.textSecondary }}>{task.dimension}</Text>
-                        </View>
-                        <View className="px-3 py-1 rounded-full" style={{ backgroundColor: colors.backgroundSecondary }}>
-                            <Text className="font-semibold" style={{ color: colors.text }}>{task.points}</Text>
-                        </View>
+                        <MaterialCommunityIcons
+                            name={tab.icon as 'inbox'}
+                            size={18}
+                            color={sourceTab === tab.key ? colors.primary : colors.textTertiary}
+                        />
+                        <Text className="text-xs mt-1 font-semibold" style={{
+                            color: sourceTab === tab.key ? colors.primary : colors.textTertiary,
+                        }}>
+                            {tab.label}
+                        </Text>
                     </TouchableOpacity>
                 ))}
+            </View>
+
+            <ScrollView className="flex-1 px-4 pt-2" showsVerticalScrollIndicator={false}>
+                {sourceTab === 'backlog' && (
+                    <>
+                        {backlogTasks.length === 0 ? (
+                            <View className="items-center py-12">
+                                <MaterialCommunityIcons name="inbox-outline" size={48} color={colors.textTertiary} />
+                                <Text className="text-base mt-3 mb-1 font-semibold" style={{ color: colors.text }}>Backlog is empty</Text>
+                                <Text className="text-sm text-center" style={{ color: colors.textSecondary }}>
+                                    Use Quick Add to create tasks, or check Templates for inspiration.
+                                </Text>
+                            </View>
+                        ) : (
+                            backlogTasks.map(task => renderTaskRow(task))
+                        )}
+                    </>
+                )}
+
+                {sourceTab === 'templates' && (
+                    <View className="items-center py-12">
+                        <MaterialCommunityIcons name="file-document-multiple-outline" size={48} color={colors.textTertiary} />
+                        <Text className="text-base mt-3 mb-1 font-semibold" style={{ color: colors.text }}>Task Templates</Text>
+                        <Text className="text-sm text-center mb-4" style={{ color: colors.textSecondary }}>
+                            Browse templates to quickly add common tasks to your sprint.
+                        </Text>
+                        <TouchableOpacity
+                            onPress={() => router.push('/(tabs)/sprints/create-task')}
+                            className="px-5 py-3 rounded-xl"
+                            style={{ backgroundColor: colors.primary }}
+                        >
+                            <Text className="text-white font-semibold">Browse Templates</Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
+
+                {sourceTab === 'quick-add' && (
+                    <View>
+                        <Text className="text-sm font-semibold mb-3" style={{ color: colors.textSecondary }}>
+                            Quickly create and add tasks
+                        </Text>
+
+                        <View className="rounded-2xl p-4 mb-4" style={{ backgroundColor: colors.card }}>
+                            <TextInput
+                                value={quickAddTitle}
+                                onChangeText={setQuickAddTitle}
+                                placeholder="Task title..."
+                                placeholderTextColor={colors.placeholder}
+                                className="text-base mb-3 pb-2"
+                                style={{ color: colors.text, borderBottomWidth: 1, borderBottomColor: colors.border }}
+                            />
+
+                            <Text className="text-xs mb-2 font-semibold" style={{ color: colors.textSecondary }}>Story Points</Text>
+                            <View className="flex-row gap-2 mb-4">
+                                {[1, 2, 3, 5, 8].map(pts => (
+                                    <TouchableOpacity
+                                        key={pts}
+                                        onPress={() => setQuickAddPoints(pts)}
+                                        className="w-10 h-10 rounded-xl items-center justify-center"
+                                        style={{
+                                            backgroundColor: quickAddPoints === pts ? colors.primary : colors.backgroundSecondary,
+                                        }}
+                                    >
+                                        <Text className="font-bold" style={{ color: quickAddPoints === pts ? '#FFFFFF' : colors.text }}>
+                                            {pts}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+
+                            <TouchableOpacity
+                                onPress={handleQuickAdd}
+                                disabled={!quickAddTitle.trim() || createTaskMutation.isPending}
+                                className="p-3 rounded-xl flex-row items-center justify-center"
+                                style={{ backgroundColor: quickAddTitle.trim() ? colors.primary : colors.textTertiary }}
+                            >
+                                {createTaskMutation.isPending ? (
+                                    <ActivityIndicator color="#FFFFFF" size="small" />
+                                ) : (
+                                    <>
+                                        <MaterialCommunityIcons name="plus" size={18} color="#FFFFFF" />
+                                        <Text className="text-white font-semibold ml-1">Add & Select</Text>
+                                    </>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* Show already-created tasks */}
+                        {createdTasks.length > 0 && (
+                            <>
+                                <Text className="text-xs font-semibold mb-2" style={{ color: colors.textSecondary }}>
+                                    Created during planning
+                                </Text>
+                                {createdTasks.map(task => renderTaskRow(task))}
+                            </>
+                        )}
+                    </View>
+                )}
+
+                {/* Also show selected tasks from other tabs in backlog view */}
+                {sourceTab === 'backlog' && createdTasks.filter(t => selectedTaskIds.includes(t.id)).length > 0 && (
+                    <>
+                        <Text className="text-xs font-semibold mt-4 mb-2" style={{ color: colors.textSecondary }}>
+                            Quick-added (selected)
+                        </Text>
+                        {createdTasks.filter(t => selectedTaskIds.includes(t.id)).map(task => renderTaskRow(task))}
+                    </>
+                )}
             </ScrollView>
 
-            <View className="flex-row gap-3 mt-4">
+            {/* Bottom nav */}
+            <View className="flex-row gap-3 px-4 py-3">
                 <TouchableOpacity
                     onPress={() => setStep('capacity')}
                     className="flex-1 p-4 rounded-xl"
                     style={{ backgroundColor: colors.backgroundSecondary }}
                 >
-                    <Text className="text-center font-semibold" style={{ color: colors.text }}>Back</Text>
+                    <Text className="text-center font-semibold" style={{ color: colors.text }}>← Back</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                     onPress={() => setStep('review')}
                     className="flex-1 p-4 rounded-xl"
-                    style={{ backgroundColor: colors.success }}
-                    disabled={selectedTasks.length === 0}
+                    style={{ backgroundColor: selectedTaskIds.length > 0 ? colors.primary : colors.textTertiary }}
+                    disabled={selectedTaskIds.length === 0}
                 >
-                    <Text className="text-white text-center font-semibold">Review Sprint</Text>
+                    <Text className="text-white text-center font-semibold">Review →</Text>
                 </TouchableOpacity>
             </View>
         </View>
     );
 
+    // ── Shared task row renderer ─────────────────────────────────────────────
+    const renderTaskRow = (task: SelectableTask) => {
+        const isSelected = selectedTaskIds.includes(task.id);
+        const dimColor = getDimColor(task.lifeWheelAreaId);
+        return (
+            <TouchableOpacity
+                key={task.id}
+                onPress={() => toggleTask(task.id)}
+                className="p-4 rounded-xl mb-2 flex-row items-center"
+                style={{
+                    backgroundColor: colors.card,
+                    borderWidth: 2,
+                    borderColor: isSelected ? colors.primary : 'transparent',
+                }}
+            >
+                <View
+                    className="w-10 h-10 rounded-full items-center justify-center mr-3"
+                    style={{ backgroundColor: dimColor + '25' }}
+                >
+                    <MaterialCommunityIcons
+                        name={isSelected ? 'check' : 'plus'}
+                        size={18}
+                        color={isSelected ? colors.primary : dimColor}
+                    />
+                </View>
+                <View className="flex-1">
+                    <Text className="font-medium" style={{ color: colors.text }}>{task.title}</Text>
+                    <Text className="text-xs" style={{ color: colors.textSecondary }}>
+                        {getDimName(task.lifeWheelAreaId)}
+                        {task.source === 'created' && ' • Quick-added'}
+                    </Text>
+                </View>
+                <View className="px-3 py-1 rounded-full" style={{ backgroundColor: colors.backgroundSecondary }}>
+                    <Text className="font-bold text-sm" style={{ color: colors.text }}>{task.storyPoints}</Text>
+                </View>
+            </TouchableOpacity>
+        );
+    };
+
+    // ── Step 3: Review ──────────────────────────────────────────────────────
     const renderReviewStep = () => (
         <ScrollView className="flex-1 p-4">
-            <View className="rounded-2xl p-6 mb-4" style={{ backgroundColor: colors.card }}>
-                <Text className="text-xl font-semibold mb-4" style={{ color: colors.text }}>Sprint Summary</Text>
-
-                <View className="flex-row justify-between mb-4">
-                    <View>
-                        <Text className="text-sm" style={{ color: colors.textSecondary }}>Tasks</Text>
-                        <Text className="text-2xl font-bold" style={{ color: colors.text }}>{selectedTasks.length}</Text>
-                    </View>
-                    <View>
-                        <Text className="text-sm" style={{ color: colors.textSecondary }}>Points</Text>
-                        <Text className="text-2xl font-bold" style={{ color: colors.text }}>{selectedPoints}</Text>
-                    </View>
-                    <View>
-                        <Text className="text-sm" style={{ color: colors.textSecondary }}>Capacity</Text>
-                        <Text className="text-2xl font-bold" style={{ color: isOvercommitted ? colors.error : colors.success }}>
-                            {capacityUsed}%
-                        </Text>
-                    </View>
-                </View>
-
-                {isOvercommitted && (
-                    <View className="p-4 rounded-xl mb-4" style={{ backgroundColor: isDark ? 'rgba(239, 68, 68, 0.2)' : '#FEF2F2' }}>
-                        <View className="flex-row items-center mb-2">
-                            <MaterialCommunityIcons name="alert-circle" size={24} color="#EF4444" />
-                            <Text className="font-semibold ml-2" style={{ color: '#EF4444' }}>Overcommitment Warning</Text>
-                        </View>
-                        <Text style={{ color: isDark ? '#FCA5A5' : '#991B1B' }}>
-                            You've committed to {capacityUsed - 100}% more than your capacity.
-                            Consider removing {Math.ceil((selectedPoints - capacity) / 3)} tasks.
-                        </Text>
-                    </View>
-                )}
+            {/* Capacity bar - full version */}
+            <View className="mb-4">
+                <CapacityBar selectedPoints={selectedPoints} targetVelocity={capacity} />
             </View>
 
-            <View className="rounded-2xl p-6 mb-4" style={{ backgroundColor: colors.card }}>
-                <Text className="text-lg font-semibold mb-3" style={{ color: colors.text }}>Sprint Goal</Text>
+            {/* Life Wheel Balance */}
+            <View className="mb-4">
+                <LifeWheelBalance
+                    distribution={dimensionDistribution}
+                    totalPoints={selectedPoints}
+                    targetVelocity={capacity}
+                />
+            </View>
+
+            {/* Sprint Summary */}
+            <View className="rounded-2xl p-5 mb-4" style={{ backgroundColor: colors.card }}>
+                <Text className="text-lg font-bold mb-3" style={{ color: colors.text }}>Sprint Summary</Text>
+                <View className="flex-row justify-between">
+                    <View className="items-center">
+                        <Text className="text-3xl font-bold" style={{ color: colors.text }}>{selectedTasks.length}</Text>
+                        <Text className="text-xs" style={{ color: colors.textSecondary }}>Tasks</Text>
+                    </View>
+                    <View className="items-center">
+                        <Text className="text-3xl font-bold" style={{ color: colors.primary }}>{selectedPoints}</Text>
+                        <Text className="text-xs" style={{ color: colors.textSecondary }}>Points</Text>
+                    </View>
+                    <View className="items-center">
+                        <Text className="text-3xl font-bold" style={{
+                            color: capacityPercent > 100 ? '#EF4444' : capacityPercent > 85 ? '#F59E0B' : '#10B981',
+                        }}>
+                            {capacityPercent}%
+                        </Text>
+                        <Text className="text-xs" style={{ color: colors.textSecondary }}>Capacity</Text>
+                    </View>
+                </View>
+            </View>
+
+            {/* Selected tasks list */}
+            <View className="rounded-2xl p-4 mb-4" style={{ backgroundColor: colors.card }}>
+                <Text className="text-sm font-semibold mb-3" style={{ color: colors.textSecondary }}>
+                    Selected Tasks ({selectedTasks.length})
+                </Text>
+                {selectedTasks.map(task => (
+                    <View key={task.id} className="flex-row items-center py-2" style={{ borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
+                        <View className="w-2 h-2 rounded-full mr-3" style={{ backgroundColor: getDimColor(task.lifeWheelAreaId) }} />
+                        <Text className="flex-1 text-sm" style={{ color: colors.text }}>{task.title}</Text>
+                        <Text className="text-xs font-bold" style={{ color: colors.textSecondary }}>{task.storyPoints}pts</Text>
+                    </View>
+                ))}
+            </View>
+
+            {/* Sprint Goal */}
+            <View className="rounded-2xl p-5 mb-4" style={{ backgroundColor: colors.card }}>
+                <Text className="text-base font-bold mb-2" style={{ color: colors.text }}>Sprint Goal (optional)</Text>
                 <TextInput
                     value={sprintGoal}
                     onChangeText={setSprintGoal}
                     placeholder="What's the main focus of this sprint?"
                     placeholderTextColor={colors.placeholder}
                     className="p-4 rounded-xl"
-                    style={{ backgroundColor: colors.inputBackground, color: colors.text }}
+                    style={{ backgroundColor: colors.backgroundSecondary, color: colors.text }}
                     multiline
                 />
             </View>
 
-            <View className="flex-row gap-3">
+            {/* Action buttons */}
+            <View className="flex-row gap-3 mb-8">
                 <TouchableOpacity
                     onPress={() => setStep('select')}
                     className="flex-1 p-4 rounded-xl"
                     style={{ backgroundColor: colors.backgroundSecondary }}
                 >
-                    <Text className="text-center font-semibold" style={{ color: colors.text }}>Back</Text>
+                    <Text className="text-center font-semibold" style={{ color: colors.text }}>← Edit</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                    onPress={() => setStep('commit')}
-                    className="flex-1 p-4 rounded-xl"
-                    style={{ backgroundColor: colors.success }}
+                    onPress={handleCommit}
+                    disabled={commitMutation.isPending}
+                    className="flex-1 p-4 rounded-xl flex-row items-center justify-center"
+                    style={{ backgroundColor: '#10B981' }}
                 >
-                    <Text className="text-white text-center font-semibold">Commit Sprint</Text>
+                    {commitMutation.isPending ? (
+                        <ActivityIndicator color="#FFFFFF" size="small" />
+                    ) : (
+                        <>
+                            <MaterialCommunityIcons name="check-bold" size={18} color="#FFFFFF" />
+                            <Text className="text-white font-bold ml-2">Commit Sprint</Text>
+                        </>
+                    )}
                 </TouchableOpacity>
             </View>
         </ScrollView>
     );
 
+    // ── Step 4: Committed ───────────────────────────────────────────────────
     const renderCommitStep = () => (
-        <View className="flex-1 p-4 justify-center items-center">
-            <View className="w-24 h-24 rounded-full items-center justify-center mb-6" style={{ backgroundColor: isDark ? 'rgba(16, 185, 129, 0.2)' : '#D1FAE5' }}>
+        <View className="flex-1 p-6 justify-center items-center">
+            <View className="w-24 h-24 rounded-full items-center justify-center mb-6" style={{ backgroundColor: '#10B98125' }}>
                 <MaterialCommunityIcons name="check-circle" size={64} color="#10B981" />
             </View>
 
-            <Text className="text-2xl font-bold mb-2" style={{ color: colors.text }}>Sprint Committed!</Text>
-            <Text className="text-center mb-8" style={{ color: colors.textSecondary }}>
-                You've committed to {selectedTasks.length} tasks ({selectedPoints} points) for this sprint.
+            <Text className="text-2xl font-bold mb-2" style={{ color: colors.text }}>Sprint Committed! 🎯</Text>
+            <Text className="text-center mb-6" style={{ color: colors.textSecondary }}>
+                {selectedTasks.length} tasks • {selectedPoints} points committed for this week
             </Text>
 
             {sprintGoal ? (
                 <View className="p-4 rounded-xl mb-6 w-full" style={{ backgroundColor: colors.card }}>
-                    <Text className="text-sm mb-1" style={{ color: colors.textSecondary }}>Sprint Goal</Text>
-                    <Text style={{ color: colors.text }}>{sprintGoal}</Text>
+                    <Text className="text-xs mb-1" style={{ color: colors.textSecondary }}>Sprint Goal</Text>
+                    <Text className="font-medium" style={{ color: colors.text }}>{sprintGoal}</Text>
                 </View>
             ) : null}
 
-            <View className="rounded-2xl p-6 w-full mb-6" style={{ backgroundColor: colors.card }}>
-                <Text className="font-semibold mb-4" style={{ color: colors.text }}>Tips:</Text>
-                <View className="flex-row items-start mb-3">
-                    <MaterialCommunityIcons name="lightbulb" size={20} color="#EAB308" />
-                    <Text className="ml-3 flex-1" style={{ color: colors.textSecondary }}>
-                        Focus on completing your highest priority tasks first
-                    </Text>
-                </View>
-                <View className="flex-row items-start mb-3">
-                    <MaterialCommunityIcons name="calendar-check" size={20} color="#10B981" />
-                    <Text className="ml-3 flex-1" style={{ color: colors.textSecondary }}>
-                        Daily standups start at your preferred time
-                    </Text>
-                </View>
-                <View className="flex-row items-start">
-                    <MaterialCommunityIcons name="shield-check" size={20} color="#3B82F6" />
-                    <Text className="ml-3 flex-1" style={{ color: colors.textSecondary }}>
-                        Track progress and adjust as needed
-                    </Text>
-                </View>
+            <View className="rounded-2xl p-5 w-full mb-8" style={{ backgroundColor: colors.card }}>
+                <Text className="font-semibold mb-3" style={{ color: colors.text }}>What's Next</Text>
+                {[
+                    { icon: 'play-circle', color: '#10B981', text: 'Sprint is now active — start working on tasks' },
+                    { icon: 'clock-outline', color: '#3B82F6', text: 'Daily standups help track your progress' },
+                    { icon: 'chart-line', color: '#8B5CF6', text: 'Keep your capacity balanced across life areas' },
+                ].map((tip, idx) => (
+                    <View key={idx} className="flex-row items-start mb-2">
+                        <MaterialCommunityIcons name={tip.icon as 'play-circle'} size={18} color={tip.color} />
+                        <Text className="ml-3 flex-1 text-sm" style={{ color: colors.textSecondary }}>{tip.text}</Text>
+                    </View>
+                ))}
             </View>
 
             <TouchableOpacity
                 onPress={() => router.back()}
                 className="w-full p-4 rounded-xl"
-                style={{ backgroundColor: colors.success }}
+                style={{ backgroundColor: colors.primary }}
             >
-                <Text className="text-white text-center font-semibold text-lg">Start Sprint</Text>
+                <Text className="text-white text-center font-bold text-lg">Go to Sprint →</Text>
             </TouchableOpacity>
         </View>
     );
 
-    if (!isStarted) {
-        return (
-            <SafeAreaView className="flex-1" style={{ backgroundColor: colors.background }}>
-                <View className="flex-row items-center p-4" style={{ borderBottomWidth: 1, borderBottomColor: colors.border }}>
-                    <TouchableOpacity onPress={() => router.back()} className="mr-4">
-                        <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
-                    </TouchableOpacity>
-                    <Text className="text-xl font-semibold" style={{ color: colors.text }}>Sprint Planning</Text>
-                </View>
-
-                <View className="flex-1 justify-center items-center p-6">
-                    <View className="w-24 h-24 rounded-full items-center justify-center mb-6" style={{ backgroundColor: isDark ? 'rgba(59, 130, 246, 0.2)' : '#DBEAFE' }}>
-                        <MaterialCommunityIcons name="calendar-plus" size={48} color="#3B82F6" />
-                    </View>
-
-                    <Text className="text-2xl font-bold mb-2 text-center" style={{ color: colors.text }}>
-                        Ready to Plan Your Sprint?
-                    </Text>
-                    <Text className="text-center mb-8" style={{ color: colors.textSecondary }}>
-                        Let's select tasks for the upcoming sprint based on your capacity and life balance goals.
-                    </Text>
-
-                    <View className="rounded-2xl p-6 w-full mb-6" style={{ backgroundColor: colors.card }}>
-                        <Text className="font-semibold mb-4" style={{ color: colors.text }}>Planning includes:</Text>
-                        {[
-                            { icon: 'speedometer', text: 'Capacity setting based on velocity' },
-                            { icon: 'checkbox-marked', text: 'Task selection from backlog' },
-                            { icon: 'chart-donut', text: 'Life dimension balance check' },
-                            { icon: 'flag-checkered', text: 'Sprint goal definition' },
-                        ].map((item, idx) => (
-                            <View key={idx} className="flex-row items-center mb-3">
-                                <MaterialCommunityIcons name={item.icon as any} size={20} color={colors.success} />
-                                <Text className="ml-3" style={{ color: colors.textSecondary }}>{item.text}</Text>
-                            </View>
-                        ))}
-                    </View>
-
-                    <TouchableOpacity
-                        onPress={handleStartPlanning}
-                        className="w-full p-4 rounded-xl"
-                        style={{ backgroundColor: colors.success }}
-                    >
-                        <Text className="text-white text-center font-semibold text-lg">Start Planning</Text>
-                    </TouchableOpacity>
-                </View>
-            </SafeAreaView>
-        );
-    }
-
+    // ── Main Layout ─────────────────────────────────────────────────────────
     return (
         <SafeAreaView className="flex-1" style={{ backgroundColor: colors.background }}>
-            <View className="flex-row items-center p-4" style={{ borderBottomWidth: 1, borderBottomColor: colors.border }}>
-                <TouchableOpacity onPress={() => router.back()} className="mr-4">
+            {/* Header */}
+            <View className="flex-row items-center px-4 py-3" style={{ borderBottomWidth: 1, borderBottomColor: colors.border }}>
+                <TouchableOpacity onPress={() => router.back()} className="mr-3">
                     <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
                 </TouchableOpacity>
-                <Text className="text-xl font-semibold flex-1" style={{ color: colors.text }}>Sprint Planning</Text>
+                <Text className="text-lg font-bold flex-1" style={{ color: colors.text }}>Sprint Planning</Text>
 
+                {/* Step indicators */}
                 <View className="flex-row">
-                    {['capacity', 'select', 'review', 'commit'].map((s, idx) => (
+                    {(['capacity', 'select', 'review', 'commit'] as PlanningStep[]).map((s, idx) => (
                         <View
                             key={s}
-                            className="w-2 h-2 rounded-full mx-1"
+                            className="w-2.5 h-2.5 rounded-full mx-0.5"
                             style={{
-                                backgroundColor: ['capacity', 'select', 'review', 'commit'].indexOf(step) >= idx
-                                    ? colors.success
+                                backgroundColor: (['capacity', 'select', 'review', 'commit'] as PlanningStep[]).indexOf(step) >= idx
+                                    ? colors.primary
                                     : colors.backgroundSecondary,
                             }}
                         />
@@ -432,10 +596,16 @@ export default function SprintPlanningScreen() {
                 </View>
             </View>
 
+            {/* Step content */}
             {step === 'capacity' && renderCapacityStep()}
             {step === 'select' && renderSelectStep()}
             {step === 'review' && renderReviewStep()}
             {step === 'commit' && renderCommitStep()}
+
+            {/* Floating capacity bar (visible during select step) */}
+            {step === 'select' && (
+                <CapacityBar selectedPoints={selectedPoints} targetVelocity={capacity} compact />
+            )}
         </SafeAreaView>
     );
 }

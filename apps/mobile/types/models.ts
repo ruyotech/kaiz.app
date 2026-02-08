@@ -43,11 +43,33 @@ export interface EisenhowerQuadrant {
 export interface Sprint {
     id: string;
     weekNumber: number;
+    year: number;
     startDate: string;
     endDate: string;
     status: 'planned' | 'active' | 'completed';
     totalPoints: number;
     completedPoints: number;
+    goals?: string;
+    committedAt?: string;
+}
+
+// Sprint commit request/response
+export interface SprintCommitRequest {
+    taskIds: string[];
+    sprintGoal?: string;
+}
+
+export interface SprintCommitResponse {
+    sprintId: string;
+    weekNumber: number;
+    year: number;
+    taskCount: number;
+    totalPoints: number;
+    committedPoints: number;
+    activated: boolean;
+    sprintGoal: string | null;
+    dimensionDistribution: Record<string, number>;
+    committedAt: string;
 }
 
 // Epics

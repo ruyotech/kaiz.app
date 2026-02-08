@@ -4,6 +4,7 @@ import app.kaiz.identity.domain.User;
 import app.kaiz.shared.persistence.BaseEntity;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -65,4 +66,10 @@ public class VelocityRecord extends BaseEntity {
 
   @Column(name = "dimension_distribution", columnDefinition = "TEXT")
   private String dimensionDistribution; // JSON object with points per dimension
+
+  @Column(name = "committed_at")
+  private Instant committedAt;
+
+  @Column(name = "sprint_goal", columnDefinition = "TEXT")
+  private String sprintGoal;
 }

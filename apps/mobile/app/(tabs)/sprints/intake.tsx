@@ -10,7 +10,7 @@ import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useProcessIntake } from '../../../hooks/queries';
+import { useProcessIntake, useCreateTask } from '../../../hooks/queries';
 import { IntakeResult } from '../../../types/sensai.types';
 import { useThemeContext } from '../../../providers/ThemeProvider';
 import { logger } from '../../../utils/logger';
@@ -33,11 +33,13 @@ const DIMENSION_META: Record<string, { color: string; name: string }> = {
 export default function IntakeScreen() {
     const { colors, isDark } = useThemeContext();
     const processIntakeMutation = useProcessIntake();
+    const createTaskMutation = useCreateTask();
 
     const [input, setInput] = useState('');
     const [type, setType] = useState<IntakeType>('task');
     const [result, setResult] = useState<IntakeResult | null>(null);
-    const [recentIntakes, setRecentIntakes] = useState<Array<{ text: string; result: IntakeResult }>>([]);
+    const [recentIntakes, setRecentIntakes] = useState<Array<{ text: string; result: IntakeResult }>>([]); 
+    const [addingToBacklog, setAddingToBacklog] = useState(false);
 
     const typeConfig: Record<IntakeType, { icon: string; color: string; label: string; placeholder: string }> = {
         task: { icon: 'checkbox-marked-circle-outline', color: '#3B82F6', label: 'Task', placeholder: 'What needs to get done?' },
@@ -63,6 +65,27 @@ export default function IntakeScreen() {
 
     const getDimColor = (dimension: string) => DIMENSION_META[dimension]?.color || '#6B7280';
     const getDimName = (dimension: string) => DIMENSION_META[dimension]?.name || dimension;
+
+    const handleAddToBacklog = async () => {
+        if (!result?.parsedTask) return;
+        setAddingToBacklog(true);
+        try {
+            const parsedTask = result.parsedTask;
+            await createTaskMutation.mutateAsync({
+                title: parsedTask.title,
+                description: parsedTask.description || undefined,
+                storyPoints: parsedTask.estimatedPoints || 3,
+                lifeWheelAreaId: result.suggestedDimension || undefined,
+                status: 'TODO',
+            });
+            setResult(null);
+            logger.info('IntakeScreen', 'Task added to backlog from intake');
+        } catch (error: unknown) {
+            logger.error('IntakeScreen', 'Failed to add task to backlog', error);
+        } finally {
+            setAddingToBacklog(false);
+        }
+    };
 
     const renderResult = () => {
         if (!result || !result.parsedTask) return null;
@@ -133,11 +156,16 @@ export default function IntakeScreen() {
                         <Text className="text-center font-semibold" style={{ color: colors.text }}>Adjust</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                        onPress={() => setResult(null)}
-                        className="flex-1 p-3 rounded-xl"
+                        onPress={handleAddToBacklog}
+                        disabled={addingToBacklog}
+                        className="flex-1 p-3 rounded-xl flex-row items-center justify-center"
                         style={{ backgroundColor: colors.success }}
                     >
-                        <Text className="text-white text-center font-semibold">Add to Backlog</Text>
+                        {addingToBacklog ? (
+                            <ActivityIndicator color="#FFFFFF" size="small" />
+                        ) : (
+                            <Text className="text-white text-center font-semibold">Add to Backlog</Text>
+                        )}
                     </TouchableOpacity>
                 </View>
             </View>

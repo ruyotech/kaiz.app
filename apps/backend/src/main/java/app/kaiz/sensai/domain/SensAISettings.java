@@ -64,4 +64,16 @@ public class SensAISettings extends BaseEntity {
   @Column(name = "weekly_digest_enabled", nullable = false)
   @Builder.Default
   private boolean weeklyDigestEnabled = true;
+
+  @Column(name = "target_velocity", nullable = false)
+  @Builder.Default
+  private int targetVelocity = 56;
+
+  @Column(name = "planning_day_of_week", nullable = false, length = 10)
+  @Builder.Default
+  private String planningDayOfWeek = "SUNDAY";
+
+  @Column(name = "planning_time", nullable = false, length = 5)
+  @Builder.Default
+  private String planningTime = "10:00";
 }
