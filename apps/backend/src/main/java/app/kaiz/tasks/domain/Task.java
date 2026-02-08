@@ -171,4 +171,9 @@ public class Task extends BaseEntity {
   @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
   @Builder.Default
   private List<TaskHistory> history = new ArrayList<>();
+
+  @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
+  @OrderBy("sortOrder ASC")
+  @Builder.Default
+  private List<TaskChecklistItem> checklistItems = new ArrayList<>();
 }

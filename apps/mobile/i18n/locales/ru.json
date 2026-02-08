@@ -409,8 +409,14 @@
       "trash": "Корзина",
       "noDeletedTasks": "Нет удалённых задач",
       "noDeletedTasksSubtitle": "Удалённые задачи будут отображаться здесь",
+      "checklist": "Чек-лист",
+      "addChecklist": "Добавить чек-лист",
+      "removeChecklist": "Удалить чек-лист",
       "addChecklistPlaceholder": "Введите пункт чеклиста...",
-      "noChecklistItems": "Пунктов нет. Нажмите + чтобы добавить."
+      "noChecklistItems": "Пунктов нет. Нажмите + чтобы добавить.",
+      "taskNotFound": "Задача не найдена",
+      "taskNotFoundSubtitle": "Эта задача могла быть удалена или больше недоступна.",
+      "goBack": "Назад"
     },
     "edit": {
       "editTask": "Редактировать задачу",

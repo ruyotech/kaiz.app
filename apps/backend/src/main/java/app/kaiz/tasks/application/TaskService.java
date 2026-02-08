@@ -5,6 +5,7 @@ import app.kaiz.identity.infrastructure.UserRepository;
 import app.kaiz.life_wheel.infrastructure.EisenhowerQuadrantRepository;
 import app.kaiz.life_wheel.infrastructure.LifeWheelAreaRepository;
 import app.kaiz.shared.exception.ResourceNotFoundException;
+import app.kaiz.tasks.application.dto.TaskChecklistItemDto;
 import app.kaiz.tasks.application.dto.TaskCommentDto;
 import app.kaiz.tasks.application.dto.TaskDto;
 import app.kaiz.tasks.application.dto.TaskHistoryDto;
@@ -36,6 +37,7 @@ public class TaskService {
   private final TaskTemplateRepository taskTemplateRepository;
   private final TaskRecurrenceRepository taskRecurrenceRepository;
   private final TaskAttachmentRepository taskAttachmentRepository;
+  private final TaskChecklistItemRepository taskChecklistItemRepository;
   private final UserTagRepository userTagRepository;
   private final EpicRepository epicRepository;
   private final SprintRepository sprintRepository;
@@ -561,5 +563,112 @@ public class TaskService {
             .newValue(newValue)
             .build();
     taskHistoryRepository.save(history);
+  }
+
+  // ==========================================
+  // Checklist Methods
+  // ==========================================
+
+  public List<TaskChecklistItemDto> getChecklistItems(UUID userId, UUID taskId) {
+    taskRepository
+        .findByIdAndUserIdIncludingDeleted(taskId, userId)
+        .orElseThrow(() -> new ResourceNotFoundException("Task", taskId.toString()));
+
+    return taskChecklistItemRepository.findByTaskIdOrderBySortOrderAsc(taskId).stream()
+        .map(
+            item ->
+                new TaskChecklistItemDto(
+                    item.getId(),
+                    item.getText(),
+                    item.isCompleted(),
+                    item.getSortOrder(),
+                    item.getCreatedAt(),
+                    item.getUpdatedAt()))
+        .toList();
+  }
+
+  @Transactional
+  public TaskChecklistItemDto addChecklistItem(
+      UUID userId, UUID taskId, TaskChecklistItemDto.CreateChecklistItemRequest request) {
+    Task task =
+        taskRepository
+            .findByIdAndUserId(taskId, userId)
+            .orElseThrow(() -> new ResourceNotFoundException("Task", taskId.toString()));
+
+    int nextOrder = taskChecklistItemRepository.countByTaskId(taskId);
+
+    TaskChecklistItem item =
+        TaskChecklistItem.builder()
+            .task(task)
+            .text(request.text())
+            .completed(false)
+            .sortOrder(nextOrder)
+            .build();
+
+    TaskChecklistItem saved = taskChecklistItemRepository.save(item);
+    log.info(
+        "Checklist item added: userId={}, taskId={}, itemId={}", userId, taskId, saved.getId());
+
+    return new TaskChecklistItemDto(
+        saved.getId(),
+        saved.getText(),
+        saved.isCompleted(),
+        saved.getSortOrder(),
+        saved.getCreatedAt(),
+        saved.getUpdatedAt());
+  }
+
+  @Transactional
+  public TaskChecklistItemDto toggleChecklistItem(UUID userId, UUID taskId, UUID itemId) {
+    taskRepository
+        .findByIdAndUserId(taskId, userId)
+        .orElseThrow(() -> new ResourceNotFoundException("Task", taskId.toString()));
+
+    TaskChecklistItem item =
+        taskChecklistItemRepository
+            .findById(itemId)
+            .orElseThrow(() -> new ResourceNotFoundException("ChecklistItem", itemId.toString()));
+
+    if (!item.getTask().getId().equals(taskId)) {
+      throw new app.kaiz.shared.exception.BadRequestException(
+          "Checklist item does not belong to this task");
+    }
+
+    item.setCompleted(!item.isCompleted());
+    TaskChecklistItem saved = taskChecklistItemRepository.save(item);
+    log.info(
+        "Checklist item toggled: userId={}, taskId={}, itemId={}, completed={}",
+        userId,
+        taskId,
+        itemId,
+        saved.isCompleted());
+
+    return new TaskChecklistItemDto(
+        saved.getId(),
+        saved.getText(),
+        saved.isCompleted(),
+        saved.getSortOrder(),
+        saved.getCreatedAt(),
+        saved.getUpdatedAt());
+  }
+
+  @Transactional
+  public void deleteChecklistItem(UUID userId, UUID taskId, UUID itemId) {
+    taskRepository
+        .findByIdAndUserId(taskId, userId)
+        .orElseThrow(() -> new ResourceNotFoundException("Task", taskId.toString()));
+
+    TaskChecklistItem item =
+        taskChecklistItemRepository
+            .findById(itemId)
+            .orElseThrow(() -> new ResourceNotFoundException("ChecklistItem", itemId.toString()));
+
+    if (!item.getTask().getId().equals(taskId)) {
+      throw new app.kaiz.shared.exception.BadRequestException(
+          "Checklist item does not belong to this task");
+    }
+
+    taskChecklistItemRepository.delete(item);
+    log.info("Checklist item deleted: userId={}, taskId={}, itemId={}", userId, taskId, itemId);
   }
 }

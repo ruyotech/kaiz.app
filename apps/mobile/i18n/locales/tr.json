@@ -405,8 +405,14 @@
       "trash": "Çöp Kutusu",
       "noDeletedTasks": "Silinen görev yok",
       "noDeletedTasksSubtitle": "Silinen görevler burada görünecektir",
+      "checklist": "Kontrol Listesi",
+      "addChecklist": "Kontrol Listesi Ekle",
+      "removeChecklist": "Kontrol Listesini Kaldır",
       "addChecklistPlaceholder": "Kontrol listesi öğesi girin...",
-      "noChecklistItems": "Henüz kontrol listesi öğesi yok. Eklemek için + düğmesine basın."
+      "noChecklistItems": "Henüz kontrol listesi öğesi yok. Eklemek için + düğmesine basın.",
+      "taskNotFound": "Görev bulunamadı",
+      "taskNotFoundSubtitle": "Bu görev silinmiş veya artık mevcut olmayabilir.",
+      "goBack": "Geri Dön"
     },
     "edit": {
       "editTask": "Görevi Düzenle",

@@ -340,6 +340,11 @@ export const taskApi = {
   async addComment(taskId: string, data: { commentText: string; isAiGenerated?: boolean; attachments?: Array<{ filename: string; fileUrl: string; fileType: string; fileSize: number | null }> }) {
     return apiPost<unknown>(`/tasks/${taskId}/comments`, { commentText: data.commentText, isAiGenerated: data.isAiGenerated ?? false, attachments: data.attachments ?? null });
   },
+  // Checklist API
+  async getChecklistItems(taskId: string) { return apiGet<unknown[]>(`/tasks/${taskId}/checklist`); },
+  async addChecklistItem(taskId: string, text: string) { return apiPost<unknown>(`/tasks/${taskId}/checklist`, { text }); },
+  async toggleChecklistItem(taskId: string, itemId: string) { return apiPatch<unknown>(`/tasks/${taskId}/checklist/${itemId}/toggle`, {}); },
+  async deleteChecklistItem(taskId: string, itemId: string) { return apiDelete(`/tasks/${taskId}/checklist/${itemId}`); },
 };
 
 // ============================================================================

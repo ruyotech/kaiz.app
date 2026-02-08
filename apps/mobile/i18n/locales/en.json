@@ -416,8 +416,14 @@
       "trash": "Trash",
       "noDeletedTasks": "No deleted tasks",
       "noDeletedTasksSubtitle": "Deleted tasks will appear here",
+      "checklist": "Checklist",
+      "addChecklist": "Add Checklist",
+      "removeChecklist": "Remove Checklist",
       "addChecklistPlaceholder": "Enter checklist item...",
-      "noChecklistItems": "No checklist items yet. Tap + to add one."
+      "noChecklistItems": "No checklist items yet. Tap + to add one.",
+      "taskNotFound": "Task not found",
+      "taskNotFoundSubtitle": "This task may have been deleted or is no longer available.",
+      "goBack": "Go Back"
     },
     "edit": {
       "editTask": "Edit Task",

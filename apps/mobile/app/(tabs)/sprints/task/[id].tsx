@@ -64,15 +64,12 @@ export default function TaskWorkView() {
     const [attachments, setAttachments] = useState<Attachment[]>([]);
 
     // Checklist
-    const [checklist, setChecklist] = useState<ChecklistItem[]>([
-        { id: '1', text: 'Review requirements', completed: true },
-        { id: '2', text: 'Design solution', completed: true },
-        { id: '3', text: 'Implement backend', completed: false },
-        { id: '4', text: 'Write tests', completed: false },
-        { id: '5', text: 'Deploy to staging', completed: false },
-    ]);
+    const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
+    const [checklistLoading, setChecklistLoading] = useState(false);
     const [newChecklistItem, setNewChecklistItem] = useState('');
     const [showAddChecklist, setShowAddChecklist] = useState(false);
+    const [hasChecklist, setHasChecklist] = useState(false);
+    const [taskNotFound, setTaskNotFound] = useState(false);
 
     // Quick status update
     const [showStatusMenu, setShowStatusMenu] = useState(false);
@@ -139,6 +136,7 @@ export default function TaskWorkView() {
     const loadTask = async () => {
         try {
             setLoading(true);
+            setTaskNotFound(false);
             await fetchTasks();
         } catch (error) {
             // Ignore auth expired errors - redirect is handled automatically
@@ -165,6 +163,7 @@ export default function TaskWorkView() {
         const foundTask = tasks.find((t: Task) => t.id === id);
         if (foundTask) {
             setTask(foundTask);
+            setTaskNotFound(false);
             
             // Debug: Log task recurrence info
             logger.log('📋 Task Detail - task:', {
@@ -178,11 +177,15 @@ export default function TaskWorkView() {
                 setAttachments((foundTask as any).attachments);
             }
             
-            // Load comments and history from API
+            // Load comments, history, and checklist from API
             loadComments(foundTask.id);
             loadHistory(foundTask.id);
+            loadChecklist(foundTask.id);
+        } else if (!loading && tasks.length > 0) {
+            // Tasks loaded but this task not found — likely deleted
+            setTaskNotFound(true);
         }
-    }, [tasks, id]);
+    }, [tasks, id, loading]);
 
     const getTaskEpic = () => {
         if (!task || !task.epicId) return null;
@@ -290,6 +293,8 @@ export default function TaskWorkView() {
                 // Convert to uppercase for backend API (DRAFT, TODO, IN_PROGRESS, DONE)
                 const apiStatus = newStatus.toUpperCase();
                 await taskApi.updateTaskStatus(task.id, apiStatus);
+                // Refresh store so list screens reflect new status
+                fetchTasks();
                 // Reload history to get the updated history from backend
                 loadHistory(task.id);
             } catch (error) {
@@ -313,6 +318,7 @@ export default function TaskWorkView() {
                     onPress: async () => {
                         try {
                             await taskApi.deleteTask(task!.id);
+                            await fetchTasks();
                             router.back();
                         } catch (error) {
                             logger.error('Error deleting task:', error);
@@ -377,26 +383,127 @@ export default function TaskWorkView() {
         }
     };
 
-    const toggleChecklistItem = (itemId: string) => {
-        setChecklist(checklist.map(item =>
+    const toggleChecklistItem = async (itemId: string) => {
+        // Optimistic update
+        setChecklist(prev => prev.map(item =>
             item.id === itemId ? { ...item, completed: !item.completed } : item
         ));
-    };
-
-    const handleAddChecklistItem = () => {
-        if (newChecklistItem.trim()) {
-            const item: ChecklistItem = {
-                id: Date.now().toString(),
-                text: newChecklistItem,
-                completed: false,
-            };
-            setChecklist([...checklist, item]);
-            setNewChecklistItem('');
-            setShowAddChecklist(false);
+        try {
+            await taskApi.toggleChecklistItem(task!.id, itemId);
+        } catch (error) {
+            // Revert on error
+            setChecklist(prev => prev.map(item =>
+                item.id === itemId ? { ...item, completed: !item.completed } : item
+            ));
+            logger.error('Error toggling checklist item:', error);
         }
     };
 
+    const handleAddChecklistItem = async () => {
+        if (newChecklistItem.trim() && task) {
+            const tempId = Date.now().toString();
+            const text = newChecklistItem.trim();
+            // Optimistic add
+            setChecklist(prev => [...prev, { id: tempId, text, completed: false }]);
+            setNewChecklistItem('');
+            try {
+                const newItem = await taskApi.addChecklistItem(task.id, text);
+                // Replace temp item with real one
+                setChecklist(prev => prev.map(item =>
+                    item.id === tempId ? { id: (newItem as any).id, text: (newItem as any).text, completed: (newItem as any).completed } : item
+                ));
+            } catch (error) {
+                // Revert on error
+                setChecklist(prev => prev.filter(item => item.id !== tempId));
+                logger.error('Error adding checklist item:', error);
+            }
+        }
+    };
+
+    const handleDeleteChecklistItem = async (itemId: string) => {
+        const item = checklist.find(i => i.id === itemId);
+        setChecklist(prev => prev.filter(i => i.id !== itemId));
+        try {
+            await taskApi.deleteChecklistItem(task!.id, itemId);
+        } catch (error) {
+            if (item) setChecklist(prev => [...prev, item]);
+            logger.error('Error deleting checklist item:', error);
+        }
+    };
+
+    const handleToggleChecklist = async () => {
+        if (!task) return;
+        if (hasChecklist) {
+            // Remove all checklist items
+            Alert.alert(
+                t('tasks.details.removeChecklist'),
+                t('tasks.details.confirmDelete'),
+                [
+                    { text: t('common.cancel'), style: 'cancel' },
+                    {
+                        text: t('common.delete'),
+                        style: 'destructive',
+                        onPress: async () => {
+                            try {
+                                // Delete all items via API
+                                for (const item of checklist) {
+                                    await taskApi.deleteChecklistItem(task.id, item.id);
+                                }
+                                setChecklist([]);
+                                setHasChecklist(false);
+                                setShowAddChecklist(false);
+                            } catch (error) {
+                                logger.error('Error removing checklist:', error);
+                                loadChecklist(task.id);
+                            }
+                        },
+                    },
+                ]
+            );
+        } else {
+            // Enable checklist
+            setHasChecklist(true);
+            setShowAddChecklist(true);
+        }
+    };
+
+    // Load checklist from API
+    const loadChecklist = useCallback(async (taskId: string) => {
+        try {
+            setChecklistLoading(true);
+            const items = await taskApi.getChecklistItems(taskId) as ChecklistItem[];
+            setChecklist(items || []);
+            setHasChecklist((items || []).length > 0);
+        } catch (error) {
+            if (error instanceof AuthExpiredError) return;
+            logger.error('Error loading checklist:', error);
+        } finally {
+            setChecklistLoading(false);
+        }
+    }, []);
+
     if (loading || !task) {
+        // Task not found after loading — likely deleted
+        if (taskNotFound) {
+            return (
+                <View className="flex-1 items-center justify-center px-6" style={{ backgroundColor: colors.background }}>
+                    <MaterialCommunityIcons name="delete-empty-outline" size={64} color={colors.textTertiary} />
+                    <Text className="text-lg font-bold mt-4" style={{ color: colors.text }}>
+                        {t('tasks.details.taskNotFound')}
+                    </Text>
+                    <Text className="text-sm text-center mt-2" style={{ color: colors.textSecondary }}>
+                        {t('tasks.details.taskNotFoundSubtitle')}
+                    </Text>
+                    <TouchableOpacity
+                        onPress={() => router.back()}
+                        className="mt-6 px-6 py-3 rounded-lg"
+                        style={{ backgroundColor: colors.primary }}
+                    >
+                        <Text className="text-white font-semibold">{t('tasks.details.goBack')}</Text>
+                    </TouchableOpacity>
+                </View>
+            );
+        }
         return (
             <View className="flex-1 items-center justify-center" style={{ backgroundColor: colors.background }}>
                 <Text style={{ color: colors.text }}>{t('common.loading')}</Text>
@@ -559,6 +666,102 @@ export default function TaskWorkView() {
                             </View>
                         )}
 
+                        {/* Checklist Section */}
+                        {hasChecklist && (
+                            <View className="rounded-xl p-4 mb-3" style={{ backgroundColor: colors.card }}>
+                                <View className="flex-row items-center justify-between mb-3">
+                                    <View className="flex-row items-center">
+                                        <MaterialCommunityIcons name="checkbox-marked-outline" size={18} color={colors.textSecondary} />
+                                        <Text className="text-sm font-semibold ml-2" style={{ color: colors.textSecondary }}>
+                                            {t('tasks.details.checklist')} ({completedChecklist}/{totalChecklist})
+                                        </Text>
+                                    </View>
+                                    <TouchableOpacity onPress={() => setShowAddChecklist(!showAddChecklist)}>
+                                        <MaterialCommunityIcons 
+                                            name={showAddChecklist ? "minus-circle-outline" : "plus-circle-outline"} 
+                                            size={22} 
+                                            color={colors.primary} 
+                                        />
+                                    </TouchableOpacity>
+                                </View>
+
+                                {/* Progress bar */}
+                                {totalChecklist > 0 && (
+                                    <View className="h-1.5 rounded-full mb-3" style={{ backgroundColor: colors.backgroundSecondary }}>
+                                        <View 
+                                            className="h-1.5 rounded-full"
+                                            style={{ 
+                                                backgroundColor: '#10B981', 
+                                                width: `${(completedChecklist / totalChecklist) * 100}%` 
+                                            }}
+                                        />
+                                    </View>
+                                )}
+
+                                {/* Add checklist item input */}
+                                {showAddChecklist && (
+                                    <View className="flex-row items-center gap-2 mb-3">
+                                        <TextInput
+                                            value={newChecklistItem}
+                                            onChangeText={setNewChecklistItem}
+                                            placeholder={t('tasks.details.addChecklistPlaceholder')}
+                                            placeholderTextColor={colors.textTertiary}
+                                            className="flex-1 py-2 px-3 rounded-lg text-sm"
+                                            style={{ 
+                                                backgroundColor: colors.backgroundSecondary, 
+                                                color: colors.text,
+                                                borderWidth: 1,
+                                                borderColor: colors.border 
+                                            }}
+                                            onSubmitEditing={handleAddChecklistItem}
+                                        />
+                                        <TouchableOpacity
+                                            onPress={handleAddChecklistItem}
+                                            className="py-2 px-3 rounded-lg"
+                                            style={{ backgroundColor: '#10B981' }}
+                                        >
+                                            <MaterialCommunityIcons name="check" size={18} color="#fff" />
+                                        </TouchableOpacity>
+                                    </View>
+                                )}
+
+                                {/* Checklist items */}
+                                {checklist.length === 0 ? (
+                                    <Text className="text-sm text-center py-4" style={{ color: colors.textTertiary }}>
+                                        {t('tasks.details.noChecklistItems')}
+                                    </Text>
+                                ) : (
+                                    checklist.map(item => (
+                                        <TouchableOpacity 
+                                            key={item.id}
+                                            onPress={() => toggleChecklistItem(item.id)}
+                                            onLongPress={() => handleDeleteChecklistItem(item.id)}
+                                            className="flex-row items-center py-2.5 px-1"
+                                            style={{ borderBottomWidth: 0.5, borderBottomColor: colors.border }}
+                                        >
+                                            <MaterialCommunityIcons 
+                                                name={item.completed ? "checkbox-marked" : "checkbox-blank-outline"} 
+                                                size={22} 
+                                                color={item.completed ? '#10B981' : colors.textTertiary} 
+                                            />
+                                            <Text 
+                                                className="ml-2.5 flex-1 text-sm" 
+                                                style={{ 
+                                                    color: item.completed ? colors.textTertiary : colors.text,
+                                                    textDecorationLine: item.completed ? 'line-through' : 'none'
+                                                }}
+                                            >
+                                                {item.text}
+                                            </Text>
+                                            <TouchableOpacity onPress={() => handleDeleteChecklistItem(item.id)} className="p-1">
+                                                <MaterialCommunityIcons name="close" size={16} color={colors.textTertiary} />
+                                            </TouchableOpacity>
+                                        </TouchableOpacity>
+                                    ))
+                                )}
+                            </View>
+                        )}
+
                         {/* Eisenhower Matrix & Tags */}
                         <View className="rounded-xl p-4 mb-3" style={{ backgroundColor: colors.card }}>
                             <Text className="text-sm font-semibold mb-3" style={{ color: colors.textSecondary }}>{t('tasks.details.priorityTags')}</Text>
@@ -630,153 +833,83 @@ export default function TaskWorkView() {
                             </View>
                         </View>
 
-                        {/* Quick Actions */}
-                        <View className="rounded-xl p-4" style={{ backgroundColor: colors.card }}>
+                        {/* Quick Actions - Even 2-column grid */}
+                        <View className="rounded-xl p-4 mb-3" style={{ backgroundColor: colors.card }}>
                             <Text className="text-sm font-semibold mb-3" style={{ color: colors.textSecondary }}>{t('tasks.details.quickActions')}</Text>
-                            <View className="flex-row flex-wrap gap-2">
-                                <TouchableOpacity 
-                                    onPress={() => setShowStatusMenu(true)}
-                                    className="py-3 px-3 rounded-lg flex-row items-center justify-center"
-                                    style={{ backgroundColor: colors.backgroundSecondary, width: '48%' }}
-                                >
-                                    <MaterialCommunityIcons name="swap-horizontal" size={18} color="#3B82F6" />
-                                    <Text className="font-medium ml-2 text-sm" style={{ color: '#3B82F6' }}>{t('tasks.details.changeStatus')}</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity 
-                                    onPress={() => router.push(`/(tabs)/sprints/task/edit?id=${task.id}` as any)}
-                                    className="py-3 px-3 rounded-lg flex-row items-center justify-center"
-                                    style={{ backgroundColor: colors.backgroundSecondary, width: '48%' }}
-                                >
-                                    <MaterialCommunityIcons name="pencil" size={18} color={colors.textSecondary} />
-                                    <Text className="font-medium ml-2 text-sm" style={{ color: colors.textSecondary }}>{t('tasks.details.editTask')}</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity 
-                                    onPress={() => {
-                                        router.push({
-                                            pathname: '/(tabs)/pomodoro',
-                                            params: { 
-                                                taskId: task.id, 
-                                                taskTitle: task.title,
-                                                taskDescription: task.description,
-                                                taskStoryPoints: task.storyPoints,
-                                                taskQuadrant: task.quadrant,
-                                                returnTo: 'task'
-                                            }
-                                        } as any);
-                                    }}
-                                    className="py-3 px-3 rounded-lg flex-row items-center justify-center"
-                                    style={{ backgroundColor: colors.backgroundSecondary, width: '48%' }}
-                                >
-                                    <MaterialCommunityIcons name="bullseye-arrow" size={18} color="#F59E0B" />
-                                    <Text className="font-medium ml-2 text-sm" style={{ color: colors.textSecondary }}>{t('tasks.details.startPomodoro')}</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity 
-                                    onPress={() => setShowAddChecklist(true)}
-                                    className="py-3 px-3 rounded-lg flex-row items-center justify-center"
-                                    style={{ backgroundColor: colors.backgroundSecondary, width: '48%' }}
-                                >
-                                    <MaterialCommunityIcons name="checkbox-marked-outline" size={18} color="#10B981" />
-                                    <Text className="font-medium ml-2 text-sm" style={{ color: colors.textSecondary }}>{t('tasks.details.addChecklistItem')}</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity 
-                                    onPress={handleDeleteTask}
-                                    className="py-3 px-3 rounded-lg flex-row items-center justify-center"
-                                    style={{ backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : '#FEF2F2', width: '100%' }}
-                                >
-                                    <MaterialCommunityIcons name="delete-outline" size={18} color="#EF4444" />
-                                    <Text className="font-medium ml-2 text-sm" style={{ color: '#EF4444' }}>{t('tasks.details.deleteTask')}</Text>
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-
-                        {/* Checklist Section */}
-                        <View className="rounded-xl p-4" style={{ backgroundColor: colors.card }}>
-                            <View className="flex-row items-center justify-between mb-3">
-                                <View className="flex-row items-center">
-                                    <MaterialCommunityIcons name="checkbox-marked-outline" size={18} color={colors.textSecondary} />
-                                    <Text className="text-sm font-semibold ml-2" style={{ color: colors.textSecondary }}>
-                                        {t('tasks.details.checklist')} ({completedChecklist}/{totalChecklist})
-                                    </Text>
-                                </View>
-                                <TouchableOpacity onPress={() => setShowAddChecklist(!showAddChecklist)}>
-                                    <MaterialCommunityIcons 
-                                        name={showAddChecklist ? "minus-circle-outline" : "plus-circle-outline"} 
-                                        size={22} 
-                                        color={colors.primary} 
-                                    />
-                                </TouchableOpacity>
-                            </View>
-
-                            {/* Progress bar */}
-                            {totalChecklist > 0 && (
-                                <View className="h-1.5 rounded-full mb-3" style={{ backgroundColor: colors.backgroundSecondary }}>
-                                    <View 
-                                        className="h-1.5 rounded-full"
-                                        style={{ 
-                                            backgroundColor: '#10B981', 
-                                            width: `${(completedChecklist / totalChecklist) * 100}%` 
-                                        }}
-                                    />
-                                </View>
-                            )}
-
-                            {/* Add checklist item input */}
-                            {showAddChecklist && (
-                                <View className="flex-row items-center gap-2 mb-3">
-                                    <TextInput
-                                        value={newChecklistItem}
-                                        onChangeText={setNewChecklistItem}
-                                        placeholder={t('tasks.details.addChecklistPlaceholder')}
-                                        placeholderTextColor={colors.textTertiary}
-                                        className="flex-1 py-2 px-3 rounded-lg text-sm"
-                                        style={{ 
-                                            backgroundColor: colors.backgroundSecondary, 
-                                            color: colors.text,
-                                            borderWidth: 1,
-                                            borderColor: colors.border 
-                                        }}
-                                        onSubmitEditing={handleAddChecklistItem}
-                                    />
-                                    <TouchableOpacity
-                                        onPress={handleAddChecklistItem}
-                                        className="py-2 px-3 rounded-lg"
-                                        style={{ backgroundColor: '#10B981' }}
-                                    >
-                                        <MaterialCommunityIcons name="check" size={18} color="#fff" />
-                                    </TouchableOpacity>
-                                </View>
-                            )}
-
-                            {/* Checklist items */}
-                            {checklist.length === 0 ? (
-                                <Text className="text-sm text-center py-4" style={{ color: colors.textTertiary }}>
-                                    {t('tasks.details.noChecklistItems')}
-                                </Text>
-                            ) : (
-                                checklist.map(item => (
-                                    <TouchableOpacity 
-                                        key={item.id}
-                                        onPress={() => toggleChecklistItem(item.id)}
-                                        className="flex-row items-center py-2.5 px-1"
-                                        style={{ borderBottomWidth: 0.5, borderBottomColor: colors.border }}
-                                    >
-                                        <MaterialCommunityIcons 
-                                            name={item.completed ? "checkbox-marked" : "checkbox-blank-outline"} 
-                                            size={22} 
-                                            color={item.completed ? '#10B981' : colors.textTertiary} 
-                                        />
-                                        <Text 
-                                            className="ml-2.5 flex-1 text-sm" 
+                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4 }}>
+                                {[
+                                    {
+                                        onPress: () => setShowStatusMenu(true),
+                                        icon: 'swap-horizontal' as const,
+                                        iconColor: '#3B82F6',
+                                        label: t('tasks.details.changeStatus'),
+                                        bg: isDark ? 'rgba(59, 130, 246, 0.12)' : '#EFF6FF',
+                                        borderColor: isDark ? 'rgba(59, 130, 246, 0.3)' : '#BFDBFE',
+                                    },
+                                    {
+                                        onPress: () => router.push(`/(tabs)/sprints/task/edit?id=${task.id}` as any),
+                                        icon: 'pencil-outline' as const,
+                                        iconColor: '#8B5CF6',
+                                        label: t('tasks.details.editTask'),
+                                        bg: isDark ? 'rgba(139, 92, 246, 0.12)' : '#F5F3FF',
+                                        borderColor: isDark ? 'rgba(139, 92, 246, 0.3)' : '#DDD6FE',
+                                    },
+                                    {
+                                        onPress: () => {
+                                            router.push({
+                                                pathname: '/(tabs)/pomodoro',
+                                                params: { 
+                                                    taskId: task.id, 
+                                                    taskTitle: task.title,
+                                                    taskDescription: task.description,
+                                                    taskStoryPoints: task.storyPoints,
+                                                    taskQuadrant: task.quadrant,
+                                                    returnTo: 'task'
+                                                }
+                                            } as any);
+                                        },
+                                        icon: 'timer-outline' as const,
+                                        iconColor: '#F59E0B',
+                                        label: t('tasks.details.startPomodoro'),
+                                        bg: isDark ? 'rgba(245, 158, 11, 0.12)' : '#FFFBEB',
+                                        borderColor: isDark ? 'rgba(245, 158, 11, 0.3)' : '#FDE68A',
+                                    },
+                                    {
+                                        onPress: handleToggleChecklist,
+                                        icon: hasChecklist ? 'checkbox-multiple-blank-outline' as const : 'checkbox-marked-outline' as const,
+                                        iconColor: '#10B981',
+                                        label: hasChecklist ? t('tasks.details.removeChecklist') : t('tasks.details.addChecklist'),
+                                        bg: isDark ? 'rgba(16, 185, 129, 0.12)' : '#ECFDF5',
+                                        borderColor: isDark ? 'rgba(16, 185, 129, 0.3)' : '#A7F3D0',
+                                    },
+                                    {
+                                        onPress: handleDeleteTask,
+                                        icon: 'delete-outline' as const,
+                                        iconColor: '#EF4444',
+                                        label: t('tasks.details.deleteTask'),
+                                        bg: isDark ? 'rgba(239, 68, 68, 0.12)' : '#FEF2F2',
+                                        borderColor: isDark ? 'rgba(239, 68, 68, 0.3)' : '#FECACA',
+                                    },
+                                ].map((action, index) => (
+                                    <View key={index} style={{ width: '50%', paddingHorizontal: 4, marginBottom: 8 }}>
+                                        <TouchableOpacity
+                                            onPress={action.onPress}
+                                            className="py-3 px-3 rounded-xl flex-row items-center justify-center"
                                             style={{ 
-                                                color: item.completed ? colors.textTertiary : colors.text,
-                                                textDecorationLine: item.completed ? 'line-through' : 'none'
+                                                backgroundColor: action.bg,
+                                                borderWidth: 1,
+                                                borderColor: action.borderColor,
+                                                minHeight: 48,
                                             }}
                                         >
-                                            {item.text}
-                                        </Text>
-                                    </TouchableOpacity>
-                                ))
-                            )}
+                                            <MaterialCommunityIcons name={action.icon as any} size={18} color={action.iconColor} />
+                                            <Text className="font-medium ml-2 text-xs" style={{ color: action.iconColor }} numberOfLines={1}>
+                                                {action.label}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                ))}
+                            </View>
                         </View>
                     </View>
                 )}

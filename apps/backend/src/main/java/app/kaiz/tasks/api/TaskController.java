@@ -3,6 +3,7 @@ package app.kaiz.tasks.api;
 import app.kaiz.shared.security.CurrentUser;
 import app.kaiz.shared.util.ApiResponse;
 import app.kaiz.tasks.application.TaskService;
+import app.kaiz.tasks.application.dto.TaskChecklistItemDto;
 import app.kaiz.tasks.application.dto.TaskCommentDto;
 import app.kaiz.tasks.application.dto.TaskDto;
 import app.kaiz.tasks.application.dto.TaskHistoryDto;
@@ -161,5 +162,47 @@ public class TaskController {
     TaskCommentDto comment = taskService.addComment(userId, id, request);
     return ResponseEntity.created(URI.create("/api/v1/tasks/" + id + "/comments/" + comment.id()))
         .body(ApiResponse.success(comment));
+  }
+
+  // ==========================================
+  // Checklist Endpoints
+  // ==========================================
+
+  @GetMapping("/{id}/checklist")
+  @Operation(
+      summary = "Get checklist items",
+      description = "Retrieve all checklist items for a task")
+  public ResponseEntity<ApiResponse<List<TaskChecklistItemDto>>> getChecklistItems(
+      @CurrentUser UUID userId, @PathVariable UUID id) {
+    return ResponseEntity.ok(ApiResponse.success(taskService.getChecklistItems(userId, id)));
+  }
+
+  @PostMapping("/{id}/checklist")
+  @Operation(summary = "Add checklist item", description = "Add a new checklist item to a task")
+  public ResponseEntity<ApiResponse<TaskChecklistItemDto>> addChecklistItem(
+      @CurrentUser UUID userId,
+      @PathVariable UUID id,
+      @Valid @RequestBody TaskChecklistItemDto.CreateChecklistItemRequest request) {
+    TaskChecklistItemDto item = taskService.addChecklistItem(userId, id, request);
+    return ResponseEntity.created(URI.create("/api/v1/tasks/" + id + "/checklist/" + item.id()))
+        .body(ApiResponse.success(item));
+  }
+
+  @PatchMapping("/{id}/checklist/{itemId}/toggle")
+  @Operation(
+      summary = "Toggle checklist item",
+      description = "Toggle the completed state of a checklist item")
+  public ResponseEntity<ApiResponse<TaskChecklistItemDto>> toggleChecklistItem(
+      @CurrentUser UUID userId, @PathVariable UUID id, @PathVariable UUID itemId) {
+    return ResponseEntity.ok(
+        ApiResponse.success(taskService.toggleChecklistItem(userId, id, itemId)));
+  }
+
+  @DeleteMapping("/{id}/checklist/{itemId}")
+  @Operation(summary = "Delete checklist item", description = "Delete a checklist item from a task")
+  public ResponseEntity<ApiResponse<Void>> deleteChecklistItem(
+      @CurrentUser UUID userId, @PathVariable UUID id, @PathVariable UUID itemId) {
+    taskService.deleteChecklistItem(userId, id, itemId);
+    return ResponseEntity.ok(ApiResponse.success(null));
   }
 }
