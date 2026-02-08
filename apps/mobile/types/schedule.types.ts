@@ -110,11 +110,37 @@ export interface CustomRecurrence {
 }
 
 // ============================================================================
+// Date Mode — Sprint assignment vs specific calendar day
+// ============================================================================
+
+export type DateMode = 'sprint' | 'backlog' | 'specific';
+
+export const DATE_MODE_LABELS: Record<DateMode, string> = {
+  sprint: 'Sprint',
+  backlog: 'Backlog',
+  specific: 'Specific Day',
+};
+
+// ============================================================================
+// Sprint (shared lightweight interface for schedule pickers)
+// ============================================================================
+
+export interface ScheduleSprint {
+  id: string;
+  name: string;
+  weekNumber: number;
+  startDate: string;
+  endDate: string;
+}
+
+// ============================================================================
 // Task Schedule State (composite state for TaskScheduler component)
 // ============================================================================
 
 export interface TaskScheduleState {
   taskType: TaskType;
+  dateMode: DateMode;
+  sprintId: string | null; // null = backlog
   allDay: boolean;
   date: Date;
   time: Date; // time portion only
@@ -142,6 +168,8 @@ export function createDefaultScheduleState(
     case 'BIRTHDAY':
       return {
         taskType: 'BIRTHDAY',
+        dateMode: 'specific',
+        sprintId: null,
         allDay: true,
         date: now,
         time: roundedTime,
@@ -154,6 +182,8 @@ export function createDefaultScheduleState(
     case 'EVENT':
       return {
         taskType: 'EVENT',
+        dateMode: 'specific',
+        sprintId: null,
         allDay: false,
         date: now,
         time: roundedTime,
@@ -167,6 +197,8 @@ export function createDefaultScheduleState(
     default:
       return {
         taskType: 'TASK',
+        dateMode: 'sprint',
+        sprintId: null,
         allDay: false,
         date: now,
         time: roundedTime,

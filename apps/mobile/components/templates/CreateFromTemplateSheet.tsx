@@ -8,11 +8,13 @@ import {
     TouchableOpacity,
     TextInput,
     Switch,
-    KeyboardAvoidingView,
+    Pressable,
     Platform,
     Alert,
     ActivityIndicator,
+    StyleSheet,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { TaskTemplate } from '../../types/models';
 import { LIFE_WHEEL_CONFIG } from './TemplateCard';
@@ -128,6 +130,7 @@ export function CreateFromTemplateSheet({
                 ...createDefaultScheduleState(taskType),
                 allDay: template.isAllDay || false,
                 location: template.defaultLocation || '',
+                sprintId: sprints.length > 0 ? sprints[0].id : null,
                 ...(template.recurrencePattern ? {
                     recurrence: mapFrequencyToPreset(template.recurrencePattern.frequency),
                 } : {}),
@@ -182,21 +185,13 @@ export function CreateFromTemplateSheet({
                 new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
             );
             setSprints(availableSprints);
+            // Auto-set first sprint (current) in schedule if none selected
+            if (availableSprints.length > 0) {
+                setSchedule(prev => prev.sprintId ? prev : { ...prev, sprintId: availableSprints[0].id });
+            }
         } catch (error) {
             logger.error('CreateFromTemplate', 'Failed to load sprints', error);
         }
-    };
-
-    // Auto-resolve sprint from the selected date
-    const resolveSprintForDate = (date: Date | null): string | null => {
-        if (!date || sprints.length === 0) return null;
-        const target = date.getTime();
-        const match = sprints.find(s => {
-            const start = new Date(s.startDate).getTime();
-            const end = new Date(s.endDate).getTime();
-            return target >= start && target <= end;
-        });
-        return match?.id || null;
     };
 
     // Add a new tag
@@ -313,9 +308,6 @@ export function CreateFromTemplateSheet({
                 formattedAttachments = uploadedAttachments;
             }
 
-            // Auto-resolve sprint from date
-            const sprintId = isRecurring ? null : resolveSprintForDate(schedule.date);
-
             // Build event start/end times
             let eventStartTime: string | null = null;
             let eventEndTime: string | null = null;
@@ -338,20 +330,19 @@ export function CreateFromTemplateSheet({
                 description,
                 eisenhowerQuadrantId,
                 lifeWheelAreaId: selectedLifeWheelAreaId || template.defaultLifeWheelAreaId,
-                sprintId,
+                sprintId: isRecurring || schedule.dateMode === 'backlog' ? null : schedule.sprintId,
                 storyPoints,
                 status: 'TODO',
                 createdFromTemplateId: template.id,
                 isRecurring,
                 recurrence,
-                targetDate: !isRecurring ? schedule.date.toISOString() : null,
+                targetDate: schedule.dateMode === 'specific' && !isRecurring ? schedule.date.toISOString() : null,
                 tags: tags.length > 0 ? tags : null,
                 comment: comment.trim() || null,
                 attachments: formattedAttachments,
                 // New enum fields
                 taskType: schedule.taskType,
                 alertBefore: schedule.alertBefore,
-                location: isEventType ? schedule.location : null,
                 isAllDay: isEventType ? schedule.allDay : false,
                 eventStartTime,
                 eventEndTime,
@@ -403,10 +394,6 @@ export function CreateFromTemplateSheet({
             presentationStyle="pageSheet"
             onRequestClose={onClose}
         >
-            <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                className="flex-1"
-            >
                 <View className="flex-1 bg-white">
                     {/* Header */}
                     <View className="flex-row items-center justify-between px-4 py-4 border-b border-gray-100">
@@ -419,10 +406,14 @@ export function CreateFromTemplateSheet({
                         <View className="w-10" />
                     </View>
 
-                    <ScrollView
-                        className="flex-1"
+                    <KeyboardAwareScrollView
+                        style={{ flex: 1 }}
                         showsVerticalScrollIndicator={false}
                         keyboardShouldPersistTaps="handled"
+                        enableOnAndroid
+                        extraScrollHeight={Platform.OS === 'ios' ? 120 : 80}
+                        enableAutomaticScroll
+                        contentContainerStyle={{ paddingBottom: 100 }}
                     >
                         {/* Template Badge */}
                         <View className="px-4 pt-4 pb-2">
@@ -481,6 +472,7 @@ export function CreateFromTemplateSheet({
                             <TaskScheduler
                                 value={schedule}
                                 onChange={setSchedule}
+                                sprints={sprints}
                             />
 
                             {/* Story Points - Like Sprint View */}
@@ -690,76 +682,78 @@ export function CreateFromTemplateSheet({
                                 />
                             </View>
                         </View>
-                    </ScrollView>
+                    </KeyboardAwareScrollView>
 
-                    {/* Action Button - Full width to edges */}
-                    <TouchableOpacity
-                        onPress={handleCreate}
-                        disabled={isLoading}
-                        className={`py-5 items-center flex-row justify-center ${
-                            isLoading ? 'bg-gray-300' : 'bg-blue-600'
-                        }`}
-                        activeOpacity={0.8}
-                    >
-                        {isLoading ? (
-                            <Text className="text-white font-bold text-lg">Creating...</Text>
-                        ) : (
-                            <>
-                                <Ionicons name="checkmark-circle" size={24} color="white" />
-                                <Text className="text-white font-bold text-lg ml-2">
-                                    Create {typeLabel}
-                                </Text>
-                            </>
-                        )}
-                    </TouchableOpacity>
-
-                </View>
-            </KeyboardAvoidingView>
-        </Modal>
-
-        {/* Life Wheel Area Picker Modal */}
-        <Modal
-            visible={showLifeWheelPicker}
-            animationType="slide"
-            presentationStyle="pageSheet"
-            onRequestClose={() => setShowLifeWheelPicker(false)}
-        >
-            <View className="flex-1 bg-white">
-                <View className="flex-row items-center justify-between px-4 py-4 border-b border-gray-100">
-                    <TouchableOpacity onPress={() => setShowLifeWheelPicker(false)} className="p-2 -ml-2">
-                        <Ionicons name="close" size={28} color="#374151" />
-                    </TouchableOpacity>
-                    <Text className="text-lg font-semibold">Select Life Area</Text>
-                    <View className="w-10" />
-                </View>
-                <ScrollView className="flex-1 p-4">
-                    {Object.entries(LIFE_WHEEL_CONFIG).map(([id, config]) => (
-                        <TouchableOpacity
-                            key={id}
-                            onPress={() => {
-                                setSelectedLifeWheelAreaId(id);
-                                setShowLifeWheelPicker(false);
-                            }}
-                            className={`p-4 rounded-xl mb-3 border-2 flex-row items-center ${
-                                selectedLifeWheelAreaId === id 
-                                    ? 'border-blue-500' 
-                                    : 'border-gray-200'
-                            }`}
-                            style={{ backgroundColor: selectedLifeWheelAreaId === id ? config.color + '15' : '#f9fafb' }}
+                    {/* Native Bottom Action Button */}
+                    <View style={ctStyles.buttonContainer}>
+                        <Pressable
+                            onPress={handleCreate}
+                            disabled={isLoading}
+                            style={({ pressed }) => [
+                                ctStyles.createButton,
+                                { opacity: pressed ? 0.85 : isLoading ? 0.6 : 1 },
+                            ]}
                         >
-                            <Text className="text-2xl mr-3">{config.emoji}</Text>
-                            <Text 
-                                className={`flex-1 font-medium ${selectedLifeWheelAreaId === id ? 'text-gray-900' : 'text-gray-700'}`}
-                            >
-                                {config.name}
-                            </Text>
-                            {selectedLifeWheelAreaId === id && (
-                                <MaterialCommunityIcons name="check-circle" size={24} color={config.color} />
+                            {isLoading ? (
+                                <ActivityIndicator size="small" color="#FFFFFF" />
+                            ) : (
+                                <>
+                                    <Ionicons name="checkmark-circle" size={22} color="#FFFFFF" />
+                                    <Text style={ctStyles.createButtonText}>
+                                        Create {typeLabel}
+                                    </Text>
+                                </>
                             )}
-                        </TouchableOpacity>
-                    ))}
-                </ScrollView>
-            </View>
+                        </Pressable>
+                    </View>
+
+                </View>
+
+                {/* Life Wheel Area Picker Modal — INSIDE main modal so it stacks on iOS */}
+                <Modal
+                    visible={showLifeWheelPicker}
+                    animationType="slide"
+                    presentationStyle="pageSheet"
+                    onRequestClose={() => setShowLifeWheelPicker(false)}
+                >
+                    <View className="flex-1 bg-white">
+                        <View className="flex-row items-center justify-between px-4 py-4 border-b border-gray-100">
+                            <TouchableOpacity onPress={() => setShowLifeWheelPicker(false)} className="p-2 -ml-2">
+                                <Ionicons name="close" size={28} color="#374151" />
+                            </TouchableOpacity>
+                            <Text className="text-lg font-semibold">Select Life Area</Text>
+                            <View className="w-10" />
+                        </View>
+                        <ScrollView className="flex-1 p-4">
+                            {Object.entries(LIFE_WHEEL_CONFIG).map(([id, config]) => (
+                                <TouchableOpacity
+                                    key={id}
+                                    onPress={() => {
+                                        setSelectedLifeWheelAreaId(id);
+                                        setShowLifeWheelPicker(false);
+                                    }}
+                                    className={`p-4 rounded-xl mb-3 border-2 flex-row items-center ${
+                                        selectedLifeWheelAreaId === id 
+                                            ? 'border-blue-500' 
+                                            : 'border-gray-200'
+                                    }`}
+                                    style={{ backgroundColor: selectedLifeWheelAreaId === id ? config.color + '15' : '#f9fafb' }}
+                                >
+                                    <Text className="text-2xl mr-3">{config.emoji}</Text>
+                                    <Text 
+                                        className={`flex-1 font-medium ${selectedLifeWheelAreaId === id ? 'text-gray-900' : 'text-gray-700'}`}
+                                    >
+                                        {config.name}
+                                    </Text>
+                                    {selectedLifeWheelAreaId === id && (
+                                        <MaterialCommunityIcons name="check-circle" size={24} color={config.color} />
+                                    )}
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    </View>
+                </Modal>
+
         </Modal>
 
         {/* Attachment Picker Modal */}
@@ -777,3 +771,28 @@ export function CreateFromTemplateSheet({
 }
 
 export default CreateFromTemplateSheet;
+
+const ctStyles = StyleSheet.create({
+    buttonContainer: {
+        paddingHorizontal: 16,
+        paddingTop: 12,
+        paddingBottom: Platform.OS === 'ios' ? 34 : 16,
+        backgroundColor: '#FFFFFF',
+        borderTopWidth: StyleSheet.hairlineWidth,
+        borderTopColor: '#E5E7EB',
+    },
+    createButton: {
+        backgroundColor: '#2563EB',
+        borderRadius: 14,
+        paddingVertical: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+    },
+    createButtonText: {
+        color: '#FFFFFF',
+        fontSize: 17,
+        fontWeight: '700',
+    },
+});

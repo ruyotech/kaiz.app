@@ -43,7 +43,7 @@ function TaskTypeGridComponent({ value, onChange }: TaskTypeGridProps) {
             style={[
               styles.typeCard,
               {
-                backgroundColor: isSelected ? accentColor + '18' : colors.backgroundSecondary,
+                backgroundColor: isSelected ? accentColor + '18' : 'transparent',
                 borderColor: isSelected ? accentColor : colors.border,
                 borderWidth: isSelected ? 1.5 : 1,
               },

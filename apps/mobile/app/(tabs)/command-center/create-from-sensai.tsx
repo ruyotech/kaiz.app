@@ -11,14 +11,15 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
-  ScrollView,
   TouchableOpacity,
   TextInput,
-  KeyboardAvoidingView,
+  Pressable,
   Platform,
   Alert,
   ActivityIndicator,
+  StyleSheet,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -82,11 +83,6 @@ const LIFE_WHEEL_CONFIG: Record<string, { color: string; name: string; emoji: st
   'lw-8': { color: '#06B6D4', name: 'Contribution', emoji: '🌍' },
 };
 
-const DESTINATION_OPTIONS = [
-  { id: 'sprint', label: 'Current Sprint', icon: 'run-fast', description: 'Add to active sprint' },
-  { id: 'backlog', label: 'Backlog', icon: 'inbox-full', description: 'Save for later planning' },
-];
-
 // ============================================================================
 // Helpers
 // ============================================================================
@@ -116,6 +112,7 @@ const parseTimeFromString = (timeStr?: string): { hour: number; minute: number }
 // ============================================================================
 
 export default function CreateFromSensAIScreen() {
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { colors } = useThemeContext();
@@ -165,11 +162,7 @@ export default function CreateFromSensAIScreen() {
   const [eisenhowerQuadrantId, setEisenhowerQuadrantId] = useState(initialDraft.eisenhowerQuadrantId || 'eq-2');
   const [selectedLifeWheelAreaId, setSelectedLifeWheelAreaId] = useState(initialDraft.lifeWheelAreaId || 'lw-4');
   
-  // Destination
-  const [destination, setDestination] = useState<'sprint' | 'backlog'>('sprint');
-  const [selectedSprintId, setSelectedSprintId] = useState<string | null>(null);
-  
-  // Schedule state (unified via TaskScheduler)
+  // Schedule state (unified via TaskScheduler — includes sprint/backlog assignment)
   const [schedule, setSchedule] = useState<TaskScheduleState>(() => {
     const taskType: TaskType = initialDraft.taskType || 'TASK';
     const date = initialDraft.dueDate ? new Date(initialDraft.dueDate) : new Date();
@@ -213,7 +206,6 @@ export default function CreateFromSensAIScreen() {
   const [isLoadingData, setIsLoadingData] = useState(true);
 
   // UI state
-  const [showSprintPicker, setShowSprintPicker] = useState(false);
   const [showLifeWheelPicker, setShowLifeWheelPicker] = useState(false);
   const [showStoryPointsPicker, setShowStoryPointsPicker] = useState(false);
   
@@ -326,8 +318,9 @@ export default function CreateFromSensAIScreen() {
         );
       
       setSprints(availableSprints);
-      if (availableSprints.length > 0 && !selectedSprintId) {
-        setSelectedSprintId(availableSprints[0].id);
+      // Auto-set first sprint (current) in schedule if none selected
+      if (availableSprints.length > 0) {
+        setSchedule(prev => prev.sprintId ? prev : { ...prev, sprintId: availableSprints[0].id });
       }
     } catch (error) {
       logger.error('Failed to load sprints:', error);
@@ -371,6 +364,7 @@ export default function CreateFromSensAIScreen() {
     setIsLoading(true);
     try {
       const isEventLike = schedule.taskType === 'EVENT' || schedule.taskType === 'BIRTHDAY';
+      const isRecurring = schedule.recurrence !== 'NONE';
 
       // Build event start/end times as Instant if this is an event with time
       let eventStartTime: string | null = null;
@@ -386,13 +380,12 @@ export default function CreateFromSensAIScreen() {
         description: description.trim() || null,
         eisenhowerQuadrantId,
         lifeWheelAreaId: selectedLifeWheelAreaId,
-        sprintId: destination === 'sprint' ? selectedSprintId : null,
+        sprintId: isRecurring || schedule.dateMode === 'backlog' ? null : schedule.sprintId,
         storyPoints,
         status: 'TODO',
-        targetDate: schedule.date.toISOString(),
+        targetDate: schedule.dateMode === 'specific' && !isRecurring ? schedule.date.toISOString() : null,
         taskType: schedule.taskType,
         alertBefore: schedule.alertBefore,
-        location: isEventLike ? schedule.location : null,
         isAllDay: isEventLike ? schedule.allDay : false,
         eventStartTime,
         eventEndTime,
@@ -420,7 +413,7 @@ export default function CreateFromSensAIScreen() {
       Alert.alert(
         '✅ Created!',
         `${typeLabel} "${title}" has been added to ${
-          destination === 'sprint' ? 'your sprint' : 'backlog'
+          schedule.sprintId ? 'your sprint' : 'backlog'
         }.`,
         [
           {
@@ -455,16 +448,6 @@ export default function CreateFromSensAIScreen() {
   // Helpers
   // =========================================================================
 
-  const formatSprintName = (sprint: Sprint): string => {
-    const start = new Date(sprint.startDate);
-    const end = new Date(sprint.endDate);
-    const isCurrentSprint = sprints[0]?.id === sprint.id;
-    const monthName = start.toLocaleDateString('en-US', { month: 'short' });
-    return `S${sprint.weekNumber.toString().padStart(2, '0')} • ${monthName} ${start.getDate()}-${end.getDate()}${isCurrentSprint ? ' (Current)' : ''}`;
-  };
-
-  const selectedQuadrant = quadrants.find(q => q.id === eisenhowerQuadrantId);
-  const selectedSprint = sprints.find(s => s.id === selectedSprintId);
   const currentWheelConfig = LIFE_WHEEL_CONFIG[selectedLifeWheelAreaId] || { color: '#6b7280', name: 'General', emoji: '📋' };
 
   // =========================================================================
@@ -502,18 +485,18 @@ export default function CreateFromSensAIScreen() {
         }
       />
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        className="flex-1"
+      <KeyboardAwareScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ 
+          paddingHorizontal: 16,
+          paddingBottom: 120,
+        }}
+        keyboardShouldPersistTaps="handled"
+        enableOnAndroid
+        extraScrollHeight={Platform.OS === 'ios' ? 120 : 80}
+        enableAutomaticScroll
+        showsVerticalScrollIndicator={false}
       >
-        <ScrollView
-          className="flex-1"
-          contentContainerStyle={{ 
-            paddingHorizontal: 16,
-            paddingBottom: Math.max(insets.bottom, 16) + 100,
-          }}
-          keyboardShouldPersistTaps="handled"
-        >
           {/* AI Summary Badge */}
           {initialDraft.aiReasoning && (
             <View 
@@ -556,81 +539,6 @@ export default function CreateFromSensAIScreen() {
               style={{ minHeight: 80, textAlignVertical: 'top' }}
             />
           </View>
-
-          {/* Destination Selection */}
-          <View className="mt-6">
-            <Text className="text-sm font-medium text-gray-700 mb-3">Add to</Text>
-            <View className="flex-row gap-3">
-              {DESTINATION_OPTIONS.map(option => (
-                <TouchableOpacity
-                  key={option.id}
-                  onPress={() => setDestination(option.id as 'sprint' | 'backlog')}
-                  className="flex-1 p-4 rounded-xl border-2"
-                  style={{
-                    borderColor: destination === option.id ? colors.primary : '#E5E7EB',
-                    backgroundColor: destination === option.id ? colors.primary + '10' : 'white',
-                  }}
-                >
-                  <MaterialCommunityIcons 
-                    name={option.icon as any} 
-                    size={24} 
-                    color={destination === option.id ? colors.primary : '#6B7280'} 
-                  />
-                  <Text 
-                    className="font-semibold mt-2"
-                    style={{ color: destination === option.id ? colors.primary : '#374151' }}
-                  >
-                    {option.label}
-                  </Text>
-                  <Text className="text-xs text-gray-500 mt-1">{option.description}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Sprint Picker (if destination is sprint) */}
-          {destination === 'sprint' && sprints.length > 0 && (
-            <View className="mt-4">
-              <Text className="text-sm font-medium text-gray-700 mb-2">Select Sprint</Text>
-              <TouchableOpacity
-                onPress={() => setShowSprintPicker(!showSprintPicker)}
-                className="bg-gray-100 rounded-xl px-4 py-3 flex-row items-center justify-between"
-              >
-                <View className="flex-row items-center">
-                  <MaterialCommunityIcons name="run-fast" size={20} color={colors.primary} />
-                  <Text className="ml-2 text-gray-900">
-                    {selectedSprint ? formatSprintName(selectedSprint) : 'Select sprint'}
-                  </Text>
-                </View>
-                <MaterialCommunityIcons 
-                  name={showSprintPicker ? 'chevron-up' : 'chevron-down'} 
-                  size={20} 
-                  color="#6B7280" 
-                />
-              </TouchableOpacity>
-              
-              {showSprintPicker && (
-                <View className="mt-2 bg-white rounded-xl border border-gray-200 overflow-hidden">
-                  {sprints.map(sprint => (
-                    <TouchableOpacity
-                      key={sprint.id}
-                      onPress={() => {
-                        setSelectedSprintId(sprint.id);
-                        setShowSprintPicker(false);
-                      }}
-                      className="px-4 py-3 border-b border-gray-100 flex-row items-center justify-between"
-                      style={{ backgroundColor: selectedSprintId === sprint.id ? colors.primary + '10' : 'white' }}
-                    >
-                      <Text className="text-gray-900">{formatSprintName(sprint)}</Text>
-                      {selectedSprintId === sprint.id && (
-                        <MaterialCommunityIcons name="check" size={20} color={colors.primary} />
-                      )}
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-            </View>
-          )}
 
           {/* Life Wheel Area */}
           <View className="mt-4">
@@ -728,37 +636,58 @@ export default function CreateFromSensAIScreen() {
           {/* Schedule (Date, Time, Type, Recurrence, Alert, Location) */}
           <View className="mt-4">
             <Text className="text-sm font-medium text-gray-700 mb-3">Schedule</Text>
-            <TaskScheduler value={schedule} onChange={setSchedule} />
+            <TaskScheduler value={schedule} onChange={setSchedule} sprints={sprints} />
           </View>
-        </ScrollView>
+        </KeyboardAwareScrollView>
 
-        {/* Bottom Action Button */}
-        <View 
-          className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-4 py-4"
-          style={{ paddingBottom: Math.max(insets.bottom, 16) }}
-        >
-          <TouchableOpacity
+        {/* Native Bottom Action Button */}
+        <View style={[csStyles.buttonContainer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+          <Pressable
             onPress={handleCreate}
             disabled={isLoading || !title.trim()}
-            className="py-4 rounded-xl flex-row items-center justify-center"
-            style={{ 
-              backgroundColor: title.trim() ? colors.primary : '#D1D5DB',
-              opacity: isLoading ? 0.7 : 1,
-            }}
+            style={({ pressed }) => [
+              csStyles.createButton,
+              {
+                backgroundColor: title.trim() ? colors.primary : '#D1D5DB',
+                opacity: pressed ? 0.85 : isLoading ? 0.6 : 1,
+              },
+            ]}
           >
             {isLoading ? (
-              <ActivityIndicator size="small" color="white" />
+              <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
               <>
-                <MaterialCommunityIcons name="check" size={20} color="white" />
-                <Text className="text-white font-semibold text-lg ml-2">
+                <MaterialCommunityIcons name="check-circle" size={22} color="#FFFFFF" />
+                <Text style={csStyles.createButtonText}>
                   Create {typeLabel}
                 </Text>
               </>
             )}
-          </TouchableOpacity>
+          </Pressable>
         </View>
-      </KeyboardAvoidingView>
     </Container>
   );
 }
+
+const csStyles = StyleSheet.create({
+  buttonContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E5E7EB',
+  },
+  createButton: {
+    borderRadius: 14,
+    paddingVertical: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  createButtonText: {
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '700',
+  },
+});

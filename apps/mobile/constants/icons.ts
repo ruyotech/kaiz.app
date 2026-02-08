@@ -237,6 +237,9 @@ export const scheduleIcons = {
   chevronDown: mci('chevron-down'),
   noEnd: mci('infinity'),
   endDate: mci('calendar-end'),
+  sprint: mci('run-fast'),
+  calendar: mci('calendar'),
+  backlog: mci('inbox-full'),
 } as const;
 
 // Combined export for quick access
