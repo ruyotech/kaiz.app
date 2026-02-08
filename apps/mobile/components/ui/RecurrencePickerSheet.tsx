@@ -18,7 +18,7 @@ import {
 import DateTimePicker, {
   DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
-import { Picker } from '@react-native-picker/picker';
+import { WheelPicker } from './WheelPicker';
 import { AppIcon } from './AppIcon';
 import { actionIcons, scheduleIcons, navIcons } from '../../constants/icons';
 import { useThemeContext } from '../../providers/ThemeProvider';
@@ -185,32 +185,26 @@ function RecurrencePickerSheetComponent({
               {/* Interval + Unit pickers */}
               <View style={styles.pickerRow}>
                 <View style={styles.pickerColumn}>
-                  <Picker
+                  <WheelPicker
+                    items={Array.from({ length: 99 }, (_, i) => ({
+                      label: String(i + 1),
+                      value: i + 1,
+                    }))}
                     selectedValue={customInterval}
-                    onValueChange={(val: number) => setCustomInterval(val)}
-                    style={[styles.nativePicker, { color: colors.text }]}
-                    itemStyle={{ color: colors.text, fontSize: fontSize.lg }}
-                  >
-                    {Array.from({ length: 99 }, (_, i) => i + 1).map((n) => (
-                      <Picker.Item key={n} label={String(n)} value={n} />
-                    ))}
-                  </Picker>
+                    onValueChange={(val) => setCustomInterval(val as number)}
+                  />
                 </View>
                 <View style={styles.pickerColumn}>
-                  <Picker
+                  <WheelPicker
+                    items={RECURRENCE_UNITS.map((unit) => ({
+                      label: RECURRENCE_UNIT_LABELS[unit],
+                      value: unit,
+                    }))}
                     selectedValue={customUnit}
-                    onValueChange={(val: RecurrenceUnit) => setCustomUnit(val)}
-                    style={[styles.nativePicker, { color: colors.text }]}
-                    itemStyle={{ color: colors.text, fontSize: fontSize.lg }}
-                  >
-                    {RECURRENCE_UNITS.map((unit) => (
-                      <Picker.Item
-                        key={unit}
-                        label={RECURRENCE_UNIT_LABELS[unit]}
-                        value={unit}
-                      />
-                    ))}
-                  </Picker>
+                    onValueChange={(val) =>
+                      setCustomUnit(val as RecurrenceUnit)
+                    }
+                  />
                 </View>
               </View>
 
@@ -436,9 +430,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   pickerColumn: {
-    flex: 1,
-  },
-  nativePicker: {
     flex: 1,
   },
   endDateRow: {
