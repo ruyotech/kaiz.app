@@ -2,8 +2,8 @@ import React from 'react';
 import { View, Text, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import { useNavigationStore, AppContext } from '../../store/navigationStore';
 import { useSubscriptionStore } from '../../store/subscriptionStore';
-import { APPS, NAV_CONFIGS, SUB_APPS } from '../../utils/navigationConfig';
-import type { App, SubApp } from '../../utils/navigationConfig';
+import { APPS, NAV_CONFIGS } from '../../utils/navigationConfig';
+import type { App } from '../../utils/navigationConfig';
 import { useRouter } from 'expo-router';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,8 +16,7 @@ import { navIcons, sectionIcons, moduleIcons, statusIcons, actionIcons, settings
 // ============================================================================
 
 const SPRINT_APP = APPS.find(app => app.id === 'sprints')!;
-const SPRINT_SUB_APPS = APPS.filter(app => ['backlog', 'epics', 'taskSearch', 'templates'].includes(app.id));
-const PRODUCTIVITY_APPS = APPS.filter(app => ['sensai', 'pomodoro', 'challenges'].includes(app.id));
+const PRODUCTIVITY_APPS = APPS.filter(app => ['pomodoro', 'challenges'].includes(app.id));
 const GROWTH_APPS = APPS.filter(app => ['mindset', 'essentia'].includes(app.id));
 const COMMUNITY_APP = APPS.find(app => app.id === 'community')!;
 const FAMILY_APP = APPS.find(app => app.id === 'family');
@@ -25,7 +24,6 @@ const FAMILY_APP = APPS.find(app => app.id === 'family');
 // Short descriptions for each app card
 const APP_DESCRIPTIONS: Partial<Record<string, string>> = {
     sprints: 'Plan & track your sprints',
-    sensai: 'AI coaching & ceremonies',
     challenges: 'Track your challenges',
     pomodoro: 'Focus & time management',
     essentia: 'Books & knowledge',
@@ -35,55 +33,11 @@ const APP_DESCRIPTIONS: Partial<Record<string, string>> = {
 };
 
 // ============================================================================
-// Sub-App Grid — reusable 4-column grid component
-// ============================================================================
-
-const SubAppGrid = React.memo(function SubAppGrid({
-    subApps,
-    onSelect,
-    colors,
-    t,
-}: {
-    subApps: SubApp[];
-    onSelect: (sub: SubApp) => void;
-    colors: Record<string, string>;
-    t: (key: string) => string;
-}) {
-    if (subApps.length === 0) return null;
-    return (
-        <View
-            className="flex-row flex-wrap rounded-2xl p-3 mt-2"
-            style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
-        >
-            {subApps.map((sub) => (
-                <View key={sub.id} style={{ width: '25%', paddingHorizontal: 4 }}>
-                    <TouchableOpacity
-                        onPress={() => onSelect(sub)}
-                        activeOpacity={0.7}
-                        className="items-center py-2"
-                    >
-                        <View
-                            className="w-11 h-11 rounded-xl items-center justify-center mb-1.5"
-                            style={{ backgroundColor: sub.color + '20' }}
-                        >
-                            <AppIcon icon={sub.icon} size={22} color={sub.color} />
-                        </View>
-                        <Text className="text-[10px] font-medium text-center" style={{ color: colors.textSecondary }} numberOfLines={1}>
-                            {t(sub.nameKey)}
-                        </Text>
-                    </TouchableOpacity>
-                </View>
-            ))}
-        </View>
-    );
-});
-
-// ============================================================================
 // AppSwitcher
 // ============================================================================
 
 export function AppSwitcher() {
-    const { isAppSwitcherOpen, toggleAppSwitcher, setCurrentApp, currentApp } = useNavigationStore();
+    const { isAppSwitcherOpen, toggleAppSwitcher, setCurrentApp, currentApp, toggleMoreMenu } = useNavigationStore();
     const { canAccessFeature } = useSubscriptionStore();
     const router = useRouter();
     const { t } = useTranslation();
@@ -92,28 +46,14 @@ export function AppSwitcher() {
 
     const hasFamilyAccess = canAccessFeature('sharedWorkspace');
 
-    // Merge SPRINT_SUB_APPS (from APPS) with extra sprint sub-apps from SUB_APPS config
-    const allSprintSubApps: SubApp[] = [
-        ...SPRINT_SUB_APPS.map(app => ({ id: app.id, nameKey: app.nameKey, icon: app.icon, color: app.color, route: app.route })),
-        ...(SUB_APPS.sprints ?? []),
-    ];
-
     const navigateAndClose = (route: string) => {
         router.push(route as any);
         toggleAppSwitcher();
     };
 
-    const handleAppSelect = (app: App | SubApp) => {
-        // Don't change currentApp for overlays — they preserve the current bottom bar context
-        const overlayIds = ['templates', 'backlog', 'epics', 'taskSearch'];
-        if (!overlayIds.includes(app.id)) {
-            setCurrentApp(app.id as AppContext);
-        }
+    const handleAppSelect = (app: App) => {
+        setCurrentApp(app.id as AppContext);
         navigateAndClose(app.route);
-    };
-
-    const handleSubAppSelect = (sub: SubApp) => {
-        navigateAndClose(sub.route);
     };
 
     return (
@@ -166,9 +106,6 @@ export function AppSwitcher() {
                                 <AppIcon icon={navIcons.chevronRight} size={20} color={colors.textTertiary} />
                             </View>
                         </TouchableOpacity>
-
-                        {/* Sprint Sub-apps Grid (4 col × 3 rows max) */}
-                        <SubAppGrid subApps={allSprintSubApps} onSelect={handleSubAppSelect} colors={colors} t={t} />
                     </View>
 
                     {/* ====== Productivity Section — SensAI, Challenges, Focus ====== */}
@@ -209,10 +146,6 @@ export function AppSwitcher() {
                                         <AppIcon icon={navIcons.chevronRight} size={20} color={colors.textTertiary} />
                                     </View>
                                 </TouchableOpacity>
-
-                                {SUB_APPS[app.id as AppContext] && SUB_APPS[app.id as AppContext]!.length > 0 && (
-                                    <SubAppGrid subApps={SUB_APPS[app.id as AppContext]!} onSelect={handleSubAppSelect} colors={colors} t={t} />
-                                )}
                             </View>
                         ))}
                     </View>
@@ -255,10 +188,6 @@ export function AppSwitcher() {
                                         <AppIcon icon={navIcons.chevronRight} size={20} color={colors.textTertiary} />
                                     </View>
                                 </TouchableOpacity>
-
-                                {SUB_APPS[app.id as AppContext] && SUB_APPS[app.id as AppContext]!.length > 0 && (
-                                    <SubAppGrid subApps={SUB_APPS[app.id as AppContext]!} onSelect={handleSubAppSelect} colors={colors} t={t} />
-                                )}
                             </View>
                         ))}
                     </View>
@@ -295,11 +224,6 @@ export function AppSwitcher() {
                             )}
                             <AppIcon icon={navIcons.chevronRight} size={20} color={colors.textTertiary} />
                         </TouchableOpacity>
-
-                        {/* Community sub-apps */}
-                        {SUB_APPS.community && (
-                            <SubAppGrid subApps={SUB_APPS.community} onSelect={handleSubAppSelect} colors={colors} t={t} />
-                        )}
                     </View>
 
                     {/* ====== Family Section — Premium Feature ====== */}
@@ -346,11 +270,6 @@ export function AppSwitcher() {
                                 )}
                                 <AppIcon icon={navIcons.chevronRight} size={20} color={colors.textTertiary} />
                             </TouchableOpacity>
-
-                            {/* Family sub-apps */}
-                            {hasFamilyAccess && SUB_APPS.family && (
-                                <SubAppGrid subApps={SUB_APPS.family} onSelect={handleSubAppSelect} colors={colors} t={t} />
-                            )}
                         </View>
                     )}
                 </ScrollView>
@@ -402,16 +321,16 @@ export function AppSwitcher() {
                                     </Text>
                                 </TouchableOpacity>
 
-                                {/* 3. Dashboard (replaced "More") */}
+                                {/* 3. … More — contextual sub-apps */}
                                 <TouchableOpacity
                                     className="items-center"
-                                    onPress={() => navigateAndClose('/(tabs)/dashboard')}
+                                    onPress={toggleMoreMenu}
                                 >
-                                    <View className="w-12 h-12 rounded-2xl items-center justify-center" style={{ backgroundColor: '#DBEAFE' }}>
-                                        <AppIcon icon={moduleIcons.dashboard} size={26} color="#3B82F6" />
+                                    <View className="w-12 h-12 rounded-2xl items-center justify-center" style={{ backgroundColor: '#E0E7FF' }}>
+                                        <AppIcon icon={navIcons.more} size={26} color="#6366F1" />
                                     </View>
-                                    <Text className="text-[10px] font-medium mt-1" style={{ color: '#3B82F6' }}>
-                                        {t('navigation.tabs.dashboard')}
+                                    <Text className="text-[10px] font-medium mt-1" style={{ color: '#6366F1' }}>
+                                        {t('navigation.tabs.more')}
                                     </Text>
                                 </TouchableOpacity>
 

@@ -146,3 +146,37 @@ export const SUB_APPS: Partial<Record<AppContext, SubApp[]>> = {
         { id: 'sprints-preferences',   nameKey: 'settings.title',                      icon: settingsIcons.cogOutline, color: '#3B82F6', route: '/(tabs)/sprints/preferences' },
     ],
 };
+
+// ============================================================================
+// getSubAppsForContext — Returns all sub-apps for a given app context.
+// Handles the special sprints case which merges APPS-level sub-apps with SUB_APPS.
+// ============================================================================
+
+export function getSubAppsForContext(context: AppContext): SubApp[] {
+    if (context === 'sprints') {
+        const sprintSubApps = APPS.filter(app =>
+            ['backlog', 'epics', 'taskSearch', 'templates'].includes(app.id),
+        );
+        return [
+            ...sprintSubApps.map(app => ({
+                id: app.id,
+                nameKey: app.nameKey,
+                icon: app.icon,
+                color: app.color,
+                route: app.route,
+            })),
+            ...(SUB_APPS.sprints ?? []),
+        ];
+    }
+    return SUB_APPS[context] ?? [];
+}
+
+// ============================================================================
+// UTILITY_ITEMS — Always-visible quick-access items in the More menu
+// ============================================================================
+
+export const UTILITY_ITEMS: SubApp[] = [
+    { id: 'util-dashboard',     nameKey: 'navigation.tabs.dashboard',     icon: moduleIcons.dashboard,     color: '#3B82F6', route: '/(tabs)/dashboard' },
+    { id: 'util-notifications', nameKey: 'navigation.tabs.notifications', icon: moduleIcons.notifications, color: '#EF4444', route: '/(tabs)/notifications' },
+    { id: 'util-settings',      nameKey: 'navigation.tabs.settings',      icon: moduleIcons.settings,      color: '#6B7280', route: '/(tabs)/settings' },
+];

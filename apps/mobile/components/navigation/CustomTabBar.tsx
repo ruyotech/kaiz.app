@@ -1,12 +1,12 @@
 import { logger } from '../../utils/logger';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { View, Text, TouchableOpacity, TextInput, Modal, Pressable, KeyboardAvoidingView, Platform, Alert, ActivityIndicator, Animated, Linking } from 'react-native';
 import { Image } from 'expo-image';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigationStore, AppContext } from '../../store/navigationStore';
 import { usePomodoroStore } from '../../store/pomodoroStore';
 import { useNotificationStore } from '../../store/notificationStore';
-import { NAV_CONFIGS } from '../../utils/navigationConfig';
+import { NAV_CONFIGS, getSubAppsForContext, UTILITY_ITEMS } from '../../utils/navigationConfig';
 import { useRouter, usePathname } from 'expo-router';
 import { AppSwitcher } from './AppSwitcher';
 import { AppIcon } from '../ui/AppIcon';
@@ -43,7 +43,7 @@ type AttachmentType = {
 type PendingAction = 'camera' | 'image' | 'file' | 'voice' | null;
 
 export function CustomTabBar() {
-    const { currentApp, toggleAppSwitcher } = useNavigationStore();
+    const { currentApp, toggleAppSwitcher, isMoreMenuOpen, toggleMoreMenu, closeModals } = useNavigationStore();
     const { isActive: isPomodoroActive, timeRemaining, isPaused } = usePomodoroStore();
     const { unreadCount } = useNotificationStore();
     const router = useRouter();
@@ -716,7 +716,8 @@ export function CustomTabBar() {
         return pathname.startsWith(route);
     };
 
-    const isDashboardActive = pathname.startsWith('/(tabs)/dashboard');
+    // Contextual sub-apps for the current app's More menu
+    const contextSubApps = useMemo(() => getSubAppsForContext(currentApp as AppContext), [currentApp]);
 
     // Check if we're on the Command Center screen
     const isOnCommandCenter = pathname.includes('/command-center');
@@ -924,20 +925,20 @@ export function CustomTabBar() {
                             </Text>
                         </TouchableOpacity>
 
-                        {/* 3. Dashboard (replaces More) - Blue background + notification badge */}
+                        {/* 3. … More — contextual sub-apps for current app */}
                         <TouchableOpacity
                             className="items-center"
-                            onPress={() => handleIconPress('/(tabs)/dashboard')}
+                            onPress={toggleMoreMenu}
                         >
                             <View className="relative">
                                 <View
                                     className="w-12 h-12 rounded-2xl items-center justify-center"
-                                    style={{ backgroundColor: isDashboardActive ? '#DBEAFE' : '#EFF6FF' }}
+                                    style={{ backgroundColor: isMoreMenuOpen ? '#E0E7FF' : '#EEF2FF' }}
                                 >
                                     <AppIcon
-                                        icon={moduleIcons.dashboard}
+                                        icon={navIcons.more}
                                         size={28}
-                                        color={isDashboardActive ? '#2563EB' : '#3B82F6'}
+                                        color={isMoreMenuOpen ? '#4F46E5' : '#6366F1'}
                                     />
                                 </View>
                                 {unreadCount > 0 && (
@@ -950,9 +951,9 @@ export function CustomTabBar() {
                             </View>
                             <Text
                                 className="text-[10px] font-semibold mt-0.5"
-                                style={{ color: isDashboardActive ? '#2563EB' : '#3B82F6' }}
+                                style={{ color: isMoreMenuOpen ? '#4F46E5' : '#6366F1' }}
                             >
-                                {t('navigation.tabs.dashboard')}
+                                {t('navigation.tabs.more')}
                             </Text>
                         </TouchableOpacity>
 
@@ -983,6 +984,91 @@ export function CustomTabBar() {
             </View>
 
             <AppSwitcher />
+
+            {/* More Menu Modal — contextual sub-apps for current app */}
+            <Modal visible={isMoreMenuOpen} transparent animationType="slide">
+                <Pressable
+                    className="flex-1 justify-end"
+                    style={{ backgroundColor: colors.overlay }}
+                    onPress={closeModals}
+                >
+                    <Pressable>
+                        <View 
+                            className="rounded-t-3xl pt-4 pb-8 px-4"
+                            style={{ backgroundColor: colors.card }}
+                        >
+                            {/* Header */}
+                            <View className="flex-row justify-between items-center mb-4">
+                                <Text className="text-lg font-bold" style={{ color: colors.text }}>
+                                    {t('navigation.moreMenu.title')}
+                                </Text>
+                                <TouchableOpacity onPress={closeModals}>
+                                    <MaterialCommunityIcons name="close" size={24} color={colors.text} />
+                                </TouchableOpacity>
+                            </View>
+
+                            {/* Contextual sub-apps for the active app */}
+                            {contextSubApps.length > 0 && (
+                                <>
+                                    <Text className="text-sm font-semibold mb-3" style={{ color: colors.textSecondary }}>
+                                        {t(mainIcon.nameKey)}
+                                    </Text>
+                                    <View className="flex-row flex-wrap mb-4">
+                                        {contextSubApps.map((sub) => (
+                                            <View key={sub.id} style={{ width: '25%', paddingHorizontal: 4, marginBottom: 12 }}>
+                                                <TouchableOpacity
+                                                    onPress={() => { closeModals(); router.push(sub.route as any); }}
+                                                    className="items-center"
+                                                    activeOpacity={0.7}
+                                                >
+                                                    <View
+                                                        className="w-12 h-12 rounded-xl items-center justify-center mb-1.5"
+                                                        style={{ backgroundColor: sub.color + '20' }}
+                                                    >
+                                                        <AppIcon icon={sub.icon} size={24} color={sub.color} />
+                                                    </View>
+                                                    <Text
+                                                        className="text-[10px] font-medium text-center"
+                                                        style={{ color: colors.textSecondary }}
+                                                        numberOfLines={1}
+                                                    >
+                                                        {t(sub.nameKey)}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            </View>
+                                        ))}
+                                    </View>
+                                    <View style={{ height: 1, backgroundColor: colors.border, marginBottom: 16 }} />
+                                </>
+                            )}
+
+                            {/* Utility quick-access items */}
+                            <Text className="text-sm font-semibold mb-3" style={{ color: colors.textSecondary }}>Quick Access</Text>
+                            <View className="flex-row gap-3">
+                                {UTILITY_ITEMS.map((item) => (
+                                    <TouchableOpacity
+                                        key={item.id}
+                                        onPress={() => { closeModals(); router.push(item.route as any); }}
+                                        className="flex-1 items-center py-3 rounded-xl"
+                                        style={{ backgroundColor: colors.backgroundTertiary }}
+                                        activeOpacity={0.7}
+                                    >
+                                        <View
+                                            className="w-11 h-11 rounded-xl items-center justify-center mb-1.5"
+                                            style={{ backgroundColor: item.color + '20' }}
+                                        >
+                                            <AppIcon icon={item.icon} size={22} color={item.color} />
+                                        </View>
+                                        <Text className="text-[10px] font-medium" style={{ color: colors.textSecondary }}>
+                                            {t(item.nameKey)}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </View>
+                    </Pressable>
+                </Pressable>
+            </Modal>
 
             {/* Create & Attachment Options Modal */}
             <Modal visible={showCreateMenu} transparent animationType="slide">

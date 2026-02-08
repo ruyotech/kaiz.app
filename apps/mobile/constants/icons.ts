@@ -36,6 +36,7 @@ export const navIcons = {
   filter: mci('filter-variant'),
   sort: mci('sort'),
   menu: mci('menu'),
+  more: mci('dots-horizontal'),
   bellRing: mci('bell-ring'),
   bellOutline: mci('bell-outline'),
 } as const;
