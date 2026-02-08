@@ -66,26 +66,25 @@ export const notificationKeys = {
   preferences: () => [...notificationKeys.all, 'preferences'] as const,
 };
 
-// ── SensAI ──────────────────────────────────────────────────────────────────
-export const sensaiKeys = {
+// ── Sprint Ceremonies (backed by /api/v1/sensai/* endpoints) ────────────────
+export const sprintCeremonyKeys = {
   all: ['sensai'] as const,
-  velocity: () => [...sensaiKeys.all, 'velocity'] as const,
-  sprintHealth: (sprintId: string) => [...sensaiKeys.all, 'sprintHealth', sprintId] as const,
-  currentHealth: () => [...sensaiKeys.all, 'currentHealth'] as const,
-  capacity: () => [...sensaiKeys.all, 'capacity'] as const,
-  standup: () => [...sensaiKeys.all, 'standup'] as const,
-  standupHistory: (start: string, end: string) => [...sensaiKeys.all, 'standupHistory', start, end] as const,
-  interventions: () => [...sensaiKeys.all, 'interventions'] as const,
-  ceremonies: () => [...sensaiKeys.all, 'ceremonies'] as const,
-  lifeWheel: () => [...sensaiKeys.all, 'lifeWheel'] as const,
-  dimensionHistory: (dim: string) => [...sensaiKeys.all, 'dimension', dim] as const,
-  messages: (unreadOnly?: boolean) => [...sensaiKeys.all, 'messages', { unreadOnly }] as const,
-  settings: () => [...sensaiKeys.all, 'settings'] as const,
-  analytics: (period: string) => [...sensaiKeys.all, 'analytics', period] as const,
-  patterns: () => [...sensaiKeys.all, 'patterns'] as const,
-  motivation: () => [...sensaiKeys.all, 'motivation'] as const,
-  prescriptions: () => [...sensaiKeys.all, 'prescriptions'] as const,
-  microChallenges: () => [...sensaiKeys.all, 'microChallenges'] as const,
+  velocity: () => [...sprintCeremonyKeys.all, 'velocity'] as const,
+  sprintHealth: (sprintId: string) => [...sprintCeremonyKeys.all, 'sprintHealth', sprintId] as const,
+  currentHealth: () => [...sprintCeremonyKeys.all, 'currentHealth'] as const,
+  capacity: () => [...sprintCeremonyKeys.all, 'capacity'] as const,
+  standup: () => [...sprintCeremonyKeys.all, 'standup'] as const,
+  standupHistory: (start: string, end: string) => [...sprintCeremonyKeys.all, 'standupHistory', start, end] as const,
+  interventions: () => [...sprintCeremonyKeys.all, 'interventions'] as const,
+  ceremonies: () => [...sprintCeremonyKeys.all, 'ceremonies'] as const,
+  lifeWheel: () => [...sprintCeremonyKeys.all, 'lifeWheel'] as const,
+  dimensionHistory: (dim: string) => [...sprintCeremonyKeys.all, 'dimension', dim] as const,
+  messages: (unreadOnly?: boolean) => [...sprintCeremonyKeys.all, 'messages', { unreadOnly }] as const,
+  settings: () => [...sprintCeremonyKeys.all, 'settings'] as const,
+  analytics: (period: string) => [...sprintCeremonyKeys.all, 'analytics', period] as const,
+  patterns: () => [...sprintCeremonyKeys.all, 'patterns'] as const,
+  motivation: () => [...sprintCeremonyKeys.all, 'motivation'] as const,
+  microChallenges: () => [...sprintCeremonyKeys.all, 'microChallenges'] as const,
 };
 
 // ── Community ───────────────────────────────────────────────────────────────

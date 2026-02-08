@@ -1,17 +1,17 @@
 /**
- * SensAI Standup Screen
- * 
+ * Daily Standup Screen
+ *
  * Daily standup ceremony for checking in on progress,
  * identifying blockers, and setting focus for the day.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useSensAIStore } from '../../../store/sensaiStore';
-import { SprintHealthCard, CoachMessage } from '../../../components/sensai';
+import { useTodayStandup, useCompleteStandup, useCurrentSprintHealth } from '../../../hooks/queries';
+import { SprintHealthCard } from '../../../components/sprints/SprintHealthCard';
 import { StandupTask, StandupBlocker } from '../../../types/sensai.types';
 import { useThemeContext } from '../../../providers/ThemeProvider';
 
@@ -20,24 +20,18 @@ type StandupStep = 'yesterday' | 'today' | 'blockers' | 'summary';
 export default function StandupScreen() {
     const router = useRouter();
     const { colors, isDark } = useThemeContext();
-    const {
-        todayStandup,
-        currentSprintHealth,
-        loading,
-        getTodayStandup,
-        completeStandup,
-        convertBlockerToTask,
-    } = useSensAIStore();
+    const { data: standupResponse } = useTodayStandup();
+    const { data: currentSprintHealth } = useCurrentSprintHealth();
+    const completeStandupMutation = useCompleteStandup();
+
+    const todayStandup = standupResponse?.standup;
+    const hasCompletedToday = standupResponse?.hasCompletedToday ?? false;
 
     const [step, setStep] = useState<StandupStep>('yesterday');
     const [blockerInput, setBlockerInput] = useState('');
     const [blockers, setBlockers] = useState<string[]>([]);
     const [notes, setNotes] = useState('');
     const [mood, setMood] = useState<'great' | 'good' | 'okay' | 'struggling' | null>(null);
-
-    useEffect(() => {
-        getTodayStandup();
-    }, []);
 
     const completedYesterday = todayStandup?.completedYesterday || [];
     const focusToday = todayStandup?.focusToday || [];
@@ -55,7 +49,11 @@ export default function StandupScreen() {
     };
 
     const handleComplete = async () => {
-        await completeStandup(blockers, notes, mood || undefined);
+        await completeStandupMutation.mutateAsync({
+            blockers,
+            notes,
+            mood: mood || undefined,
+        } as any);
         router.back();
     };
 
@@ -63,11 +61,11 @@ export default function StandupScreen() {
         <View className="flex-row items-center justify-center py-4">
             {['yesterday', 'today', 'blockers', 'summary'].map((s, i) => (
                 <View key={s} className="flex-row items-center">
-                    <View 
+                    <View
                         className="w-8 h-8 rounded-full items-center justify-center"
-                        style={{ 
-                            backgroundColor: step === s ? colors.primary : 
-                                ['yesterday', 'today', 'blockers', 'summary'].indexOf(step) > i ? colors.success : colors.backgroundSecondary
+                        style={{
+                            backgroundColor: step === s ? colors.primary :
+                                ['yesterday', 'today', 'blockers', 'summary'].indexOf(step) > i ? colors.success : colors.backgroundSecondary,
                         }}
                     >
                         {['yesterday', 'today', 'blockers', 'summary'].indexOf(step) > i ? (
@@ -92,13 +90,13 @@ export default function StandupScreen() {
             <ScrollView className="flex-1 px-4">
                 {completedYesterday.length > 0 ? (
                     completedYesterday.map((task: StandupTask) => (
-                        <View 
-                            key={task.taskId} 
+                        <View
+                            key={task.taskId}
                             className="rounded-xl p-4 mb-3"
-                            style={{ 
+                            style={{
                                 backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5',
                                 borderWidth: 1,
-                                borderColor: isDark ? '#10B981' : '#A7F3D0'
+                                borderColor: isDark ? '#10B981' : '#A7F3D0',
                             }}
                         >
                             <View className="flex-row items-center">
@@ -141,13 +139,13 @@ export default function StandupScreen() {
             <ScrollView className="flex-1 px-4">
                 {focusToday.length > 0 ? (
                     focusToday.map((task: StandupTask, index: number) => (
-                        <View 
-                            key={task.taskId} 
+                        <View
+                            key={task.taskId}
                             className="rounded-xl p-4 mb-3"
-                            style={{ 
+                            style={{
                                 backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : '#EFF6FF',
                                 borderWidth: 1,
-                                borderColor: isDark ? '#3B82F6' : '#BFDBFE'
+                                borderColor: isDark ? '#3B82F6' : '#BFDBFE',
                             }}
                         >
                             <View className="flex-row items-center">
@@ -162,7 +160,7 @@ export default function StandupScreen() {
                         </View>
                     ))
                 ) : (
-                    <View 
+                    <View
                         className="rounded-xl p-6 items-center"
                         style={{ backgroundColor: isDark ? 'rgba(245, 158, 11, 0.15)' : '#FFFBEB' }}
                     >
@@ -193,8 +191,8 @@ export default function StandupScreen() {
     );
 
     const renderBlockersStep = () => (
-        <KeyboardAvoidingView 
-            className="flex-1" 
+        <KeyboardAvoidingView
+            className="flex-1"
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
             <View className="px-4 mb-4">
@@ -203,42 +201,33 @@ export default function StandupScreen() {
             </View>
 
             <ScrollView className="flex-1 px-4">
-                {/* Existing blockers from previous days */}
-                {existingBlockers.filter(b => !b.convertedToTask).map((blocker: StandupBlocker) => (
-                    <View 
-                        key={blocker.id} 
+                {existingBlockers.filter((b: StandupBlocker) => !b.convertedToTask).map((blocker: StandupBlocker) => (
+                    <View
+                        key={blocker.id}
                         className="rounded-xl p-4 mb-3"
-                        style={{ 
+                        style={{
                             backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : '#FEF2F2',
                             borderWidth: 1,
-                            borderColor: isDark ? '#EF4444' : '#FECACA'
+                            borderColor: isDark ? '#EF4444' : '#FECACA',
                         }}
                     >
                         <View className="flex-row items-start">
                             <MaterialCommunityIcons name="alert-circle" size={20} color="#EF4444" />
                             <View className="flex-1 ml-3">
                                 <Text className="text-sm" style={{ color: colors.text }}>{blocker.description}</Text>
-                                <TouchableOpacity
-                                    onPress={() => convertBlockerToTask(blocker.id)}
-                                    className="mt-2 flex-row items-center"
-                                >
-                                    <MaterialCommunityIcons name="arrow-right-circle" size={16} color={colors.primary} />
-                                    <Text className="text-xs ml-1" style={{ color: colors.primary }}>Convert to task</Text>
-                                </TouchableOpacity>
                             </View>
                         </View>
                     </View>
                 ))}
 
-                {/* New blockers */}
                 {blockers.map((blocker, index) => (
-                    <View 
-                        key={index} 
+                    <View
+                        key={index}
                         className="rounded-xl p-4 mb-3"
-                        style={{ 
+                        style={{
                             backgroundColor: isDark ? 'rgba(245, 158, 11, 0.15)' : '#FFFBEB',
                             borderWidth: 1,
-                            borderColor: isDark ? '#F59E0B' : '#FDE68A'
+                            borderColor: isDark ? '#F59E0B' : '#FDE68A',
                         }}
                     >
                         <View className="flex-row items-start">
@@ -251,7 +240,6 @@ export default function StandupScreen() {
                     </View>
                 ))}
 
-                {/* Add blocker input */}
                 <View className="flex-row items-center mb-4">
                     <TextInput
                         value={blockerInput}
@@ -259,11 +247,11 @@ export default function StandupScreen() {
                         placeholder="Describe a blocker..."
                         placeholderTextColor={colors.placeholder}
                         className="flex-1 rounded-xl px-4 py-3 text-base"
-                        style={{ 
+                        style={{
                             backgroundColor: colors.inputBackground,
                             borderWidth: 1,
                             borderColor: colors.border,
-                            color: colors.text
+                            color: colors.text,
                         }}
                         multiline
                         onSubmitEditing={handleAddBlocker}
@@ -279,7 +267,7 @@ export default function StandupScreen() {
                 </View>
 
                 {blockers.length === 0 && existingBlockers.length === 0 && (
-                    <View 
+                    <View
                         className="rounded-xl p-4 items-center"
                         style={{ backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5' }}
                     >
@@ -309,8 +297,8 @@ export default function StandupScreen() {
     );
 
     const renderSummaryStep = () => (
-        <KeyboardAvoidingView 
-            className="flex-1" 
+        <KeyboardAvoidingView
+            className="flex-1"
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
             <View className="px-4 mb-4">
@@ -319,7 +307,6 @@ export default function StandupScreen() {
             </View>
 
             <ScrollView className="flex-1 px-4">
-                {/* Mood Selection */}
                 <View className="flex-row justify-between mb-6">
                     {[
                         { value: 'great', emoji: '🚀', label: 'Great' },
@@ -332,19 +319,19 @@ export default function StandupScreen() {
                             onPress={() => setMood(option.value as any)}
                             className="flex-1 mx-1 py-4 rounded-xl items-center"
                             style={{
-                                backgroundColor: mood === option.value 
+                                backgroundColor: mood === option.value
                                     ? (isDark ? 'rgba(59, 130, 246, 0.2)' : '#DBEAFE')
                                     : colors.backgroundSecondary,
                                 borderWidth: mood === option.value ? 2 : 1,
-                                borderColor: mood === option.value ? colors.primary : colors.border
+                                borderColor: mood === option.value ? colors.primary : colors.border,
                             }}
                         >
                             <Text className="text-2xl mb-1">{option.emoji}</Text>
-                            <Text 
+                            <Text
                                 className="text-xs"
-                                style={{ 
+                                style={{
                                     color: mood === option.value ? colors.primary : colors.textSecondary,
-                                    fontWeight: mood === option.value ? '600' : '400'
+                                    fontWeight: mood === option.value ? '600' : '400',
                                 }}
                             >
                                 {option.label}
@@ -353,7 +340,6 @@ export default function StandupScreen() {
                     ))}
                 </View>
 
-                {/* Optional Notes */}
                 <Text className="text-sm font-medium mb-2" style={{ color: colors.text }}>Any notes? (Optional)</Text>
                 <TextInput
                     value={notes}
@@ -361,17 +347,16 @@ export default function StandupScreen() {
                     placeholder="Quick thoughts for the day..."
                     placeholderTextColor={colors.placeholder}
                     className="rounded-xl px-4 py-3 text-base mb-6"
-                    style={{ 
+                    style={{
                         backgroundColor: colors.inputBackground,
                         borderWidth: 1,
                         borderColor: colors.border,
-                        color: colors.text
+                        color: colors.text,
                     }}
                     multiline
                     numberOfLines={3}
                 />
 
-                {/* Summary */}
                 <View className="rounded-xl p-4" style={{ backgroundColor: colors.backgroundSecondary }}>
                     <Text className="text-sm font-semibold mb-3" style={{ color: colors.text }}>Standup Summary</Text>
                     <View className="flex-row justify-between">
@@ -401,11 +386,11 @@ export default function StandupScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity
                     onPress={handleComplete}
-                    disabled={loading}
+                    disabled={completeStandupMutation.isPending}
                     className="flex-2 py-4 rounded-xl items-center ml-2 flex-1 flex-row justify-center"
                     style={{ backgroundColor: colors.success }}
                 >
-                    {loading ? (
+                    {completeStandupMutation.isPending ? (
                         <ActivityIndicator color="white" />
                     ) : (
                         <>
@@ -419,10 +404,10 @@ export default function StandupScreen() {
     );
 
     // If standup is already completed
-    if (todayStandup?.status === 'completed') {
+    if (hasCompletedToday) {
         return (
             <SafeAreaView className="flex-1" edges={['top']} style={{ backgroundColor: colors.background }}>
-                <View 
+                <View
                     className="flex-row items-center px-4 py-3"
                     style={{ borderBottomWidth: 1, borderBottomColor: colors.border }}
                 >
@@ -433,12 +418,12 @@ export default function StandupScreen() {
                 </View>
 
                 <ScrollView className="flex-1 px-4 pt-4">
-                    <View 
+                    <View
                         className="rounded-2xl p-6 items-center mb-6"
-                        style={{ 
+                        style={{
                             backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5',
                             borderWidth: 1,
-                            borderColor: isDark ? '#10B981' : '#A7F3D0'
+                            borderColor: isDark ? '#10B981' : '#A7F3D0',
                         }}
                     >
                         <View className="w-16 h-16 rounded-full items-center justify-center mb-4" style={{ backgroundColor: colors.success }}>
@@ -446,9 +431,9 @@ export default function StandupScreen() {
                         </View>
                         <Text className="text-xl font-bold" style={{ color: isDark ? '#6EE7B7' : '#065F46' }}>Standup Complete!</Text>
                         <Text className="text-sm mt-1" style={{ color: isDark ? '#34D399' : '#047857' }}>
-                            Completed at {new Date(todayStandup.completedAt || '').toLocaleTimeString([], { 
-                                hour: '2-digit', 
-                                minute: '2-digit' 
+                            Completed at {new Date(todayStandup?.completedAt || '').toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit',
                             })}
                         </Text>
                     </View>
@@ -460,17 +445,23 @@ export default function StandupScreen() {
                         </View>
                     )}
 
-                    <CoachMessage
-                        message={{
-                            id: 'standup-done',
-                            type: 'celebration',
-                            tone: 'celebratory',
-                            title: 'Stay focused!',
-                            message: `You have ${todayStandup.focusToday.length} tasks to tackle today. Make progress, not perfection.`,
-                            timestamp: new Date().toISOString(),
-                            read: true,
+                    {/* Motivational message replacing CoachMessage */}
+                    <View
+                        className="rounded-2xl p-4 mb-6"
+                        style={{
+                            backgroundColor: isDark ? 'rgba(16, 185, 129, 0.1)' : '#F0FDF4',
+                            borderWidth: 1,
+                            borderColor: isDark ? 'rgba(16, 185, 129, 0.3)' : '#BBF7D0',
                         }}
-                    />
+                    >
+                        <View className="flex-row items-center mb-2">
+                            <MaterialCommunityIcons name="star-circle" size={24} color={colors.success} />
+                            <Text className="text-base font-semibold ml-2" style={{ color: colors.text }}>Stay focused!</Text>
+                        </View>
+                        <Text className="text-sm" style={{ color: colors.textSecondary }}>
+                            You have {todayStandup?.focusToday?.length || 0} tasks to tackle today. Make progress, not perfection.
+                        </Text>
+                    </View>
                 </ScrollView>
             </SafeAreaView>
         );
@@ -478,8 +469,7 @@ export default function StandupScreen() {
 
     return (
         <SafeAreaView className="flex-1" edges={['top']} style={{ backgroundColor: colors.background }}>
-            {/* Header */}
-            <View 
+            <View
                 className="flex-row items-center px-4 py-3"
                 style={{ borderBottomWidth: 1, borderBottomColor: colors.border }}
             >
@@ -489,10 +479,8 @@ export default function StandupScreen() {
                 <Text className="text-lg font-bold ml-4" style={{ color: colors.text }}>Daily Standup</Text>
             </View>
 
-            {/* Step Indicator */}
             {renderStepIndicator()}
 
-            {/* Content */}
             {step === 'yesterday' && renderYesterdayStep()}
             {step === 'today' && renderTodayStep()}
             {step === 'blockers' && renderBlockersStep()}

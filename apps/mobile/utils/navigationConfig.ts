@@ -43,7 +43,6 @@ export interface App {
 
 export const NAV_CONFIGS: Record<AppContext, NavIcon> = {
     sprints:       { nameKey: 'navigation.tabs.sprint',    icon: moduleIcons.sprints,    route: '/(tabs)/sprints/calendar' },
-    sensai:        { nameKey: 'navigation.tabs.coach',     icon: moduleIcons.sensai,     route: '/(tabs)/sensai' },
     mindset:       { nameKey: 'navigation.tabs.mindset',   icon: moduleIcons.mindset,    route: '/(tabs)/motivation' },
     essentia:      { nameKey: 'navigation.tabs.today',     icon: moduleIcons.essentia,   route: '/(tabs)/essentia' },
     challenges:    { nameKey: 'navigation.tabs.active',    icon: moduleIcons.challenges, route: '/(tabs)/challenges' },
@@ -67,7 +66,6 @@ export const NAV_CONFIGS: Record<AppContext, NavIcon> = {
 
 export const APPS: App[] = [
     { id: 'sprints',    nameKey: 'navigation.tabs.sprints',    icon: moduleIcons.sprints,    color: '#3B82F6', route: '/(tabs)/sprints' },
-    { id: 'sensai',     nameKey: 'navigation.tabs.sensai',     icon: moduleIcons.sensai,     color: '#10B981', route: '/(tabs)/sensai' },
     { id: 'backlog',    nameKey: 'navigation.sprints.backlog',  icon: moduleIcons.backlog,    color: '#6366F1', route: '/(tabs)/sprints/backlog' },
     { id: 'epics',      nameKey: 'navigation.sprints.epics',    icon: moduleIcons.epics,      color: '#8B5CF6', route: '/(tabs)/sprints/epics' },
     { id: 'taskSearch', nameKey: 'navigation.tabs.tasks',       icon: moduleIcons.taskSearch,  color: '#0EA5E9', route: '/(tabs)/sprints/search-tasks' },
@@ -89,18 +87,7 @@ export const APPS: App[] = [
 export const SUB_APPS: Partial<Record<AppContext, SubApp[]>> = {
     // Sprints sub-apps are handled separately in AppSwitcher (SPRINT_SUB_APPS)
 
-    sensai: [
-        { id: 'sensai-standup',       nameKey: 'navigation.moreMenu.dailyStandup',   icon: sprintIcons.standup,      color: '#10B981', route: '/(tabs)/sensai/standup' },
-        { id: 'sensai-planning',      nameKey: 'navigation.moreMenu.sprintPlanning', icon: sprintIcons.planning,     color: '#10B981', route: '/(tabs)/sensai/planning' },
-        { id: 'sensai-review',        nameKey: 'navigation.moreMenu.sprintReview',   icon: sprintIcons.review,       color: '#10B981', route: '/(tabs)/sensai/review' },
-        { id: 'sensai-retro',         nameKey: 'navigation.sprints.retro',            icon: sprintIcons.retro,        color: '#10B981', route: '/(tabs)/sensai/retrospective' },
-        { id: 'sensai-interventions',  nameKey: 'navigation.moreMenu.interventions', icon: sprintIcons.intervention,  color: '#10B981', route: '/(tabs)/sensai/interventions' },
-        { id: 'sensai-lifewheel',     nameKey: 'navigation.moreMenu.lifeWheel',      icon: sprintIcons.lifeWheel,    color: '#10B981', route: '/(tabs)/sensai/lifewheel' },
-        { id: 'sensai-velocity',      nameKey: 'navigation.sprints.velocity',         icon: sprintIcons.velocity,     color: '#10B981', route: '/(tabs)/sensai/velocity' },
-        { id: 'sensai-intake',        nameKey: 'navigation.moreMenu.quickIntake',     icon: sprintIcons.intake,       color: '#10B981', route: '/(tabs)/sensai/intake' },
-        { id: 'sensai-analytics',     nameKey: 'navigation.moreMenu.analytics',       icon: sprintIcons.analytics,    color: '#10B981', route: '/(tabs)/sensai/analytics' },
-        { id: 'sensai-settings',      nameKey: 'settings.title',                      icon: settingsIcons.cogOutline, color: '#10B981', route: '/(tabs)/sensai/settings' },
-    ],
+
 
     challenges: [
         { id: 'challenges-create',      nameKey: 'navigation.moreMenu.createChallenge', icon: actionIcons.addCircle,       color: '#F59E0B', route: '/(tabs)/challenges/create' },
@@ -149,8 +136,13 @@ export const SUB_APPS: Partial<Record<AppContext, SubApp[]>> = {
     ],
 
     sprints: [
-        { id: 'sprints-reports',  nameKey: 'navigation.sprints.reports',      icon: sprintIcons.report,   color: '#3B82F6', route: '/(tabs)/sprints/reports' },
-        { id: 'sprints-velocity', nameKey: 'navigation.sprints.velocity',     icon: sprintIcons.velocity, color: '#3B82F6', route: '/(tabs)/sprints/velocity' },
-        { id: 'sprints-wiki',     nameKey: 'navigation.sprints.knowledgeHub', icon: sprintIcons.wiki,     color: '#3B82F6', route: '/(tabs)/sprints/wiki' },
+        { id: 'sprints-standup',       nameKey: 'navigation.moreMenu.dailyStandup',   icon: sprintIcons.standup,      color: '#3B82F6', route: '/(tabs)/sprints/standup' },
+        { id: 'sprints-planning',      nameKey: 'navigation.moreMenu.sprintPlanning', icon: sprintIcons.planning,     color: '#3B82F6', route: '/(tabs)/sprints/planning' },
+        { id: 'sprints-review',        nameKey: 'navigation.moreMenu.sprintReview',   icon: sprintIcons.review,       color: '#3B82F6', route: '/(tabs)/sprints/review' },
+        { id: 'sprints-retro',         nameKey: 'navigation.sprints.retro',            icon: sprintIcons.retro,        color: '#3B82F6', route: '/(tabs)/sprints/retrospective' },
+        { id: 'sprints-velocity',      nameKey: 'navigation.sprints.velocity',         icon: sprintIcons.velocity,     color: '#3B82F6', route: '/(tabs)/sprints/velocity' },
+        { id: 'sprints-intake',        nameKey: 'navigation.moreMenu.quickIntake',     icon: sprintIcons.intake,       color: '#3B82F6', route: '/(tabs)/sprints/intake' },
+        { id: 'sprints-insights',      nameKey: 'navigation.moreMenu.analytics',       icon: sprintIcons.analytics,    color: '#3B82F6', route: '/(tabs)/sprints/insights' },
+        { id: 'sprints-preferences',   nameKey: 'settings.title',                      icon: settingsIcons.cogOutline, color: '#3B82F6', route: '/(tabs)/sprints/preferences' },
     ],
 };

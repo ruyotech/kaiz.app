@@ -15,7 +15,7 @@ export * from './useSprints';
 export * from './useEpics';
 export * from './useChallenges';
 export * from './useNotifications';
-export * from './useSensai';
+export * from './useSprintCeremonies';
 export * from './useCommunity';
 export * from './useEssentia';
 export * from './useMindset';

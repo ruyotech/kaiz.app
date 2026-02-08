@@ -12,7 +12,6 @@ export default function TabsLayout() {
                 <Stack.Screen name="index" />
                 <Stack.Screen name="dashboard" />
                 <Stack.Screen name="sprints" />
-                <Stack.Screen name="sensai" />
                 <Stack.Screen name="challenges" />
                 <Stack.Screen name="essentia" />
                 <Stack.Screen name="motivation" />

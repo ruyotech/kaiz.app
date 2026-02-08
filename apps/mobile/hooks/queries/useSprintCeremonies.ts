@@ -1,9 +1,10 @@
 /**
- * React Query hooks — SensAI
+ * React Query hooks — Sprint Ceremonies
+ * Backed by /api/v1/sensai/* endpoints (backend module stays as-is).
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { sensaiApi } from '../../services/api';
-import { sensaiKeys } from './keys';
+import { sprintCeremonyKeys } from './keys';
 import { STALE_TIMES } from '../../providers/QueryProvider';
 import type {
   VelocityMetrics,
@@ -26,7 +27,7 @@ import type {
 
 export function useVelocityMetrics() {
   return useQuery({
-    queryKey: sensaiKeys.velocity(),
+    queryKey: sprintCeremonyKeys.velocity(),
     queryFn: () => sensaiApi.getVelocityMetrics() as Promise<VelocityMetrics>,
     staleTime: STALE_TIMES.lists,
   });
@@ -34,7 +35,7 @@ export function useVelocityMetrics() {
 
 export function useSprintHealth(sprintId: string) {
   return useQuery({
-    queryKey: sensaiKeys.sprintHealth(sprintId),
+    queryKey: sprintCeremonyKeys.sprintHealth(sprintId),
     queryFn: () => sensaiApi.getSprintHealth(sprintId) as Promise<SprintHealth>,
     enabled: !!sprintId,
     staleTime: STALE_TIMES.lists,
@@ -43,7 +44,7 @@ export function useSprintHealth(sprintId: string) {
 
 export function useCurrentSprintHealth() {
   return useQuery({
-    queryKey: sensaiKeys.currentHealth(),
+    queryKey: sprintCeremonyKeys.currentHealth(),
     queryFn: () => sensaiApi.getCurrentSprintHealth() as Promise<SprintHealth>,
     staleTime: STALE_TIMES.lists,
   });
@@ -51,7 +52,7 @@ export function useCurrentSprintHealth() {
 
 export function useAdjustedCapacity() {
   return useQuery({
-    queryKey: sensaiKeys.capacity(),
+    queryKey: sprintCeremonyKeys.capacity(),
     queryFn: () => sensaiApi.getAdjustedCapacity(),
     staleTime: STALE_TIMES.lists,
   });
@@ -59,7 +60,7 @@ export function useAdjustedCapacity() {
 
 export function useTodayStandup() {
   return useQuery({
-    queryKey: sensaiKeys.standup(),
+    queryKey: sprintCeremonyKeys.standup(),
     queryFn: () => sensaiApi.getTodayStandup(),
     staleTime: STALE_TIMES.realtime,
   });
@@ -67,7 +68,7 @@ export function useTodayStandup() {
 
 export function useStandupHistory(startDate: string, endDate: string) {
   return useQuery({
-    queryKey: sensaiKeys.standupHistory(startDate, endDate),
+    queryKey: sprintCeremonyKeys.standupHistory(startDate, endDate),
     queryFn: () => sensaiApi.getStandupHistory(startDate, endDate) as Promise<DailyStandup[]>,
     enabled: !!startDate && !!endDate,
   });
@@ -75,7 +76,7 @@ export function useStandupHistory(startDate: string, endDate: string) {
 
 export function useActiveInterventions() {
   return useQuery({
-    queryKey: sensaiKeys.interventions(),
+    queryKey: sprintCeremonyKeys.interventions(),
     queryFn: () => sensaiApi.getActiveInterventions() as Promise<Intervention[]>,
     staleTime: STALE_TIMES.realtime,
   });
@@ -83,7 +84,7 @@ export function useActiveInterventions() {
 
 export function useUpcomingCeremonies() {
   return useQuery({
-    queryKey: sensaiKeys.ceremonies(),
+    queryKey: sprintCeremonyKeys.ceremonies(),
     queryFn: () => sensaiApi.getUpcomingCeremonies() as Promise<SprintCeremony[]>,
     staleTime: STALE_TIMES.lists,
   });
@@ -91,7 +92,7 @@ export function useUpcomingCeremonies() {
 
 export function useLifeWheelMetrics() {
   return useQuery({
-    queryKey: sensaiKeys.lifeWheel(),
+    queryKey: sprintCeremonyKeys.lifeWheel(),
     queryFn: () => sensaiApi.getLifeWheelMetrics() as Promise<LifeWheelMetrics>,
     staleTime: STALE_TIMES.lists,
   });
@@ -99,7 +100,7 @@ export function useLifeWheelMetrics() {
 
 export function useDimensionHistory(dimension: string, sprints = 4) {
   return useQuery({
-    queryKey: sensaiKeys.dimensionHistory(dimension),
+    queryKey: sprintCeremonyKeys.dimensionHistory(dimension),
     queryFn: () => sensaiApi.getDimensionHistory(dimension, sprints),
     enabled: !!dimension,
   });
@@ -107,23 +108,23 @@ export function useDimensionHistory(dimension: string, sprints = 4) {
 
 export function useCoachMessages(unreadOnly = false) {
   return useQuery({
-    queryKey: sensaiKeys.messages(unreadOnly),
+    queryKey: sprintCeremonyKeys.messages(unreadOnly),
     queryFn: () => sensaiApi.getCoachMessages(unreadOnly) as Promise<CoachMessage[]>,
     staleTime: STALE_TIMES.realtime,
   });
 }
 
-export function useSensAISettings() {
+export function useSprintPreferences() {
   return useQuery({
-    queryKey: sensaiKeys.settings(),
+    queryKey: sprintCeremonyKeys.settings(),
     queryFn: () => sensaiApi.getSettings() as Promise<SensAISettings>,
     staleTime: STALE_TIMES.profile,
   });
 }
 
-export function useSensAIAnalytics(period: string) {
+export function useSprintAnalytics(period: string) {
   return useQuery({
-    queryKey: sensaiKeys.analytics(period),
+    queryKey: sprintCeremonyKeys.analytics(period),
     queryFn: () => sensaiApi.getAnalytics(period) as Promise<SensAIAnalytics>,
     enabled: !!period,
     staleTime: STALE_TIMES.lists,
@@ -132,7 +133,7 @@ export function useSensAIAnalytics(period: string) {
 
 export function usePatternInsights() {
   return useQuery({
-    queryKey: sensaiKeys.patterns(),
+    queryKey: sprintCeremonyKeys.patterns(),
     queryFn: () => sensaiApi.getPatternInsights(),
     staleTime: STALE_TIMES.static,
   });
@@ -140,7 +141,7 @@ export function usePatternInsights() {
 
 export function useMotivationContent() {
   return useQuery({
-    queryKey: sensaiKeys.motivation(),
+    queryKey: sprintCeremonyKeys.motivation(),
     queryFn: () => sensaiApi.getMotivationContent(),
     staleTime: STALE_TIMES.lists,
   });
@@ -148,7 +149,7 @@ export function useMotivationContent() {
 
 export function useMicroChallenges() {
   return useQuery({
-    queryKey: sensaiKeys.microChallenges(),
+    queryKey: sprintCeremonyKeys.microChallenges(),
     queryFn: () => sensaiApi.getMicroChallenges(),
     staleTime: STALE_TIMES.lists,
   });
@@ -161,8 +162,8 @@ export function useCompleteStandup() {
   return useMutation({
     mutationFn: (data: CompleteStandupRequest) => sensaiApi.completeStandup(data),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: sensaiKeys.standup() });
-      qc.invalidateQueries({ queryKey: sensaiKeys.velocity() });
+      qc.invalidateQueries({ queryKey: sprintCeremonyKeys.standup() });
+      qc.invalidateQueries({ queryKey: sprintCeremonyKeys.velocity() });
     },
   });
 }
@@ -172,7 +173,7 @@ export function useSkipStandup() {
   return useMutation({
     mutationFn: (reason?: string) => sensaiApi.skipStandup(reason),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: sensaiKeys.standup() });
+      qc.invalidateQueries({ queryKey: sprintCeremonyKeys.standup() });
     },
   });
 }
@@ -182,7 +183,7 @@ export function useAcknowledgeIntervention() {
   return useMutation({
     mutationFn: (data: AcknowledgeInterventionRequest) => sensaiApi.acknowledgeIntervention(data),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: sensaiKeys.interventions() });
+      qc.invalidateQueries({ queryKey: sprintCeremonyKeys.interventions() });
     },
   });
 }
@@ -192,7 +193,7 @@ export function useStartCeremony() {
   return useMutation({
     mutationFn: (type: SprintCeremonyType) => sensaiApi.startCeremony(type),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: sensaiKeys.ceremonies() });
+      qc.invalidateQueries({ queryKey: sprintCeremonyKeys.ceremonies() });
     },
   });
 }
@@ -208,17 +209,17 @@ export function useAddRecoveryTask() {
   return useMutation({
     mutationFn: (task: RecoveryTask) => sensaiApi.addRecoveryTask(task),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: sensaiKeys.lifeWheel() });
+      qc.invalidateQueries({ queryKey: sprintCeremonyKeys.lifeWheel() });
     },
   });
 }
 
-export function useUpdateSensAISettings() {
+export function useUpdateSprintPreferences() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (settings: Partial<SensAISettings>) => sensaiApi.updateSettings(settings),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: sensaiKeys.settings() });
+      qc.invalidateQueries({ queryKey: sprintCeremonyKeys.settings() });
     },
   });
 }

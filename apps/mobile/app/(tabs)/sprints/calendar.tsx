@@ -608,6 +608,17 @@ export default function SprintCalendar() {
                                 />
                             )}
                             <TouchableOpacity
+                                onPress={() => router.push('/(tabs)/sprints/preferences')}
+                                className="px-2 py-1 rounded"
+                                style={{ 
+                                    backgroundColor: 'rgba(255,255,255,0.2)',
+                                    borderWidth: 1,
+                                    borderColor: 'rgba(255,255,255,0.4)'
+                                }}
+                            >
+                                <MaterialCommunityIcons name="cog-outline" size={16} color="#fff" />
+                            </TouchableOpacity>
+                            <TouchableOpacity
                                 onPress={() => setViewType(viewType === 'week' ? 'day' : 'week')}
                                 className="px-3 py-1 rounded"
                                 style={{ 

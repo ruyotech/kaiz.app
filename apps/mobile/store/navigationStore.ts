@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type AppContext = 'sprints' | 'sensai' | 'mindset' | 'essentia' | 'bills' | 'challenges' | 'pomodoro' | 'community' | 'family' | 'settings' | 'notifications' | 'dashboard' | 'backlog' | 'epics' | 'taskSearch' | 'templates';
+export type AppContext = 'sprints' | 'mindset' | 'essentia' | 'bills' | 'challenges' | 'pomodoro' | 'community' | 'family' | 'settings' | 'notifications' | 'dashboard' | 'backlog' | 'epics' | 'taskSearch' | 'templates';
 
 interface NavigationState {
     currentApp: AppContext;
