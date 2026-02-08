@@ -83,12 +83,13 @@ export interface Task {
     eisenhowerQuadrantId: string;
     sprintId: string | null;
     storyPoints: number;
-    status: 'draft' | 'todo' | 'in_progress' | 'done' | 'blocked';
+    status: 'draft' | 'todo' | 'in_progress' | 'done' | 'blocked' | 'pending_approval';
     isDraft: boolean;
     aiConfidence: number | null;
     createdFromTemplateId: string | null;
     createdAt: string;
     completedAt: string | null;
+    deletedAt: string | null;
     // Alias for eisenhowerQuadrantId (used in some screens)
     quadrant?: string;
     // Recurring task support

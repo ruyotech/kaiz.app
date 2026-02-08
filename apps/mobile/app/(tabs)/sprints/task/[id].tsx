@@ -1,6 +1,6 @@
 import { logger } from '../../../../utils/logger';
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Modal, Pressable, Linking } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, Modal, Pressable, Linking, Alert } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -15,7 +15,7 @@ import { AttachmentPreviewModal, AttachmentData } from '../../../../components/u
 import { RichTextEditor } from '../../../../components/ui/RichTextEditor';
 import { useThemeContext } from '../../../../providers/ThemeProvider';
 
-type TabType = 'overview' | 'comments' | 'checklist' | 'history';
+type TabType = 'overview' | 'comments' | 'history';
 
 type ChecklistItem = {
     id: string;
@@ -289,7 +289,7 @@ export default function TaskWorkView() {
             try {
                 // Convert to uppercase for backend API (DRAFT, TODO, IN_PROGRESS, DONE)
                 const apiStatus = newStatus.toUpperCase();
-                await taskApi.updateTask(task.id, { status: apiStatus });
+                await taskApi.updateTaskStatus(task.id, apiStatus);
                 // Reload history to get the updated history from backend
                 loadHistory(task.id);
             } catch (error) {
@@ -299,6 +299,28 @@ export default function TaskWorkView() {
             }
         }
         setShowStatusMenu(false);
+    };
+
+    const handleDeleteTask = () => {
+        Alert.alert(
+            t('tasks.details.deleteTask'),
+            t('tasks.details.confirmDelete'),
+            [
+                { text: t('common.cancel'), style: 'cancel' },
+                {
+                    text: t('tasks.details.deleteTask'),
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await taskApi.deleteTask(task!.id);
+                            router.back();
+                        } catch (error) {
+                            logger.error('Error deleting task:', error);
+                        }
+                    },
+                },
+            ]
+        );
     };
 
     const handleAddComment = async () => {
@@ -426,31 +448,6 @@ export default function TaskWorkView() {
                         >
                             <MaterialCommunityIcons name={currentStatus.icon as any} size={18} color="white" />
                         </TouchableOpacity>
-                        <TouchableOpacity
-                            onPress={() => router.push(`/(tabs)/sprints/task/edit?id=${task.id}` as any)}
-                            className="w-9 h-9 bg-white/20 rounded-lg items-center justify-center border border-white/40"
-                        >
-                            <MaterialCommunityIcons name="pencil" size={18} color="white" />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            onPress={() => {
-                                // Navigate to Pomodoro with task context
-                                router.push({
-                                    pathname: '/(tabs)/pomodoro',
-                                    params: { 
-                                        taskId: task.id, 
-                                        taskTitle: task.title,
-                                        taskDescription: task.description,
-                                        taskStoryPoints: task.storyPoints,
-                                        taskQuadrant: task.quadrant,
-                                        returnTo: 'task'
-                                    }
-                                } as any);
-                            }}
-                            className="w-9 h-9 bg-white/20 rounded-lg items-center justify-center border border-white/40"
-                        >
-                            <MaterialCommunityIcons name="bullseye-arrow" size={18} color="white" />
-                        </TouchableOpacity>
                     </View>
                 </View>
 
@@ -461,7 +458,6 @@ export default function TaskWorkView() {
                 {[
                     { id: 'overview', label: t('tasks.tabs.overview'), icon: 'information-outline' },
                     { id: 'comments', label: t('tasks.tabs.comments'), icon: 'comment-outline', badge: (comments.length + attachments.length) > 0 ? (comments.length + attachments.length) : undefined },
-                    { id: 'checklist', label: t('tasks.tabs.checklist'), icon: 'checkbox-marked-outline', badge: `${completedChecklist}/${totalChecklist}` },
                     { id: 'history', label: t('tasks.tabs.history'), icon: 'history', badge: timelineCount > 0 ? timelineCount : undefined },
                 ].map((tab) => (
                     <TouchableOpacity
@@ -637,20 +633,150 @@ export default function TaskWorkView() {
                         {/* Quick Actions */}
                         <View className="rounded-xl p-4" style={{ backgroundColor: colors.card }}>
                             <Text className="text-sm font-semibold mb-3" style={{ color: colors.textSecondary }}>{t('tasks.details.quickActions')}</Text>
-                            <TouchableOpacity 
-                                className="py-3.5 rounded-lg mb-2 flex-row items-center justify-center"
-                                style={{ backgroundColor: colors.backgroundSecondary }}
-                            >
-                                <MaterialCommunityIcons name="playlist-plus" size={20} color={colors.textSecondary} />
-                                <Text className="font-semibold ml-2" style={{ color: colors.textSecondary }}>{t('tasks.details.addRelatedTask')}</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity 
-                                className="py-3.5 rounded-lg flex-row items-center justify-center"
-                                style={{ backgroundColor: colors.backgroundSecondary }}
-                            >
-                                <MaterialCommunityIcons name="link-variant-plus" size={20} color={colors.textSecondary} />
-                                <Text className="font-semibold ml-2" style={{ color: colors.textSecondary }}>{t('tasks.details.addRelatedTask')}</Text>
-                            </TouchableOpacity>
+                            <View className="flex-row flex-wrap gap-2">
+                                <TouchableOpacity 
+                                    onPress={() => setShowStatusMenu(true)}
+                                    className="py-3 px-3 rounded-lg flex-row items-center justify-center"
+                                    style={{ backgroundColor: colors.backgroundSecondary, width: '48%' }}
+                                >
+                                    <MaterialCommunityIcons name="swap-horizontal" size={18} color="#3B82F6" />
+                                    <Text className="font-medium ml-2 text-sm" style={{ color: '#3B82F6' }}>{t('tasks.details.changeStatus')}</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity 
+                                    onPress={() => router.push(`/(tabs)/sprints/task/edit?id=${task.id}` as any)}
+                                    className="py-3 px-3 rounded-lg flex-row items-center justify-center"
+                                    style={{ backgroundColor: colors.backgroundSecondary, width: '48%' }}
+                                >
+                                    <MaterialCommunityIcons name="pencil" size={18} color={colors.textSecondary} />
+                                    <Text className="font-medium ml-2 text-sm" style={{ color: colors.textSecondary }}>{t('tasks.details.editTask')}</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity 
+                                    onPress={() => {
+                                        router.push({
+                                            pathname: '/(tabs)/pomodoro',
+                                            params: { 
+                                                taskId: task.id, 
+                                                taskTitle: task.title,
+                                                taskDescription: task.description,
+                                                taskStoryPoints: task.storyPoints,
+                                                taskQuadrant: task.quadrant,
+                                                returnTo: 'task'
+                                            }
+                                        } as any);
+                                    }}
+                                    className="py-3 px-3 rounded-lg flex-row items-center justify-center"
+                                    style={{ backgroundColor: colors.backgroundSecondary, width: '48%' }}
+                                >
+                                    <MaterialCommunityIcons name="bullseye-arrow" size={18} color="#F59E0B" />
+                                    <Text className="font-medium ml-2 text-sm" style={{ color: colors.textSecondary }}>{t('tasks.details.startPomodoro')}</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity 
+                                    onPress={() => setShowAddChecklist(true)}
+                                    className="py-3 px-3 rounded-lg flex-row items-center justify-center"
+                                    style={{ backgroundColor: colors.backgroundSecondary, width: '48%' }}
+                                >
+                                    <MaterialCommunityIcons name="checkbox-marked-outline" size={18} color="#10B981" />
+                                    <Text className="font-medium ml-2 text-sm" style={{ color: colors.textSecondary }}>{t('tasks.details.addChecklistItem')}</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity 
+                                    onPress={handleDeleteTask}
+                                    className="py-3 px-3 rounded-lg flex-row items-center justify-center"
+                                    style={{ backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : '#FEF2F2', width: '100%' }}
+                                >
+                                    <MaterialCommunityIcons name="delete-outline" size={18} color="#EF4444" />
+                                    <Text className="font-medium ml-2 text-sm" style={{ color: '#EF4444' }}>{t('tasks.details.deleteTask')}</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+
+                        {/* Checklist Section */}
+                        <View className="rounded-xl p-4" style={{ backgroundColor: colors.card }}>
+                            <View className="flex-row items-center justify-between mb-3">
+                                <View className="flex-row items-center">
+                                    <MaterialCommunityIcons name="checkbox-marked-outline" size={18} color={colors.textSecondary} />
+                                    <Text className="text-sm font-semibold ml-2" style={{ color: colors.textSecondary }}>
+                                        {t('tasks.details.checklist')} ({completedChecklist}/{totalChecklist})
+                                    </Text>
+                                </View>
+                                <TouchableOpacity onPress={() => setShowAddChecklist(!showAddChecklist)}>
+                                    <MaterialCommunityIcons 
+                                        name={showAddChecklist ? "minus-circle-outline" : "plus-circle-outline"} 
+                                        size={22} 
+                                        color={colors.primary} 
+                                    />
+                                </TouchableOpacity>
+                            </View>
+
+                            {/* Progress bar */}
+                            {totalChecklist > 0 && (
+                                <View className="h-1.5 rounded-full mb-3" style={{ backgroundColor: colors.backgroundSecondary }}>
+                                    <View 
+                                        className="h-1.5 rounded-full"
+                                        style={{ 
+                                            backgroundColor: '#10B981', 
+                                            width: `${(completedChecklist / totalChecklist) * 100}%` 
+                                        }}
+                                    />
+                                </View>
+                            )}
+
+                            {/* Add checklist item input */}
+                            {showAddChecklist && (
+                                <View className="flex-row items-center gap-2 mb-3">
+                                    <TextInput
+                                        value={newChecklistItem}
+                                        onChangeText={setNewChecklistItem}
+                                        placeholder={t('tasks.details.addChecklistPlaceholder')}
+                                        placeholderTextColor={colors.textTertiary}
+                                        className="flex-1 py-2 px-3 rounded-lg text-sm"
+                                        style={{ 
+                                            backgroundColor: colors.backgroundSecondary, 
+                                            color: colors.text,
+                                            borderWidth: 1,
+                                            borderColor: colors.border 
+                                        }}
+                                        onSubmitEditing={handleAddChecklistItem}
+                                    />
+                                    <TouchableOpacity
+                                        onPress={handleAddChecklistItem}
+                                        className="py-2 px-3 rounded-lg"
+                                        style={{ backgroundColor: '#10B981' }}
+                                    >
+                                        <MaterialCommunityIcons name="check" size={18} color="#fff" />
+                                    </TouchableOpacity>
+                                </View>
+                            )}
+
+                            {/* Checklist items */}
+                            {checklist.length === 0 ? (
+                                <Text className="text-sm text-center py-4" style={{ color: colors.textTertiary }}>
+                                    {t('tasks.details.noChecklistItems')}
+                                </Text>
+                            ) : (
+                                checklist.map(item => (
+                                    <TouchableOpacity 
+                                        key={item.id}
+                                        onPress={() => toggleChecklistItem(item.id)}
+                                        className="flex-row items-center py-2.5 px-1"
+                                        style={{ borderBottomWidth: 0.5, borderBottomColor: colors.border }}
+                                    >
+                                        <MaterialCommunityIcons 
+                                            name={item.completed ? "checkbox-marked" : "checkbox-blank-outline"} 
+                                            size={22} 
+                                            color={item.completed ? '#10B981' : colors.textTertiary} 
+                                        />
+                                        <Text 
+                                            className="ml-2.5 flex-1 text-sm" 
+                                            style={{ 
+                                                color: item.completed ? colors.textTertiary : colors.text,
+                                                textDecorationLine: item.completed ? 'line-through' : 'none'
+                                            }}
+                                        >
+                                            {item.text}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))
+                            )}
                         </View>
                     </View>
                 )}
@@ -869,85 +995,6 @@ export default function TaskWorkView() {
                         </View>
                     </View>
                 )}
-
-                {/* Checklist Tab */}
-                {
-                    activeTab === 'checklist' && (
-                        <View className="p-4">
-                            <View className="rounded-lg overflow-hidden mb-3" style={{ backgroundColor: colors.card }}>
-                                {checklist.map((item) => (
-                                    <TouchableOpacity
-                                        key={item.id}
-                                        onPress={() => toggleChecklistItem(item.id)}
-                                        className="flex-row items-center p-4"
-                                        style={{ borderBottomWidth: 1, borderBottomColor: colors.border }}
-                                    >
-                                        <View className="w-6 h-6 rounded items-center justify-center mr-3"
-                                            style={{
-                                                borderWidth: 2,
-                                                backgroundColor: item.completed ? '#3B82F6' : 'transparent',
-                                                borderColor: item.completed ? '#3B82F6' : colors.border
-                                            }}
-                                        >
-                                            {item.completed && (
-                                                <MaterialCommunityIcons name="check" size={16} color="white" />
-                                            )}
-                                        </View>
-                                        <Text className="flex-1" style={{ 
-                                            color: item.completed ? colors.textTertiary : colors.text,
-                                            textDecorationLine: item.completed ? 'line-through' : 'none'
-                                        }}>
-                                            {item.text}
-                                        </Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
-
-                            {showAddChecklist ? (
-                                <View className="rounded-lg p-4" style={{ backgroundColor: colors.card }}>
-                                    <TextInput
-                                        value={newChecklistItem}
-                                        onChangeText={setNewChecklistItem}
-                                        placeholder="Enter checklist item..."
-                                        placeholderTextColor={colors.placeholder}
-                                        className="rounded-lg px-3 py-2 mb-3"
-                                        style={{ borderWidth: 1, borderColor: colors.border, color: colors.text, backgroundColor: colors.inputBackground }}
-                                        autoFocus
-                                    />
-                                    <View className="flex-row gap-2">
-                                        <TouchableOpacity
-                                            onPress={handleAddChecklistItem}
-                                            disabled={!newChecklistItem.trim()}
-                                            className="flex-1 py-3 rounded-lg"
-                                            style={{ backgroundColor: newChecklistItem.trim() ? '#3B82F6' : colors.backgroundSecondary }}
-                                        >
-                                            <Text className="text-center font-semibold" style={{ color: newChecklistItem.trim() ? '#FFFFFF' : colors.textTertiary }}>{t('common.add')}</Text>
-                                        </TouchableOpacity>
-                                        <TouchableOpacity
-                                            onPress={() => {
-                                                setShowAddChecklist(false);
-                                                setNewChecklistItem('');
-                                            }}
-                                            className="flex-1 py-3 rounded-lg"
-                                            style={{ backgroundColor: colors.backgroundSecondary }}
-                                        >
-                                            <Text className="text-center font-semibold" style={{ color: colors.textSecondary }}>{t('common.cancel')}</Text>
-                                        </TouchableOpacity>
-                                    </View>
-                                </View>
-                            ) : (
-                                <TouchableOpacity
-                                    onPress={() => setShowAddChecklist(true)}
-                                    className="rounded-lg p-4 flex-row items-center justify-center"
-                                    style={{ backgroundColor: colors.card }}
-                                >
-                                    <MaterialCommunityIcons name="plus-circle-outline" size={20} color="#3B82F6" />
-                                    <Text className="font-semibold ml-2" style={{ color: '#3B82F6' }}>{t('tasks.details.addChecklistItem')}</Text>
-                                </TouchableOpacity>
-                            )}
-                        </View>
-                    )
-                }
 
                 {/* History Tab */}
                 {

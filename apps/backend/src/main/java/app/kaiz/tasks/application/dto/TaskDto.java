@@ -41,7 +41,8 @@ public record TaskDto(
     Instant createdAt,
     Instant updatedAt,
     List<TaskCommentDto> comments,
-    List<TaskHistoryDto> history) {
+    List<TaskHistoryDto> history,
+    Instant deletedAt) {
 
   // Nested DTO for recurrence
   public record RecurrenceDto(

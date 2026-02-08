@@ -108,11 +108,34 @@ public class TaskController {
   }
 
   @DeleteMapping("/{id}")
-  @Operation(summary = "Delete task", description = "Delete a task")
+  @Operation(summary = "Soft delete task", description = "Soft delete a task (move to trash)")
   public ResponseEntity<ApiResponse<Void>> deleteTask(
       @CurrentUser UUID userId, @PathVariable UUID id) {
     taskService.deleteTask(userId, id);
     return ResponseEntity.ok(ApiResponse.success(null));
+  }
+
+  @DeleteMapping("/{id}/permanent")
+  @Operation(
+      summary = "Permanently delete task",
+      description = "Permanently delete a soft-deleted task")
+  public ResponseEntity<ApiResponse<Void>> hardDeleteTask(
+      @CurrentUser UUID userId, @PathVariable UUID id) {
+    taskService.hardDeleteTask(userId, id);
+    return ResponseEntity.ok(ApiResponse.success(null));
+  }
+
+  @PatchMapping("/{id}/restore")
+  @Operation(summary = "Restore task", description = "Restore a soft-deleted task")
+  public ResponseEntity<ApiResponse<TaskDto>> restoreTask(
+      @CurrentUser UUID userId, @PathVariable UUID id) {
+    return ResponseEntity.ok(ApiResponse.success(taskService.restoreTask(userId, id)));
+  }
+
+  @GetMapping("/deleted")
+  @Operation(summary = "Get deleted tasks", description = "Retrieve all soft-deleted tasks (trash)")
+  public ResponseEntity<ApiResponse<List<TaskDto>>> getDeletedTasks(@CurrentUser UUID userId) {
+    return ResponseEntity.ok(ApiResponse.success(taskService.getDeletedTasks(userId)));
   }
 
   @GetMapping("/{id}/history")

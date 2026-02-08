@@ -15,48 +15,63 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface TaskRepository extends JpaRepository<Task, UUID> {
 
-  List<Task> findByUserIdOrderByCreatedAtDesc(UUID userId);
+  List<Task> findByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc(UUID userId);
 
-  Page<Task> findByUserId(UUID userId, Pageable pageable);
+  Page<Task> findByUserIdAndDeletedAtIsNull(UUID userId, Pageable pageable);
 
-  List<Task> findByUserIdAndStatusOrderByCreatedAtDesc(UUID userId, TaskStatus status);
+  List<Task> findByUserIdAndStatusAndDeletedAtIsNullOrderByCreatedAtDesc(
+      UUID userId, TaskStatus status);
 
-  List<Task> findByUserIdAndSprintIdOrderByCreatedAtDesc(UUID userId, String sprintId);
+  List<Task> findByUserIdAndSprintIdAndDeletedAtIsNullOrderByCreatedAtDesc(
+      UUID userId, String sprintId);
 
-  List<Task> findByUserIdAndEpicIdOrderByCreatedAtDesc(UUID userId, UUID epicId);
+  List<Task> findByUserIdAndEpicIdAndDeletedAtIsNullOrderByCreatedAtDesc(UUID userId, UUID epicId);
 
-  @Query("SELECT t FROM Task t WHERE t.user.id = :userId AND t.isDraft = true")
+  // Soft-deleted tasks for trash view
+  List<Task> findByUserIdAndDeletedAtIsNotNullOrderByDeletedAtDesc(UUID userId);
+
+  @Query(
+      "SELECT t FROM Task t WHERE t.user.id = :userId AND t.isDraft = true AND t.deletedAt IS NULL")
   List<Task> findDraftsByUserId(@Param("userId") UUID userId);
 
   @Query(
-      "SELECT t FROM Task t WHERE t.user.id = :userId AND t.sprint IS NULL AND t.isDraft = false")
+      "SELECT t FROM Task t WHERE t.user.id = :userId AND t.sprint IS NULL AND t.isDraft = false"
+          + " AND t.deletedAt IS NULL")
   List<Task> findBacklogByUserId(@Param("userId") UUID userId);
 
-  Optional<Task> findByIdAndUserId(UUID id, UUID userId);
+  @Query("SELECT t FROM Task t WHERE t.id = :id AND t.user.id = :userId AND t.deletedAt IS NULL")
+  Optional<Task> findByIdAndUserId(@Param("id") UUID id, @Param("userId") UUID userId);
+
+  // Find by ID including soft-deleted (for restore/hard-delete operations)
+  @Query("SELECT t FROM Task t WHERE t.id = :id AND t.user.id = :userId")
+  Optional<Task> findByIdAndUserIdIncludingDeleted(
+      @Param("id") UUID id, @Param("userId") UUID userId);
 
   @Query(
       "SELECT t FROM Task t LEFT JOIN FETCH t.comments LEFT JOIN FETCH t.history WHERE t.id = :id"
-          + " AND t.user.id = :userId")
+          + " AND t.user.id = :userId AND t.deletedAt IS NULL")
   Optional<Task> findByIdAndUserIdWithDetails(@Param("id") UUID id, @Param("userId") UUID userId);
 
   @Query(
-      "SELECT t FROM Task t WHERE t.user.id = :userId AND t.lifeWheelArea.id = :areaId ORDER BY"
-          + " t.createdAt DESC")
+      "SELECT t FROM Task t WHERE t.user.id = :userId AND t.lifeWheelArea.id = :areaId"
+          + " AND t.deletedAt IS NULL ORDER BY t.createdAt DESC")
   List<Task> findByUserIdAndLifeWheelAreaId(
       @Param("userId") UUID userId, @Param("areaId") String areaId);
 
   @Query(
       "SELECT t FROM Task t WHERE t.user.id = :userId AND t.eisenhowerQuadrant.id = :quadrantId"
-          + " ORDER BY t.createdAt DESC")
+          + " AND t.deletedAt IS NULL ORDER BY t.createdAt DESC")
   List<Task> findByUserIdAndEisenhowerQuadrantId(
       @Param("userId") UUID userId, @Param("quadrantId") String quadrantId);
 
-  @Query("SELECT COUNT(t) FROM Task t WHERE t.user.id = :userId AND t.status = :status")
+  @Query(
+      "SELECT COUNT(t) FROM Task t WHERE t.user.id = :userId AND t.status = :status"
+          + " AND t.deletedAt IS NULL")
   long countByUserIdAndStatus(@Param("userId") UUID userId, @Param("status") TaskStatus status);
 
   @Query(
       "SELECT SUM(t.storyPoints) FROM Task t WHERE t.user.id = :userId AND t.sprint.id = :sprintId"
-          + " AND t.status = 'DONE'")
+          + " AND t.status = 'DONE' AND t.deletedAt IS NULL")
   Integer sumCompletedPointsByUserIdAndSprintId(
       @Param("userId") UUID userId, @Param("sprintId") String sprintId);
 
@@ -69,6 +84,7 @@ public interface TaskRepository extends JpaRepository<Task, UUID> {
       "SELECT t FROM Task t JOIN t.recurrence r WHERE t.user.id = :userId "
           + "AND t.isRecurring = true "
           + "AND r.isActive = true "
+          + "AND t.deletedAt IS NULL "
           + "AND r.startDate <= :sprintEndDate "
           + "AND (r.endDate IS NULL OR r.endDate >= :sprintStartDate) "
           + "ORDER BY t.createdAt DESC")

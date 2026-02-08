@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, TextInput, FlatList, Pressable, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, FlatList, Pressable, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { Container } from '../../../components/layout/Container';
 import { ScreenHeader } from '../../../components/layout/ScreenHeader';
 import { Card } from '../../../components/ui/Card';
@@ -9,8 +9,9 @@ import { useRouter } from 'expo-router';
 import { Task, LifeWheelArea, EisenhowerQuadrant } from '../../../types/models';
 import { useTaskStore } from '../../../store/taskStore';
 import { useEpicStore } from '../../../store/epicStore';
-import { lifeWheelApi } from '../../../services/api';
+import { lifeWheelApi, taskApi } from '../../../services/api';
 import { useThemeContext } from '../../../providers/ThemeProvider';
+import { logger } from '../../../utils/logger';
 
 export default function SearchTasksScreen() {
     const router = useRouter();
@@ -25,6 +26,16 @@ export default function SearchTasksScreen() {
     const [lifeWheelAreas, setLifeWheelAreas] = useState<LifeWheelArea[]>([]);
     const [eisenhowerQuadrants, setEisenhowerQuadrants] = useState<EisenhowerQuadrant[]>([]);
     const [epics, setEpics] = useState<any[]>([]);
+    const [deletedTasks, setDeletedTasks] = useState<Task[]>([]);
+
+    const loadDeletedTasks = async () => {
+        try {
+            const result = await taskApi.getDeletedTasks();
+            setDeletedTasks((result || []) as Task[]);
+        } catch (error) {
+            logger.error('Error loading deleted tasks:', error);
+        }
+    };
 
     useEffect(() => {
         loadData();
@@ -41,7 +52,29 @@ export default function SearchTasksScreen() {
         // Epics are loaded from epicStore
     };
 
+    // When deletedTasks loads, update filteredTasks if we're showing deleted
     useEffect(() => {
+        if (selectedStatus === 'deleted') {
+            let results = deletedTasks as Task[];
+            if (searchQuery.trim()) {
+                const query = searchQuery.toLowerCase();
+                results = results.filter(
+                    (task) =>
+                        task.title.toLowerCase().includes(query) ||
+                        task.description?.toLowerCase().includes(query)
+                );
+            }
+            setFilteredTasks(results);
+        }
+    }, [deletedTasks, selectedStatus, searchQuery]);
+
+    useEffect(() => {
+        // When "Deleted" filter is selected, show deleted tasks from API
+        if (selectedStatus === 'deleted') {
+            loadDeletedTasks();
+            return;
+        }
+
         // Filter tasks based on search query, status, life wheel, and quadrant
         let results = tasks;
 
@@ -74,6 +107,38 @@ export default function SearchTasksScreen() {
         if (query.trim() && !recentSearches.includes(query)) {
             setRecentSearches([query, ...recentSearches.slice(0, 4)]);
         }
+    };
+
+    const handleRestoreTask = async (taskId: string) => {
+        try {
+            await taskApi.restoreTask(taskId);
+            await loadDeletedTasks();
+            await fetchTasks({});
+        } catch (error) {
+            logger.error('Error restoring task:', error);
+        }
+    };
+
+    const handleHardDeleteTask = (taskId: string, taskTitle: string) => {
+        Alert.alert(
+            'Delete Permanently',
+            `This will permanently delete "${taskTitle}". This action cannot be undone.`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete Forever',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await taskApi.hardDeleteTask(taskId);
+                            await loadDeletedTasks();
+                        } catch (error) {
+                            logger.error('Error permanently deleting task:', error);
+                        }
+                    },
+                },
+            ]
+        );
     };
 
     const getQuadrantStyle = (quadrantId: string) => {
@@ -109,6 +174,7 @@ export default function SearchTasksScreen() {
         { label: 'In Progress', value: 'in_progress', color: 'bg-yellow-100 text-yellow-800' },
         { label: 'Blocked', value: 'blocked', color: 'bg-red-100 text-red-800' },
         { label: 'Done', value: 'done', color: 'bg-green-100 text-green-800' },
+        { label: 'Deleted', value: 'deleted', color: 'bg-red-100 text-red-800' },
     ];
 
     const renderTask = ({ item }: { item: Task }) => {
@@ -119,6 +185,7 @@ export default function SearchTasksScreen() {
                 in_progress: 'bg-yellow-100 text-yellow-800',
                 blocked: 'bg-red-100 text-red-800',
                 done: 'bg-green-100 text-green-800',
+                deleted: 'bg-red-100 text-red-800',
             };
             return colors[status] || 'bg-gray-100 text-gray-800';
         };
@@ -130,6 +197,7 @@ export default function SearchTasksScreen() {
                 in_progress: 'In Progress',
                 blocked: 'Blocked',
                 done: 'Done',
+                deleted: 'Deleted',
             };
             return labels[status] || status;
         };
@@ -172,7 +240,7 @@ export default function SearchTasksScreen() {
                             style={{ backgroundColor: colors.backgroundSecondary }}
                         >
                             <Text className="text-xs font-medium" style={{ color: colors.textSecondary }}>
-                                {getStatusLabel(item.status)}
+                                {selectedStatus === 'deleted' ? 'Deleted' : getStatusLabel(item.status)}
                             </Text>
                         </View>
                         {taskEpic && (
@@ -194,6 +262,27 @@ export default function SearchTasksScreen() {
                             </View>
                         )}
                     </View>
+                    {/* Restore / Hard Delete actions for deleted tasks */}
+                    {selectedStatus === 'deleted' && (
+                        <View className="flex-row gap-2 mt-3 pt-3" style={{ borderTopWidth: 1, borderTopColor: colors.border }}>
+                            <TouchableOpacity
+                                onPress={() => handleRestoreTask(item.id)}
+                                className="flex-1 flex-row items-center justify-center py-2 rounded-lg"
+                                style={{ backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#D1FAE5' }}
+                            >
+                                <MaterialCommunityIcons name="restore" size={16} color="#10B981" />
+                                <Text className="text-sm font-medium ml-1.5" style={{ color: '#10B981' }}>Restore</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                onPress={() => handleHardDeleteTask(item.id, item.title)}
+                                className="flex-1 flex-row items-center justify-center py-2 rounded-lg"
+                                style={{ backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : '#FEF2F2' }}
+                            >
+                                <MaterialCommunityIcons name="delete-forever" size={16} color="#EF4444" />
+                                <Text className="text-sm font-medium ml-1.5" style={{ color: '#EF4444' }}>Delete Forever</Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
                 </View>
             </Pressable>
         );

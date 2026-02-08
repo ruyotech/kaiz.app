@@ -332,6 +332,9 @@ export const taskApi = {
   async updateTask(id: string, data: Record<string, unknown>) { return apiPut<unknown>(`/tasks/${id}`, data); },
   async updateTaskStatus(id: string, status: string) { return apiPatch<unknown>(`/tasks/${id}/status`, { status }); },
   async deleteTask(id: string) { return apiDelete(`/tasks/${id}`); },
+  async hardDeleteTask(id: string) { return apiDelete(`/tasks/${id}/permanent`); },
+  async restoreTask(id: string) { return apiPatch<unknown>(`/tasks/${id}/restore`, {}); },
+  async getDeletedTasks() { return apiGet<unknown[]>('/tasks/deleted'); },
   async getTaskHistory(id: string) { return apiGet<unknown[]>(`/tasks/${id}/history`); },
   async getTaskComments(id: string) { return apiGet<unknown[]>(`/tasks/${id}/comments`); },
   async addComment(taskId: string, data: { commentText: string; isAiGenerated?: boolean; attachments?: Array<{ filename: string; fileUrl: string; fileType: string; fileSize: number | null }> }) {

@@ -131,6 +131,37 @@ export function useDeleteTask() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: taskKeys.lists() });
       qc.invalidateQueries({ queryKey: taskKeys.backlog() });
+      qc.invalidateQueries({ queryKey: taskKeys.deleted() });
+    },
+  });
+}
+
+export function useDeletedTasks() {
+  return useQuery({
+    queryKey: taskKeys.deleted(),
+    queryFn: () => taskApi.getDeletedTasks() as Promise<Task[]>,
+    staleTime: STALE_TIMES.lists,
+  });
+}
+
+export function useHardDeleteTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => taskApi.hardDeleteTask(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: taskKeys.deleted() });
+    },
+  });
+}
+
+export function useRestoreTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => taskApi.restoreTask(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: taskKeys.lists() });
+      qc.invalidateQueries({ queryKey: taskKeys.backlog() });
+      qc.invalidateQueries({ queryKey: taskKeys.deleted() });
     },
   });
 }

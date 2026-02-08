@@ -26,6 +26,9 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 public class Task extends BaseEntity {
 
+  @Column(name = "deleted_at")
+  private Instant deletedAt;
+
   @Column(name = "title", nullable = false)
   private String title;
 

@@ -46,17 +46,20 @@ public class TaskService {
 
   public List<TaskDto> getTasksByUserId(UUID userId) {
     return sdlcMapper.toTaskDtoListWithoutDetails(
-        taskRepository.findByUserIdOrderByCreatedAtDesc(userId));
+        taskRepository.findByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc(userId));
   }
 
   public Page<TaskDto> getTasksByUserId(UUID userId, Pageable pageable) {
-    return taskRepository.findByUserId(userId, pageable).map(sdlcMapper::toTaskDtoWithoutDetails);
+    return taskRepository
+        .findByUserIdAndDeletedAtIsNull(userId, pageable)
+        .map(sdlcMapper::toTaskDtoWithoutDetails);
   }
 
   public List<TaskDto> getTasksBySprintId(UUID userId, String sprintId) {
     // Get tasks directly assigned to this sprint
     List<Task> sprintTasks =
-        taskRepository.findByUserIdAndSprintIdOrderByCreatedAtDesc(userId, sprintId);
+        taskRepository.findByUserIdAndSprintIdAndDeletedAtIsNullOrderByCreatedAtDesc(
+            userId, sprintId);
 
     // Get the sprint to find its date range
     var sprintOpt = sprintRepository.findById(sprintId);
@@ -89,12 +92,12 @@ public class TaskService {
 
   public List<TaskDto> getTasksByEpicId(UUID userId, UUID epicId) {
     return sdlcMapper.toTaskDtoListWithoutDetails(
-        taskRepository.findByUserIdAndEpicIdOrderByCreatedAtDesc(userId, epicId));
+        taskRepository.findByUserIdAndEpicIdAndDeletedAtIsNullOrderByCreatedAtDesc(userId, epicId));
   }
 
   public List<TaskDto> getTasksByStatus(UUID userId, TaskStatus status) {
     return sdlcMapper.toTaskDtoListWithoutDetails(
-        taskRepository.findByUserIdAndStatusOrderByCreatedAtDesc(userId, status));
+        taskRepository.findByUserIdAndStatusAndDeletedAtIsNullOrderByCreatedAtDesc(userId, status));
   }
 
   public List<TaskDto> getDraftTasks(UUID userId) {
@@ -425,7 +428,60 @@ public class TaskService {
         taskRepository
             .findByIdAndUserId(taskId, userId)
             .orElseThrow(() -> new ResourceNotFoundException("Task", taskId.toString()));
+
+    User user =
+        userRepository
+            .findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User", userId.toString()));
+
+    task.setDeletedAt(Instant.now());
+    taskRepository.save(task);
+    recordHistory(task, user, "status", task.getStatus().name(), "DELETED");
+    log.info("Task soft-deleted: userId={}, taskId={}", userId, taskId);
+  }
+
+  @Transactional
+  public void hardDeleteTask(UUID userId, UUID taskId) {
+    Task task =
+        taskRepository
+            .findByIdAndUserIdIncludingDeleted(taskId, userId)
+            .orElseThrow(() -> new ResourceNotFoundException("Task", taskId.toString()));
+
+    if (task.getDeletedAt() == null) {
+      throw new app.kaiz.shared.exception.BadRequestException(
+          "Task must be soft-deleted before permanent deletion");
+    }
+
     taskRepository.delete(task);
+    log.info("Task hard-deleted: userId={}, taskId={}", userId, taskId);
+  }
+
+  @Transactional
+  public TaskDto restoreTask(UUID userId, UUID taskId) {
+    Task task =
+        taskRepository
+            .findByIdAndUserIdIncludingDeleted(taskId, userId)
+            .orElseThrow(() -> new ResourceNotFoundException("Task", taskId.toString()));
+
+    if (task.getDeletedAt() == null) {
+      throw new app.kaiz.shared.exception.BadRequestException("Task is not deleted");
+    }
+
+    User user =
+        userRepository
+            .findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User", userId.toString()));
+
+    task.setDeletedAt(null);
+    taskRepository.save(task);
+    recordHistory(task, user, "status", "DELETED", task.getStatus().name());
+    log.info("Task restored: userId={}, taskId={}", userId, taskId);
+    return sdlcMapper.toTaskDto(task);
+  }
+
+  public List<TaskDto> getDeletedTasks(UUID userId) {
+    return sdlcMapper.toTaskDtoListWithoutDetails(
+        taskRepository.findByUserIdAndDeletedAtIsNotNullOrderByDeletedAtDesc(userId));
   }
 
   public List<TaskHistoryDto> getTaskHistory(UUID userId, UUID taskId) {

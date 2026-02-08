@@ -23,6 +23,7 @@ export const taskKeys = {
   backlog: () => [...taskKeys.all, 'backlog'] as const,
   drafts: () => [...taskKeys.all, 'drafts'] as const,
   detail: (id: string) => [...taskKeys.all, 'detail', id] as const,
+  deleted: () => [...taskKeys.all, 'deleted'] as const,
   history: (id: string) => [...taskKeys.all, 'history', id] as const,
   comments: (id: string) => [...taskKeys.all, 'comments', id] as const,
 };
