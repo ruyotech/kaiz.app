@@ -12,11 +12,12 @@ import React, { useCallback, useRef, useState } from 'react';
 import {
   View,
   FlatList,
-  Dimensions,
   StyleSheet,
   Pressable,
   ActivityIndicator,
+  useWindowDimensions,
   type ViewToken,
+  type LayoutChangeEvent,
 } from 'react-native';
 import { MindsetCard } from './MindsetCard';
 import { useMindsetPreferencesStore } from '../../store/mindsetStore';
@@ -34,8 +35,6 @@ interface MindsetFeedProps {
   onShare?: (content: MindsetContent, cardRef: React.RefObject<View | null>) => void;
 }
 
-const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
-
 export const MindsetFeed = React.memo(function MindsetFeed({
   feedItems,
   themes,
@@ -43,12 +42,22 @@ export const MindsetFeed = React.memo(function MindsetFeed({
   onLongPress,
   onShare,
 }: MindsetFeedProps) {
+  const { width: windowWidth } = useWindowDimensions();
   const { selectedThemeId } = useMindsetPreferencesStore();
   const toggleFavorite = useToggleMindsetFavorite();
 
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [containerHeight, setContainerHeight] = useState(0);
   const cardRef = useRef<View>(null);
   const flatListRef = useRef<FlatList<MindsetContent>>(null);
+
+  // Measure the actual visible container height (accounts for tab bar, safe areas, etc.)
+  const handleLayout = useCallback((e: LayoutChangeEvent) => {
+    const { height } = e.nativeEvent.layout;
+    if (height > 0 && height !== containerHeight) {
+      setContainerHeight(height);
+    }
+  }, [containerHeight]);
 
   // Resolve active theme
   const activeTheme =
@@ -86,7 +95,7 @@ export const MindsetFeed = React.memo(function MindsetFeed({
   const renderItem = useCallback(
     ({ item }: { item: MindsetContent }) => (
       <Pressable
-        style={styles.page}
+        style={{ width: windowWidth, height: containerHeight }}
         onLongPress={() => onLongPress?.(item)}
         delayLongPress={500}
       >
@@ -95,11 +104,11 @@ export const MindsetFeed = React.memo(function MindsetFeed({
           collapsable={false}
           style={styles.cardWrapper}
         >
-          <MindsetCard content={item} theme={activeTheme} />
+          <MindsetCard content={item} theme={activeTheme} containerHeight={containerHeight} />
         </View>
       </Pressable>
     ),
-    [activeTheme, currentContent?.id, onLongPress],
+    [activeTheme, containerHeight, windowWidth, currentContent?.id, onLongPress],
   );
 
   const keyExtractor = useCallback(
@@ -109,24 +118,33 @@ export const MindsetFeed = React.memo(function MindsetFeed({
 
   const getItemLayout = useCallback(
     (_: unknown, index: number) => ({
-      length: SCREEN_HEIGHT,
-      offset: SCREEN_HEIGHT * index,
+      length: containerHeight,
+      offset: containerHeight * index,
       index,
     }),
-    [],
+    [containerHeight],
   );
 
   // ── Loading / empty states ──────────────────────────────────────────
   if (isLoading || !currentContent || !activeTheme) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={styles.loadingContainer} onLayout={handleLayout}>
+        <ActivityIndicator size="large" color={moduleColors.mindset} />
+      </View>
+    );
+  }
+
+  // Wait for container measurement before rendering the list
+  if (containerHeight === 0) {
+    return (
+      <View style={styles.root} onLayout={handleLayout}>
         <ActivityIndicator size="large" color={moduleColors.mindset} />
       </View>
     );
   }
 
   return (
-    <View style={styles.root}>
+    <View style={styles.root} onLayout={handleLayout}>
       <FlatList
         ref={flatListRef}
         data={feedItems}
@@ -172,10 +190,6 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: '#000000',
-  },
-  page: {
-    width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT,
   },
   cardWrapper: {
     flex: 1,

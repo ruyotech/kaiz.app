@@ -54,7 +54,7 @@ export default function FavoritesScreen() {
             <Text style={[styles.quote, { color: colors.text }]}>{item.body}</Text>
             {item.author ? (
               <Text style={[styles.author, { color: colors.textSecondary }]}>
-                \u2014 {item.author}
+                {"\u2014"} {item.author}
               </Text>
             ) : null}
           </View>

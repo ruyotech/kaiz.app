@@ -82,14 +82,6 @@
         {
           "calendarPermission": "Allow $(PRODUCT_NAME) to read your calendars to show blocked time and adjust your sprint capacity."
         }
-      ],
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/notification-icon.png",
-          "color": "#3B82F6",
-          "sounds": []
-        }
       ]
     ],
     "experiments": {

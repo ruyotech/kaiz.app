@@ -16,6 +16,8 @@ import { AppIcon } from '../ui/AppIcon';
 interface MindsetCardProps {
   content: MindsetContent;
   theme: MindsetTheme;
+  /** Actual measured container height — ensures pixel-perfect snapping */
+  containerHeight?: number;
 }
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -50,13 +52,15 @@ function getDynamicFontSize(text: string): number {
 export const MindsetCard = React.memo(function MindsetCard({
   content,
   theme,
+  containerHeight,
 }: MindsetCardProps) {
   const dynamicFontSize = getDynamicFontSize(content.body);
   const hasBackgroundImage = content.backgroundImageUrl || theme.defaultAsset;
   const hasGradient = theme.gradientColors.length >= 2;
+  const cardHeight = containerHeight || SCREEN_HEIGHT;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { height: cardHeight }]}>
       {/* Background layer */}
       {hasBackgroundImage ? (
         <>
@@ -104,7 +108,7 @@ export const MindsetCard = React.memo(function MindsetCard({
               { color: hasBackgroundImage ? 'rgba(255,255,255,0.85)' : theme.textColor },
             ]}
           >
-            \u2014 {content.author}
+            {"\u2014"} {content.author}
           </Text>
         ) : null}
 
@@ -150,7 +154,6 @@ export const MindsetCard = React.memo(function MindsetCard({
 const styles = StyleSheet.create({
   container: {
     width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT,
     justifyContent: 'center',
     alignItems: 'center',
   },
