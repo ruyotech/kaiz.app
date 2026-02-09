@@ -1,12 +1,25 @@
 import { logger } from '../../../../utils/logger';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Modal, Pressable, Linking, Alert } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Task, TaskComment, TaskHistory } from '../../../../types/models';
-import { lifeWheelApi, taskApi, fileUploadApi, AuthExpiredError } from '../../../../services/api';
-import { useEpicStore } from '../../../../store/epicStore';
+import { fileUploadApi } from '../../../../services/api';
+import {
+    useTask,
+    useTaskComments,
+    useTaskHistory,
+    useUpdateTaskStatus,
+    useDeleteTask,
+    useAddComment,
+    useChecklist,
+    useAddChecklistItem,
+    useToggleChecklistItem,
+    useDeleteChecklistItem,
+} from '../../../../hooks/queries';
+import { useLifeWheelAreas } from '../../../../hooks/queries';
+import { useEpics } from '../../../../hooks/queries';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { AttachmentPicker, AttachmentPreview, CommentAttachment } from '../../../../components/ui/AttachmentPicker';
 import { RichTextComment } from '../../../../components/ui/RichTextComment';
@@ -42,45 +55,50 @@ export default function TaskWorkView() {
     const { t } = useTranslation();
     const { colors, isDark } = useThemeContext();
     const { id } = useLocalSearchParams();
-    const { epics, fetchEpics } = useEpicStore();
-    const [loading, setLoading] = useState(true);
-    const [task, setTask] = useState<Task | null>(null);
+    const taskId = (Array.isArray(id) ? id[0] : id) as string;
+
+    // ── React Query: reads ────────────────────────────────────────────────
+    const { data: taskData, isLoading: loading, isError: taskNotFound } = useTask(taskId);
+    const task = (taskData as Task) ?? null;
+    const attachments = useMemo<Attachment[]>(() => (task as any)?.attachments ?? [], [task]);
+
+    const { data: commentsData, isLoading: commentsLoading } = useTaskComments(taskId);
+    const comments = useMemo(() => (commentsData ?? []) as TaskComment[], [commentsData]);
+
+    const { data: historyData, isLoading: historyLoading } = useTaskHistory(taskId);
+    const history = useMemo(() => (historyData ?? []) as TaskHistory[], [historyData]);
+
+    const { data: checklistData, isLoading: checklistLoading } = useChecklist(taskId);
+    const checklist = useMemo(() => (checklistData ?? []) as ChecklistItem[], [checklistData]);
+    const hasChecklist = checklist.length > 0;
+
+    const { data: epicsData = [] } = useEpics();
+    const epics = epicsData as any[];
+
+    const { data: lifeWheelAreasData = [] } = useLifeWheelAreas();
+    const lifeWheelAreas = lifeWheelAreasData as LifeWheelArea[];
+
+    // ── React Query: mutations ────────────────────────────────────────────
+    const updateStatusMutation = useUpdateTaskStatus();
+    const deleteTaskMutation = useDeleteTask();
+    const addCommentMutation = useAddComment();
+    const addChecklistItemMutation = useAddChecklistItem();
+    const toggleChecklistItemMutation = useToggleChecklistItem();
+    const deleteChecklistItemMutation = useDeleteChecklistItem();
+
+    // ── Local UI state only ───────────────────────────────────────────────
     const [activeTab, setActiveTab] = useState<TabType>('overview');
-    const [lifeWheelAreas, setLifeWheelAreas] = useState<LifeWheelArea[]>([]);
-
-    // Comments - fetched from API
-    const [comments, setComments] = useState<TaskComment[]>([]);
-    const [commentsLoading, setCommentsLoading] = useState(false);
     const [newComment, setNewComment] = useState('');
-    const [submittingComment, setSubmittingComment] = useState(false);
-
-    // History - fetched from API
-    const [history, setHistory] = useState<TaskHistory[]>([]);
-    const [historyLoading, setHistoryLoading] = useState(false);
-
-    // Attachments from task
-    const [attachments, setAttachments] = useState<Attachment[]>([]);
-
-    // Checklist
-    const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
-    const [checklistLoading, setChecklistLoading] = useState(false);
     const [newChecklistItem, setNewChecklistItem] = useState('');
     const [showAddChecklist, setShowAddChecklist] = useState(false);
-    const [hasChecklist, setHasChecklist] = useState(false);
-    const [taskNotFound, setTaskNotFound] = useState(false);
-
-    // Quick status update
     const [showStatusMenu, setShowStatusMenu] = useState(false);
-
-    // Comment attachments
     const [showAttachmentPicker, setShowAttachmentPicker] = useState(false);
     const [commentAttachments, setCommentAttachments] = useState<CommentAttachment[]>([]);
-
-    // Attachment preview modal
     const [previewModalVisible, setPreviewModalVisible] = useState(false);
     const [previewAttachment, setPreviewAttachment] = useState<AttachmentData | null>(null);
     const [previewAttachments, setPreviewAttachments] = useState<AttachmentData[]>([]);
     const [previewInitialIndex, setPreviewInitialIndex] = useState(0);
+    const submittingComment = addCommentMutation.isPending;
 
     // Open attachment in preview modal
     const openAttachmentPreview = useCallback((attachment: AttachmentData, allAttachments?: AttachmentData[], index?: number) => {
@@ -94,82 +112,6 @@ export default function TaskWorkView() {
         }
         setPreviewModalVisible(true);
     }, []);
-
-    // Load comments from API
-    const loadComments = useCallback(async (taskId: string) => {
-        try {
-            setCommentsLoading(true);
-            const fetchedComments = await taskApi.getTaskComments(taskId);
-            setComments((fetchedComments || []) as TaskComment[]);
-        } catch (error) {
-            // Ignore auth expired errors - redirect is handled automatically
-            if (error instanceof AuthExpiredError) return;
-            logger.error('Error loading comments:', error);
-        } finally {
-            setCommentsLoading(false);
-        }
-    }, []);
-
-    // Load history from API
-    const loadHistory = useCallback(async (taskId: string) => {
-        try {
-            setHistoryLoading(true);
-            const fetchedHistory = await taskApi.getTaskHistory(taskId);
-            setHistory((fetchedHistory || []) as TaskHistory[]);
-        } catch (error) {
-            // Ignore auth expired errors - redirect is handled automatically
-            if (error instanceof AuthExpiredError) return;
-            logger.error('Error loading history:', error);
-        } finally {
-            setHistoryLoading(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        loadTask();
-        fetchEpics();
-        loadLifeWheelAreas();
-    }, [id]);
-
-    const loadTask = async () => {
-        try {
-            setLoading(true);
-            setTaskNotFound(false);
-            // Fetch the specific task by ID instead of loading all tasks
-            const fetchedTask = await taskApi.getTaskById(id as string) as Task;
-            if (fetchedTask) {
-                setTask(fetchedTask);
-                // Set attachments from task
-                if ((fetchedTask as any).attachments) {
-                    setAttachments((fetchedTask as any).attachments);
-                }
-                // Load comments, history, and checklist from API
-                loadComments(fetchedTask.id);
-                loadHistory(fetchedTask.id);
-                loadChecklist(fetchedTask.id);
-            } else {
-                setTaskNotFound(true);
-            }
-        } catch (error) {
-            // Ignore auth expired errors - redirect is handled automatically
-            if (error instanceof AuthExpiredError) return;
-            logger.error('Error loading task:', error);
-            setTaskNotFound(true);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const loadLifeWheelAreas = async () => {
-        try {
-            const areas = await lifeWheelApi.getLifeWheelAreas();
-            setLifeWheelAreas(areas as LifeWheelArea[]);
-        } catch (error) {
-            // Ignore auth expired errors - redirect is handled automatically
-            if (error instanceof AuthExpiredError) return;
-            logger.error('Error loading life wheel areas:', error);
-        }
-    };
 
     // No longer needed — task is now loaded directly by ID in loadTask()
 
@@ -273,21 +215,15 @@ export default function TaskWorkView() {
 
     const handleStatusChange = async (newStatus: Task['status']) => {
         if (task) {
-            const oldStatus = task.status;
-            setTask({ ...task, status: newStatus });
-            try {
-                // Convert to uppercase for backend API (DRAFT, TODO, IN_PROGRESS, DONE)
-                const apiStatus = newStatus.toUpperCase();
-                await taskApi.updateTaskStatus(task.id, apiStatus);
-                // Refresh store so list screens reflect new status
-                fetchTasks();
-                // Reload history to get the updated history from backend
-                loadHistory(task.id);
-            } catch (error) {
-                logger.error('Error updating status:', error);
-                // Revert on error
-                setTask({ ...task, status: oldStatus });
-            }
+            const apiStatus = newStatus.toUpperCase();
+            updateStatusMutation.mutate(
+                { id: task.id, status: apiStatus },
+                {
+                    onError: (error) => {
+                        logger.error('Error updating status:', error);
+                    },
+                }
+            );
         }
         setShowStatusMenu(false);
     };
@@ -301,14 +237,11 @@ export default function TaskWorkView() {
                 {
                     text: t('tasks.details.deleteTask'),
                     style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            await taskApi.deleteTask(task!.id);
-                            await fetchTasks();
-                            router.back();
-                        } catch (error) {
-                            logger.error('Error deleting task:', error);
-                        }
+                    onPress: () => {
+                        deleteTaskMutation.mutate(task!.id, {
+                            onSuccess: () => router.back(),
+                            onError: (error) => logger.error('Error deleting task:', error),
+                        });
                     },
                 },
             ]
@@ -317,7 +250,6 @@ export default function TaskWorkView() {
 
     const handleAddComment = async () => {
         if ((newComment.trim() || commentAttachments.length > 0) && task) {
-            setSubmittingComment(true);
             try {
                 // First, upload any attachments to cloud storage
                 let uploadedAttachments: Array<{
@@ -351,76 +283,56 @@ export default function TaskWorkView() {
                     logger.log('✅ All attachments uploaded:', uploadedAttachments.length);
                 }
 
-                // Now add the comment with attachments
-                const createdComment = await taskApi.addComment(task.id, { 
-                    commentText: newComment.trim() || 'Attachment added',
-                    attachments: uploadedAttachments.length > 0 ? uploadedAttachments : undefined,
-                });
-                
-                // Add the new comment to the list
-                setComments([...comments, createdComment as TaskComment]);
-                setNewComment('');
-                setCommentAttachments([]);
+                // Now add the comment via React Query mutation
+                addCommentMutation.mutate(
+                    {
+                        taskId: task.id,
+                        data: {
+                            commentText: newComment.trim() || 'Attachment added',
+                            attachments: uploadedAttachments.length > 0 ? uploadedAttachments : undefined,
+                        },
+                    },
+                    {
+                        onSuccess: () => {
+                            setNewComment('');
+                            setCommentAttachments([]);
+                        },
+                    }
+                );
             } catch (error) {
                 logger.error('Error adding comment:', error);
-            } finally {
-                setSubmittingComment(false);
             }
         }
     };
 
-    const toggleChecklistItem = async (itemId: string) => {
-        // Optimistic update
-        setChecklist(prev => prev.map(item =>
-            item.id === itemId ? { ...item, completed: !item.completed } : item
-        ));
-        try {
-            await taskApi.toggleChecklistItem(task!.id, itemId);
-        } catch (error) {
-            // Revert on error
-            setChecklist(prev => prev.map(item =>
-                item.id === itemId ? { ...item, completed: !item.completed } : item
-            ));
-            logger.error('Error toggling checklist item:', error);
-        }
+    const toggleChecklistItem = (itemId: string) => {
+        toggleChecklistItemMutation.mutate(
+            { taskId: task!.id, itemId },
+            { onError: (error) => logger.error('Error toggling checklist item:', error) }
+        );
     };
 
-    const handleAddChecklistItem = async () => {
+    const handleAddChecklistItem = () => {
         if (newChecklistItem.trim() && task) {
-            const tempId = Date.now().toString();
             const text = newChecklistItem.trim();
-            // Optimistic add
-            setChecklist(prev => [...prev, { id: tempId, text, completed: false }]);
             setNewChecklistItem('');
-            try {
-                const newItem = await taskApi.addChecklistItem(task.id, text);
-                // Replace temp item with real one
-                setChecklist(prev => prev.map(item =>
-                    item.id === tempId ? { id: (newItem as any).id, text: (newItem as any).text, completed: (newItem as any).completed } : item
-                ));
-            } catch (error) {
-                // Revert on error
-                setChecklist(prev => prev.filter(item => item.id !== tempId));
-                logger.error('Error adding checklist item:', error);
-            }
+            addChecklistItemMutation.mutate(
+                { taskId: task.id, text },
+                { onError: (error) => logger.error('Error adding checklist item:', error) }
+            );
         }
     };
 
-    const handleDeleteChecklistItem = async (itemId: string) => {
-        const item = checklist.find(i => i.id === itemId);
-        setChecklist(prev => prev.filter(i => i.id !== itemId));
-        try {
-            await taskApi.deleteChecklistItem(task!.id, itemId);
-        } catch (error) {
-            if (item) setChecklist(prev => [...prev, item]);
-            logger.error('Error deleting checklist item:', error);
-        }
+    const handleDeleteChecklistItem = (itemId: string) => {
+        deleteChecklistItemMutation.mutate(
+            { taskId: task!.id, itemId },
+            { onError: (error) => logger.error('Error deleting checklist item:', error) }
+        );
     };
 
-    const handleToggleChecklist = async () => {
+    const handleToggleChecklist = () => {
         if (!task) return;
         if (hasChecklist) {
-            // Remove all checklist items
             Alert.alert(
                 t('tasks.details.removeChecklist'),
                 t('tasks.details.confirmDelete'),
@@ -431,42 +343,21 @@ export default function TaskWorkView() {
                         style: 'destructive',
                         onPress: async () => {
                             try {
-                                // Delete all items via API
                                 for (const item of checklist) {
-                                    await taskApi.deleteChecklistItem(task.id, item.id);
+                                    await deleteChecklistItemMutation.mutateAsync({ taskId: task.id, itemId: item.id });
                                 }
-                                setChecklist([]);
-                                setHasChecklist(false);
                                 setShowAddChecklist(false);
                             } catch (error) {
                                 logger.error('Error removing checklist:', error);
-                                loadChecklist(task.id);
                             }
                         },
                     },
                 ]
             );
         } else {
-            // Enable checklist
-            setHasChecklist(true);
             setShowAddChecklist(true);
         }
     };
-
-    // Load checklist from API
-    const loadChecklist = useCallback(async (taskId: string) => {
-        try {
-            setChecklistLoading(true);
-            const items = await taskApi.getChecklistItems(taskId) as ChecklistItem[];
-            setChecklist(items || []);
-            setHasChecklist((items || []).length > 0);
-        } catch (error) {
-            if (error instanceof AuthExpiredError) return;
-            logger.error('Error loading checklist:', error);
-        } finally {
-            setChecklistLoading(false);
-        }
-    }, []);
 
     if (loading || !task) {
         // Task not found after loading — likely deleted

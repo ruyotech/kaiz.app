@@ -26,6 +26,7 @@ export const taskKeys = {
   deleted: () => [...taskKeys.all, 'deleted'] as const,
   history: (id: string) => [...taskKeys.all, 'history', id] as const,
   comments: (id: string) => [...taskKeys.all, 'comments', id] as const,
+  checklist: (id: string) => [...taskKeys.all, 'checklist', id] as const,
 };
 
 // ── Sprints ─────────────────────────────────────────────────────────────────

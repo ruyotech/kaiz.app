@@ -132,6 +132,50 @@ export function useDeleteTask() {
       qc.invalidateQueries({ queryKey: taskKeys.lists() });
       qc.invalidateQueries({ queryKey: taskKeys.backlog() });
       qc.invalidateQueries({ queryKey: taskKeys.deleted() });
+      qc.invalidateQueries({ queryKey: sprintKeys.all });
+    },
+  });
+}
+
+// ── Checklist ───────────────────────────────────────────────────────────────
+
+export function useChecklist(taskId: string) {
+  return useQuery({
+    queryKey: taskKeys.checklist(taskId),
+    queryFn: () => taskApi.getChecklistItems(taskId),
+    enabled: !!taskId,
+  });
+}
+
+export function useAddChecklistItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ taskId, text }: { taskId: string; text: string }) =>
+      taskApi.addChecklistItem(taskId, text),
+    onSuccess: (_data, { taskId }) => {
+      qc.invalidateQueries({ queryKey: taskKeys.checklist(taskId) });
+    },
+  });
+}
+
+export function useToggleChecklistItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ taskId, itemId }: { taskId: string; itemId: string }) =>
+      taskApi.toggleChecklistItem(taskId, itemId),
+    onSuccess: (_data, { taskId }) => {
+      qc.invalidateQueries({ queryKey: taskKeys.checklist(taskId) });
+    },
+  });
+}
+
+export function useDeleteChecklistItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ taskId, itemId }: { taskId: string; itemId: string }) =>
+      taskApi.deleteChecklistItem(taskId, itemId),
+    onSuccess: (_data, { taskId }) => {
+      qc.invalidateQueries({ queryKey: taskKeys.checklist(taskId) });
     },
   });
 }
