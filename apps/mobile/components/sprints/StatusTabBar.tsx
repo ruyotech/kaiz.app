@@ -4,7 +4,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useThemeContext } from '../../providers/ThemeProvider';
 import type { TaskStatus } from '../../types/models';
 
-export type StatusTab = 'all' | TaskStatus;
+export type StatusTab = TaskStatus;
 
 interface StatusTabConfig {
     key: StatusTab;
@@ -15,7 +15,6 @@ interface StatusTabConfig {
 }
 
 const TAB_CONFIG: StatusTabConfig[] = [
-    { key: 'all', label: 'All', icon: 'view-grid-outline', activeColor: '#3B82F6', activeBg: 'rgba(59,130,246,0.12)' },
     { key: 'todo', label: 'To Do', icon: 'checkbox-blank-circle-outline', activeColor: '#6B7280', activeBg: 'rgba(107,114,128,0.12)' },
     { key: 'in_progress', label: 'Active', icon: 'progress-clock', activeColor: '#2563EB', activeBg: 'rgba(37,99,235,0.12)' },
     { key: 'done', label: 'Done', icon: 'check-circle', activeColor: '#16A34A', activeBg: 'rgba(22,163,74,0.12)' },

@@ -9,6 +9,7 @@ import { formatLocalized } from '../../../utils/localizedDate';
 import { WeekHeader } from '../../../components/calendar/WeekHeader';
 import { DayScheduleView } from '../../../components/calendar/DayScheduleView';
 import { EnhancedTaskCard } from '../../../components/calendar/EnhancedTaskCard';
+import { StatusTabBar, type StatusTab } from '../../../components/sprints/StatusTabBar';
 import { SwipeableTaskCard } from '../../../components/sprints/SwipeableTaskCard';
 // CeremonyCard removed from weekly view — progress bar already shows committed status
 import { FamilyScopeSwitcher } from '../../../components/family/FamilyScopeSwitcher';
@@ -39,6 +40,7 @@ export default function SprintCalendar() {
     const { t } = useTranslation();
     const { colors, isDark } = useThemeContext();
     const [currentDate, setCurrentDate] = useState(new Date());
+    const [activeTab, setActiveTab] = useState<StatusTab>('todo');
     const [viewType, setViewType] = useState<'day' | 'week'>('week');
     const [isMonthExpanded, setIsMonthExpanded] = useState(false);
 
@@ -181,6 +183,23 @@ export default function SprintCalendar() {
             : scopeFilteredTasks;
     }, [scopeFilteredTasks, viewType, currentDate, shouldShowTaskOnDay]);
 
+    // Status tab counts (normalize to lowercase — backend returns UPPERCASE)
+    const tabCounts = useMemo(() => {
+        const counts: Record<StatusTab, number> = {
+            draft: 0, todo: 0, in_progress: 0, done: 0, blocked: 0, pending_approval: 0,
+        };
+        displayedTasks.forEach(t => {
+            const key = t.status.toLowerCase() as StatusTab;
+            counts[key] = (counts[key] || 0) + 1;
+        });
+        return counts;
+    }, [displayedTasks]);
+
+    // Filtered by active tab (normalize to lowercase — backend returns UPPERCASE)
+    const tabFilteredTasks = useMemo(() => {
+        return displayedTasks.filter(t => t.status.toLowerCase() === activeTab);
+    }, [displayedTasks, activeTab]);
+
     // Sprint stats
     const isCurrentWeek = isThisWeek(currentDate, { weekStartsOn: 0 });
     const dayOfWeek = getDay(new Date());
@@ -321,7 +340,7 @@ export default function SprintCalendar() {
                         </Text>
                     </View>
                     <Text className="text-xs font-medium" style={{ color: colors.textSecondary }}>
-                        {donePoints}/{totalPoints} pts • {weekTasks.length} tasks
+                        {weekTasks.filter(t => t.status.toLowerCase() === 'done').length}/{weekTasks.length} tasks • {donePoints}/{totalPoints} pts
                     </Text>
                 </View>
                 {/* Progress bar */}
@@ -339,16 +358,19 @@ export default function SprintCalendar() {
     };
 
     const renderTaskList = () => {
-        if (displayedTasks.length === 0) {
+        if (tabFilteredTasks.length === 0) {
+            const emptyMessage = `No ${activeTab.replace('_', ' ')} tasks`;
             return (
                 <View className="items-center justify-center py-16">
                     <MaterialCommunityIcons
-                        name="clipboard-text-outline"
+                        name={activeTab === 'done' ? 'check-circle-outline' :
+                            activeTab === 'blocked' ? 'alert-circle-outline' :
+                                'clipboard-text-outline'}
                         size={56}
                         color={colors.textTertiary}
                     />
                     <Text className="text-sm mt-3" style={{ color: colors.textTertiary }}>
-                        {t('calendar.noTasksSprint')}
+                        {emptyMessage}
                     </Text>
                     {isCurrentWeek && (
                         <TouchableOpacity
@@ -365,7 +387,7 @@ export default function SprintCalendar() {
 
         return (
             <View className="px-4 pt-3 pb-8">
-                {displayedTasks.map((task) => {
+                {tabFilteredTasks.map((task) => {
                     const taskEpic = epics.find(e => e.id === task.epicId);
                     const lifeWheelArea = getLifeWheelArea(task.lifeWheelAreaId);
 
@@ -467,6 +489,13 @@ export default function SprintCalendar() {
                     />
                 ) : (
                     <>
+                        {/* Status Tab Bar — sticky below header */}
+                        <StatusTabBar
+                            activeTab={activeTab}
+                            onTabChange={setActiveTab}
+                            counts={tabCounts}
+                        />
+
                         <ScrollView className="flex-1">
                             {renderPlanningNudge()}
                             {renderSprintProgressBar()}
