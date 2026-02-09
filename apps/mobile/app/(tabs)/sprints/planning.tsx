@@ -76,7 +76,7 @@ export default function SprintPlanningScreen() {
             id: t.id,
             title: t.title,
             storyPoints: t.storyPoints || 3,
-            lifeWheelAreaId: t.lifeWheelAreaId || 'lw-2',
+            lifeWheelAreaId: t.lifeWheelAreaId || 'lw-4',
             epicId: t.epicId || undefined,
             source: 'backlog' as const,
         }));
@@ -106,7 +106,7 @@ export default function SprintPlanningScreen() {
         const map: Record<string, number> = {};
         allDimIds.forEach(id => { map[id] = 0; });
         selectedTasks.forEach(t => {
-            const area = t.lifeWheelAreaId || 'lw-2';
+            const area = t.lifeWheelAreaId || 'lw-4';
             map[area] = (map[area] || 0) + t.storyPoints;
         });
         return allDimIds.map(id => ({ areaId: id, points: map[id] || 0 }));
@@ -132,7 +132,7 @@ export default function SprintPlanningScreen() {
                 id: (result as Record<string, unknown>)?.id as string || `quick-${Date.now()}`,
                 title: quickAddTitle.trim(),
                 storyPoints: quickAddPoints,
-                lifeWheelAreaId: 'lw-2',
+                lifeWheelAreaId: 'lw-4',
                 source: 'created',
             };
             setCreatedTasks(prev => [...prev, newTask]);

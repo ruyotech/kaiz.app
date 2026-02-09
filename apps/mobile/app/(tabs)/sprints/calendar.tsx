@@ -1,8 +1,8 @@
 import { logger } from '../../../utils/logger';
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { addDays, subDays, format, isThisWeek, getDay } from 'date-fns';
 import { getSprintName, getWeekNumber, getWeekStartDate } from '../../../utils/dateHelpers';
 import { getMonthShort, formatLocalized } from '../../../utils/localizedDate';
@@ -61,6 +61,8 @@ export default function SprintCalendar() {
     // Touch tracking for horizontal swipe
     const touchStart = useRef({ x: 0, y: 0, time: 0 });
     const touchMove = useRef({ x: 0, y: 0 });
+    const didInitialLoad = useRef(false);
+    const [refreshKey, setRefreshKey] = useState(0);
 
     const currentWeek = getWeekNumber(currentDate);
     const currentYear = currentDate.getFullYear();
@@ -85,19 +87,64 @@ export default function SprintCalendar() {
     const [monthName, yearFromMonth] = dominantMonth.month.split('-');
     const sprintName = `S${currentWeek.toString().padStart(2, '0')}-${monthName}-${yearFromMonth}`;
 
+    // On initial mount: fetch the active sprint and navigate calendar to its week
+    useEffect(() => {
+        const resolveActiveSprint = async () => {
+            try {
+                const active = await sprintApi.getCurrentSprint() as any;
+                if (active && active.startDate) {
+                    // Use the active sprint's start date to navigate the calendar
+                    const sprintStart = new Date(active.startDate);
+                    const activeWeek = getWeekNumber(sprintStart);
+                    const todayWeek = getWeekNumber(new Date());
+
+                    // Only adjust if active sprint is a different week than today
+                    if (activeWeek !== todayWeek) {
+                        setCurrentDate(sprintStart);
+                    }
+                }
+            } catch {
+                // No active sprint — stay on today's week
+            }
+            didInitialLoad.current = true;
+        };
+        resolveActiveSprint();
+    }, []);
+
+    // Refetch tasks when screen regains focus (e.g., returning from planning)
+    useFocusEffect(
+        useCallback(() => {
+            setRefreshKey(prev => prev + 1);
+        }, [])
+    );
+
     // Load tasks for current week
     useEffect(() => {
         const loadTasks = async () => {
             setLoading(true);
             try {
                 const sprints = await sprintApi.getSprints(currentYear);
-                const sprint = sprints.find((s: any) => s.weekNumber === currentWeek);
+                let sprint = sprints.find((s: any) => s.weekNumber === currentWeek);
                 const epicsData = await epicApi.getEpics();
                 setEpics(epicsData);
                 
                 // Load life wheel areas
                 const areasData = await lifeWheelApi.getLifeWheelAreas();
                 setLifeWheelAreas(areasData as LifeWheelArea[]);
+
+                // If the found sprint has no committed tasks and we're on the current week,
+                // check if there's an active sprint (may be a different week number due to
+                // week calculation differences between mobile and backend)
+                if (sprint && !sprint.committedAt && isThisWeek(currentDate, { weekStartsOn: 0 })) {
+                    try {
+                        const activeSprint = await sprintApi.getCurrentSprint() as any;
+                        if (activeSprint && activeSprint.committedAt) {
+                            sprint = activeSprint;
+                        }
+                    } catch {
+                        // No active sprint — use the week-matched one
+                    }
+                }
 
                 if (sprint) {
                     setCurrentSprint(sprint); // Store sprint data for color coding
@@ -116,7 +163,7 @@ export default function SprintCalendar() {
             }
         };
         loadTasks();
-    }, [currentDate, currentWeek, currentYear]);
+    }, [currentDate, currentWeek, currentYear, refreshKey]);
 
     // Helper: Check if a recurring task should appear on a specific day
     const shouldShowTaskOnDay = (task: Task, date: Date): boolean => {

@@ -735,14 +735,8 @@ export const commandCenterApi = {
   // ---- Sprint Quick-Add (AI bulk task generation) ---------------------------
 
   /** Parse multiple short text lines into structured task drafts using AI */
-  async sprintQuickAddAI(data: { lines: string[]; sprintContext?: string }): Promise<ApiResponse<{ suggestions: Array<{ originalLine: string; title: string; description: string; lifeWheelAreaId: string; eisenhowerQuadrantId: string; storyPoints: number; tags: string[]; aiConfidence: number }> }>> {
-    try {
-      const res = await api.post('/command-center/sprint-quick-add', data);
-      return res.data;
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Failed to generate AI task suggestions';
-      return { success: false, error: msg };
-    }
+  async sprintQuickAddAI(data: { lines: string[]; sprintContext?: string }): Promise<{ suggestions: Array<{ originalLine: string; title: string; description: string; lifeWheelAreaId: string; eisenhowerQuadrantId: string; storyPoints: number; tags: string[]; aiConfidence: number }> }> {
+    return apiPost<{ suggestions: Array<{ originalLine: string; title: string; description: string; lifeWheelAreaId: string; eisenhowerQuadrantId: string; storyPoints: number; tags: string[]; aiConfidence: number }> }>('/command-center/sprint-quick-add', data);
   },
 };
 

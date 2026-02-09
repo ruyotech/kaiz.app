@@ -108,7 +108,7 @@ export const PlanningQuickAddTab = React.memo(function PlanningQuickAddTab({
           originalLine: s.originalLine,
           title: s.title || s.originalLine,
           description: s.description || '',
-          lifeWheelAreaId: s.lifeWheelAreaId || 'lw-2',
+          lifeWheelAreaId: s.lifeWheelAreaId || 'lw-4',
           eisenhowerQuadrantId: s.eisenhowerQuadrantId || 'eq-2',
           storyPoints: s.storyPoints || 3,
           tags: s.tags || [],
@@ -125,7 +125,7 @@ export const PlanningQuickAddTab = React.memo(function PlanningQuickAddTab({
             originalLine: line,
             title: line,
             description: '',
-            lifeWheelAreaId: 'lw-2',
+            lifeWheelAreaId: 'lw-4',
             eisenhowerQuadrantId: 'eq-2',
             storyPoints: 3,
             tags: [],
@@ -151,7 +151,7 @@ export const PlanningQuickAddTab = React.memo(function PlanningQuickAddTab({
       originalLine: line,
       title: line,
       description: '',
-      lifeWheelAreaId: 'lw-2',
+      lifeWheelAreaId: 'lw-4',
       eisenhowerQuadrantId: 'eq-2',
       storyPoints: 3,
       tags: [],
@@ -202,7 +202,7 @@ export const PlanningQuickAddTab = React.memo(function PlanningQuickAddTab({
         id: t.id,
         title: t.title,
         storyPoints: t.storyPoints || 3,
-        lifeWheelAreaId: t.lifeWheelAreaId || 'lw-2',
+        lifeWheelAreaId: t.lifeWheelAreaId || 'lw-4',
       }));
 
       if (created.length > 0) {
