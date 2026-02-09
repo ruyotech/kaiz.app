@@ -11,7 +11,7 @@ import { DayScheduleView } from '../../../components/calendar/DayScheduleView';
 import { EnhancedTaskCard } from '../../../components/calendar/EnhancedTaskCard';
 import { StatusTabBar, type StatusTab } from '../../../components/sprints/StatusTabBar';
 import { SwipeableTaskCard } from '../../../components/sprints/SwipeableTaskCard';
-import { CeremonyCard } from '../../../components/sprints/CeremonyCard';
+// CeremonyCard removed from weekly view — progress bar already shows committed status
 import { FamilyScopeSwitcher } from '../../../components/family/FamilyScopeSwitcher';
 import { Task, type TaskStatus } from '../../../types/models';
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -205,8 +205,8 @@ export default function SprintCalendar() {
     // Sprint stats
     const isCurrentWeek = isThisWeek(currentDate, { weekStartsOn: 0 });
     const dayOfWeek = getDay(new Date());
-    const isMidWeek = dayOfWeek >= 3 && dayOfWeek <= 5;
     const isSunday = dayOfWeek === 0;
+    const isMidWeek = dayOfWeek >= 3 && dayOfWeek <= 5;
     const sprintNotCommitted = isCurrentWeek && matchedSprint && !(matchedSprint as any).committedAt;
     const sprintEmpty = isCurrentWeek && matchedSprint && weekTasks.length === 0;
     const showPlanningNudge = sprintNotCommitted || sprintEmpty;
@@ -505,26 +505,6 @@ export default function SprintCalendar() {
                         <ScrollView className="flex-1">
                             {renderPlanningNudge()}
                             {renderSprintProgressBar()}
-
-                            {/* Sunday Ceremony Cards */}
-                            {isSunday && isCurrentWeek && !showPlanningNudge && (
-                                <View className="px-4 mt-4">
-                                    <Text className="text-xs uppercase tracking-wide mb-2" style={{ color: colors.textTertiary }}>
-                                        Today's Ceremonies
-                                    </Text>
-                                    <CeremonyCard
-                                        type="planning"
-                                        onStart={() => router.push('/(tabs)/sprints/planning' as any)}
-                                        isAvailable={!(matchedSprint as any)?.committedAt}
-                                        ceremony={(matchedSprint as any)?.committedAt ? {
-                                            id: 'planning-done',
-                                            type: 'planning',
-                                            status: 'completed',
-                                            completedAt: (matchedSprint as any).committedAt,
-                                        } as any : undefined}
-                                    />
-                                </View>
-                            )}
 
                             {/* Task List */}
                             {renderTaskList()}

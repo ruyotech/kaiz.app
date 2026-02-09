@@ -9,6 +9,7 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SprintCeremony, SprintCeremonyType } from '../../types/sensai.types';
 import { toLocaleDateStringLocalized } from '../../utils/localizedDate';
+import { useThemeContext } from '../../providers/ThemeProvider';
 
 interface CeremonyCardProps {
     ceremony?: SprintCeremony;
@@ -22,52 +23,54 @@ const CEREMONY_CONFIG: Record<SprintCeremonyType, {
     description: string;
     icon: string;
     color: string;
-    bgColor: string;
 }> = {
     planning: {
         title: 'Sprint Planning',
         description: 'Select and commit to tasks for the upcoming sprint',
         icon: 'clipboard-list-outline',
         color: '#3B82F6',
-        bgColor: 'bg-blue-50',
     },
     standup: {
         title: 'Daily Standup',
         description: 'Quick sync on progress and blockers',
         icon: 'account-voice',
         color: '#10B981',
-        bgColor: 'bg-green-50',
     },
     midcheck: {
         title: 'Mid-Sprint Check',
         description: 'Review progress and adjust if needed',
         icon: 'chart-timeline-variant',
         color: '#F59E0B',
-        bgColor: 'bg-amber-50',
     },
     review: {
         title: 'Sprint Review',
         description: 'Celebrate wins and analyze completion',
         icon: 'trophy-outline',
         color: '#8B5CF6',
-        bgColor: 'bg-purple-50',
     },
     retrospective: {
         title: 'Retrospective',
         description: 'What worked, what didn\'t, and key learnings',
         icon: 'comment-multiple-outline',
         color: '#EC4899',
-        bgColor: 'bg-pink-50',
     },
 };
 
 export function CeremonyCard({ ceremony, type, onStart, isAvailable }: CeremonyCardProps) {
     const config = CEREMONY_CONFIG[type];
+    const { colors, isDark } = useThemeContext();
     const isCompleted = ceremony?.status === 'completed';
     const isInProgress = ceremony?.status === 'in_progress';
 
     return (
-        <View className={`${config.bgColor} rounded-2xl p-4 border border-gray-100`}>
+        <View
+            className="rounded-2xl p-4"
+            style={{
+                backgroundColor: isDark ? `${config.color}10` : `${config.color}15`,
+                borderWidth: 1,
+                borderColor: isDark ? `${config.color}30` : `${config.color}25`,
+            }}
+        >
             <View className="flex-row items-start">
                 <View 
                     className="w-12 h-12 rounded-full items-center justify-center"
@@ -82,24 +85,24 @@ export function CeremonyCard({ ceremony, type, onStart, isAvailable }: CeremonyC
                 
                 <View className="flex-1 ml-3">
                     <View className="flex-row items-center">
-                        <Text className="text-base font-bold text-gray-900">{config.title}</Text>
+                        <Text className="text-base font-bold" style={{ color: colors.text }}>{config.title}</Text>
                         {isCompleted && (
-                            <View className="bg-green-100 px-2 py-0.5 rounded-full ml-2">
-                                <Text className="text-xs text-green-700 font-medium">Done</Text>
+                            <View className="px-2 py-0.5 rounded-full ml-2" style={{ backgroundColor: '#10B98120' }}>
+                                <Text className="text-xs font-medium" style={{ color: '#10B981' }}>Done</Text>
                             </View>
                         )}
                         {isInProgress && (
-                            <View className="bg-blue-100 px-2 py-0.5 rounded-full ml-2">
-                                <Text className="text-xs text-blue-700 font-medium">In Progress</Text>
+                            <View className="px-2 py-0.5 rounded-full ml-2" style={{ backgroundColor: `${config.color}20` }}>
+                                <Text className="text-xs font-medium" style={{ color: config.color }}>In Progress</Text>
                             </View>
                         )}
                     </View>
-                    <Text className="text-sm text-gray-600 mt-1">{config.description}</Text>
+                    <Text className="text-sm mt-1" style={{ color: colors.textSecondary }}>{config.description}</Text>
                     
                     {ceremony?.scheduledFor && !isCompleted && (
                         <View className="flex-row items-center mt-2">
-                            <MaterialCommunityIcons name="clock-outline" size={14} color="#6B7280" />
-                            <Text className="text-xs text-gray-500 ml-1">
+                            <MaterialCommunityIcons name="clock-outline" size={14} color={colors.textTertiary} />
+                            <Text className="text-xs ml-1" style={{ color: colors.textTertiary }}>
                                 Scheduled: {toLocaleDateStringLocalized(ceremony.scheduledFor, {
                                     weekday: 'short',
                                     month: 'short',
@@ -112,7 +115,7 @@ export function CeremonyCard({ ceremony, type, onStart, isAvailable }: CeremonyC
                     {isCompleted && ceremony?.completedAt && (
                         <View className="flex-row items-center mt-2">
                             <MaterialCommunityIcons name="check" size={14} color="#10B981" />
-                            <Text className="text-xs text-green-600 ml-1">
+                            <Text className="text-xs ml-1" style={{ color: '#10B981' }}>
                                 Completed {toLocaleDateStringLocalized(ceremony.completedAt, {
                                     weekday: 'short',
                                     month: 'short',
@@ -128,22 +131,27 @@ export function CeremonyCard({ ceremony, type, onStart, isAvailable }: CeremonyC
                 <TouchableOpacity
                     onPress={onStart}
                     disabled={!isAvailable}
-                    className={`mt-4 py-3 rounded-xl items-center ${
-                        isAvailable 
-                            ? 'bg-white border border-gray-200' 
-                            : 'bg-gray-100'
-                    }`}
+                    className="mt-4 py-3 rounded-xl items-center"
+                    style={{
+                        backgroundColor: isAvailable
+                            ? (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)')
+                            : (isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)'),
+                        borderWidth: 1,
+                        borderColor: isAvailable
+                            ? (isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)')
+                            : 'transparent',
+                    }}
                     activeOpacity={0.7}
                 >
                     <View className="flex-row items-center">
                         <MaterialCommunityIcons 
                             name={isInProgress ? 'arrow-right' : 'play'} 
                             size={18} 
-                            color={isAvailable ? config.color : '#9CA3AF'} 
+                            color={isAvailable ? config.color : colors.textTertiary} 
                         />
-                        <Text className={`ml-2 font-semibold ${
-                            isAvailable ? 'text-gray-900' : 'text-gray-400'
-                        }`}>
+                        <Text className="ml-2 font-semibold" style={{
+                            color: isAvailable ? colors.text : colors.textTertiary,
+                        }}>
                             {isInProgress ? 'Continue' : 'Start'}
                         </Text>
                     </View>
