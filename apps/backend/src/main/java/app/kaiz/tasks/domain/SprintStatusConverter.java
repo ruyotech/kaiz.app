@@ -8,11 +8,16 @@ public class SprintStatusConverter implements AttributeConverter<SprintStatus, S
 
   @Override
   public String convertToDatabaseColumn(SprintStatus status) {
-    return status == null ? null : status.getValue();
+    return status == null ? null : status.name(); // UPPERCASE to match DB CHECK constraint
   }
 
   @Override
   public SprintStatus convertToEntityAttribute(String value) {
-    return value == null ? null : SprintStatus.fromValue(value);
+    if (value == null) return null;
+    try {
+      return SprintStatus.valueOf(value.toUpperCase());
+    } catch (IllegalArgumentException e) {
+      return SprintStatus.fromValue(value);
+    }
   }
 }
