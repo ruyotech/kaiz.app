@@ -113,10 +113,15 @@ public class TaskService {
   }
 
   public TaskDto getTaskById(UUID userId, UUID taskId) {
+    // Two separate queries to avoid MultipleBagFetchException
+    // (Hibernate cannot JOIN FETCH two List/bag collections simultaneously)
     Task task =
         taskRepository
-            .findByIdAndUserIdWithDetails(taskId, userId)
+            .findByIdAndUserIdWithComments(taskId, userId)
             .orElseThrow(() -> new ResourceNotFoundException("Task", taskId.toString()));
+    // Second query fetches history into the same persistence context;
+    // Hibernate merges it onto the already-managed Task entity.
+    taskRepository.findByIdAndUserIdWithHistory(taskId, userId);
     return sdlcMapper.toTaskDto(task);
   }
 

@@ -48,9 +48,14 @@ public interface TaskRepository extends JpaRepository<Task, UUID> {
       @Param("id") UUID id, @Param("userId") UUID userId);
 
   @Query(
-      "SELECT t FROM Task t LEFT JOIN FETCH t.comments LEFT JOIN FETCH t.history WHERE t.id = :id"
+      "SELECT t FROM Task t LEFT JOIN FETCH t.comments WHERE t.id = :id"
           + " AND t.user.id = :userId AND t.deletedAt IS NULL")
-  Optional<Task> findByIdAndUserIdWithDetails(@Param("id") UUID id, @Param("userId") UUID userId);
+  Optional<Task> findByIdAndUserIdWithComments(@Param("id") UUID id, @Param("userId") UUID userId);
+
+  @Query(
+      "SELECT t FROM Task t LEFT JOIN FETCH t.history WHERE t.id = :id"
+          + " AND t.user.id = :userId AND t.deletedAt IS NULL")
+  Optional<Task> findByIdAndUserIdWithHistory(@Param("id") UUID id, @Param("userId") UUID userId);
 
   @Query(
       "SELECT t FROM Task t WHERE t.user.id = :userId AND t.lifeWheelArea.id = :areaId"
