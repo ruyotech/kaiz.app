@@ -71,7 +71,10 @@ export async function registerForPushNotifications(): Promise<string | null> {
         logger.info(TAG, `Push token obtained: ${tokenData.data.substring(0, 20)}...`);
         return tokenData.data;
     } catch (error: unknown) {
-        logger.error(TAG, 'Failed to get push token', error);
+        // Use warn instead of error — push token failure is expected in dev builds
+        // without APS entitlement. logger.error calls console.error which shows
+        // a red screen in React Native dev mode.
+        logger.warn(TAG, 'Failed to get push token (expected in dev builds)', error);
         return null;
     }
 }

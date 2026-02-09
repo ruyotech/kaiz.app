@@ -48,6 +48,7 @@
       "expo-router",
       "expo-asset",
       "expo-font",
+      "expo-notifications",
       [
         "expo-image-picker",
         {
