@@ -48,7 +48,6 @@
       "expo-router",
       "expo-asset",
       "expo-font",
-      "expo-notifications",
       [
         "expo-image-picker",
         {
@@ -97,6 +96,9 @@
       "eas": {
         "projectId": "8151a7db-91cc-4549-9af6-2b4a1a93eeaa"
       }
+    },
+    "autolinking": {
+      "exclude": ["expo-notifications"]
     },
     "runtimeVersion": "1.0.0",
     "updates": {

@@ -44,9 +44,16 @@ export const logger = {
   },
 
   error(...args: unknown[]): void {
-    // Always log errors — even in prod (for crash reporting)
-    // eslint-disable-next-line no-console
-    console.error(...args);
+    if (IS_DEV) {
+      // In dev: use console.warn to avoid red screen overlay
+      // console.error triggers React Native's LogBox red screen
+      // eslint-disable-next-line no-console
+      console.warn('[ERROR]', ...args);
+    } else {
+      // In prod: use console.error for crash reporting services
+      // eslint-disable-next-line no-console
+      console.error(...args);
+    }
   },
 
   /** Network requests — silenced in prod */
