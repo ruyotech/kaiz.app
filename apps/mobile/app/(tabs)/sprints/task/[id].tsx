@@ -7,7 +7,6 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Task, TaskComment, TaskHistory } from '../../../../types/models';
 import { lifeWheelApi, taskApi, fileUploadApi, AuthExpiredError } from '../../../../services/api';
 import { useEpicStore } from '../../../../store/epicStore';
-import { useTaskStore } from '../../../../store/taskStore';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { AttachmentPicker, AttachmentPreview, CommentAttachment } from '../../../../components/ui/AttachmentPicker';
 import { RichTextComment } from '../../../../components/ui/RichTextComment';
@@ -44,7 +43,6 @@ export default function TaskWorkView() {
     const { colors, isDark } = useThemeContext();
     const { id } = useLocalSearchParams();
     const { epics, fetchEpics } = useEpicStore();
-    const { tasks, fetchTasks } = useTaskStore();
     const [loading, setLoading] = useState(true);
     const [task, setTask] = useState<Task | null>(null);
     const [activeTab, setActiveTab] = useState<TabType>('overview');
@@ -137,11 +135,26 @@ export default function TaskWorkView() {
         try {
             setLoading(true);
             setTaskNotFound(false);
-            await fetchTasks();
+            // Fetch the specific task by ID instead of loading all tasks
+            const fetchedTask = await taskApi.getTaskById(id as string) as Task;
+            if (fetchedTask) {
+                setTask(fetchedTask);
+                // Set attachments from task
+                if ((fetchedTask as any).attachments) {
+                    setAttachments((fetchedTask as any).attachments);
+                }
+                // Load comments, history, and checklist from API
+                loadComments(fetchedTask.id);
+                loadHistory(fetchedTask.id);
+                loadChecklist(fetchedTask.id);
+            } else {
+                setTaskNotFound(true);
+            }
         } catch (error) {
             // Ignore auth expired errors - redirect is handled automatically
             if (error instanceof AuthExpiredError) return;
             logger.error('Error loading task:', error);
+            setTaskNotFound(true);
         } finally {
             setLoading(false);
         }
@@ -158,34 +171,7 @@ export default function TaskWorkView() {
         }
     };
 
-    // Update task when tasks are loaded
-    useEffect(() => {
-        const foundTask = tasks.find((t: Task) => t.id === id);
-        if (foundTask) {
-            setTask(foundTask);
-            setTaskNotFound(false);
-            
-            // Debug: Log task recurrence info
-            logger.log('📋 Task Detail - task:', {
-                title: foundTask.title,
-                isRecurring: foundTask.isRecurring,
-                recurrence: foundTask.recurrence,
-            });
-            
-            // Set attachments from task
-            if ((foundTask as any).attachments) {
-                setAttachments((foundTask as any).attachments);
-            }
-            
-            // Load comments, history, and checklist from API
-            loadComments(foundTask.id);
-            loadHistory(foundTask.id);
-            loadChecklist(foundTask.id);
-        } else if (!loading && tasks.length > 0) {
-            // Tasks loaded but this task not found — likely deleted
-            setTaskNotFound(true);
-        }
-    }, [tasks, id, loading]);
+    // No longer needed — task is now loaded directly by ID in loadTask()
 
     const getTaskEpic = () => {
         if (!task || !task.epicId) return null;

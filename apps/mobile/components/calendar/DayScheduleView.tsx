@@ -517,7 +517,7 @@ export function DayScheduleView({
             'blocked': { bg: 'bg-red-100', text: 'text-red-700' },
             'draft': { bg: 'bg-yellow-100', text: 'text-yellow-700' },
         };
-        const statusStyle = statusColors[task.status] || statusColors.todo;
+        const statusStyle = statusColors[task.status.toLowerCase()] || statusColors.todo;
 
         return (
             <TouchableOpacity
@@ -614,7 +614,7 @@ export function DayScheduleView({
                         {/* Status */}
                         <View className={`px-1.5 py-0.5 rounded ${statusStyle.bg}`}>
                             <Text className={`text-[10px] font-medium capitalize ${statusStyle.text}`}>
-                                {task.status.replace('_', ' ')}
+                                {task.status.toLowerCase().replace('_', ' ')}
                             </Text>
                         </View>
 
@@ -656,7 +656,7 @@ export function DayScheduleView({
             'blocked': { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
             'draft': { bg: 'bg-yellow-50', text: 'text-yellow-700', border: 'border-yellow-200' },
         };
-        const statusStyle = statusColors[task.status] || statusColors.todo;
+        const statusStyle = statusColors[task.status.toLowerCase()] || statusColors.todo;
 
         return (
             <TouchableOpacity
@@ -755,7 +755,7 @@ export function DayScheduleView({
                         {/* Status Badge */}
                         <View className={`px-2 py-1 rounded-full ${statusStyle.bg}`}>
                             <Text className={`text-xs font-semibold capitalize ${statusStyle.text}`}>
-                                {task.status.replace('_', ' ')}
+                                {task.status.toLowerCase().replace('_', ' ')}
                             </Text>
                         </View>
 

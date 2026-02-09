@@ -79,7 +79,7 @@ export const EnhancedTaskCard = React.memo(function EnhancedTaskCard({
     const { colors, isDark } = useThemeContext();
 
     const eisenhower = EISENHOWER_CONFIG[task.eisenhowerQuadrantId] ?? EISENHOWER_CONFIG['eq-4'];
-    const statusCfg = STATUS_CONFIG[task.status] ?? STATUS_CONFIG.todo;
+    const statusCfg = STATUS_CONFIG[task.status.toLowerCase()] ?? STATUS_CONFIG.todo;
     const recurrenceIcon = getRecurrenceIcon(task);
     const wheelArea = lifeWheelArea ?? { id: 'unknown', name: 'General', icon: 'help-circle', color: '#6B7280' };
 
@@ -301,7 +301,7 @@ export const CompactTaskCard = React.memo(function CompactTaskCard({
     onPress: () => void;
 }) {
     const { colors } = useThemeContext();
-    const statusCfg = STATUS_CONFIG[task.status] ?? STATUS_CONFIG.todo;
+    const statusCfg = STATUS_CONFIG[task.status.toLowerCase()] ?? STATUS_CONFIG.todo;
     const wheelArea = lifeWheelArea ?? { name: 'General', icon: 'help-circle', color: '#6B7280' };
 
     return (

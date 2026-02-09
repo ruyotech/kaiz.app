@@ -183,20 +183,23 @@ export default function SprintCalendar() {
             : scopeFilteredTasks;
     }, [scopeFilteredTasks, viewType, currentDate, shouldShowTaskOnDay]);
 
-    // Status tab counts
+    // Status tab counts (normalize to lowercase — backend returns UPPERCASE)
     const tabCounts = useMemo(() => {
         const counts: Record<StatusTab, number> = {
             all: displayedTasks.length,
             draft: 0, todo: 0, in_progress: 0, done: 0, blocked: 0, pending_approval: 0,
         };
-        displayedTasks.forEach(t => { counts[t.status] = (counts[t.status] || 0) + 1; });
+        displayedTasks.forEach(t => {
+            const key = t.status.toLowerCase() as StatusTab;
+            counts[key] = (counts[key] || 0) + 1;
+        });
         return counts;
     }, [displayedTasks]);
 
-    // Filtered by active tab
+    // Filtered by active tab (normalize to lowercase — backend returns UPPERCASE)
     const tabFilteredTasks = useMemo(() => {
         if (activeTab === 'all') return displayedTasks;
-        return displayedTasks.filter(t => t.status === activeTab);
+        return displayedTasks.filter(t => t.status.toLowerCase() === activeTab);
     }, [displayedTasks, activeTab]);
 
     // Sprint stats
@@ -211,12 +214,12 @@ export default function SprintCalendar() {
     const totalPoints = useMemo(() =>
         weekTasks.reduce((s, t) => s + (t.storyPoints || 0), 0), [weekTasks]);
     const donePoints = useMemo(() =>
-        weekTasks.filter(t => t.status === 'done').reduce((s, t) => s + (t.storyPoints || 0), 0), [weekTasks]);
+        weekTasks.filter(t => t.status.toLowerCase() === 'done').reduce((s, t) => s + (t.storyPoints || 0), 0), [weekTasks]);
 
     // ── Handlers ──────────────────────────────────────────────────────────────
 
     const handleStatusChange = useCallback((taskId: string, newStatus: TaskStatus) => {
-        updateTaskStatusMutation.mutate({ id: taskId, status: newStatus });
+        updateTaskStatusMutation.mutate({ id: taskId, status: newStatus.toUpperCase() });
     }, [updateTaskStatusMutation]);
 
     const handleDatePress = useCallback((date: Date) => {

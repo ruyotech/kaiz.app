@@ -57,8 +57,10 @@ export const SwipeableTaskCard = React.memo(function SwipeableTaskCard({
     const translateX = useSharedValue(0);
     const isSwipeActive = useSharedValue(false);
 
-    const nextStatus = NEXT_STATUS[currentStatus];
-    const prevStatus = PREV_STATUS[currentStatus];
+    // Normalize to lowercase — backend returns UPPERCASE statuses
+    const normalizedStatus = currentStatus.toLowerCase();
+    const nextStatus = NEXT_STATUS[normalizedStatus];
+    const prevStatus = PREV_STATUS[normalizedStatus];
 
     const handleSwipeRight = useCallback(() => {
         if (nextStatus) {
