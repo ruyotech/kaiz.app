@@ -1,5 +1,5 @@
 import { logger } from '../../../utils/logger';
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
     View,
     Text,
@@ -15,7 +15,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { TaskTemplate } from '../../../types/models';
-import { useTemplateStore } from '../../../store/templateStore';
+import {
+    useGlobalTemplates,
+    useUserTemplates,
+    useFavoriteTemplates,
+    useToggleTemplateFavorite,
+    useCloneTemplate,
+} from '../../../hooks/queries';
+import { useQueryClient } from '@tanstack/react-query';
+import { templateKeys } from '../../../hooks/queries/keys';
 import {
     TemplateDetailModal,
     CreateFromTemplateSheet,
@@ -43,22 +51,19 @@ export default function TemplatesScreen() {
     const insets = useSafeAreaInsets();
     const { t } = useTranslation();
     const { colors, isDark } = useThemeContext();
-    const {
-        globalTemplates,
-        userTemplates,
-        favoriteTemplates,
-        loading,
-        error,
-        fetchAllTemplates,
-        fetchGlobalTemplates,
-        fetchUserTemplates,
-        fetchFavoriteTemplates,
-        toggleFavorite,
-        cloneTemplate,
-        clearError,
-    } = useTemplateStore();
+    const queryClient = useQueryClient();
 
-    // Combined filter state
+    // React Query hooks — server state
+    const { data: globalTemplates = [], isLoading: globalLoading } = useGlobalTemplates();
+    const { data: userTemplates = [], isLoading: userLoading } = useUserTemplates();
+    const { data: favoriteTemplates = [], isLoading: favLoading } = useFavoriteTemplates();
+    const toggleFavoriteMutation = useToggleTemplateFavorite();
+    const cloneMutation = useCloneTemplate();
+
+    const loading = globalLoading || userLoading || favLoading;
+    const error: string | null = null; // Errors handled via RQ's built-in error state
+
+    // Local UI state
     const [sourceTab, setSourceTab] = useState<SourceTab>('global');
     const [selectedArea, setSelectedArea] = useState<string>('all');
     const [searchQuery, setSearchQuery] = useState('');
@@ -68,10 +73,6 @@ export default function TemplatesScreen() {
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [showCreateSheet, setShowCreateSheet] = useState(false);
     const [templateForCreation, setTemplateForCreation] = useState<TaskTemplate | null>(null);
-
-    useEffect(() => {
-        fetchAllTemplates();
-    }, []);
 
     // Get base templates based on source
     const baseTemplates = useMemo(() => {
@@ -115,27 +116,24 @@ export default function TemplatesScreen() {
 
     const handleRefresh = useCallback(async () => {
         setRefreshing(true);
-        switch (sourceTab) {
-            case 'global':
-                await fetchGlobalTemplates();
-                break;
-            case 'my':
-                await fetchUserTemplates();
-                break;
-            case 'favorites':
-                await fetchFavoriteTemplates();
-                break;
-        }
+        const key = sourceTab === 'global'
+            ? templateKeys.global()
+            : sourceTab === 'my'
+                ? templateKeys.user()
+                : sourceTab === 'favorites'
+                    ? templateKeys.favorites()
+                    : templateKeys.lists();
+        await queryClient.invalidateQueries({ queryKey: key });
         setRefreshing(false);
-    }, [sourceTab, fetchGlobalTemplates, fetchUserTemplates, fetchFavoriteTemplates]);
+    }, [sourceTab, queryClient]);
 
     const handleFavoritePress = useCallback(async (templateId: string) => {
         try {
-            await toggleFavorite(templateId);
-        } catch (error) {
-            logger.error('Failed to toggle favorite:', error);
+            await toggleFavoriteMutation.mutateAsync(templateId);
+        } catch (err: unknown) {
+            logger.error('Templates', 'Failed to toggle favorite', err instanceof Error ? err : undefined);
         }
-    }, [toggleFavorite]);
+    }, [toggleFavoriteMutation]);
 
     const handleTemplatePress = (template: TaskTemplate) => {
         setSelectedTemplate(template);
@@ -150,11 +148,11 @@ export default function TemplatesScreen() {
 
     const handleCloneTemplate = async (template: TaskTemplate) => {
         try {
-            await cloneTemplate(template.id);
+            await cloneMutation.mutateAsync(template.id);
             setShowDetailModal(false);
             setSourceTab('my');
-        } catch (error) {
-            logger.error('Failed to clone template:', error);
+        } catch (err: unknown) {
+            logger.error('Templates', 'Failed to clone template', err instanceof Error ? err : undefined);
         }
     };
 
@@ -438,15 +436,7 @@ export default function TemplatesScreen() {
                 </ScrollView>
             </View>
 
-            {/* Error Banner */}
-            {error && (
-                <View className="px-4 py-2 flex-row items-center justify-between" style={{ backgroundColor: colors.errorLight }}>
-                    <Text className="text-sm flex-1" style={{ color: colors.error }}>{error}</Text>
-                    <TouchableOpacity onPress={clearError}>
-                        <Ionicons name="close" size={18} color={colors.error} />
-                    </TouchableOpacity>
-                </View>
-            )}
+            {/* Error Banner — errors are now handled by React Query */}
 
             {/* Results Count */}
             <View className="px-4 py-2 flex-row justify-between items-center" style={{ backgroundColor: colors.background, borderBottomWidth: 1, borderBottomColor: colors.borderSecondary }}>

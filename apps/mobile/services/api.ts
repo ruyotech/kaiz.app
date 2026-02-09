@@ -349,6 +349,8 @@ export const taskApi = {
   async addChecklistItem(taskId: string, text: string) { return apiPost<unknown>(`/tasks/${taskId}/checklist`, { text }); },
   async toggleChecklistItem(taskId: string, itemId: string) { return apiPatch<unknown>(`/tasks/${taskId}/checklist/${itemId}/toggle`, {}); },
   async deleteChecklistItem(taskId: string, itemId: string) { return apiDelete(`/tasks/${taskId}/checklist/${itemId}`); },
+  // Bulk task creation
+  async bulkCreateTasks(data: { tasks: Array<Record<string, unknown>> }) { return apiPost<unknown>('/tasks/bulk', data); },
 };
 
 // ============================================================================
@@ -726,6 +728,19 @@ export const commandCenterApi = {
       return res.data;
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Failed to fetch test attachments';
+      return { success: false, error: msg };
+    }
+  },
+
+  // ---- Sprint Quick-Add (AI bulk task generation) ---------------------------
+
+  /** Parse multiple short text lines into structured task drafts using AI */
+  async sprintQuickAddAI(data: { lines: string[]; sprintContext?: string }): Promise<ApiResponse<{ suggestions: Array<{ originalLine: string; title: string; description: string; lifeWheelAreaId: string; eisenhowerQuadrantId: string; storyPoints: number; tags: string[]; aiConfidence: number }> }>> {
+    try {
+      const res = await api.post('/command-center/sprint-quick-add', data);
+      return res.data;
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Failed to generate AI task suggestions';
       return { success: false, error: msg };
     }
   },

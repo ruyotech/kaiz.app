@@ -2,10 +2,10 @@
  * React Query hooks — Tasks
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { taskApi } from '../../services/api';
+import { taskApi, commandCenterApi } from '../../services/api';
 import { taskKeys, epicKeys, sprintKeys } from './keys';
 import { STALE_TIMES } from '../../providers/QueryProvider';
-import type { Task } from '../../types/models';
+import type { Task, BulkCreateTaskResponse, SprintQuickAddResponse } from '../../types/models';
 
 // ── Queries ─────────────────────────────────────────────────────────────────
 
@@ -179,5 +179,33 @@ export function useAddComment() {
     onSuccess: (_data, { taskId }) => {
       qc.invalidateQueries({ queryKey: taskKeys.comments(taskId) });
     },
+  });
+}
+
+// ─── Bulk Operations ─────────────────────────────────────────────────
+
+export function useBulkCreateTasks() {
+  const qc = useQueryClient();
+  return useMutation<
+    BulkCreateTaskResponse,
+    Error,
+    { tasks: Array<Record<string, unknown>> }
+  >({
+    mutationFn: (data) => taskApi.bulkCreateTasks(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: taskKeys.all });
+      qc.invalidateQueries({ queryKey: sprintKeys.all });
+      qc.invalidateQueries({ queryKey: epicKeys.all });
+    },
+  });
+}
+
+export function useSprintQuickAddAI() {
+  return useMutation<
+    SprintQuickAddResponse,
+    Error,
+    { lines: string[]; sprintContext?: string }
+  >({
+    mutationFn: (data) => commandCenterApi.sprintQuickAddAI(data),
   });
 }

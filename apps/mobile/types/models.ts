@@ -72,6 +72,48 @@ export interface SprintCommitResponse {
     committedAt: string;
 }
 
+// Bulk task creation
+export interface BulkCreateTaskRequest {
+    tasks: Array<{
+        title: string;
+        description?: string;
+        lifeWheelAreaId: string;
+        eisenhowerQuadrantId: string;
+        storyPoints?: number;
+        sprintId?: string;
+        epicId?: string;
+        createdFromTemplateId?: string;
+        tags?: string[];
+    }>;
+}
+
+export interface BulkCreateTaskResponse {
+    created: Task[];
+    errors: Array<{ index: number; title: string; message: string }>;
+    totalRequested: number;
+}
+
+// AI Sprint Quick-Add
+export interface SprintQuickAddRequest {
+    lines: string[];
+    sprintContext?: string;
+}
+
+export interface SprintQuickAddResponse {
+    suggestions: TaskDraftSuggestion[];
+}
+
+export interface TaskDraftSuggestion {
+    originalLine: string;
+    title: string;
+    description: string;
+    lifeWheelAreaId: string;
+    eisenhowerQuadrantId: string;
+    storyPoints: number;
+    tags: string[];
+    aiConfidence: number;
+}
+
 // Epics
 export interface Epic {
     id: string;

@@ -1,11 +1,14 @@
 /**
  * React Query hooks — Task Templates
+ *
+ * This is the single source of truth for template server state.
+ * Replaces the old Zustand templateStore for all server data operations.
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { taskTemplateApi } from '../../services/api';
 import { templateKeys } from './keys';
 import { STALE_TIMES } from '../../providers/QueryProvider';
-import type { TaskTemplate } from '../../types/models';
+import type { TaskTemplate, CreateTemplateRequest } from '../../types/models';
 
 // ── Queries ─────────────────────────────────────────────────────────────────
 
@@ -58,6 +61,15 @@ export function useSearchTemplates(query: string) {
   });
 }
 
+export function useGlobalTemplatesByArea(areaId: string) {
+  return useQuery({
+    queryKey: [...templateKeys.global(), 'area', areaId],
+    queryFn: () => taskTemplateApi.getGlobalTemplatesByArea(areaId) as Promise<TaskTemplate[]>,
+    enabled: !!areaId && areaId !== 'all',
+    staleTime: STALE_TIMES.static,
+  });
+}
+
 // ── Mutations ───────────────────────────────────────────────────────────────
 
 export function useToggleTemplateFavorite() {
@@ -67,6 +79,8 @@ export function useToggleTemplateFavorite() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: templateKeys.lists() });
       qc.invalidateQueries({ queryKey: templateKeys.favorites() });
+      qc.invalidateQueries({ queryKey: templateKeys.global() });
+      qc.invalidateQueries({ queryKey: templateKeys.user() });
     },
   });
 }
@@ -78,6 +92,7 @@ export function useRateTemplate() {
       taskTemplateApi.rateTemplate(id, rating),
     onSuccess: (_d, { id }) => {
       qc.invalidateQueries({ queryKey: templateKeys.detail(id) });
+      qc.invalidateQueries({ queryKey: templateKeys.global() });
     },
   });
 }
@@ -98,6 +113,63 @@ export function useDeleteTemplate() {
     mutationFn: (id: string) => taskTemplateApi.deleteTemplate(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: templateKeys.lists() });
+      qc.invalidateQueries({ queryKey: templateKeys.user() });
+    },
+  });
+}
+
+export function useTrackTemplateUsage() {
+  return useMutation({
+    mutationFn: (id: string) => taskTemplateApi.useTemplate(id),
+    // Silent — usage tracking doesn't need cache invalidation
+  });
+}
+
+export function useCreateUserTemplate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateTemplateRequest) =>
+      taskTemplateApi.createTemplate(data as unknown as Parameters<typeof taskTemplateApi.createTemplate>[0]),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: templateKeys.user() });
+      qc.invalidateQueries({ queryKey: templateKeys.lists() });
+    },
+  });
+}
+
+export function useUpdateUserTemplate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<CreateTemplateRequest> }) =>
+      taskTemplateApi.updateTemplate(id, data),
+    onSuccess: (_d, { id }) => {
+      qc.invalidateQueries({ queryKey: templateKeys.detail(id) });
+      qc.invalidateQueries({ queryKey: templateKeys.user() });
+    },
+  });
+}
+
+export function useAddTemplateTag() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, tag }: { id: string; tag: string }) =>
+      taskTemplateApi.addTag(id, tag),
+    onSuccess: (_d, { id }) => {
+      qc.invalidateQueries({ queryKey: templateKeys.detail(id) });
+      qc.invalidateQueries({ queryKey: templateKeys.global() });
+      qc.invalidateQueries({ queryKey: templateKeys.user() });
+    },
+  });
+}
+
+export function useRemoveTemplateTag() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, tag }: { id: string; tag: string }) =>
+      taskTemplateApi.removeTag(id, tag),
+    onSuccess: (_d, { id }) => {
+      qc.invalidateQueries({ queryKey: templateKeys.detail(id) });
+      qc.invalidateQueries({ queryKey: templateKeys.global() });
       qc.invalidateQueries({ queryKey: templateKeys.user() });
     },
   });

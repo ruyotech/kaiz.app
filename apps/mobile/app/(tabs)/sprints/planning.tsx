@@ -21,6 +21,8 @@ import { useLifeWheelAreas } from '../../../hooks/queries';
 import { useSprintPreferences } from '../../../hooks/queries/useSprintCeremonies';
 import { useThemeContext } from '../../../providers/ThemeProvider';
 import { LifeWheelBalance, CapacityBar } from '../../../components/sprints/LifeWheelBalance';
+import { PlanningTemplatesTab } from '../../../components/sprints/PlanningTemplatesTab';
+import { PlanningQuickAddTab } from '../../../components/sprints/PlanningQuickAddTab';
 import { cancelMidWeekNudge } from '../../../utils/notifications';
 import { logger } from '../../../utils/logger';
 import { Task } from '../../../types/models';
@@ -141,6 +143,30 @@ export default function SprintPlanningScreen() {
             logger.error('Planning', 'Quick add failed', error);
         }
     }, [quickAddTitle, quickAddPoints, createTaskMutation]);
+
+    // Callback for PlanningTemplatesTab / PlanningQuickAddTab bulk create
+    const handleTabTasksCreated = useCallback((tasks: { id: string; title: string; storyPoints: number; lifeWheelAreaId: string }[]) => {
+        const newTasks: SelectableTask[] = tasks.map(t => ({
+            id: t.id,
+            title: t.title,
+            storyPoints: t.storyPoints,
+            lifeWheelAreaId: t.lifeWheelAreaId,
+            source: 'created' as const,
+        }));
+        setCreatedTasks(prev => [...prev, ...newTasks]);
+        setSelectedTaskIds(prev => [...prev, ...newTasks.map(t => t.id)]);
+    }, []);
+
+    // Backlog select/deselect all
+    const toggleSelectAllBacklog = useCallback(() => {
+        const allBacklogIds = backlogTasks.map(t => t.id);
+        const allSelected = allBacklogIds.every(id => selectedTaskIds.includes(id));
+        if (allSelected) {
+            setSelectedTaskIds(prev => prev.filter(id => !allBacklogIds.includes(id)));
+        } else {
+            setSelectedTaskIds(prev => [...new Set([...prev, ...allBacklogIds])]);
+        }
+    }, [backlogTasks, selectedTaskIds]);
 
     const handleCommit = useCallback(async () => {
         if (!sprintId || selectedTaskIds.length === 0) return;
@@ -275,96 +301,43 @@ export default function SprintPlanningScreen() {
                                 </Text>
                             </View>
                         ) : (
-                            backlogTasks.map(task => renderTaskRow(task))
+                            <>
+                                {/* Select All / Deselect All */}
+                                <View className="flex-row items-center justify-between mb-2">
+                                    <Text className="text-xs" style={{ color: colors.textTertiary }}>
+                                        {backlogTasks.length} backlog task{backlogTasks.length !== 1 ? 's' : ''}
+                                    </Text>
+                                    <TouchableOpacity onPress={toggleSelectAllBacklog}>
+                                        <Text className="text-xs font-semibold" style={{ color: colors.primary }}>
+                                            {backlogTasks.every(t => selectedTaskIds.includes(t.id)) ? 'Deselect All' : 'Select All'}
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
+                                {backlogTasks.map(task => renderTaskRow(task))}
+                            </>
                         )}
                     </>
                 )}
 
                 {sourceTab === 'templates' && (
-                    <View className="items-center py-12">
-                        <MaterialCommunityIcons name="file-document-multiple-outline" size={48} color={colors.textTertiary} />
-                        <Text className="text-base mt-3 mb-1 font-semibold" style={{ color: colors.text }}>Task Templates</Text>
-                        <Text className="text-sm text-center mb-4" style={{ color: colors.textSecondary }}>
-                            Browse templates to quickly add common tasks to your sprint.
-                        </Text>
-                        <TouchableOpacity
-                            onPress={() => router.push('/(tabs)/sprints/create-task')}
-                            className="px-5 py-3 rounded-xl"
-                            style={{ backgroundColor: colors.primary }}
-                        >
-                            <Text className="text-white font-semibold">Browse Templates</Text>
-                        </TouchableOpacity>
-                    </View>
+                    <PlanningTemplatesTab
+                        sprintId={sprintId}
+                        onTasksCreated={handleTabTasksCreated}
+                    />
                 )}
 
                 {sourceTab === 'quick-add' && (
-                    <View>
-                        <Text className="text-sm font-semibold mb-3" style={{ color: colors.textSecondary }}>
-                            Quickly create and add tasks
-                        </Text>
-
-                        <View className="rounded-2xl p-4 mb-4" style={{ backgroundColor: colors.card }}>
-                            <TextInput
-                                value={quickAddTitle}
-                                onChangeText={setQuickAddTitle}
-                                placeholder="Task title..."
-                                placeholderTextColor={colors.placeholder}
-                                className="text-base mb-3 pb-2"
-                                style={{ color: colors.text, borderBottomWidth: 1, borderBottomColor: colors.border }}
-                            />
-
-                            <Text className="text-xs mb-2 font-semibold" style={{ color: colors.textSecondary }}>Story Points</Text>
-                            <View className="flex-row gap-2 mb-4">
-                                {[1, 2, 3, 5, 8].map(pts => (
-                                    <TouchableOpacity
-                                        key={pts}
-                                        onPress={() => setQuickAddPoints(pts)}
-                                        className="w-10 h-10 rounded-xl items-center justify-center"
-                                        style={{
-                                            backgroundColor: quickAddPoints === pts ? colors.primary : colors.backgroundSecondary,
-                                        }}
-                                    >
-                                        <Text className="font-bold" style={{ color: quickAddPoints === pts ? '#FFFFFF' : colors.text }}>
-                                            {pts}
-                                        </Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
-
-                            <TouchableOpacity
-                                onPress={handleQuickAdd}
-                                disabled={!quickAddTitle.trim() || createTaskMutation.isPending}
-                                className="p-3 rounded-xl flex-row items-center justify-center"
-                                style={{ backgroundColor: quickAddTitle.trim() ? colors.primary : colors.textTertiary }}
-                            >
-                                {createTaskMutation.isPending ? (
-                                    <ActivityIndicator color="#FFFFFF" size="small" />
-                                ) : (
-                                    <>
-                                        <MaterialCommunityIcons name="plus" size={18} color="#FFFFFF" />
-                                        <Text className="text-white font-semibold ml-1">Add & Select</Text>
-                                    </>
-                                )}
-                            </TouchableOpacity>
-                        </View>
-
-                        {/* Show already-created tasks */}
-                        {createdTasks.length > 0 && (
-                            <>
-                                <Text className="text-xs font-semibold mb-2" style={{ color: colors.textSecondary }}>
-                                    Created during planning
-                                </Text>
-                                {createdTasks.map(task => renderTaskRow(task))}
-                            </>
-                        )}
-                    </View>
+                    <PlanningQuickAddTab
+                        sprintId={sprintId}
+                        onTasksCreated={handleTabTasksCreated}
+                    />
                 )}
 
-                {/* Also show selected tasks from other tabs in backlog view */}
+                {/* Show tasks created during planning in backlog view */}
                 {sourceTab === 'backlog' && createdTasks.filter(t => selectedTaskIds.includes(t.id)).length > 0 && (
                     <>
                         <Text className="text-xs font-semibold mt-4 mb-2" style={{ color: colors.textSecondary }}>
-                            Quick-added (selected)
+                            Added during planning ({createdTasks.filter(t => selectedTaskIds.includes(t.id)).length})
                         </Text>
                         {createdTasks.filter(t => selectedTaskIds.includes(t.id)).map(task => renderTaskRow(task))}
                     </>
@@ -421,7 +394,8 @@ export default function SprintPlanningScreen() {
                     <Text className="font-medium" style={{ color: colors.text }}>{task.title}</Text>
                     <Text className="text-xs" style={{ color: colors.textSecondary }}>
                         {getDimName(task.lifeWheelAreaId)}
-                        {task.source === 'created' && ' • Quick-added'}
+                        {task.source === 'created' && ' • Added in planning'}
+                        {task.source === 'template' && ' • From template'}
                     </Text>
                 </View>
                 <View className="px-3 py-1 rounded-full" style={{ backgroundColor: colors.backgroundSecondary }}>

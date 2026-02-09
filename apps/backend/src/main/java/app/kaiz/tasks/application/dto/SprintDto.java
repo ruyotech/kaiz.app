@@ -1,6 +1,7 @@
 package app.kaiz.tasks.application.dto;
 
 import app.kaiz.tasks.domain.SprintStatus;
+import java.time.Instant;
 import java.time.LocalDate;
 
 public record SprintDto(
@@ -11,4 +12,5 @@ public record SprintDto(
     LocalDate endDate,
     SprintStatus status,
     int totalPoints,
-    int completedPoints) {}
+    int completedPoints,
+    Instant committedAt) {}

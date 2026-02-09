@@ -18,9 +18,9 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { TaskTemplate } from '../../types/models';
 import { LIFE_WHEEL_CONFIG } from './TemplateCard';
-import { useTemplateStore } from '../../store/templateStore';
+import { useTrackTemplateUsage, useCreateTask } from '../../hooks/queries';
 import { useThemeContext } from '../../providers/ThemeProvider';
-import { taskApi, sprintApi, lifeWheelApi, fileUploadApi } from '../../services/api';
+import { sprintApi, lifeWheelApi, fileUploadApi } from '../../services/api';
 import { STORY_POINTS } from '../../utils/constants';
 import { AttachmentPicker, AttachmentPreview, CommentAttachment } from '../ui/AttachmentPicker';
 import { TaskScheduler } from '../ui/TaskScheduler';
@@ -58,7 +58,8 @@ export function CreateFromTemplateSheet({
     onClose,
     onSuccess,
 }: CreateFromTemplateSheetProps) {
-    const { useTemplate } = useTemplateStore();
+    const trackUsageMutation = useTrackTemplateUsage();
+    const createTaskMutation = useCreateTask();
     const { colors, isDark } = useThemeContext();
 
     // Sprint data (for auto-resolution)
@@ -221,7 +222,7 @@ export function CreateFromTemplateSheet({
         setIsLoading(true);
         try {
             // Track template usage
-            await useTemplate(template.id);
+            trackUsageMutation.mutate(template.id);
 
             // Build recurrence object for backend from schedule state
             const isRecurring = schedule.recurrence !== 'NONE';
@@ -350,7 +351,7 @@ export function CreateFromTemplateSheet({
                 eventEndTime,
             };
 
-            const newTask = await taskApi.createTask(taskData);
+            const newTask = await createTaskMutation.mutateAsync(taskData);
             
             if (newTask && onSuccess) {
                 onSuccess((newTask as any).id);

@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useTemplateStore } from '../../../store/templateStore';
+import { useCreateUserTemplate } from '../../../hooks/queries';
 import { LIFE_WHEEL_CONFIG } from '../../../components/templates/TemplateCard';
 import { RecurrencePattern, CreateTemplateRequest } from '../../../types/models';
 
@@ -35,7 +35,7 @@ const ICONS = ['📋', '✅', '📅', '💪', '📚', '💰', '❤️', '🏠', 
 
 export default function CreateTemplateScreen() {
     const router = useRouter();
-    const { createTemplate } = useTemplateStore();
+    const createTemplateMutation = useCreateUserTemplate();
 
     // Form state
     const [name, setName] = useState('');
@@ -78,7 +78,7 @@ export default function CreateTemplateScreen() {
                 }),
             };
 
-            await createTemplate(templateData);
+            await createTemplateMutation.mutateAsync(templateData);
             Alert.alert('Success!', 'Template created successfully', [
                 { text: 'OK', onPress: () => router.back() },
             ]);

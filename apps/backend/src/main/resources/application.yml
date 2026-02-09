@@ -93,6 +93,10 @@ rate-limit:
     capacity: 100
     refill-tokens: 100
     refill-duration: 60
+  ai:
+    capacity: 10
+    refill-tokens: 10
+    refill-duration: 3600
 
 # Logging
 logging:

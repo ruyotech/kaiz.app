@@ -738,8 +738,28 @@ export default function SprintCalendar() {
                     <ScrollView className="flex-1">
                         {renderPlanningNudge()}
 
-                        {/* Sunday Ceremony Cards */}
-                        {viewType === 'week' && isSunday && isCurrentWeek && (
+                        {/* Committed sprint badge */}
+                        {isCurrentWeek && currentSprint?.committedAt && !loading && (
+                            <View
+                                className="mx-4 mt-3 px-4 py-2.5 rounded-xl flex-row items-center"
+                                style={{
+                                    backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5',
+                                    borderWidth: 1,
+                                    borderColor: isDark ? '#10B98140' : '#A7F3D0',
+                                }}
+                            >
+                                <MaterialCommunityIcons name="check-circle" size={18} color="#10B981" />
+                                <Text className="ml-2 text-sm font-semibold" style={{ color: '#10B981' }}>
+                                    Sprint Committed
+                                </Text>
+                                <Text className="ml-1 text-xs" style={{ color: colors.textTertiary }}>
+                                    • {weekTasks.length} task{weekTasks.length !== 1 ? 's' : ''} • {weekTasks.reduce((s, t) => s + (t.storyPoints || 0), 0)} pts
+                                </Text>
+                            </View>
+                        )}
+
+                        {/* Sunday Ceremony Cards — only show if planning nudge is NOT visible (dedup) */}
+                        {viewType === 'week' && isSunday && isCurrentWeek && !showPlanningNudge && (
                             <View className="px-4 mt-4">
                                 <Text className="text-xs uppercase tracking-wide mb-2" style={{ color: colors.textTertiary }}>
                                     Today's Ceremonies

@@ -5,6 +5,7 @@ import app.kaiz.admin.application.dto.CommandCenterAdminDtos.TestAttachmentRespo
 import app.kaiz.command_center.application.CommandCenterAIService;
 import app.kaiz.command_center.application.DraftApprovalService;
 import app.kaiz.command_center.application.SmartInputAIService;
+import app.kaiz.command_center.application.SprintQuickAddAIService;
 import app.kaiz.command_center.application.StreamingAIService;
 import app.kaiz.command_center.application.dto.*;
 import app.kaiz.command_center.application.dto.CommandCenterAIResponse.AttachmentSummary;
@@ -12,6 +13,8 @@ import app.kaiz.command_center.application.dto.SmartInputResponse;
 import app.kaiz.command_center.domain.DraftStatus;
 import app.kaiz.command_center.domain.PendingDraft;
 import app.kaiz.command_center.infrastructure.PendingDraftRepository;
+import app.kaiz.shared.config.RateLimitConfig.AIRateLimiter;
+import app.kaiz.shared.exception.BadRequestException;
 import app.kaiz.shared.exception.ResourceNotFoundException;
 import app.kaiz.shared.security.CurrentUser;
 import app.kaiz.shared.util.ApiResponse;
@@ -43,9 +46,11 @@ public class CommandCenterController {
   private final CommandCenterAIService aiService;
   private final SmartInputAIService smartInputService;
   private final StreamingAIService streamingService;
+  private final SprintQuickAddAIService sprintQuickAddService;
   private final DraftApprovalService approvalService;
   private final PendingDraftRepository draftRepository;
   private final AdminCommandCenterService adminService;
+  private final AIRateLimiter aiRateLimiter;
 
   // =========================================================================
   // Smart Input Endpoints (New - with clarification flow)
@@ -100,6 +105,38 @@ public class CommandCenterController {
     log.info("Submitting clarification for session: {}", request.sessionId());
 
     SmartInputResponse response = smartInputService.submitClarificationAnswers(userId, request);
+
+    return ResponseEntity.ok(ApiResponse.success(response));
+  }
+
+  // =========================================================================
+  // Sprint Quick-Add (AI bulk task generation for planning)
+  // =========================================================================
+
+  @PostMapping("/sprint-quick-add")
+  @Operation(
+      summary = "AI-powered bulk task generation for sprint planning",
+      description =
+          "Parse multiple short text lines (e.g. 'visit doctor', 'walk 30 min') "
+              + "into structured task drafts with life wheel areas, Eisenhower quadrants, "
+              + "and story points. Max 20 lines per request. Rate-limited to 10 req/user/hour.")
+  public ResponseEntity<ApiResponse<SprintQuickAddResponse>> sprintQuickAdd(
+      @CurrentUser UUID userId, @Valid @RequestBody SprintQuickAddRequest request) {
+
+    log.info("Sprint quick-add for user: {}, lineCount={}", userId, request.lines().size());
+
+    // Rate limit: 10 requests per user per hour
+    if (!aiRateLimiter.tryConsume(userId.toString())) {
+      throw new BadRequestException(
+          "Rate limit exceeded for AI quick-add. Please try again later (max 10 requests/hour).");
+    }
+
+    SprintQuickAddResponse response = sprintQuickAddService.processQuickAdd(userId, request);
+
+    log.info(
+        "Sprint quick-add response: userId={}, suggestionsCount={}",
+        userId,
+        response.suggestions().size());
 
     return ResponseEntity.ok(ApiResponse.success(response));
   }

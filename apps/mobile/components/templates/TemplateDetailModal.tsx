@@ -14,7 +14,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { TaskTemplate } from '../../types/models';
 import { LIFE_WHEEL_CONFIG } from './TemplateCard';
 import { Badge } from '../ui/Badge';
-import { useTemplateStore } from '../../store/templateStore';
+import {
+    useToggleTemplateFavorite,
+    useRateTemplate,
+    useAddTemplateTag,
+    useRemoveTemplateTag,
+} from '../../hooks/queries';
 import { useThemeContext } from '../../providers/ThemeProvider';
 
 interface TemplateDetailModalProps {
@@ -56,7 +61,10 @@ export function TemplateDetailModal({
     onUseTemplate,
     onCloneTemplate,
 }: TemplateDetailModalProps) {
-    const { toggleFavorite, rateTemplate, addTemplateTag, removeTemplateTag, getTemplateById } = useTemplateStore();
+    const toggleFavoriteMutation = useToggleTemplateFavorite();
+    const rateMutation = useRateTemplate();
+    const addTagMutation = useAddTemplateTag();
+    const removeTagMutation = useRemoveTemplateTag();
     const { colors, isDark } = useThemeContext();
     const [userRating, setUserRating] = useState<number>(template?.userRating || 0);
     const [isRating, setIsRating] = useState(false);
@@ -89,7 +97,7 @@ export function TemplateDetailModal({
         setUserRating(newRating);
         setIsRating(true);
         try {
-            await rateTemplate(template.id, newRating);
+            await rateMutation.mutateAsync({ id: template.id, rating: newRating });
         } catch (error) {
             logger.error('Failed to rate template:', error);
             // Revert on error
@@ -103,8 +111,8 @@ export function TemplateDetailModal({
         // Optimistically update UI
         setIsFavorite(!isFavorite);
         try {
-            const newFavoriteStatus = await toggleFavorite(template.id);
-            setIsFavorite(newFavoriteStatus);
+            const result = await toggleFavoriteMutation.mutateAsync(template.id);
+            setIsFavorite((result as any)?.isFavorite ?? !isFavorite);
         } catch (error) {
             logger.error('Failed to toggle favorite:', error);
             // Revert on error
@@ -122,8 +130,8 @@ export function TemplateDetailModal({
 
         setIsAddingTag(true);
         try {
-            const updatedTags = await addTemplateTag(template.id, trimmedTag);
-            setUserTags(updatedTags);
+            const result = await addTagMutation.mutateAsync({ id: template.id, tag: trimmedTag });
+            setUserTags((result as any)?.tags ?? [...userTags, trimmedTag]);
             setNewTag('');
             setShowTagInput(false);
         } catch (error) {
@@ -136,8 +144,8 @@ export function TemplateDetailModal({
     const handleRemoveTag = async (tag: string) => {
         setRemovingTagId(tag);
         try {
-            const updatedTags = await removeTemplateTag(template.id, tag);
-            setUserTags(updatedTags);
+            const result = await removeTagMutation.mutateAsync({ id: template.id, tag });
+            setUserTags((result as any)?.tags ?? userTags.filter(t => t !== tag));
         } catch (error) {
             logger.error('Failed to remove tag:', error);
         } finally {

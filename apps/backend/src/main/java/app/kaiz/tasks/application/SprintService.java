@@ -173,6 +173,9 @@ public class SprintService {
     // Update sprint totals
     sprint.setTotalPoints(sprint.getTotalPoints() + totalPoints);
 
+    // Mark sprint as committed
+    sprint.setCommittedAt(Instant.now());
+
     // Auto-activate if start date is today or earlier
     boolean activated = false;
     if (!LocalDate.now().isBefore(sprint.getStartDate())

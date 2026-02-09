@@ -3,6 +3,8 @@ package app.kaiz.tasks.api;
 import app.kaiz.shared.security.CurrentUser;
 import app.kaiz.shared.util.ApiResponse;
 import app.kaiz.tasks.application.TaskService;
+import app.kaiz.tasks.application.dto.BulkCreateTaskRequest;
+import app.kaiz.tasks.application.dto.BulkCreateTaskResponse;
 import app.kaiz.tasks.application.dto.TaskChecklistItemDto;
 import app.kaiz.tasks.application.dto.TaskCommentDto;
 import app.kaiz.tasks.application.dto.TaskDto;
@@ -87,6 +89,16 @@ public class TaskController {
     TaskDto task = taskService.createTask(userId, request);
     return ResponseEntity.created(URI.create("/api/v1/tasks/" + task.id()))
         .body(ApiResponse.success(task));
+  }
+
+  @PostMapping("/bulk")
+  @Operation(
+      summary = "Bulk create tasks",
+      description = "Create multiple tasks in a single request (max 50). Supports partial failure.")
+  public ResponseEntity<ApiResponse<BulkCreateTaskResponse>> bulkCreateTasks(
+      @CurrentUser UUID userId, @Valid @RequestBody BulkCreateTaskRequest request) {
+    BulkCreateTaskResponse response = taskService.bulkCreateTasks(userId, request);
+    return ResponseEntity.ok(ApiResponse.success(response));
   }
 
   @PutMapping("/{id}")

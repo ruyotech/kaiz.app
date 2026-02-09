@@ -5,6 +5,8 @@ import app.kaiz.identity.infrastructure.UserRepository;
 import app.kaiz.life_wheel.infrastructure.EisenhowerQuadrantRepository;
 import app.kaiz.life_wheel.infrastructure.LifeWheelAreaRepository;
 import app.kaiz.shared.exception.ResourceNotFoundException;
+import app.kaiz.tasks.application.dto.BulkCreateTaskRequest;
+import app.kaiz.tasks.application.dto.BulkCreateTaskResponse;
 import app.kaiz.tasks.application.dto.TaskChecklistItemDto;
 import app.kaiz.tasks.application.dto.TaskCommentDto;
 import app.kaiz.tasks.application.dto.TaskDto;
@@ -261,6 +263,41 @@ public class TaskService {
     recordHistory(savedTask, user, "status", null, status.name());
 
     return sdlcMapper.toTaskDto(savedTask);
+  }
+
+  /**
+   * Bulk-create tasks in a single transaction. Supports partial failure: if some tasks fail, the
+   * successfully created ones are still returned alongside error details for the failures.
+   */
+  @Transactional
+  public BulkCreateTaskResponse bulkCreateTasks(UUID userId, BulkCreateTaskRequest request) {
+    log.info("Bulk creating tasks: userId={}, count={}", userId, request.tasks().size());
+
+    List<TaskDto> created = new ArrayList<>();
+    List<BulkCreateTaskResponse.BulkTaskError> errors = new ArrayList<>();
+
+    for (int i = 0; i < request.tasks().size(); i++) {
+      TaskDto.CreateTaskRequest taskReq = request.tasks().get(i);
+      try {
+        TaskDto dto = createTask(userId, taskReq);
+        created.add(dto);
+      } catch (Exception e) {
+        log.warn(
+            "Bulk create failed for task at index {}: title='{}', error={}",
+            i,
+            taskReq.title(),
+            e.getMessage());
+        errors.add(new BulkCreateTaskResponse.BulkTaskError(i, taskReq.title(), e.getMessage()));
+      }
+    }
+
+    log.info(
+        "Bulk create complete: userId={}, created={}, errors={}",
+        userId,
+        created.size(),
+        errors.size());
+
+    return new BulkCreateTaskResponse(created, errors, request.tasks().size());
   }
 
   @Transactional

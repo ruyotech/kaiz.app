@@ -43,6 +43,9 @@ public class Sprint {
   @Builder.Default
   private int completedPoints = 0;
 
+  @Column(name = "committed_at")
+  private Instant committedAt;
+
   @Column(name = "created_at", nullable = false, updatable = false)
   private Instant createdAt;
 

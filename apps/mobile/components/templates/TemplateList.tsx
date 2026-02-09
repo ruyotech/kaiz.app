@@ -13,7 +13,7 @@ import { FlashList } from '@shopify/flash-list';
 import { Ionicons } from '@expo/vector-icons';
 import { TaskTemplate } from '../../types/models';
 import { TemplateCard, LIFE_WHEEL_CONFIG } from './TemplateCard';
-import { useTemplateStore } from '../../store/templateStore';
+import { useToggleTemplateFavorite } from '../../hooks/queries';
 import { useTranslation } from '../../hooks';
 import { useThemeContext } from '../../providers/ThemeProvider';
 
@@ -57,7 +57,7 @@ export function TemplateList({
 }: TemplateListProps) {
     const { t } = useTranslation();
     const { colors, isDark } = useThemeContext();
-    const { toggleFavorite } = useTemplateStore();
+    const toggleFavoriteMutation = useToggleTemplateFavorite();
     
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedType, setSelectedType] = useState<FilterTab>('all');
@@ -75,7 +75,7 @@ export function TemplateList({
 
     const handleFavoritePress = useCallback(async (templateId: string) => {
         try {
-            await toggleFavorite(templateId);
+            await toggleFavoriteMutation.mutateAsync(templateId);
         } catch (error) {
             logger.error('Failed to toggle favorite:', error);
         }
