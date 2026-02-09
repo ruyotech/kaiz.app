@@ -1,9 +1,10 @@
 import { logger } from '../../utils/logger';
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Modal, Linking } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { format, isSameDay, parseISO } from 'date-fns';
+import { format, isSameDay, parseISO, getDay } from 'date-fns';
 import { Task } from '../../types/models';
+import { CEREMONY_DEFAULTS, type CeremonyType } from '../../types/schedule.types';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useCalendarSyncStore, type ExternalEvent, CALENDAR_PROVIDERS } from '../../store/calendarSyncStore';
 
@@ -225,16 +226,45 @@ const parseTimeToMinutes = (timeStr: string | null | undefined): number | null =
     return hours * 60 + minutes;
 };
 
-// Get task position and height based on scheduled time
-const getTaskPosition = (task: Task) => {
-    const startTime = parseTimeToMinutes(task.recurrence?.scheduledTime);
-    const endTime = parseTimeToMinutes(task.recurrence?.scheduledEndTime);
+// Minimum card height so very short tasks (≤15 min) remain tappable
+const MIN_CARD_HEIGHT = 30;
 
-    if (startTime === null) {
-        return null; // No scheduled time, will show in "All Day" section
+// Get task position and height based on scheduled time.
+// Priority: 1) eventStartTime/eventEndTime  2) recurrence scheduledTime  3) null (all-day)
+const getTaskPosition = (task: Task) => {
+    let startTime: number | null = null;
+    let endTime: number | null = null;
+
+    // One-off events: use eventStartTime / eventEndTime (ISO datetime or HH:mm:ss)
+    if (task.eventStartTime) {
+        // eventStartTime may be ISO datetime ("2025-07-14T09:00:00") or time-only ("09:00:00")
+        if (task.eventStartTime.includes('T')) {
+            const d = new Date(task.eventStartTime);
+            startTime = d.getHours() * 60 + d.getMinutes();
+        } else {
+            startTime = parseTimeToMinutes(task.eventStartTime);
+        }
+        if (task.eventEndTime) {
+            if (task.eventEndTime.includes('T')) {
+                const d = new Date(task.eventEndTime);
+                endTime = d.getHours() * 60 + d.getMinutes();
+            } else {
+                endTime = parseTimeToMinutes(task.eventEndTime);
+            }
+        }
     }
 
-    // Convert minutes to slot position
+    // Fall back to recurrence schedule
+    if (startTime === null) {
+        startTime = parseTimeToMinutes(task.recurrence?.scheduledTime);
+        endTime = parseTimeToMinutes(task.recurrence?.scheduledEndTime);
+    }
+
+    if (startTime === null) {
+        return null; // No scheduled time → All-Day section
+    }
+
+    // Convert minutes to pixel position
     const startSlotIndex = Math.floor(startTime / 30);
     const top = startSlotIndex * SLOT_HEIGHT;
 
@@ -244,6 +274,9 @@ const getTaskPosition = (task: Task) => {
         const durationSlots = Math.ceil((endTime - startTime) / 30);
         height = durationSlots * SLOT_HEIGHT;
     }
+
+    // Enforce minimum height for tappability
+    height = Math.max(height, MIN_CARD_HEIGHT);
 
     return { top, height, startTime, endTime };
 };
@@ -294,26 +327,37 @@ const isTaskRecurring = (task: Task): boolean => {
 
 // Check if task should appear on this day
 const shouldShowOnDay = (task: Task, currentDate: Date): boolean => {
+    // One-off events with a specific date — only show on that date
+    if (task.eventStartTime && task.eventStartTime.includes('T')) {
+        try {
+            return isSameDay(new Date(task.eventStartTime), currentDate);
+        } catch { return false; }
+    }
+
+    // Tasks with a targetDate (and not recurring) — show on that date
+    if (task.targetDate && !isTaskRecurring(task)) {
+        try {
+            return isSameDay(new Date(task.targetDate), currentDate);
+        } catch { return false; }
+    }
+
     if (!isTaskRecurring(task) || !task.recurrence) {
-        // Non-recurring task - show if matches sprint (default behavior)
+        // Non-recurring task with no specific date — show always within sprint
         return true;
     }
 
     const freq = task.recurrence.frequency;
-    const dayOfWeek = currentDate.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+    const dayOfWeek = currentDate.getDay();
 
     switch (freq) {
         case 'DAILY':
             return true;
         case 'WEEKLY':
         case 'BIWEEKLY':
-            // Show on the specific day of week
             return task.recurrence.dayOfWeek === dayOfWeek;
         case 'MONTHLY':
-            // Show on specific day of month
             return task.recurrence.dayOfMonth === currentDate.getDate();
         case 'YEARLY': {
-            // Show on specific month and day
             const yearlyDate = task.recurrence.yearlyDate;
             if (yearlyDate) {
                 const yd = new Date(yearlyDate);
@@ -454,8 +498,16 @@ export function DayScheduleView({
         const taskEpic = epics.find(e => e.id === task.epicId);
         const wheelInfo = getWheelOfLifeInfo(task.lifeWheelAreaId, lifeWheelAreas);
         const eisenhowerInfo = getEisenhowerInfo(task.eisenhowerQuadrantId);
-        const startTimeStr = task.recurrence?.scheduledTime?.substring(0, 5) || '';
-        const endTimeStr = task.recurrence?.scheduledEndTime?.substring(0, 5) || '';
+        const startTimeStr = task.eventStartTime
+            ? (task.eventStartTime.includes('T')
+                ? format(new Date(task.eventStartTime), 'HH:mm')
+                : task.eventStartTime.substring(0, 5))
+            : task.recurrence?.scheduledTime?.substring(0, 5) || '';
+        const endTimeStr = task.eventEndTime
+            ? (task.eventEndTime.includes('T')
+                ? format(new Date(task.eventEndTime), 'HH:mm')
+                : task.eventEndTime.substring(0, 5))
+            : task.recurrence?.scheduledEndTime?.substring(0, 5) || '';
 
         // Determine status color
         const statusColors: Record<string, { bg: string; text: string }> = {
@@ -833,6 +885,82 @@ export function DayScheduleView({
         );
     };
 
+    // ── Ceremony Events ───────────────────────────────────────────────────────
+    // Synthesize ceremony "virtual events" based on day-of-week and CEREMONY_DEFAULTS
+
+    // Default start times per ceremony type (hh:mm)
+    const CEREMONY_TIMES: Record<CeremonyType, string> = {
+        planning: '10:00',
+        retrospective: '16:00',
+        standup: '09:00',
+        review: '15:00',
+    };
+
+    const dayCeremonies = useMemo(() => {
+        const dow = getDay(currentDate); // 0=Sun
+        const events: { type: CeremonyType; startMinutes: number; durationMinutes: number; title: string; color: string; icon: string }[] = [];
+
+        for (const [key, cfg] of Object.entries(CEREMONY_DEFAULTS)) {
+            const cType = key as CeremonyType;
+            const showToday = cfg.dayOfWeek === -1 || cfg.dayOfWeek === dow;
+            if (showToday) {
+                const timeStr = CEREMONY_TIMES[cType];
+                const [hStr, mStr] = timeStr.split(':');
+                const startMin = parseInt(hStr, 10) * 60 + parseInt(mStr, 10);
+                events.push({
+                    type: cType,
+                    startMinutes: startMin,
+                    durationMinutes: cfg.durationMinutes,
+                    title: cfg.title,
+                    color: cfg.color,
+                    icon: cfg.icon,
+                });
+            }
+        }
+        return events;
+    }, [currentDate]);
+
+    const renderCeremonyEvent = (ceremony: typeof dayCeremonies[number]) => {
+        const { color } = ceremony;
+        const startSlotIndex = Math.floor(ceremony.startMinutes / 30);
+        const top = startSlotIndex * SLOT_HEIGHT + 2;
+        const height = Math.max((ceremony.durationMinutes / 30) * SLOT_HEIGHT - 4, MIN_CARD_HEIGHT);
+        const startStr = `${Math.floor(ceremony.startMinutes / 60).toString().padStart(2, '0')}:${(ceremony.startMinutes % 60).toString().padStart(2, '0')}`;
+        const endMin = ceremony.startMinutes + ceremony.durationMinutes;
+        const endStr = `${Math.floor(endMin / 60).toString().padStart(2, '0')}:${(endMin % 60).toString().padStart(2, '0')}`;
+
+        return (
+            <View
+                key={ceremony.type}
+                className="absolute left-16 right-2 rounded-lg overflow-hidden"
+                style={{
+                    top,
+                    height,
+                    backgroundColor: `${color}15`,
+                    borderLeftWidth: 3,
+                    borderLeftColor: color,
+                    borderWidth: 1,
+                    borderStyle: 'dashed',
+                    borderColor: `${color}40`,
+                }}
+            >
+                <View className="flex-1 p-2 flex-row items-center">
+                    <MaterialCommunityIcons
+                        name={ceremony.icon as any}
+                        size={14}
+                        color={color}
+                    />
+                    <Text className="text-xs font-semibold ml-1.5" style={{ color }} numberOfLines={1}>
+                        {ceremony.title}
+                    </Text>
+                    <Text className="text-[10px] ml-auto" style={{ color: `${color}99` }}>
+                        {startStr} - {endStr}
+                    </Text>
+                </View>
+            </View>
+        );
+    };
+
     return (
         <View className="flex-1">
             {/* Day Header */}
@@ -893,6 +1021,9 @@ export function DayScheduleView({
 
                     {/* External Calendar Events (blocked time - render first, behind tasks) */}
                     {timedExternalEvents.map(renderExternalEvent)}
+
+                    {/* Ceremony Events (planning, retro, standup, review) */}
+                    {dayCeremonies.map(renderCeremonyEvent)}
 
                     {/* Scheduled Tasks (positioned absolutely) */}
                     {scheduledTasks.map(renderScheduledTask)}

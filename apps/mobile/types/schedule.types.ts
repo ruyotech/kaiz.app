@@ -210,3 +210,59 @@ export function createDefaultScheduleState(
       };
   }
 }
+// ============================================================================
+// Ceremony Events — Virtual calendar entries for sprint rituals
+// ============================================================================
+
+export type CeremonyType = 'planning' | 'retrospective' | 'standup' | 'review';
+
+export interface CeremonyEvent {
+  id: string;
+  type: CeremonyType;
+  title: string;
+  /** ISO time string e.g. "10:00" */
+  startTime: string;
+  /** Duration in minutes */
+  durationMinutes: number;
+  /** Day of week (0=Sun, 6=Sat) */
+  dayOfWeek: number;
+  /** Color for timeline rendering */
+  color: string;
+  /** Icon name */
+  icon: string;
+}
+
+export const CEREMONY_DEFAULTS: Record<CeremonyType, Omit<CeremonyEvent, 'id' | 'startTime'>> = {
+  planning: {
+    type: 'planning',
+    title: 'Sprint Planning',
+    durationMinutes: 30,
+    dayOfWeek: 0, // Sunday
+    color: '#8B5CF6',
+    icon: 'rocket-launch',
+  },
+  retrospective: {
+    type: 'retrospective',
+    title: 'Sprint Retro',
+    durationMinutes: 20,
+    dayOfWeek: 6, // Saturday
+    color: '#EC4899',
+    icon: 'chart-timeline-variant',
+  },
+  standup: {
+    type: 'standup',
+    title: 'Daily Standup',
+    durationMinutes: 10,
+    dayOfWeek: -1, // Every day
+    color: '#10B981',
+    icon: 'account-voice',
+  },
+  review: {
+    type: 'review',
+    title: 'Sprint Review',
+    durationMinutes: 15,
+    dayOfWeek: 6, // Saturday
+    color: '#F59E0B',
+    icon: 'eye-check',
+  },
+};

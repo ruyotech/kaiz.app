@@ -136,6 +136,22 @@ export interface Epic {
     visibility?: 'private' | 'shared';
 }
 
+// Task type discriminator (matches backend TaskType enum)
+export type TaskType = 'TASK' | 'EVENT' | 'BIRTHDAY';
+
+// Reminder before (matches backend AlertBefore enum)
+export type ReminderBefore = 'NONE' | 'AT_TIME' | 'MINUTES_5' | 'MINUTES_10' | 'MINUTES_15' | 'MINUTES_30' | 'HOURS_1' | 'HOURS_2' | 'DAYS_1' | 'DAYS_2' | 'WEEKS_1';
+
+// Task status union
+export type TaskStatus = 'draft' | 'todo' | 'in_progress' | 'done' | 'blocked' | 'pending_approval';
+
+// User tag
+export interface UserTag {
+    id: string;
+    name: string;
+    color: string;
+}
+
 // Tasks
 export interface Task {
     id: string;
@@ -147,7 +163,7 @@ export interface Task {
     eisenhowerQuadrantId: string;
     sprintId: string | null;
     storyPoints: number;
-    status: 'draft' | 'todo' | 'in_progress' | 'done' | 'blocked' | 'pending_approval';
+    status: TaskStatus;
     isDraft: boolean;
     aiConfidence: number | null;
     createdFromTemplateId: string | null;
@@ -156,6 +172,17 @@ export interface Task {
     deletedAt: string | null;
     // Alias for eisenhowerQuadrantId (used in some screens)
     quadrant?: string;
+    // Task type discriminator (TASK, EVENT, BIRTHDAY)
+    taskType?: TaskType;
+    // Scheduling fields (for one-off events / calendar items)
+    targetDate?: string | null;       // ISO date — due date for tasks, date for events
+    eventStartTime?: string | null;   // ISO instant — event start (date + time)
+    eventEndTime?: string | null;     // ISO instant — event end (date + time)
+    isAllDay?: boolean;               // True for all-day events
+    location?: string | null;         // Event location
+    reminderBefore?: ReminderBefore;  // Reminder setting
+    // User tags
+    tags?: UserTag[];
     // Recurring task support
     isRecurring?: boolean;
     recurrence?: {
