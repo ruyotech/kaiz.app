@@ -1,3 +1,6 @@
+// Must be first import — polyfills crypto.getRandomValues for Hermes
+import '../utils/cryptoPolyfill';
+
 import { useEffect, useRef } from 'react';
 import { Stack, useRouter } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
