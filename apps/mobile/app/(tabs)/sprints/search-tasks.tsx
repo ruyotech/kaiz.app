@@ -188,6 +188,48 @@ export default function SearchTasksScreen() {
         );
     }, [selectedTaskIds, deleteTaskMutation, fetchTasks]);
 
+    const handleBulkHardDelete = useCallback(() => {
+        if (selectedTaskIds.size === 0) return;
+        Alert.alert(
+            'Delete Forever',
+            `Permanently delete ${selectedTaskIds.size} task${selectedTaskIds.size > 1 ? 's' : ''}? This cannot be undone.`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete Forever',
+                    style: 'destructive',
+                    onPress: async () => {
+                        for (const taskId of selectedTaskIds) {
+                            try {
+                                await taskApi.hardDeleteTask(taskId);
+                            } catch (error) {
+                                logger.error('Error hard deleting task:', error);
+                            }
+                        }
+                        setBulkSelectMode(false);
+                        setSelectedTaskIds(new Set());
+                        await loadDeletedTasks();
+                    },
+                },
+            ]
+        );
+    }, [selectedTaskIds]);
+
+    const handleBulkRestore = useCallback(async () => {
+        if (selectedTaskIds.size === 0) return;
+        for (const taskId of selectedTaskIds) {
+            try {
+                await taskApi.restoreTask(taskId);
+            } catch (error) {
+                logger.error('Error restoring task:', error);
+            }
+        }
+        setBulkSelectMode(false);
+        setSelectedTaskIds(new Set());
+        await loadDeletedTasks();
+        await fetchTasks({});
+    }, [selectedTaskIds, fetchTasks]);
+
     const statusFilters = [
         { label: 'All', value: null, color: 'bg-gray-100 text-gray-800' },
         { label: 'Backlog', value: 'backlog', color: 'bg-purple-100 text-purple-800' },
@@ -343,7 +385,7 @@ export default function SearchTasksScreen() {
                 showNotifications={false}
                 rightAction={
                     <View className="flex-row items-center gap-2">
-                        {!bulkSelectMode && selectedStatus !== 'deleted' && (
+                        {!bulkSelectMode && (
                             <TouchableOpacity
                                 onPress={() => setBulkSelectMode(true)}
                                 className="p-2 rounded-lg"
@@ -357,14 +399,35 @@ export default function SearchTasksScreen() {
                                 <TouchableOpacity onPress={handleSelectAll} className="p-2 rounded-lg" style={{ backgroundColor: colors.primary + '20' }}>
                                     <MaterialCommunityIcons name="select-all" size={20} color={colors.primary} />
                                 </TouchableOpacity>
-                                <TouchableOpacity
-                                    onPress={handleBulkSoftDelete}
-                                    disabled={selectedTaskIds.size === 0}
-                                    className="p-2 rounded-lg"
-                                    style={{ backgroundColor: selectedTaskIds.size > 0 ? '#DC262620' : colors.backgroundSecondary }}
-                                >
-                                    <MaterialCommunityIcons name="delete-outline" size={20} color={selectedTaskIds.size > 0 ? '#DC2626' : colors.textTertiary} />
-                                </TouchableOpacity>
+                                {selectedStatus === 'deleted' ? (
+                                    <>
+                                        <TouchableOpacity
+                                            onPress={handleBulkRestore}
+                                            disabled={selectedTaskIds.size === 0}
+                                            className="p-2 rounded-lg"
+                                            style={{ backgroundColor: selectedTaskIds.size > 0 ? 'rgba(16, 185, 129, 0.2)' : colors.backgroundSecondary }}
+                                        >
+                                            <MaterialCommunityIcons name="restore" size={20} color={selectedTaskIds.size > 0 ? '#10B981' : colors.textTertiary} />
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            onPress={handleBulkHardDelete}
+                                            disabled={selectedTaskIds.size === 0}
+                                            className="p-2 rounded-lg"
+                                            style={{ backgroundColor: selectedTaskIds.size > 0 ? '#DC262620' : colors.backgroundSecondary }}
+                                        >
+                                            <MaterialCommunityIcons name="delete-forever" size={20} color={selectedTaskIds.size > 0 ? '#DC2626' : colors.textTertiary} />
+                                        </TouchableOpacity>
+                                    </>
+                                ) : (
+                                    <TouchableOpacity
+                                        onPress={handleBulkSoftDelete}
+                                        disabled={selectedTaskIds.size === 0}
+                                        className="p-2 rounded-lg"
+                                        style={{ backgroundColor: selectedTaskIds.size > 0 ? '#DC262620' : colors.backgroundSecondary }}
+                                    >
+                                        <MaterialCommunityIcons name="delete-outline" size={20} color={selectedTaskIds.size > 0 ? '#DC2626' : colors.textTertiary} />
+                                    </TouchableOpacity>
+                                )}
                                 <TouchableOpacity onPress={handleCancelBulkSelect} className="p-2 rounded-lg" style={{ backgroundColor: colors.backgroundSecondary }}>
                                     <MaterialCommunityIcons name="close" size={20} color={colors.text} />
                                 </TouchableOpacity>
