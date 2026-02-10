@@ -6,7 +6,7 @@ import { Card } from '../../../components/ui/Card';
 import { Badge } from '../../../components/ui/Badge';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Task, LifeWheelArea, EisenhowerQuadrant } from '../../../types/models';
+import { Task, LifeWheelArea } from '../../../types/models';
 import { useTaskStore } from '../../../store/taskStore';
 import { useEpicStore } from '../../../store/epicStore';
 import { lifeWheelApi, taskApi } from '../../../services/api';
@@ -22,10 +22,8 @@ export default function SearchTasksScreen() {
     const [filteredTasks, setFilteredTasks] = useState<Task[]>([]);
     const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
     const [selectedLifeWheel, setSelectedLifeWheel] = useState<string | null>(null);
-    const [selectedQuadrant, setSelectedQuadrant] = useState<string | null>(null);
     const [recentSearches, setRecentSearches] = useState<string[]>([]);
     const [lifeWheelAreas, setLifeWheelAreas] = useState<LifeWheelArea[]>([]);
-    const [eisenhowerQuadrants, setEisenhowerQuadrants] = useState<EisenhowerQuadrant[]>([]);
     const [epics, setEpics] = useState<any[]>([]);
     const [deletedTasks, setDeletedTasks] = useState<Task[]>([]);
     const [bulkSelectMode, setBulkSelectMode] = useState(false);
@@ -47,13 +45,8 @@ export default function SearchTasksScreen() {
 
     const loadData = async () => {
         await fetchTasks({});
-        const [areas, quadrants] = await Promise.all([
-            lifeWheelApi.getLifeWheelAreas(),
-            lifeWheelApi.getEisenhowerQuadrants()
-        ]);
+        const areas = await lifeWheelApi.getLifeWheelAreas();
         setLifeWheelAreas(areas as LifeWheelArea[]);
-        setEisenhowerQuadrants(quadrants as EisenhowerQuadrant[]);
-        // Epics are loaded from epicStore
     };
 
     // When deletedTasks loads, update filteredTasks if we're showing deleted
@@ -103,12 +96,8 @@ export default function SearchTasksScreen() {
             results = results.filter((task) => task.lifeWheelAreaId === selectedLifeWheel);
         }
 
-        if (selectedQuadrant) {
-            results = results.filter((task) => task.eisenhowerQuadrantId === selectedQuadrant);
-        }
-
         setFilteredTasks(results);
-    }, [searchQuery, selectedStatus, selectedLifeWheel, selectedQuadrant, tasks]);
+    }, [searchQuery, selectedStatus, selectedLifeWheel, tasks]);
 
     const handleSearch = (query: string) => {
         setSearchQuery(query);
@@ -199,32 +188,6 @@ export default function SearchTasksScreen() {
         );
     }, [selectedTaskIds, deleteTaskMutation, fetchTasks]);
 
-    const getQuadrantStyle = (quadrantId: string) => {
-        const styles: Record<string, { bgColor: string; textColor: string; borderColor: string }> = {
-            'eq-1': { 
-                bgColor: isDark ? 'rgba(220, 38, 38, 0.15)' : 'rgba(254, 242, 242, 1)', 
-                textColor: isDark ? '#FCA5A5' : '#991B1B', 
-                borderColor: isDark ? '#DC2626' : '#FECACA'
-            },
-            'eq-2': { 
-                bgColor: isDark ? 'rgba(37, 99, 235, 0.15)' : 'rgba(239, 246, 255, 1)', 
-                textColor: isDark ? '#93C5FD' : '#1E40AF', 
-                borderColor: isDark ? '#2563EB' : '#BFDBFE'
-            },
-            'eq-3': { 
-                bgColor: isDark ? 'rgba(202, 138, 4, 0.15)' : 'rgba(254, 252, 232, 1)', 
-                textColor: isDark ? '#FCD34D' : '#92400E', 
-                borderColor: isDark ? '#CA8A04' : '#FDE68A'
-            },
-            'eq-4': { 
-                bgColor: isDark ? 'rgba(107, 114, 128, 0.15)' : 'rgba(249, 250, 251, 1)', 
-                textColor: isDark ? '#D1D5DB' : '#374151', 
-                borderColor: isDark ? '#6B7280' : '#E5E7EB'
-            },
-        };
-        return styles[quadrantId] || styles['eq-2'];
-    };
-
     const statusFilters = [
         { label: 'All', value: null, color: 'bg-gray-100 text-gray-800' },
         { label: 'Backlog', value: 'backlog', color: 'bg-purple-100 text-purple-800' },
@@ -261,7 +224,6 @@ export default function SearchTasksScreen() {
         };
 
         const taskEpic = epics.find(e => e.id === item.epicId);
-        const style = getQuadrantStyle(item.eisenhowerQuadrantId || 'eq-2');
 
         const isSelected = bulkSelectMode && selectedTaskIds.has(item.id);
 
@@ -298,14 +260,16 @@ export default function SearchTasksScreen() {
                             className="text-base font-semibold flex-1 mr-2"
                             style={{ color: colors.text }}
                         >{item.title}</Text>
-                        <View 
-                            className="px-2 py-1 rounded-lg"
-                            style={{ backgroundColor: style.bgColor, borderWidth: 1, borderColor: style.borderColor }}
-                        >
-                            <Text className="text-xs font-bold" style={{ color: style.textColor }}>
-                                {item.storyPoints} pts
-                            </Text>
-                        </View>
+                        {item.storyPoints > 0 && (
+                            <View 
+                                className="px-2 py-1 rounded-lg"
+                                style={{ backgroundColor: colors.backgroundSecondary, borderWidth: 1, borderColor: colors.border }}
+                            >
+                                <Text className="text-xs font-bold" style={{ color: colors.textSecondary }}>
+                                    {item.storyPoints} pts
+                                </Text>
+                            </View>
+                        )}
                     </View>
                     {item.description && (
                         <Text 
@@ -373,11 +337,41 @@ export default function SearchTasksScreen() {
     return (
         <Container safeArea={false}>
             <ScreenHeader
-                title="Task Search"
-                subtitle="Search and filter all tasks"
+                title="All Tasks"
                 showBack
                 useSafeArea={false}
                 showNotifications={false}
+                rightAction={
+                    <View className="flex-row items-center gap-2">
+                        {!bulkSelectMode && selectedStatus !== 'deleted' && (
+                            <TouchableOpacity
+                                onPress={() => setBulkSelectMode(true)}
+                                className="p-2 rounded-lg"
+                                style={{ backgroundColor: colors.backgroundSecondary }}
+                            >
+                                <MaterialCommunityIcons name="checkbox-multiple-outline" size={20} color={colors.textSecondary} />
+                            </TouchableOpacity>
+                        )}
+                        {bulkSelectMode && (
+                            <>
+                                <TouchableOpacity onPress={handleSelectAll} className="p-2 rounded-lg" style={{ backgroundColor: colors.primary + '20' }}>
+                                    <MaterialCommunityIcons name="select-all" size={20} color={colors.primary} />
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    onPress={handleBulkSoftDelete}
+                                    disabled={selectedTaskIds.size === 0}
+                                    className="p-2 rounded-lg"
+                                    style={{ backgroundColor: selectedTaskIds.size > 0 ? '#DC262620' : colors.backgroundSecondary }}
+                                >
+                                    <MaterialCommunityIcons name="delete-outline" size={20} color={selectedTaskIds.size > 0 ? '#DC2626' : colors.textTertiary} />
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={handleCancelBulkSelect} className="p-2 rounded-lg" style={{ backgroundColor: colors.backgroundSecondary }}>
+                                    <MaterialCommunityIcons name="close" size={20} color={colors.text} />
+                                </TouchableOpacity>
+                            </>
+                        )}
+                    </View>
+                }
             />
 
             {/* Filters Section */}
@@ -418,19 +412,18 @@ export default function SearchTasksScreen() {
                         <Pressable
                             onPress={() => {
                                 setSelectedLifeWheel(null);
-                                setSelectedQuadrant(null);
                                 setSelectedStatus(null);
                             }}
                             className="px-3 py-1.5 rounded-full"
                             style={{
-                                backgroundColor: !selectedLifeWheel && !selectedQuadrant && !selectedStatus ? colors.primary : colors.backgroundSecondary,
-                                borderWidth: !selectedLifeWheel && !selectedQuadrant && !selectedStatus ? 0 : 1,
+                                backgroundColor: !selectedLifeWheel && !selectedStatus ? colors.primary : colors.backgroundSecondary,
+                                borderWidth: !selectedLifeWheel && !selectedStatus ? 0 : 1,
                                 borderColor: colors.border,
                             }}
                         >
                             <Text 
                                 className="font-medium text-sm"
-                                style={{ color: !selectedLifeWheel && !selectedQuadrant && !selectedStatus ? '#FFFFFF' : colors.textSecondary }}
+                                style={{ color: !selectedLifeWheel && !selectedStatus ? '#FFFFFF' : colors.textSecondary }}
                             >
                                 All ({tasks.length})
                             </Text>
@@ -444,7 +437,6 @@ export default function SearchTasksScreen() {
                                     key={area.id}
                                     onPress={() => {
                                         setSelectedLifeWheel(area.id === selectedLifeWheel ? null : area.id);
-                                        setSelectedQuadrant(null);
                                     }}
                                     className="px-3 py-1.5 rounded-full flex-row items-center"
                                     style={{
@@ -459,44 +451,6 @@ export default function SearchTasksScreen() {
                                         style={{ color: selectedLifeWheel === area.id ? '#FFFFFF' : colors.textSecondary }}
                                     >
                                         {area.name.split('&')[0].trim()} ({count})
-                                    </Text>
-                                </Pressable>
-                            );
-                        })}
-                    </View>
-                </ScrollView>
-                
-                {/* Eisenhower Quadrant Filters - Distinct Style */}
-                <ScrollView 
-                    horizontal 
-                    showsHorizontalScrollIndicator={false}
-                    className="px-4 mb-2"
-                >
-                    <View className="flex-row gap-2">
-                        {eisenhowerQuadrants.map((quadrant) => {
-                            const count = tasks.filter(t => t.eisenhowerQuadrantId === quadrant.id).length;
-                            if (count === 0) return null;
-                            const style = getQuadrantStyle(quadrant.id);
-                            const isSelected = selectedQuadrant === quadrant.id;
-                            return (
-                                <Pressable
-                                    key={quadrant.id}
-                                    onPress={() => {
-                                        setSelectedQuadrant(quadrant.id === selectedQuadrant ? null : quadrant.id);
-                                    }}
-                                    className="px-3 py-1.5 rounded-lg"
-                                    style={{
-                                        backgroundColor: style.bgColor,
-                                        borderWidth: isSelected ? 2 : 1,
-                                        borderColor: style.borderColor,
-                                        opacity: isSelected ? 1 : 0.7,
-                                    }}
-                                >
-                                    <Text 
-                                        className="text-xs font-bold"
-                                        style={{ color: style.textColor }}
-                                    >
-                                        {quadrant.label} ({count})
                                     </Text>
                                 </Pressable>
                             );
@@ -530,74 +484,38 @@ export default function SearchTasksScreen() {
                 </ScrollView>
             </View>
 
-            {/* Bulk select action bar */}
+            {/* Bulk select info bar */}
             {bulkSelectMode && (
                 <View
-                    className="flex-row items-center justify-between px-4 py-2.5"
+                    className="flex-row items-center px-4 py-2"
                     style={{ backgroundColor: isDark ? 'rgba(37, 99, 235, 0.15)' : '#EFF6FF', borderBottomWidth: 1, borderBottomColor: colors.border }}
                 >
-                    <View className="flex-row items-center">
-                        <TouchableOpacity onPress={handleCancelBulkSelect} className="mr-3">
-                            <MaterialCommunityIcons name="close" size={20} color={colors.text} />
-                        </TouchableOpacity>
-                        <Text className="text-sm font-semibold" style={{ color: colors.text }}>
-                            {selectedTaskIds.size} selected
-                        </Text>
-                    </View>
-                    <View className="flex-row items-center gap-3">
-                        <TouchableOpacity onPress={handleSelectAll} className="flex-row items-center px-3 py-1.5 rounded-lg" style={{ backgroundColor: colors.primary + '20' }}>
-                            <MaterialCommunityIcons name="select-all" size={16} color={colors.primary} />
-                            <Text className="text-xs font-semibold ml-1" style={{ color: colors.primary }}>Select All</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            onPress={handleBulkSoftDelete}
-                            disabled={selectedTaskIds.size === 0}
-                            className="flex-row items-center px-3 py-1.5 rounded-lg"
-                            style={{ backgroundColor: selectedTaskIds.size > 0 ? '#DC262620' : colors.backgroundSecondary }}
-                        >
-                            <MaterialCommunityIcons name="delete-outline" size={16} color={selectedTaskIds.size > 0 ? '#DC2626' : colors.textTertiary} />
-                            <Text className="text-xs font-semibold ml-1" style={{ color: selectedTaskIds.size > 0 ? '#DC2626' : colors.textTertiary }}>Delete</Text>
-                        </TouchableOpacity>
-                    </View>
+                    <MaterialCommunityIcons name="information-outline" size={16} color={colors.primary} />
+                    <Text className="text-xs font-semibold ml-1.5" style={{ color: colors.primary }}>
+                        {selectedTaskIds.size} of {filteredTasks.length} selected — long press or tap to select
+                    </Text>
                 </View>
             )}
 
-            <View className="p-4">
-                {/* Results */}
-                <View>
-                    <View className="flex-row items-center justify-between mb-3">
-                        <Text 
-                            className="text-sm"
-                            style={{ color: colors.textSecondary }}
-                        >
-                            {filteredTasks.length} {filteredTasks.length === 1 ? 'task' : 'tasks'} found
-                        </Text>
-                        {!bulkSelectMode && filteredTasks.length > 0 && selectedStatus !== 'deleted' && (
-                            <TouchableOpacity
-                                onPress={() => setBulkSelectMode(true)}
-                                className="flex-row items-center px-3 py-1.5 rounded-lg"
-                                style={{ backgroundColor: colors.backgroundSecondary, borderWidth: 1, borderColor: colors.border }}
-                            >
-                                <MaterialCommunityIcons name="checkbox-multiple-outline" size={16} color={colors.textSecondary} />
-                                <Text className="text-xs font-medium ml-1.5" style={{ color: colors.textSecondary }}>Select</Text>
-                            </TouchableOpacity>
-                        )}
+            {/* Task List */}
+            <FlatList
+                className="flex-1"
+                data={filteredTasks}
+                renderItem={renderTask}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 32 }}
+                ListHeaderComponent={
+                    <Text className="text-xs mb-2" style={{ color: colors.textSecondary }}>
+                        {filteredTasks.length} {filteredTasks.length === 1 ? 'task' : 'tasks'}
+                    </Text>
+                }
+                ListEmptyComponent={
+                    <View className="items-center justify-center py-12">
+                        <MaterialCommunityIcons name="magnify" size={64} color={colors.textTertiary} />
+                        <Text style={{ color: colors.textSecondary, marginTop: 16 }}>No tasks found</Text>
                     </View>
-                    {filteredTasks.length > 0 ? (
-                        <FlatList
-                            data={filteredTasks}
-                            renderItem={renderTask}
-                            keyExtractor={(item) => item.id}
-                            scrollEnabled={false}
-                        />
-                    ) : (
-                        <View className="items-center justify-center py-12">
-                            <MaterialCommunityIcons name="magnify" size={64} color={colors.textTertiary} />
-                            <Text style={{ color: colors.textSecondary, marginTop: 16 }}>No tasks found</Text>
-                        </View>
-                    )}
-                </View>
-            </View>
+                }
+            />
         </Container>
     );
 }
