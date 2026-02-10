@@ -25,10 +25,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 import { Platform, Alert, Linking } from 'react-native';
+import { useEncryptionStore } from '../services/encryption/encryptionStore';
 
 // Secure storage keys
 const SECURE_EMAIL_KEY = 'kaiz_biometric_email';
-const SECURE_PASSWORD_KEY = 'kaiz_biometric_password';
+// NOTE: Password is NO LONGER stored. Instead, the encryption master key
+// is kept in SecureStore under ENCRYPTION_STORE_KEYS.MASTER_KEY (set by
+// encryptionStore during login). Biometric login reads that key directly.
 
 // ============================================================================
 // Types
@@ -169,49 +172,57 @@ function getBiometricIconName(type: BiometricType): string {
 // ============================================================================
 
 /**
- * Store credentials securely in the keychain
+ * Store email for biometric login (encryption key is stored by encryptionStore).
  */
-async function storeCredentials(email: string, password: string): Promise<boolean> {
+async function storeCredentials(email: string, _password: string): Promise<boolean> {
     try {
         await SecureStore.setItemAsync(SECURE_EMAIL_KEY, email);
-        await SecureStore.setItemAsync(SECURE_PASSWORD_KEY, password);
-        logger.log('Credentials stored securely');
+        // Password is NOT stored — the encryption master key in SecureStore
+        // is the credential that persists across biometric logins.
+        // It was already stored by encryptionStore.initializeExistingUser().
+        logger.log('Biometric email stored securely (password not persisted)');
         return true;
     } catch (error) {
-        logger.error('Failed to store credentials:', error);
+        logger.error('Failed to store biometric email:', error);
         return false;
     }
 }
 
 /**
- * Retrieve credentials from secure storage
+ * Retrieve email for biometric login.
+ * The encryption key is retrieved by encryptionStore.initializeFromSecureStore().
  */
 async function retrieveCredentials(): Promise<{ email: string; password: string } | null> {
     try {
         const email = await SecureStore.getItemAsync(SECURE_EMAIL_KEY);
-        const password = await SecureStore.getItemAsync(SECURE_PASSWORD_KEY);
-        
-        if (email && password) {
-            logger.log('Credentials retrieved from secure storage');
-            return { email, password };
+
+        if (email) {
+            // Check if encryption key exists in SecureStore (set during initial login)
+            const encryptionReady = await useEncryptionStore.getState().initializeFromSecureStore();
+            if (encryptionReady) {
+                logger.log('Biometric credentials ready (email + encryption key)');
+                // Return a sentinel — the actual auth uses refresh token, not password
+                return { email, password: '__biometric_auth__' };
+            }
+            logger.warn('Biometric email found but no encryption key');
         }
         return null;
     } catch (error) {
-        logger.error('Failed to retrieve credentials:', error);
+        logger.error('Failed to retrieve biometric credentials:', error);
         return null;
     }
 }
 
 /**
- * Clear stored credentials from secure storage
+ * Clear stored biometric email from secure storage.
  */
 async function clearCredentials(): Promise<void> {
     try {
         await SecureStore.deleteItemAsync(SECURE_EMAIL_KEY);
-        await SecureStore.deleteItemAsync(SECURE_PASSWORD_KEY);
-        logger.log('Credentials cleared from secure storage');
+        // Note: encryption master key is cleared by encryptionStore.clearEncryption()
+        logger.log('Biometric email cleared from secure storage');
     } catch (error) {
-        logger.error('Failed to clear credentials:', error);
+        logger.error('Failed to clear biometric credentials:', error);
     }
 }
 

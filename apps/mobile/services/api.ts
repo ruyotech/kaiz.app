@@ -26,6 +26,12 @@ import {
 
 import { User } from '../types/models';
 import type {
+  EncryptionSaltResponse,
+  EncryptionKeyVerifyRequest,
+  RecoveryKeyStoreRequest,
+  RecoveryKeyRetrieveResponse,
+} from '../types/encryption.types';
+import type {
   MindsetContent as MindsetContentType,
   MindsetTheme as MindsetThemeType,
   ToggleFavoriteResponse as ToggleFavoriteResponseType,
@@ -96,6 +102,8 @@ export interface AuthResponse {
   accessToken: string;
   refreshToken: string;
   user: UserResponse;
+  encryptionSalt: string | null;
+  wrappedMasterKey: string | null;
 }
 
 export interface UserResponse {
@@ -149,7 +157,13 @@ export const authApi = {
     const deviceInfo = await getDeviceInfoString();
     const response = await apiPost<AuthResponse>('/auth/register', { ...data, deviceInfo });
     await saveTokens(response.accessToken, response.refreshToken);
-    return { user: mapUserResponseToUser(response.user), accessToken: response.accessToken, refreshToken: response.refreshToken };
+    return {
+      user: mapUserResponseToUser(response.user),
+      accessToken: response.accessToken,
+      refreshToken: response.refreshToken,
+      encryptionSalt: response.encryptionSalt,
+      wrappedMasterKey: response.wrappedMasterKey,
+    };
   },
 
   async login(email: string, password: string) {
@@ -157,7 +171,13 @@ export const authApi = {
     const response = await apiPost<AuthResponse>('/auth/login', { email, password, deviceInfo });
     await saveTokens(response.accessToken, response.refreshToken);
     logger.auth('Tokens saved after login');
-    return { user: mapUserResponseToUser(response.user), accessToken: response.accessToken, refreshToken: response.refreshToken };
+    return {
+      user: mapUserResponseToUser(response.user),
+      accessToken: response.accessToken,
+      refreshToken: response.refreshToken,
+      encryptionSalt: response.encryptionSalt,
+      wrappedMasterKey: response.wrappedMasterKey,
+    };
   },
 
   async refreshToken(): Promise<TokenResponse> {
@@ -203,6 +223,32 @@ export const authApi = {
 
   getAccessToken,
   clearTokens,
+};
+
+// ============================================================================
+// ENCRYPTION API
+// ============================================================================
+
+export const encryptionApi = {
+  /** Get the user's encryption salt (creates one if missing) */
+  async getSalt(): Promise<EncryptionSaltResponse> {
+    return apiGet<EncryptionSaltResponse>('/auth/encryption-salt');
+  },
+
+  /** Store the wrapped master key + key hash for verification */
+  async verifyKey(request: EncryptionKeyVerifyRequest): Promise<void> {
+    await apiPost<void>('/auth/encryption-key-verify', request);
+  },
+
+  /** Store the recovery key blob (encrypted master key wrapped with mnemonic-derived key) */
+  async storeRecoveryKey(request: RecoveryKeyStoreRequest): Promise<void> {
+    await apiPost<void>('/auth/recovery-key', request);
+  },
+
+  /** Retrieve the recovery key blob for master key recovery */
+  async getRecoveryKey(): Promise<RecoveryKeyRetrieveResponse> {
+    return apiGet<RecoveryKeyRetrieveResponse>('/auth/recovery-key');
+  },
 };
 
 // ============================================================================

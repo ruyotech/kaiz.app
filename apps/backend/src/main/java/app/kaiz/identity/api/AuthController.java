@@ -2,9 +2,13 @@ package app.kaiz.identity.api;
 
 import app.kaiz.identity.application.AuthService;
 import app.kaiz.identity.application.dto.AuthDtos.AuthResponse;
+import app.kaiz.identity.application.dto.AuthDtos.EncryptionKeyVerifyRequest;
+import app.kaiz.identity.application.dto.AuthDtos.EncryptionSaltResponse;
 import app.kaiz.identity.application.dto.AuthDtos.ForgotPasswordRequest;
 import app.kaiz.identity.application.dto.AuthDtos.LoginRequest;
 import app.kaiz.identity.application.dto.AuthDtos.MessageResponse;
+import app.kaiz.identity.application.dto.AuthDtos.RecoveryKeyRetrieveResponse;
+import app.kaiz.identity.application.dto.AuthDtos.RecoveryKeyStoreRequest;
 import app.kaiz.identity.application.dto.AuthDtos.RefreshTokenRequest;
 import app.kaiz.identity.application.dto.AuthDtos.RegisterRequest;
 import app.kaiz.identity.application.dto.AuthDtos.ResetPasswordRequest;
@@ -104,5 +108,42 @@ public class AuthController {
     authService.verifyEmail(UUID.fromString(userId), request);
     return ResponseEntity.ok(
         ApiResponse.success(new MessageResponse("Email verified successfully")));
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // Zero-Knowledge Encryption Endpoints
+  // ════════════════════════════════════════════════════════════════════════════
+
+  @GetMapping("/encryption-salt")
+  @Operation(summary = "Get user's encryption salt for key derivation")
+  public ResponseEntity<ApiResponse<EncryptionSaltResponse>> getEncryptionSalt(
+      @AuthenticationPrincipal String userId) {
+    EncryptionSaltResponse response = authService.getEncryptionSalt(UUID.fromString(userId));
+    return ResponseEntity.ok(ApiResponse.success(response));
+  }
+
+  @PostMapping("/encryption-key-verify")
+  @Operation(summary = "Store wrapped master key and key hash for multi-device support")
+  public ResponseEntity<ApiResponse<MessageResponse>> verifyEncryptionKey(
+      @AuthenticationPrincipal String userId,
+      @Valid @RequestBody EncryptionKeyVerifyRequest request) {
+    authService.verifyEncryptionKey(UUID.fromString(userId), request);
+    return ResponseEntity.ok(ApiResponse.success(new MessageResponse("Encryption key verified")));
+  }
+
+  @PostMapping("/recovery-key")
+  @Operation(summary = "Store recovery key blob for master key recovery")
+  public ResponseEntity<ApiResponse<MessageResponse>> storeRecoveryKey(
+      @AuthenticationPrincipal String userId, @Valid @RequestBody RecoveryKeyStoreRequest request) {
+    authService.storeRecoveryKey(UUID.fromString(userId), request);
+    return ResponseEntity.ok(ApiResponse.success(new MessageResponse("Recovery key stored")));
+  }
+
+  @GetMapping("/recovery-key")
+  @Operation(summary = "Retrieve recovery key blob for master key recovery")
+  public ResponseEntity<ApiResponse<RecoveryKeyRetrieveResponse>> getRecoveryKey(
+      @AuthenticationPrincipal String userId) {
+    RecoveryKeyRetrieveResponse response = authService.getRecoveryKey(UUID.fromString(userId));
+    return ResponseEntity.ok(ApiResponse.success(response));
   }
 }

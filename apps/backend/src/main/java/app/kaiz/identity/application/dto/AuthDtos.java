@@ -29,7 +29,12 @@ public sealed interface AuthDtos {
   record RefreshTokenRequest(@NotBlank(message = "Refresh token is required") String refreshToken)
       implements AuthDtos {}
 
-  record AuthResponse(String accessToken, String refreshToken, UserResponse user)
+  record AuthResponse(
+      String accessToken,
+      String refreshToken,
+      UserResponse user,
+      String encryptionSalt,
+      String wrappedMasterKey)
       implements AuthDtos {}
 
   record UserResponse(
@@ -61,4 +66,20 @@ public sealed interface AuthDtos {
       implements AuthDtos {}
 
   record MessageResponse(String message) implements AuthDtos {}
+
+  // ── Zero-Knowledge Encryption DTOs ──────────────────────────────────────
+
+  record EncryptionSaltResponse(String salt, int encryptionVersion, boolean hasRecoveryKey)
+      implements AuthDtos {}
+
+  record EncryptionKeyVerifyRequest(
+      @NotBlank(message = "Key hash is required") String keyHash,
+      @NotBlank(message = "Wrapped master key is required") String wrappedMasterKey,
+      int encryptionVersion)
+      implements AuthDtos {}
+
+  record RecoveryKeyStoreRequest(
+      @NotBlank(message = "Recovery blob is required") String recoveryBlob) implements AuthDtos {}
+
+  record RecoveryKeyRetrieveResponse(String recoveryBlob) implements AuthDtos {}
 }

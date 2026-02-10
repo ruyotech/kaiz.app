@@ -38,6 +38,11 @@ import { useAuthStore } from '../../../store/authStore';
 import { usePreferencesStore, type ThemeMode, type SupportedLocale } from '../../../store/preferencesStore';
 import { useSettingsStore, type SprintViewMode, type AIModel } from '../../../store/settingsStore';
 import { useBiometricStore } from '../../../store/biometricStore';
+import { useEncryptionStore } from '../../../services/encryption/encryptionStore';
+
+// Components
+import RecoveryKeySetup from '../../../components/settings/RecoveryKeySetup';
+import RecoveryKeyRestore from '../../../components/settings/RecoveryKeyRestore';
 
 // Hooks
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -397,6 +402,14 @@ export default function SettingsScreen() {
     const [showWeekStartModal, setShowWeekStartModal] = useState(false);
     const [showPasswordModal, setShowPasswordModal] = useState(false);
     const [biometricPassword, setBiometricPassword] = useState('');
+    const [showRecoverySetup, setShowRecoverySetup] = useState(false);
+    const [showRecoveryRestore, setShowRecoveryRestore] = useState(false);
+
+    // Encryption store
+    const {
+        isInitialized: isEncryptionActive,
+        hasRecoveryKey,
+    } = useEncryptionStore();
 
     // Check biometric capability on mount
     useEffect(() => {
@@ -702,6 +715,81 @@ export default function SettingsScreen() {
                         )}
                     </SettingSection>
                 )}
+
+                {/* ============================================ */}
+                {/* ENCRYPTION */}
+                {/* ============================================ */}
+                <SettingSection title="Encryption" titleIcon="shield-lock-outline">
+                    {/* Status */}
+                    <SettingItem
+                        icon="shield-check"
+                        iconColor={isEncryptionActive ? '#10B981' : '#9CA3AF'}
+                        iconBgColor={isEncryptionActive ? '#D1FAE5' : '#F3F4F6'}
+                        label="Zero-Knowledge Encryption"
+                        sublabel={isEncryptionActive ? 'Active — AES-256-GCM' : 'Not initialized'}
+                        showChevron={false}
+                        rightElement={
+                            <View
+                                className="px-2.5 py-1 rounded-full"
+                                style={{ backgroundColor: isEncryptionActive ? '#D1FAE5' : '#FEE2E2' }}
+                            >
+                                <Text className="text-xs font-semibold" style={{ color: isEncryptionActive ? '#065F46' : '#991B1B' }}>
+                                    {isEncryptionActive ? 'ON' : 'OFF'}
+                                </Text>
+                            </View>
+                        }
+                    />
+
+                    {/* Recovery Key — Setup or View */}
+                    {isEncryptionActive && (
+                        <SettingItem
+                            icon="key-variant"
+                            iconColor="#F59E0B"
+                            iconBgColor="#FEF3C7"
+                            label={hasRecoveryKey ? 'Regenerate Recovery Key' : 'Set Up Recovery Key'}
+                            sublabel={hasRecoveryKey
+                                ? 'Create a new 24-word recovery phrase'
+                                : 'Protect against data loss — highly recommended'
+                            }
+                            onPress={() => setShowRecoverySetup(true)}
+                        />
+                    )}
+
+                    {/* Recovery Key — Restore */}
+                    {isEncryptionActive && (
+                        <SettingItem
+                            icon="key-chain"
+                            iconColor="#8B5CF6"
+                            iconBgColor="#EDE9FE"
+                            label="Restore from Recovery Key"
+                            sublabel="Use your 24-word phrase to restore encryption"
+                            onPress={() => setShowRecoveryRestore(true)}
+                            isLast
+                        />
+                    )}
+
+                    {/* Warning if no recovery key */}
+                    {isEncryptionActive && !hasRecoveryKey && (
+                        <TouchableOpacity
+                            onPress={() => setShowRecoverySetup(true)}
+                            className="flex-row items-center px-4 py-3"
+                        >
+                            <MaterialCommunityIcons
+                                name="alert-circle-outline"
+                                size={16}
+                                color="#F59E0B"
+                            />
+                            <Text className="text-xs ml-2 flex-1" style={{ color: '#D97706' }}>
+                                No recovery key set. If you lose access, your encrypted data cannot be recovered.
+                            </Text>
+                            <MaterialCommunityIcons
+                                name="chevron-right"
+                                size={16}
+                                color="#F59E0B"
+                            />
+                        </TouchableOpacity>
+                    )}
+                </SettingSection>
                 
                 {/* ============================================ */}
                 {/* COMMAND CENTER (AI/CHAT) */}
@@ -997,6 +1085,20 @@ export default function SettingsScreen() {
                 options={weekStartOptions}
                 selectedValue={sprints.weekStartsOn}
                 onSelect={setWeekStartsOn}
+            />
+
+            {/* Recovery Key Setup Modal */}
+            <RecoveryKeySetup
+                visible={showRecoverySetup}
+                onClose={() => setShowRecoverySetup(false)}
+                onComplete={() => setShowRecoverySetup(false)}
+            />
+
+            {/* Recovery Key Restore Modal */}
+            <RecoveryKeyRestore
+                visible={showRecoveryRestore}
+                onClose={() => setShowRecoveryRestore(false)}
+                onRestored={() => setShowRecoveryRestore(false)}
             />
 
             {/* Password Modal for Face ID Setup */}

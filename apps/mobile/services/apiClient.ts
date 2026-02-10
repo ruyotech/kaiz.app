@@ -13,6 +13,10 @@ import * as SecureStore from 'expo-secure-store';
 import { router } from 'expo-router';
 import { logger } from '../utils/logger';
 import { getDeviceInfoString } from '../utils/deviceInfo';
+import {
+  encryptRequestPayload,
+  decryptResponsePayload,
+} from './encryption/encryptionInterceptor';
 
 // ============================================================================
 // Configuration
@@ -82,6 +86,12 @@ api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
+  // Encrypt sensitive fields in outgoing request body (zero-knowledge)
+  if (config.data && config.url) {
+    config.data = await encryptRequestPayload(config.data, config.url);
+  }
+
   logger.api(config.method?.toUpperCase() ?? 'GET', `${config.baseURL}${config.url}`);
   return config;
 });
@@ -199,9 +209,12 @@ export class AuthExpiredError extends Error {
 /**
  * Unwrap the standard backend ApiResponse wrapper: `{ success, data, error }`.
  * If the response is already raw (no wrapper), returns it as-is.
+ * Automatically decrypts sensitive fields in the response (zero-knowledge).
  */
-export function unwrap<T>(response: { data: unknown }): T {
+export async function unwrap<T>(response: { data: unknown; config?: { url?: string } }): Promise<T> {
   const body = response.data as Record<string, unknown>;
+  let result: unknown;
+
   if (body && typeof body === 'object' && 'success' in body) {
     if (!body.success) {
       const errMsg =
@@ -210,9 +223,18 @@ export function unwrap<T>(response: { data: unknown }): T {
           : (body.error as Record<string, string>)?.message ?? 'Request failed';
       throw new ApiError(errMsg, 0);
     }
-    return body.data as T;
+    result = body.data;
+  } else {
+    result = body;
   }
-  return body as T;
+
+  // Decrypt sensitive fields in response data
+  const url = (response as { config?: { url?: string } }).config?.url ?? '';
+  if (result && url) {
+    result = await decryptResponsePayload(result, url);
+  }
+
+  return result as T;
 }
 
 /**
@@ -221,37 +243,41 @@ export function unwrap<T>(response: { data: unknown }): T {
  */
 export async function apiGet<T>(url: string): Promise<T> {
   const res = await api.get(url);
-  return unwrap<T>(res);
+  return unwrap<T>({ data: res.data, config: res.config });
 }
 
 export async function apiPost<T>(url: string, data?: unknown): Promise<T> {
   const res = await api.post(url, data);
-  return unwrap<T>(res);
+  return unwrap<T>({ data: res.data, config: res.config });
 }
 
 export async function apiPut<T>(url: string, data?: unknown): Promise<T> {
   const res = await api.put(url, data);
-  return unwrap<T>(res);
+  return unwrap<T>({ data: res.data, config: res.config });
 }
 
 export async function apiPatch<T>(url: string, data?: unknown): Promise<T> {
   const res = await api.patch(url, data);
-  return unwrap<T>(res);
+  return unwrap<T>({ data: res.data, config: res.config });
 }
 
 export async function apiDelete<T = void>(url: string): Promise<T> {
   const res = await api.delete(url);
   if (res.status === 204) return undefined as T;
-  return unwrap<T>(res);
+  return unwrap<T>({ data: res.data, config: res.config });
 }
 
 /** For endpoints returning raw (non-wrapped) data like paginated lists */
 export async function apiGetRaw<T>(url: string): Promise<T> {
   const res = await api.get(url);
-  const body = res.data;
+  let body = res.data;
   // If it's wrapped, unwrap; otherwise return raw
   if (body && typeof body === 'object' && 'data' in body && Array.isArray(body.data)) {
-    return body.data as T;
+    body = body.data;
+  }
+  // Decrypt sensitive fields in response
+  if (body && res.config?.url) {
+    body = await decryptResponsePayload(body, res.config.url);
   }
   return body as T;
 }

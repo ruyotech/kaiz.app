@@ -51,6 +51,25 @@ public class User extends BaseEntity {
   @Builder.Default
   private boolean emailVerified = false;
 
+  // ── Zero-Knowledge Encryption ─────────────────────────────────────────────
+  // Server stores these for multi-device key exchange but NEVER sees the master key.
+
+  @Column(name = "encryption_salt", length = 64)
+  private String encryptionSalt;
+
+  @Column(name = "encryption_key_hash", length = 128)
+  private String encryptionKeyHash;
+
+  @Column(name = "wrapped_master_key", columnDefinition = "TEXT")
+  private String wrappedMasterKey;
+
+  @Column(name = "encryption_version")
+  @Builder.Default
+  private Integer encryptionVersion = 1;
+
+  @Column(name = "recovery_key_blob", columnDefinition = "TEXT")
+  private String recoveryKeyBlob;
+
   public enum AccountType {
     INDIVIDUAL,
     FAMILY_ADULT,

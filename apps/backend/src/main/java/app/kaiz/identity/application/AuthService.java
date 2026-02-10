@@ -1,8 +1,12 @@
 package app.kaiz.identity.application;
 
 import app.kaiz.identity.application.dto.AuthDtos.AuthResponse;
+import app.kaiz.identity.application.dto.AuthDtos.EncryptionKeyVerifyRequest;
+import app.kaiz.identity.application.dto.AuthDtos.EncryptionSaltResponse;
 import app.kaiz.identity.application.dto.AuthDtos.ForgotPasswordRequest;
 import app.kaiz.identity.application.dto.AuthDtos.LoginRequest;
+import app.kaiz.identity.application.dto.AuthDtos.RecoveryKeyRetrieveResponse;
+import app.kaiz.identity.application.dto.AuthDtos.RecoveryKeyStoreRequest;
 import app.kaiz.identity.application.dto.AuthDtos.RefreshTokenRequest;
 import app.kaiz.identity.application.dto.AuthDtos.RegisterRequest;
 import app.kaiz.identity.application.dto.AuthDtos.ResetPasswordRequest;
@@ -46,6 +50,7 @@ public class AuthService {
   private static final int PASSWORD_RESET_TOKEN_LENGTH = 32;
   private static final long PASSWORD_RESET_EXPIRATION_HOURS = 1;
   private static final long EMAIL_VERIFICATION_EXPIRATION_MINUTES = 15;
+  private static final int ENCRYPTION_SALT_LENGTH = 16;
 
   private final UserRepository userRepository;
   private final RefreshTokenRepository refreshTokenRepository;
@@ -63,12 +68,17 @@ public class AuthService {
       throw new BadRequestException("EMAIL_EXISTS", "Email already registered");
     }
 
+    // Generate encryption salt for zero-knowledge encryption
+    String encryptionSalt = generateEncryptionSalt();
+
     User user =
         User.builder()
             .email(request.email().toLowerCase().trim())
             .passwordHash(passwordEncoder.encode(request.password()))
             .fullName(request.fullName().trim())
             .timezone(request.timezone() != null ? request.timezone() : "UTC")
+            .encryptionSalt(encryptionSalt)
+            .encryptionVersion(1)
             .build();
 
     user = userRepository.save(user);
@@ -282,7 +292,12 @@ public class AuthService {
     saveRefreshToken(user, refreshToken, deviceInfo);
 
     UserResponse userResponse = userMapper.toUserResponse(user);
-    return new AuthResponse(accessToken, refreshToken, userResponse);
+    return new AuthResponse(
+        accessToken,
+        refreshToken,
+        userResponse,
+        user.getEncryptionSalt(),
+        user.getWrappedMasterKey());
   }
 
   private void saveRefreshToken(User user, String token, String deviceInfo) {
@@ -320,5 +335,92 @@ public class AuthService {
   private String generateVerificationCode() {
     int code = secureRandom.nextInt(900000) + 100000; // 6-digit code
     return String.valueOf(code);
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // Zero-Knowledge Encryption Support
+  // ════════════════════════════════════════════════════════════════════════════
+
+  /** Get the user's encryption salt. Creates one if missing (shouldn't happen for new users). */
+  @Transactional(readOnly = true)
+  public EncryptionSaltResponse getEncryptionSalt(UUID userId) {
+    User user =
+        userRepository
+            .findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+
+    String salt = user.getEncryptionSalt();
+    if (salt == null) {
+      log.warn("User {} has no encryption salt — should have been created on register", userId);
+      salt = generateEncryptionSalt();
+      user.setEncryptionSalt(salt);
+      userRepository.save(user);
+    }
+
+    boolean hasRecoveryKey = user.getRecoveryKeyBlob() != null;
+    int version = user.getEncryptionVersion() != null ? user.getEncryptionVersion() : 1;
+
+    log.debug("Encryption salt retrieved for user: {}", userId);
+    return new EncryptionSaltResponse(salt, version, hasRecoveryKey);
+  }
+
+  /**
+   * Store the wrapped master key and key hash from the client. The server never sees the actual
+   * master key — only its hash (for verification) and the encrypted blob (for multi-device key
+   * exchange).
+   */
+  @Transactional
+  public void verifyEncryptionKey(UUID userId, EncryptionKeyVerifyRequest request) {
+    User user =
+        userRepository
+            .findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+
+    user.setEncryptionKeyHash(request.keyHash());
+    user.setWrappedMasterKey(request.wrappedMasterKey());
+    user.setEncryptionVersion(request.encryptionVersion());
+    userRepository.save(user);
+
+    log.info("Encryption key verified for user: {}", userId);
+  }
+
+  /** Store the recovery key blob (master key encrypted with mnemonic-derived key). */
+  @Transactional
+  public void storeRecoveryKey(UUID userId, RecoveryKeyStoreRequest request) {
+    User user =
+        userRepository
+            .findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+
+    user.setRecoveryKeyBlob(request.recoveryBlob());
+    userRepository.save(user);
+
+    log.info("Recovery key stored for user: {}", userId);
+  }
+
+  /** Retrieve the recovery key blob for master key recovery. */
+  @Transactional(readOnly = true)
+  public RecoveryKeyRetrieveResponse getRecoveryKey(UUID userId) {
+    User user =
+        userRepository
+            .findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+
+    if (user.getRecoveryKeyBlob() == null) {
+      throw new ResourceNotFoundException("RecoveryKey", "userId", userId);
+    }
+
+    log.debug("Recovery key blob retrieved for user: {}", userId);
+    return new RecoveryKeyRetrieveResponse(user.getRecoveryKeyBlob());
+  }
+
+  private String generateEncryptionSalt() {
+    byte[] saltBytes = new byte[ENCRYPTION_SALT_LENGTH];
+    secureRandom.nextBytes(saltBytes);
+    StringBuilder hex = new StringBuilder(saltBytes.length * 2);
+    for (byte b : saltBytes) {
+      hex.append(String.format("%02x", b));
+    }
+    return hex.toString();
   }
 }

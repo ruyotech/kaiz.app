@@ -2,8 +2,9 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User } from '../types/models';
-import { authApi, ApiError } from '../services/api';
+import { authApi, encryptionApi, ApiError } from '../services/api';
 import { getAccessToken } from '../services/apiClient';
+import { useEncryptionStore } from '../services/encryption/encryptionStore';
 import { logger } from '../utils/logger';
 
 interface AuthState {
@@ -35,7 +36,18 @@ export const useAuthStore = create<AuthState>()(
         set({ loading: true, error: null });
         try {
           logger.auth('Logging in…');
-          const { user } = await authApi.login(email, password);
+          const { user, encryptionSalt, wrappedMasterKey } = await authApi.login(email, password);
+
+          // Initialize encryption — unwrap master key with password-derived key
+          if (encryptionSalt && wrappedMasterKey) {
+            await useEncryptionStore.getState().initializeExistingUser(
+              password,
+              encryptionSalt,
+              wrappedMasterKey,
+            );
+            logger.auth('Encryption initialized from login');
+          }
+
           set({ user, loading: false, isAuthenticated: true });
         } catch (error) {
           const message =
@@ -49,12 +61,27 @@ export const useAuthStore = create<AuthState>()(
         set({ loading: true, error: null });
         try {
           logger.auth('Registering…');
-          const { user } = await authApi.register({
+          const { user, encryptionSalt } = await authApi.register({
             email,
             password,
             fullName,
             timezone: timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
           });
+
+          // Initialize encryption for new user — generate master key + wrap
+          if (encryptionSalt) {
+            const { wrappedMasterKey, keyHash } =
+              await useEncryptionStore.getState().initializeNewUser(password, encryptionSalt);
+
+            // Store wrapped key + hash on server for multi-device support
+            await encryptionApi.verifyKey({
+              keyHash,
+              wrappedMasterKey,
+              encryptionVersion: 1,
+            });
+            logger.auth('Encryption initialized for new user');
+          }
+
           set({ user, loading: false, isAuthenticated: true });
         } catch (error) {
           const message =
@@ -71,6 +98,8 @@ export const useAuthStore = create<AuthState>()(
         } catch (error) {
           logger.warn('Logout API call failed', error);
         }
+        // Clear encryption keys from SecureStore
+        await useEncryptionStore.getState().clearEncryption();
         set({ user: null, isAuthenticated: false });
       },
 
@@ -101,10 +130,15 @@ export const useAuthStore = create<AuthState>()(
           }
           logger.auth('Validating session on launch…');
           const user = await authApi.getCurrentUser();
+
+          // Restore encryption key from SecureStore (biometric / app restart)
+          await useEncryptionStore.getState().initializeFromSecureStore();
+
           set({ user, isAuthenticated: true });
           return true;
         } catch {
           await authApi.clearTokens();
+          await useEncryptionStore.getState().clearEncryption();
           set({ user: null, isAuthenticated: false });
           return false;
         }
