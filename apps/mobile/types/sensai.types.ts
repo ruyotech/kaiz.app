@@ -696,3 +696,59 @@ export interface ProcessIntakeRequest {
     content: string;
     metadata?: Record<string, any>;
 }
+
+// ============================================================================
+// CEREMONY DATA TYPES (for real data-driven ceremony screens)
+// ============================================================================
+
+/** Burndown chart data point — one per day of sprint */
+export interface BurndownPoint {
+    date: string;
+    remainingPoints: number; // -1 = future date (no actual data yet)
+    idealRemaining: number;
+    completedToday: number;
+}
+
+/** Ceremony outcomes — returned by review-data and retro-data endpoints */
+export interface CeremonyOutcomes {
+    // Planning/shared
+    plannedPoints?: number | null;
+    tasksSelected?: number | null;
+    sprintGoal?: string | null;
+    // Review
+    pointsDelivered?: number | null;
+    tasksCompleted?: number | null;
+    highlights?: string[] | null;
+    carriedOver?: string[] | null;
+    // Retrospective
+    wentWell?: string[] | null;
+    needsImprovement?: string[] | null;
+    tryNextSprint?: string[] | null;
+}
+
+/** Velocity history response from GET /sensai/velocity/history */
+export interface VelocityHistory {
+    sprints: VelocitySprintRecord[];
+    averageCommitted: number;
+    averageCompleted: number;
+    overallCompletionRate: number;
+    totalPointsDelivered: number;
+    sprintCount: number;
+}
+
+/** Individual sprint record within velocity history */
+export interface VelocitySprintRecord {
+    id: string;
+    sprintId: string;
+    sprintStartDate: string;
+    sprintEndDate: string;
+    committedPoints: number;
+    completedPoints: number;
+    carriedOverPoints: number;
+    addedMidSprint: number;
+    completionRate: number;
+    focusFactor: number;
+    isOvercommitted: boolean;
+    overcommitPercentage: number;
+    dimensionDistribution: Record<string, number>;
+}

@@ -39,6 +39,7 @@ public interface SdlcMapper {
   @Mapping(target = "eisenhowerQuadrantId", source = "eisenhowerQuadrant.id")
   @Mapping(target = "sprintId", source = "sprint.id")
   @Mapping(target = "createdFromTemplateId", source = "createdFromTemplate.id")
+  @Mapping(target = "carriedOverFromSprintId", source = "carriedOverFromSprint.id")
   @Mapping(target = "recurrence", source = "recurrence")
   @Mapping(target = "tags", expression = "java(mapUserTagsToDto(task.getTags()))")
   @Mapping(target = "attachments", expression = "java(mapAttachmentsToDto(task.getAttachments()))")
@@ -50,6 +51,7 @@ public interface SdlcMapper {
   @Mapping(target = "eisenhowerQuadrantId", source = "eisenhowerQuadrant.id")
   @Mapping(target = "sprintId", source = "sprint.id")
   @Mapping(target = "createdFromTemplateId", source = "createdFromTemplate.id")
+  @Mapping(target = "carriedOverFromSprintId", source = "carriedOverFromSprint.id")
   @Mapping(target = "comments", ignore = true)
   @Mapping(target = "history", ignore = true)
   @Mapping(target = "recurrence", source = "recurrence")
@@ -67,6 +69,7 @@ public interface SdlcMapper {
   @Mapping(target = "eisenhowerQuadrantId", source = "eisenhowerQuadrant.id")
   @Mapping(target = "sprintId", source = "sprint.id")
   @Mapping(target = "createdFromTemplateId", source = "createdFromTemplate.id")
+  @Mapping(target = "carriedOverFromSprintId", source = "carriedOverFromSprint.id")
   default TaskDto toTaskDtoForList(Task task) {
     return toTaskDtoWithoutDetails(task);
   }

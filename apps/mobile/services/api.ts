@@ -297,6 +297,9 @@ export const sprintApi = {
   async commitSprint(id: string, data: { taskIds: string[]; sprintGoal?: string }) {
     return apiPost<unknown>(`/sprints/${id}/commit`, data);
   },
+  async completeSprint(id: string, data: { nextSprintId?: string | null; carryOverItems?: Array<{ taskId: string; newStoryPoints?: number | null }> }) {
+    return apiPost<unknown>(`/sprints/${id}/complete`, data);
+  },
   async getSprintTasks(sprintId: string) { return apiGet<unknown[]>(`/tasks/sprint/${sprintId}`); },
 };
 
@@ -990,27 +993,35 @@ export const familyApi = {
 export const sensaiApi = {
   async getVelocityMetrics() { return apiGet<VelocityMetrics>('/sensai/velocity/metrics'); },
   async getSprintHealth(sprintId: string) { return apiGet<SprintHealth>(`/sensai/velocity/sprint-health/${sprintId}`); },
-  async getCurrentSprintHealth() { return apiGet<SprintHealth>('/sensai/sprints/current/health'); },
+  async getCurrentSprintHealth() { return apiGet<SprintHealth>('/sensai/velocity/sprint-health/current'); },
+  async getVelocityHistory(sprintCount = 10) { return apiGet<unknown>(`/sensai/velocity/history?sprintCount=${sprintCount}`); },
   async getAdjustedCapacity() { return apiGet<{ baseVelocity: number; adjustedCapacity: number; blockedHours: number }>('/sensai/capacity/adjusted'); },
   async getTodayStandup() { return apiGet<GetStandupResponse>('/sensai/standup/today'); },
   async completeStandup(data: CompleteStandupRequest) { return apiPost<DailyStandup>('/sensai/standup/complete', data); },
-  async skipStandup(reason?: string) { return apiPost<void>('/sensai/standup/skip', { reason }); },
+  async skipStandup(reason?: string) { return apiPost<void>('/sensai/standup/skip', { standupDate: new Date().toISOString().split('T')[0], skipReason: reason }); },
   async getStandupHistory(startDate: string, endDate: string) { return apiGet<DailyStandup[]>(`/sensai/standup/history?startDate=${startDate}&endDate=${endDate}`); },
+  async getStandupSummary(days = 30) { return apiGet<unknown>(`/sensai/standup/summary?days=${days}`); },
   async convertBlockerToTask(blockerId: string) { return apiPost<{ taskId: string }>(`/sensai/standups/blockers/${blockerId}/convert`); },
   async getActiveInterventions() { return apiGet<Intervention[]>('/sensai/interventions/active'); },
   async getInterventionHistory(page = 0, size = 20) { return apiGet<Intervention[]>(`/sensai/interventions/history?page=${page}&size=${size}`); },
   async acknowledgeIntervention(data: AcknowledgeInterventionRequest) { return apiPost<void>(`/sensai/interventions/${data.interventionId}/acknowledge`, { action: data.action, overrideReason: data.overrideReason }); },
   async checkInterventions() { return apiPost<Intervention[]>('/sensai/interventions/check'); },
-  async startCeremony(type: SprintCeremonyType) { return apiPost<SprintCeremony>(`/sensai/ceremonies/${type}/start`); },
-  async getUpcomingCeremonies() { return apiGet<SprintCeremony[]>('/sensai/ceremonies/upcoming'); },
-  async completeSprintPlanning(data: { selectedTaskIds: string[]; notes?: string }) { return apiPost<SprintCeremony>('/sensai/ceremonies/planning/complete', data); },
-  async completeSprintReview(notes?: string) { return apiPost<SprintCeremony>('/sensai/ceremonies/review/complete', { notes }); },
-  async completeRetrospective(data: { whatWorked: string[]; whatBlocked: string[]; keyLearnings: string[] }) { return apiPost<SprintCeremony>('/sensai/ceremonies/retrospective/complete', data); },
+  // Ceremonies — fixed contracts matching backend
+  async getCeremoniesForSprint(sprintId: string) { return apiGet<SprintCeremony[]>(`/sensai/ceremonies/sprint/${sprintId}`); },
+  async startCeremony(ceremonyType: SprintCeremonyType, sprintId: string) { return apiPost<SprintCeremony>('/sensai/ceremonies/start', { ceremonyType: ceremonyType.toUpperCase(), sprintId }); },
+  async completeCeremony(ceremonyId: string, data: { notes?: string; outcomes?: unknown; actionItems?: string[] }) { return apiPost<SprintCeremony>(`/sensai/ceremonies/${ceremonyId}/complete`, data); },
+  // Ceremony data aggregation endpoints
+  async getBurndownData(sprintId: string) { return apiGet<unknown>(`/sensai/ceremonies/burndown/${sprintId}`); },
+  async getSprintReviewData(sprintId: string) { return apiGet<unknown>(`/sensai/ceremonies/review-data/${sprintId}`); },
+  async getRetrospectiveData(sprintId: string) { return apiGet<unknown>(`/sensai/ceremonies/retro-data/${sprintId}`); },
+  // Life Wheel
   async getLifeWheelMetrics() { return apiGet<LifeWheelMetrics>('/sensai/lifewheel/metrics'); },
   async getDimensionHistory(dimension: string, sprints = 4) { return apiGet<unknown[]>(`/sensai/lifewheel/dimensions/${dimension}/history?sprints=${sprints}`); },
   async addRecoveryTask(task: RecoveryTask) { return apiPost<{ taskId: string }>('/sensai/lifewheel/recovery-task', task); },
+  // Intake
   async processIntake(data: ProcessIntakeRequest) { return apiPost<IntakeResult>('/sensai/intake/process', data); },
   async confirmIntakeSuggestions(intakeId: string, selectedSuggestionIds: string[]) { return apiPost<void>(`/sensai/intake/${intakeId}/confirm`, { selectedSuggestionIds }); },
+  // Settings & Analytics
   async getCoachMessages(unreadOnly = false) { return apiGet<CoachMessage[]>(`/sensai/messages?unreadOnly=${unreadOnly}`); },
   async markMessageRead(messageId: string) { return apiPost<void>(`/sensai/messages/${messageId}/read`); },
   async getSettings() { return apiGet<SensAISettings>('/sensai/settings'); },

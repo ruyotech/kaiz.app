@@ -42,7 +42,9 @@ public record TaskDto(
     Instant updatedAt,
     List<TaskCommentDto> comments,
     List<TaskHistoryDto> history,
-    Instant deletedAt) {
+    Instant deletedAt,
+    String carriedOverFromSprintId,
+    Integer originalStoryPoints) {
 
   // Nested DTO for recurrence
   public record RecurrenceDto(

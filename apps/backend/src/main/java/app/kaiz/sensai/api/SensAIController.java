@@ -206,6 +206,39 @@ public class SensAIController {
         ApiResponse.success(sensAIService.completeCeremony(userId, ceremonyId, request)));
   }
 
+  @GetMapping("/ceremonies/burndown/{sprintId}")
+  @Operation(
+      summary = "Get burndown data",
+      description = "Get daily burndown chart data for a sprint")
+  public ResponseEntity<ApiResponse<List<VelocityDto.BurndownPoint>>> getBurndownData(
+      @CurrentUser UUID userId, @PathVariable String sprintId) {
+    return ResponseEntity.ok(ApiResponse.success(sensAIService.getBurndownData(userId, sprintId)));
+  }
+
+  @GetMapping("/ceremonies/review-data/{sprintId}")
+  @Operation(
+      summary = "Get sprint review data",
+      description =
+          "Get aggregated sprint review data including completed tasks, "
+              + "carried-over tasks, and highlights")
+  public ResponseEntity<ApiResponse<SprintCeremonyDto.CeremonyOutcomes>> getSprintReviewData(
+      @CurrentUser UUID userId, @PathVariable String sprintId) {
+    return ResponseEntity.ok(
+        ApiResponse.success(sensAIService.getSprintReviewData(userId, sprintId)));
+  }
+
+  @GetMapping("/ceremonies/retro-data/{sprintId}")
+  @Operation(
+      summary = "Get retrospective data",
+      description =
+          "Get auto-generated retrospective insights: what went well, "
+              + "needs improvement, and action suggestions")
+  public ResponseEntity<ApiResponse<SprintCeremonyDto.CeremonyOutcomes>> getRetrospectiveData(
+      @CurrentUser UUID userId, @PathVariable String sprintId) {
+    return ResponseEntity.ok(
+        ApiResponse.success(sensAIService.getRetrospectiveData(userId, sprintId)));
+  }
+
   // ============ INTAKE ============
 
   @PostMapping("/intake/process")

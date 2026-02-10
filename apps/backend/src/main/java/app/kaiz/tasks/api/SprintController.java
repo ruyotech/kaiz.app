@@ -3,6 +3,8 @@ package app.kaiz.tasks.api;
 import app.kaiz.shared.security.CurrentUser;
 import app.kaiz.shared.util.ApiResponse;
 import app.kaiz.tasks.application.SprintService;
+import app.kaiz.tasks.application.dto.CompleteSprintRequest;
+import app.kaiz.tasks.application.dto.CompleteSprintResponse;
 import app.kaiz.tasks.application.dto.SprintCommitRequest;
 import app.kaiz.tasks.application.dto.SprintCommitResponse;
 import app.kaiz.tasks.application.dto.SprintDto;
@@ -66,11 +68,25 @@ public class SprintController {
       summary = "Commit sprint",
       description =
           "Batch-assign selected tasks to a sprint, record velocity commitment, "
-              + "and auto-activate if sprint start date is today or earlier")
+              + "and auto-activate if sprint start date is today or earlier. Supports re-commit.")
   public ResponseEntity<ApiResponse<SprintCommitResponse>> commitSprint(
       @CurrentUser UUID userId,
       @PathVariable String id,
       @Valid @RequestBody SprintCommitRequest request) {
     return ResponseEntity.ok(ApiResponse.success(sprintService.commitSprint(userId, id, request)));
+  }
+
+  @PostMapping("/{id}/complete")
+  @Operation(
+      summary = "Complete sprint",
+      description =
+          "Complete a sprint with optional carry-over of incomplete tasks to the next sprint. "
+              + "Users can re-estimate carried-over tasks with new story points.")
+  public ResponseEntity<ApiResponse<CompleteSprintResponse>> completeSprint(
+      @CurrentUser UUID userId,
+      @PathVariable String id,
+      @Valid @RequestBody CompleteSprintRequest request) {
+    return ResponseEntity.ok(
+        ApiResponse.success(sprintService.completeSprint(userId, id, request)));
   }
 }

@@ -2,6 +2,7 @@ package app.kaiz.tasks.infrastructure;
 
 import app.kaiz.tasks.domain.Task;
 import app.kaiz.tasks.domain.TaskStatus;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -78,6 +79,33 @@ public interface TaskRepository extends JpaRepository<Task, UUID> {
       "SELECT SUM(t.storyPoints) FROM Task t WHERE t.user.id = :userId AND t.sprint.id = :sprintId"
           + " AND t.status = 'DONE' AND t.deletedAt IS NULL")
   Integer sumCompletedPointsByUserIdAndSprintId(
+      @Param("userId") UUID userId, @Param("sprintId") String sprintId);
+
+  @Query(
+      "SELECT t FROM Task t WHERE t.user.id = :userId AND t.sprint.id = :sprintId"
+          + " AND t.status <> 'DONE' AND t.deletedAt IS NULL")
+  List<Task> findIncompleteByUserIdAndSprintId(
+      @Param("userId") UUID userId, @Param("sprintId") String sprintId);
+
+  @Query(
+      "SELECT t FROM Task t WHERE t.user.id = :userId AND t.sprint.id = :sprintId"
+          + " AND t.carriedOverFromSprint IS NOT NULL AND t.deletedAt IS NULL")
+  List<Task> findCarriedOverByUserIdAndSprintId(
+      @Param("userId") UUID userId, @Param("sprintId") String sprintId);
+
+  @Query(
+      "SELECT t FROM Task t WHERE t.user.id = :userId AND t.sprint.id = :sprintId"
+          + " AND t.status = 'DONE' AND t.completedAt >= :since AND t.deletedAt IS NULL"
+          + " ORDER BY t.completedAt DESC")
+  List<Task> findCompletedSince(
+      @Param("userId") UUID userId,
+      @Param("sprintId") String sprintId,
+      @Param("since") Instant since);
+
+  @Query(
+      "SELECT t FROM Task t WHERE t.user.id = :userId AND t.sprint.id = :sprintId"
+          + " AND t.status = 'BLOCKED' AND t.deletedAt IS NULL")
+  List<Task> findBlockedByUserIdAndSprintId(
       @Param("userId") UUID userId, @Param("sprintId") String sprintId);
 
   /**

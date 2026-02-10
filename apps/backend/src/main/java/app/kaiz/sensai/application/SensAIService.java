@@ -8,11 +8,17 @@ import app.kaiz.sensai.application.dto.*;
 import app.kaiz.sensai.domain.*;
 import app.kaiz.sensai.infrastructure.*;
 import app.kaiz.shared.exception.ResourceNotFoundException;
+import app.kaiz.tasks.domain.Sprint;
+import app.kaiz.tasks.domain.Task;
+import app.kaiz.tasks.domain.TaskStatus;
+import app.kaiz.tasks.infrastructure.SprintRepository;
 import app.kaiz.tasks.infrastructure.TaskRepository;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -40,6 +46,7 @@ public class SensAIService {
   private final LifeWheelAreaRepository lifeWheelAreaRepository;
   private final UserRepository userRepository;
   private final TaskRepository taskRepository;
+  private final SprintRepository sprintRepository;
   private final SensAIMapper mapper;
 
   // ============ SETTINGS ============
@@ -598,6 +605,244 @@ public class SensAIService {
     ceremony.setCoachSummary(generateCeremonySummary(ceremony));
 
     return mapper.toDto(ceremonyRepository.save(ceremony));
+  }
+
+  // ============ CEREMONY DATA AGGREGATION ============
+
+  /** Generate burndown data for a sprint. Calculates ideal remaining vs actual day by day. */
+  public List<VelocityDto.BurndownPoint> getBurndownData(UUID userId, String sprintId) {
+    log.debug("Getting burndown data: userId={}, sprintId={}", userId, sprintId);
+
+    VelocityRecord record =
+        velocityRepository.findByUserIdAndSprintId(userId, sprintId).orElse(null);
+
+    Sprint sprint = sprintRepository.findById(sprintId).orElse(null);
+    if (sprint == null || record == null) {
+      return List.of();
+    }
+
+    LocalDate startDate = sprint.getStartDate();
+    LocalDate endDate = sprint.getEndDate();
+    int totalDays = (int) ChronoUnit.DAYS.between(startDate, endDate);
+    int totalPoints = record.getCommittedPoints();
+
+    // Get all tasks for this sprint to track completions
+    List<Task> sprintTasks =
+        taskRepository.findByUserIdAndSprintIdAndDeletedAtIsNullOrderByCreatedAtDesc(
+            userId, sprintId);
+
+    // Build day-by-day burndown
+    List<VelocityDto.BurndownPoint> points = new ArrayList<>();
+    LocalDate today = LocalDate.now();
+
+    for (int day = 0; day <= totalDays; day++) {
+      LocalDate currentDate = startDate.plusDays(day);
+
+      // Ideal remaining: linear from totalPoints to 0
+      int idealRemaining =
+          totalDays > 0 ? (int) Math.round(totalPoints * (1.0 - (double) day / totalDays)) : 0;
+
+      if (currentDate.isAfter(today)) {
+        // Future dates: only ideal line
+        points.add(new VelocityDto.BurndownPoint(currentDate, -1, idealRemaining, 0));
+      } else {
+        // Past/today: calculate actual remaining
+        Instant dayEnd =
+            currentDate.plusDays(1).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant();
+
+        int completedByDay = 0;
+        int completedToday = 0;
+        for (Task task : sprintTasks) {
+          if (task.getStatus() == TaskStatus.DONE && task.getCompletedAt() != null) {
+            if (task.getCompletedAt().isBefore(dayEnd)) {
+              completedByDay += task.getStoryPoints();
+              // Check if completed on this specific day
+              Instant dayStart =
+                  currentDate.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant();
+              if (!task.getCompletedAt().isBefore(dayStart)) {
+                completedToday += task.getStoryPoints();
+              }
+            }
+          }
+        }
+
+        int actualRemaining = totalPoints - completedByDay;
+        points.add(
+            new VelocityDto.BurndownPoint(
+                currentDate, actualRemaining, idealRemaining, completedToday));
+      }
+    }
+
+    log.info("Burndown data generated: sprintId={}, dataPoints={}", sprintId, points.size());
+    return points;
+  }
+
+  /** Aggregate sprint review data: completed tasks, carried-over tasks, metrics, highlights. */
+  public SprintCeremonyDto.CeremonyOutcomes getSprintReviewData(UUID userId, String sprintId) {
+    log.debug("Getting sprint review data: userId={}, sprintId={}", userId, sprintId);
+
+    List<Task> allTasks =
+        taskRepository.findByUserIdAndSprintIdAndDeletedAtIsNullOrderByCreatedAtDesc(
+            userId, sprintId);
+
+    List<Task> completedTasks =
+        allTasks.stream().filter(t -> t.getStatus() == TaskStatus.DONE).toList();
+
+    List<Task> carriedOverTasks =
+        taskRepository.findCarriedOverByUserIdAndSprintId(userId, sprintId);
+
+    int pointsDelivered = completedTasks.stream().mapToInt(Task::getStoryPoints).sum();
+
+    // Build highlights from completed tasks
+    List<String> highlights =
+        completedTasks.stream()
+            .sorted(Comparator.comparingInt(Task::getStoryPoints).reversed())
+            .limit(5)
+            .map(Task::getTitle)
+            .toList();
+
+    // Build carried-over list
+    List<String> carriedOverNames =
+        carriedOverTasks.stream()
+            .map(t -> t.getTitle() + " (" + t.getStoryPoints() + " pts)")
+            .toList();
+
+    Sprint sprint = sprintRepository.findById(sprintId).orElse(null);
+    String sprintGoal = sprint != null ? sprint.getSprintGoal() : null;
+
+    log.info(
+        "Sprint review data: sprintId={}, completed={}, carriedOver={}",
+        sprintId,
+        completedTasks.size(),
+        carriedOverTasks.size());
+
+    return new SprintCeremonyDto.CeremonyOutcomes(
+        allTasks.stream().mapToInt(Task::getStoryPoints).sum(),
+        completedTasks.size(),
+        sprintGoal,
+        pointsDelivered,
+        completedTasks.size(),
+        highlights,
+        carriedOverNames,
+        null, // wentWell - filled during retro
+        null, // needsImprovement - filled during retro
+        null // tryNextSprint - filled during retro
+        );
+  }
+
+  /**
+   * Aggregate retrospective data: what went well/poorly, carried-over analysis, action suggestions.
+   */
+  public SprintCeremonyDto.CeremonyOutcomes getRetrospectiveData(UUID userId, String sprintId) {
+    log.debug("Getting retrospective data: userId={}, sprintId={}", userId, sprintId);
+
+    List<Task> allTasks =
+        taskRepository.findByUserIdAndSprintIdAndDeletedAtIsNullOrderByCreatedAtDesc(
+            userId, sprintId);
+
+    List<Task> completedTasks =
+        allTasks.stream().filter(t -> t.getStatus() == TaskStatus.DONE).toList();
+
+    List<Task> incompleteTasks =
+        allTasks.stream().filter(t -> t.getStatus() != TaskStatus.DONE).toList();
+
+    List<Task> carriedOverTasks =
+        taskRepository.findCarriedOverByUserIdAndSprintId(userId, sprintId);
+
+    List<Task> blockedTasks = taskRepository.findBlockedByUserIdAndSprintId(userId, sprintId);
+
+    // Auto-generate "went well" insights
+    List<String> wentWell = new ArrayList<>();
+    if (!completedTasks.isEmpty()) {
+      int totalDelivered = completedTasks.stream().mapToInt(Task::getStoryPoints).sum();
+      wentWell.add(
+          "Delivered "
+              + totalDelivered
+              + " story points across "
+              + completedTasks.size()
+              + " tasks");
+    }
+    // Group completed by dimension
+    Map<String, Long> dimensionCounts =
+        completedTasks.stream()
+            .filter(t -> t.getLifeWheelArea() != null)
+            .collect(
+                Collectors.groupingBy(t -> t.getLifeWheelArea().getName(), Collectors.counting()));
+    dimensionCounts.entrySet().stream()
+        .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+        .limit(3)
+        .forEach(
+            e ->
+                wentWell.add(
+                    "Strong focus on " + e.getKey() + " (" + e.getValue() + " tasks completed)"));
+
+    // Auto-generate "needs improvement" insights
+    List<String> needsImprovement = new ArrayList<>();
+    if (!incompleteTasks.isEmpty()) {
+      int unfinishedPoints = incompleteTasks.stream().mapToInt(Task::getStoryPoints).sum();
+      needsImprovement.add(
+          incompleteTasks.size() + " tasks incomplete (" + unfinishedPoints + " points remaining)");
+    }
+    if (!blockedTasks.isEmpty()) {
+      needsImprovement.add(blockedTasks.size() + " tasks were blocked during the sprint");
+    }
+    if (!carriedOverTasks.isEmpty()) {
+      needsImprovement.add(carriedOverTasks.size() + " tasks carried over from previous sprint");
+    }
+
+    // Auto-generate "try next sprint" suggestions
+    List<String> tryNextSprint = new ArrayList<>();
+    if (incompleteTasks.size() > completedTasks.size()) {
+      tryNextSprint.add("Consider committing fewer story points next sprint");
+    }
+    if (!blockedTasks.isEmpty()) {
+      tryNextSprint.add("Identify and address blockers earlier in the sprint");
+    }
+    if (carriedOverTasks.size() > 2) {
+      tryNextSprint.add("Break down large carried-over tasks into smaller deliverables");
+    }
+    if (tryNextSprint.isEmpty()) {
+      tryNextSprint.add("Maintain current pace and continue balanced focus");
+    }
+
+    // Carried-over details
+    List<String> carriedOverNames =
+        carriedOverTasks.stream()
+            .map(
+                t ->
+                    t.getTitle()
+                        + " (originally "
+                        + (t.getOriginalStoryPoints() != null
+                            ? t.getOriginalStoryPoints()
+                            : t.getStoryPoints())
+                        + " pts)")
+            .toList();
+
+    VelocityRecord record =
+        velocityRepository.findByUserIdAndSprintId(userId, sprintId).orElse(null);
+    int pointsDelivered = completedTasks.stream().mapToInt(Task::getStoryPoints).sum();
+
+    Sprint sprint = sprintRepository.findById(sprintId).orElse(null);
+    String sprintGoal = sprint != null ? sprint.getSprintGoal() : null;
+
+    log.info(
+        "Retrospective data: sprintId={}, wentWell={}, improvements={}, actions={}",
+        sprintId,
+        wentWell.size(),
+        needsImprovement.size(),
+        tryNextSprint.size());
+
+    return new SprintCeremonyDto.CeremonyOutcomes(
+        record != null ? record.getCommittedPoints() : 0,
+        completedTasks.size(),
+        sprintGoal,
+        pointsDelivered,
+        completedTasks.size(),
+        null, // highlights - review only
+        carriedOverNames,
+        wentWell,
+        needsImprovement,
+        tryNextSprint);
   }
 
   // ============ INTAKE PROCESSING ============

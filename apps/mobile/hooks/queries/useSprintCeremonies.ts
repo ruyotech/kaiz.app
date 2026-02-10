@@ -4,7 +4,7 @@
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { sensaiApi } from '../../services/api';
-import { sprintCeremonyKeys } from './keys';
+import { sprintCeremonyKeys, sprintKeys, taskKeys } from './keys';
 import { STALE_TIMES } from '../../providers/QueryProvider';
 import type {
   VelocityMetrics,
@@ -21,6 +21,9 @@ import type {
   ProcessIntakeRequest,
   RecoveryTask,
   SprintCeremonyType,
+  BurndownPoint,
+  CeremonyOutcomes,
+  VelocityHistory,
 } from '../../types/sensai.types';
 
 // ── Queries ─────────────────────────────────────────────────────────────────
@@ -29,6 +32,41 @@ export function useVelocityMetrics() {
   return useQuery({
     queryKey: sprintCeremonyKeys.velocity(),
     queryFn: () => sensaiApi.getVelocityMetrics() as Promise<VelocityMetrics>,
+    staleTime: STALE_TIMES.lists,
+  });
+}
+
+export function useVelocityHistory(sprintCount = 10) {
+  return useQuery({
+    queryKey: sprintCeremonyKeys.velocityHistory(sprintCount),
+    queryFn: () => sensaiApi.getVelocityHistory(sprintCount) as Promise<VelocityHistory>,
+    staleTime: STALE_TIMES.lists,
+  });
+}
+
+export function useBurndownData(sprintId: string) {
+  return useQuery({
+    queryKey: sprintCeremonyKeys.burndown(sprintId),
+    queryFn: () => sensaiApi.getBurndownData(sprintId) as Promise<BurndownPoint[]>,
+    enabled: !!sprintId,
+    staleTime: STALE_TIMES.lists,
+  });
+}
+
+export function useSprintReviewData(sprintId: string) {
+  return useQuery({
+    queryKey: sprintCeremonyKeys.reviewData(sprintId),
+    queryFn: () => sensaiApi.getSprintReviewData(sprintId) as Promise<CeremonyOutcomes>,
+    enabled: !!sprintId,
+    staleTime: STALE_TIMES.lists,
+  });
+}
+
+export function useRetrospectiveData(sprintId: string) {
+  return useQuery({
+    queryKey: sprintCeremonyKeys.retroData(sprintId),
+    queryFn: () => sensaiApi.getRetrospectiveData(sprintId) as Promise<CeremonyOutcomes>,
+    enabled: !!sprintId,
     staleTime: STALE_TIMES.lists,
   });
 }
@@ -82,10 +120,11 @@ export function useActiveInterventions() {
   });
 }
 
-export function useUpcomingCeremonies() {
+export function useCeremoniesForSprint(sprintId: string) {
   return useQuery({
-    queryKey: sprintCeremonyKeys.ceremonies(),
-    queryFn: () => sensaiApi.getUpcomingCeremonies() as Promise<SprintCeremony[]>,
+    queryKey: sprintCeremonyKeys.ceremoniesForSprint(sprintId),
+    queryFn: () => sensaiApi.getCeremoniesForSprint(sprintId) as Promise<SprintCeremony[]>,
+    enabled: !!sprintId,
     staleTime: STALE_TIMES.lists,
   });
 }
@@ -191,9 +230,22 @@ export function useAcknowledgeIntervention() {
 export function useStartCeremony() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (type: SprintCeremonyType) => sensaiApi.startCeremony(type),
+    mutationFn: (params: { type: SprintCeremonyType; sprintId: string }) =>
+      sensaiApi.startCeremony(params.type, params.sprintId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: sprintCeremonyKeys.ceremonies() });
+    },
+  });
+}
+
+export function useCompleteCeremony() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (params: { ceremonyId: string; data: { notes?: string; outcomes?: unknown; actionItems?: string[] } }) =>
+      sensaiApi.completeCeremony(params.ceremonyId, params.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: sprintCeremonyKeys.ceremonies() });
+      qc.invalidateQueries({ queryKey: sprintCeremonyKeys.velocity() });
     },
   });
 }

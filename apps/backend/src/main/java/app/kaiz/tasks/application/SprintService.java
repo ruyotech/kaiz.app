@@ -6,12 +6,15 @@ import app.kaiz.sensai.domain.VelocityRecord;
 import app.kaiz.sensai.infrastructure.VelocityRecordRepository;
 import app.kaiz.shared.exception.BadRequestException;
 import app.kaiz.shared.exception.ResourceNotFoundException;
+import app.kaiz.tasks.application.dto.CompleteSprintRequest;
+import app.kaiz.tasks.application.dto.CompleteSprintResponse;
 import app.kaiz.tasks.application.dto.SprintCommitRequest;
 import app.kaiz.tasks.application.dto.SprintCommitResponse;
 import app.kaiz.tasks.application.dto.SprintDto;
 import app.kaiz.tasks.domain.Sprint;
 import app.kaiz.tasks.domain.SprintStatus;
 import app.kaiz.tasks.domain.Task;
+import app.kaiz.tasks.domain.TaskStatus;
 import app.kaiz.tasks.infrastructure.SprintRepository;
 import app.kaiz.tasks.infrastructure.TaskRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -110,8 +113,8 @@ public class SprintService {
   }
 
   /**
-   * Commit selected tasks to a sprint. Bulk-assigns tasks, records velocity commitment, and
-   * auto-activates the sprint if the start date is today or earlier.
+   * Commit selected tasks to a sprint. Supports both initial commit and re-commit (edit plan). On
+   * re-commit: clears previously assigned non-DONE tasks, then re-assigns the new set.
    */
   @CacheEvict(value = "currentSprint", allEntries = true)
   @Transactional
@@ -132,6 +135,21 @@ public class SprintService {
         userRepository
             .findById(userId)
             .orElseThrow(() -> new ResourceNotFoundException("User", userId.toString()));
+
+    // Re-commit support: clear previously assigned non-DONE tasks from this sprint
+    List<Task> existingTasks =
+        taskRepository.findByUserIdAndSprintIdAndDeletedAtIsNullOrderByCreatedAtDesc(
+            userId, sprintId);
+    for (Task existingTask : existingTasks) {
+      if (existingTask.getStatus() != TaskStatus.DONE) {
+        existingTask.setSprint(null);
+        taskRepository.save(existingTask);
+      }
+    }
+
+    // Reset sprint points (keep completed points from DONE tasks)
+    Integer donePoints = taskRepository.sumCompletedPointsByUserIdAndSprintId(userId, sprintId);
+    int existingDonePoints = donePoints != null ? donePoints : 0;
 
     // Fetch and assign tasks to the sprint
     List<Task> tasks = new ArrayList<>();
@@ -170,17 +188,19 @@ public class SprintService {
       throw new BadRequestException("No valid tasks found for commitment");
     }
 
-    // Update sprint totals
-    sprint.setTotalPoints(sprint.getTotalPoints() + totalPoints);
-
-    // Mark sprint as committed
+    // Update sprint totals (replace, not accumulate)
+    sprint.setTotalPoints(totalPoints + existingDonePoints);
     sprint.setCommittedAt(Instant.now());
+
+    // Save sprint goal
+    if (request.sprintGoal() != null) {
+      sprint.setSprintGoal(request.sprintGoal());
+    }
 
     // Auto-activate if start date is today or earlier
     boolean activated = false;
     if (!LocalDate.now().isBefore(sprint.getStartDate())
         && sprint.getStatus() != SprintStatus.ACTIVE) {
-      // Deactivate any currently active sprint
       sprintRepository
           .findByStatus(SprintStatus.ACTIVE)
           .ifPresent(
@@ -248,6 +268,141 @@ public class SprintService {
         request.sprintGoal(),
         dimensionDist,
         now);
+  }
+
+  /**
+   * Complete a sprint: mark as COMPLETED, finalize velocity record, carry over incomplete tasks to
+   * next sprint with user-chosen re-estimation.
+   */
+  @CacheEvict(value = "currentSprint", allEntries = true)
+  @Transactional
+  public CompleteSprintResponse completeSprint(
+      UUID userId, String sprintId, CompleteSprintRequest request) {
+    log.info("Completing sprint: userId={}, sprintId={}", userId, sprintId);
+
+    Sprint sprint =
+        sprintRepository
+            .findById(sprintId)
+            .orElseThrow(() -> new ResourceNotFoundException("Sprint", sprintId));
+
+    User user =
+        userRepository
+            .findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User", userId.toString()));
+
+    // Calculate completed points
+    Integer donePoints = taskRepository.sumCompletedPointsByUserIdAndSprintId(userId, sprintId);
+    int completedPoints = donePoints != null ? donePoints : 0;
+
+    // Count completed tasks
+    List<Task> allSprintTasks =
+        taskRepository.findByUserIdAndSprintIdAndDeletedAtIsNullOrderByCreatedAtDesc(
+            userId, sprintId);
+    int tasksCompleted =
+        (int) allSprintTasks.stream().filter(t -> t.getStatus() == TaskStatus.DONE).count();
+
+    // Handle carry-over: find incomplete tasks
+    List<Task> incompleteTasks = taskRepository.findIncompleteByUserIdAndSprintId(userId, sprintId);
+    List<String> carriedOverTaskIds = new ArrayList<>();
+
+    // Determine next sprint for carry-over
+    Sprint nextSprint = null;
+    if (request != null && request.nextSprintId() != null) {
+      nextSprint = sprintRepository.findById(request.nextSprintId()).orElse(null);
+    }
+    if (nextSprint == null) {
+      // Find the next planned sprint by date
+      List<Sprint> upcoming = sprintRepository.findAllByStatusOrderByDate(SprintStatus.PLANNED);
+      if (!upcoming.isEmpty()) {
+        nextSprint = upcoming.get(0);
+      }
+    }
+
+    // Build carry-over map from request (taskId → newPoints)
+    Map<String, Integer> carryOverReEstimates = new HashMap<>();
+    if (request != null && request.carryOverItems() != null) {
+      for (CompleteSprintRequest.CarryOverItem item : request.carryOverItems()) {
+        if (item.newStoryPoints() != null) {
+          carryOverReEstimates.put(item.taskId(), item.newStoryPoints());
+        }
+      }
+    }
+
+    int carriedOverPoints = 0;
+    for (Task task : incompleteTasks) {
+      // Save original points before potential re-estimation
+      task.setOriginalStoryPoints(task.getStoryPoints());
+      task.setCarriedOverFromSprint(sprint);
+
+      // Apply user re-estimation if provided
+      String taskIdStr = task.getId().toString();
+      if (carryOverReEstimates.containsKey(taskIdStr)) {
+        task.setStoryPoints(carryOverReEstimates.get(taskIdStr));
+      }
+
+      // Move to next sprint (or unassign if no next sprint)
+      if (nextSprint != null) {
+        task.setSprint(nextSprint);
+      } else {
+        task.setSprint(null);
+      }
+
+      // Reset status to TODO for fresh start in new sprint
+      if (task.getStatus() == TaskStatus.IN_PROGRESS) {
+        task.setStatus(TaskStatus.TODO);
+      }
+
+      taskRepository.save(task);
+      carriedOverTaskIds.add(taskIdStr);
+      carriedOverPoints += task.getStoryPoints();
+    }
+
+    // Mark sprint as completed
+    sprint.setStatus(SprintStatus.COMPLETED);
+    sprint.setCompletedPoints(completedPoints);
+    sprintRepository.save(sprint);
+
+    // Update velocity record
+    VelocityRecord velocityRecord =
+        velocityRecordRepository
+            .findByUserIdAndSprintId(userId, sprintId)
+            .orElseGet(
+                () ->
+                    VelocityRecord.builder()
+                        .user(user)
+                        .sprintId(sprintId)
+                        .sprintStartDate(sprint.getStartDate())
+                        .sprintEndDate(sprint.getEndDate())
+                        .build());
+
+    velocityRecord.setCompletedPoints(completedPoints);
+    velocityRecord.setCarriedOverPoints(carriedOverPoints);
+
+    double completionRate =
+        velocityRecord.getCommittedPoints() > 0
+            ? (double) completedPoints / velocityRecord.getCommittedPoints() * 100
+            : 0;
+    velocityRecord.setCompletionRate(
+        BigDecimal.valueOf(completionRate).setScale(2, RoundingMode.HALF_UP));
+    velocityRecordRepository.save(velocityRecord);
+
+    log.info(
+        "Sprint completed: sprintId={}, completed={}/{}, carriedOver={}",
+        sprintId,
+        completedPoints,
+        sprint.getTotalPoints(),
+        carriedOverTaskIds.size());
+
+    return new CompleteSprintResponse(
+        sprintId,
+        completedPoints,
+        sprint.getTotalPoints(),
+        Math.round(completionRate * 10) / 10.0,
+        tasksCompleted,
+        carriedOverTaskIds.size(),
+        nextSprint != null ? nextSprint.getId() : null,
+        carriedOverTaskIds,
+        Instant.now());
   }
 
   private String serializeMap(Map<String, Integer> map) {

@@ -23,6 +23,7 @@ import { useThemeContext } from '../../../providers/ThemeProvider';
 import { LifeWheelBalance, CapacityBar } from '../../../components/sprints/LifeWheelBalance';
 import { PlanningTemplatesTab } from '../../../components/sprints/PlanningTemplatesTab';
 import { PlanningQuickAddTab } from '../../../components/sprints/PlanningQuickAddTab';
+import { CarriedOverBadge } from '../../../components/sprints/CarriedOverBadge';
 import { cancelMidWeekNudge } from '../../../utils/notifications';
 import { logger } from '../../../utils/logger';
 import { Task } from '../../../types/models';
@@ -33,7 +34,9 @@ interface SelectableTask {
     storyPoints: number;
     lifeWheelAreaId: string;
     epicId?: string;
-    source: 'backlog' | 'template' | 'created';
+    source: 'backlog' | 'template' | 'created' | 'sprint';
+    carriedOverFromSprintId?: string;
+    originalStoryPoints?: number;
 }
 
 const DIMENSION_META: Record<string, { color: string; name: string }> = {
@@ -69,31 +72,56 @@ export default function SprintPlanningScreen() {
     const settings = settingsRaw as { targetVelocity?: number } | undefined;
     const targetVelocity = settings?.targetVelocity || 56;
 
-    // Cast backlog data
-    const backlogTasks: SelectableTask[] = useMemo(() => {
-        const raw = Array.isArray(backlogRaw) ? backlogRaw : [];
+    // Existing sprint tasks (for edit mode)
+    const sprintTasks: SelectableTask[] = useMemo(() => {
+        const raw = Array.isArray(sprintTasksRaw) ? sprintTasksRaw : [];
         return raw.map((t: Task) => ({
             id: t.id,
             title: t.title,
             storyPoints: t.storyPoints || 3,
             lifeWheelAreaId: t.lifeWheelAreaId || 'lw-4',
             epicId: t.epicId || undefined,
-            source: 'backlog' as const,
+            source: 'sprint' as const,
+            carriedOverFromSprintId: t.carriedOverFromSprintId || undefined,
+            originalStoryPoints: t.originalStoryPoints || undefined,
         }));
-    }, [backlogRaw]);
+    }, [sprintTasksRaw]);
 
-    // State
-    const [step, setStep] = useState<PlanningStep>('capacity');
+    // Detect edit mode — sprint already has committed tasks
+    const isEditMode = sprintTasks.length > 0;
+
+    // Cast backlog data — exclude tasks already in sprint
+    const backlogTasks: SelectableTask[] = useMemo(() => {
+        const raw = Array.isArray(backlogRaw) ? backlogRaw : [];
+        const sprintTaskIds = new Set(sprintTasks.map(t => t.id));
+        return raw
+            .filter((t: Task) => !sprintTaskIds.has(t.id))
+            .map((t: Task) => ({
+                id: t.id,
+                title: t.title,
+                storyPoints: t.storyPoints || 3,
+                lifeWheelAreaId: t.lifeWheelAreaId || 'lw-4',
+                epicId: t.epicId || undefined,
+                source: 'backlog' as const,
+            }));
+    }, [backlogRaw, sprintTasks]);
+
+    // State — pre-populate from existing sprint tasks in edit mode
+    const [step, setStep] = useState<PlanningStep>(isEditMode ? 'select' : 'capacity');
     const [capacity, setCapacity] = useState(targetVelocity);
-    const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
+    const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>(
+        isEditMode ? sprintTasks.map(t => t.id) : [],
+    );
     const [createdTasks, setCreatedTasks] = useState<SelectableTask[]>([]);
-    const [sprintGoal, setSprintGoal] = useState('');
+    const [sprintGoal, setSprintGoal] = useState(
+        (currentSprint as { sprintGoal?: string } | undefined)?.sprintGoal || '',
+    );
     const [sourceTab, setSourceTab] = useState<SourceTab>('backlog');
     const [quickAddTitle, setQuickAddTitle] = useState('');
     const [quickAddPoints, setQuickAddPoints] = useState(3);
 
-    // All available tasks (backlog + user-created during planning)
-    const allTasks = useMemo(() => [...backlogTasks, ...createdTasks], [backlogTasks, createdTasks]);
+    // All available tasks (sprint existing + backlog + user-created during planning)
+    const allTasks = useMemo(() => [...sprintTasks, ...backlogTasks, ...createdTasks], [sprintTasks, backlogTasks, createdTasks]);
 
     // Derived
     const selectedTasks = useMemo(() => allTasks.filter(t => selectedTaskIds.includes(t.id)), [allTasks, selectedTaskIds]);
@@ -292,7 +320,19 @@ export default function SprintPlanningScreen() {
             <ScrollView className="flex-1 px-4 pt-2" showsVerticalScrollIndicator={false}>
                 {sourceTab === 'backlog' && (
                     <>
-                        {backlogTasks.length === 0 ? (
+                        {/* Existing sprint tasks (edit mode) */}
+                        {isEditMode && sprintTasks.length > 0 && (
+                            <View className="mb-3">
+                                <View className="flex-row items-center justify-between mb-2">
+                                    <Text className="text-xs font-semibold" style={{ color: '#F59E0B' }}>
+                                        In Sprint ({sprintTasks.length})
+                                    </Text>
+                                </View>
+                                {sprintTasks.map(task => renderTaskRow(task))}
+                                <View className="h-px my-2" style={{ backgroundColor: colors.border }} />
+                            </View>
+                        )}
+                        {backlogTasks.length === 0 && !isEditMode ? (
                             <View className="items-center py-12">
                                 <MaterialCommunityIcons name="inbox-outline" size={48} color={colors.textTertiary} />
                                 <Text className="text-base mt-3 mb-1 font-semibold" style={{ color: colors.text }}>Backlog is empty</Text>
@@ -300,7 +340,7 @@ export default function SprintPlanningScreen() {
                                     Use Quick Add to create tasks, or check Templates for inspiration.
                                 </Text>
                             </View>
-                        ) : (
+                        ) : backlogTasks.length > 0 ? (
                             <>
                                 {/* Select All / Deselect All */}
                                 <View className="flex-row items-center justify-between mb-2">
@@ -315,7 +355,7 @@ export default function SprintPlanningScreen() {
                                 </View>
                                 {backlogTasks.map(task => renderTaskRow(task))}
                             </>
-                        )}
+                        ) : null}
                     </>
                 )}
 
@@ -391,11 +431,22 @@ export default function SprintPlanningScreen() {
                     />
                 </View>
                 <View className="flex-1">
-                    <Text className="font-medium" style={{ color: colors.text }}>{task.title}</Text>
+                    <View className="flex-row items-center">
+                        <Text className="font-medium flex-shrink" style={{ color: colors.text }}>{task.title}</Text>
+                        {task.carriedOverFromSprintId && (
+                            <CarriedOverBadge
+                                fromSprintId={task.carriedOverFromSprintId}
+                                originalPoints={task.originalStoryPoints}
+                                currentPoints={task.storyPoints}
+                                compact
+                            />
+                        )}
+                    </View>
                     <Text className="text-xs" style={{ color: colors.textSecondary }}>
                         {getDimName(task.lifeWheelAreaId)}
                         {task.source === 'created' && ' • Added in planning'}
                         {task.source === 'template' && ' • From template'}
+                        {task.source === 'sprint' && ' • In sprint'}
                     </Text>
                 </View>
                 <View className="px-3 py-1 rounded-full" style={{ backgroundColor: colors.backgroundSecondary }}>
@@ -493,7 +544,9 @@ export default function SprintPlanningScreen() {
                     ) : (
                         <>
                             <MaterialCommunityIcons name="check-bold" size={18} color="#FFFFFF" />
-                            <Text className="text-white font-bold ml-2">Commit Sprint</Text>
+                            <Text className="text-white font-bold ml-2">
+                                {isEditMode ? 'Update Sprint' : 'Commit Sprint'}
+                            </Text>
                         </>
                     )}
                 </TouchableOpacity>
@@ -508,7 +561,9 @@ export default function SprintPlanningScreen() {
                 <MaterialCommunityIcons name="check-circle" size={64} color="#10B981" />
             </View>
 
-            <Text className="text-2xl font-bold mb-2" style={{ color: colors.text }}>Sprint Committed!</Text>
+            <Text className="text-2xl font-bold mb-2" style={{ color: colors.text }}>
+                {isEditMode ? 'Sprint Updated!' : 'Sprint Committed!'}
+            </Text>
             <Text className="text-center mb-6" style={{ color: colors.textSecondary }}>
                 {selectedTasks.length} tasks • {selectedPoints} points committed for this week
             </Text>
@@ -552,7 +607,9 @@ export default function SprintPlanningScreen() {
                 <TouchableOpacity onPress={() => router.back()} className="mr-3">
                     <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
                 </TouchableOpacity>
-                <Text className="text-lg font-bold flex-1" style={{ color: colors.text }}>Sprint Planning</Text>
+                <Text className="text-lg font-bold flex-1" style={{ color: colors.text }}>
+                    {isEditMode ? 'Edit Sprint' : 'Sprint Planning'}
+                </Text>
 
                 {/* Step indicators */}
                 <View className="flex-row">

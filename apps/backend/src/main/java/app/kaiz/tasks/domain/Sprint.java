@@ -46,6 +46,9 @@ public class Sprint {
   @Column(name = "committed_at")
   private Instant committedAt;
 
+  @Column(name = "sprint_goal", columnDefinition = "TEXT")
+  private String sprintGoal;
+
   @Column(name = "created_at", nullable = false, updatable = false)
   private Instant createdAt;
 

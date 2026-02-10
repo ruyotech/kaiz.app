@@ -13,4 +13,5 @@ public record SprintDto(
     SprintStatus status,
     int totalPoints,
     int completedPoints,
-    Instant committedAt) {}
+    Instant committedAt,
+    String sprintGoal) {}

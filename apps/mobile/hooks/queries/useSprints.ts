@@ -3,9 +3,9 @@
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { sprintApi } from '../../services/api';
-import { sprintKeys, taskKeys } from './keys';
+import { sprintKeys, taskKeys, sprintCeremonyKeys } from './keys';
 import { STALE_TIMES } from '../../providers/QueryProvider';
-import type { SprintCommitResponse } from '../../types/models';
+import type { SprintCommitResponse, CompleteSprintRequest, CompleteSprintResponse } from '../../types/models';
 
 export function useSprints(year?: number) {
   return useQuery({
@@ -69,6 +69,21 @@ export function useActivateSprint() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: sprintKeys.lists() });
       queryClient.invalidateQueries({ queryKey: sprintKeys.current() });
+    },
+  });
+}
+
+export function useCompleteSprint() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ sprintId, data }: { sprintId: string; data: CompleteSprintRequest }) =>
+      sprintApi.completeSprint(sprintId, data) as Promise<CompleteSprintResponse>,
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({ queryKey: sprintKeys.detail(variables.sprintId) });
+      queryClient.invalidateQueries({ queryKey: sprintKeys.current() });
+      queryClient.invalidateQueries({ queryKey: sprintKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: taskKeys.all });
+      queryClient.invalidateQueries({ queryKey: sprintCeremonyKeys.velocity() });
     },
   });
 }

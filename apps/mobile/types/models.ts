@@ -50,7 +50,29 @@ export interface Sprint {
     totalPoints: number;
     completedPoints: number;
     goals?: string;
+    sprintGoal?: string | null;
     committedAt?: string;
+}
+
+// Sprint complete request/response
+export interface CompleteSprintRequest {
+    nextSprintId?: string | null;
+    carryOverItems?: Array<{
+        taskId: string;
+        newStoryPoints?: number | null;
+    }>;
+}
+
+export interface CompleteSprintResponse {
+    sprintId: string;
+    completedPoints: number;
+    totalPoints: number;
+    completionRate: number;
+    tasksCompleted: number;
+    tasksCarriedOver: number;
+    nextSprintId: string | null;
+    carriedOverTaskIds: string[];
+    completedAt: string;
 }
 
 // Sprint commit request/response
@@ -211,6 +233,9 @@ export interface Task {
     requiresApproval?: boolean;
     approvedByUserId?: string | null;
     approvedAt?: string | null;
+    // Carry-over tracking (agile ceremonies)
+    carriedOverFromSprintId?: string | null;
+    originalStoryPoints?: number | null;
 }
 
 export interface TaskHistory {

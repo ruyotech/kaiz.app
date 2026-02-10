@@ -82,6 +82,17 @@ public class Task extends BaseEntity {
   private Instant completedAt;
 
   // ==========================================
+  // Agile Carry-Over Fields
+  // ==========================================
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "carried_over_from_sprint_id")
+  private Sprint carriedOverFromSprint;
+
+  @Column(name = "original_story_points")
+  private Integer originalStoryPoints;
+
+  // ==========================================
   // Family Plan Fields
   // ==========================================
 
