@@ -22,7 +22,7 @@ export default function EssentiaExploreScreen() {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<'all' | LifeWheelDimensionTag>('all');
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-    const [categories, setCategories] = useState<CategoryItem[]>([{ id: 'all', name: 'All', icon: '📚' }]);
+    const [categories, setCategories] = useState<CategoryItem[]>([{ id: 'all', name: 'All', icon: 'book-open-variant' }]);
 
     useEffect(() => {
         loadCategories();
@@ -32,7 +32,7 @@ export default function EssentiaExploreScreen() {
         try {
             const lifeWheelAreas = await lifeWheelApi.getLifeWheelAreas();
             const mappedCategories: CategoryItem[] = [
-                { id: 'all', name: 'All', icon: '📚' },
+                { id: 'all', name: 'All', icon: 'book-open-variant' },
                 ...lifeWheelAreas.map((lw: any) => ({
                     id: lw.displayId as LifeWheelDimensionTag,
                     name: lw.name.split(' & ')[0],

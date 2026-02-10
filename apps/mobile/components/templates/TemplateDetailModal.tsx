@@ -86,7 +86,7 @@ export function TemplateDetailModal({
 
     if (!template) return null;
 
-    const defaultWheelConfig = { color: '#6b7280', name: 'General', emoji: '📋' };
+    const defaultWheelConfig = { color: '#6b7280', name: 'General', emoji: 'clipboard-text-outline' };
     const wheelConfig = template.defaultLifeWheelAreaId
         ? LIFE_WHEEL_CONFIG[template.defaultLifeWheelAreaId] || defaultWheelConfig
         : defaultWheelConfig;
@@ -227,10 +227,10 @@ export function TemplateDetailModal({
                             {/* Type & Creator Badges */}
                             <View className="flex-row items-center gap-2 mt-2">
                                 <Badge variant={template.type === 'event' ? 'info' : 'default'}>
-                                    {template.type === 'event' ? '📅 Event' : '✅ Task'}
+                                    {template.type === 'event' ? 'Event' : 'Task'}
                                 </Badge>
                                 {template.creatorType === 'system' && (
-                                    <Badge variant="warning">⭐ Global</Badge>
+                                    <Badge variant="warning">Global</Badge>
                                 )}
                             </View>
                         </View>
@@ -281,7 +281,7 @@ export function TemplateDetailModal({
                                     <View className="flex-row items-center">
                                         <Ionicons name="checkmark-circle" size={14} color="#10b981" />
                                         <Text className="text-xs text-green-600 ml-1">
-                                            You rated this {userRating}/5 ⭐
+                                            You rated this {userRating}/5
                                         </Text>
                                     </View>
                                     <Text className="text-xs text-blue-400 mt-1">

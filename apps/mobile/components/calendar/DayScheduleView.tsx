@@ -421,8 +421,8 @@ export function DayScheduleView({
     const externalEvents = useCalendarSyncStore((state) => state.externalEvents) || [];
     
     // Debug: Log store state
-    logger.log('📅 DayScheduleView - externalEvents count:', externalEvents.length);
-    logger.log('📅 DayScheduleView - externalEvents:', JSON.stringify(externalEvents.slice(0, 3)));
+    logger.log('DayScheduleView - externalEvents count:', externalEvents.length);
+    logger.log('DayScheduleView - externalEvents:', JSON.stringify(externalEvents.slice(0, 3)));
     
     // Filter external events for current day
     const dayExternalEvents = externalEvents.filter(event => {
@@ -439,15 +439,15 @@ export function DayScheduleView({
                     eventStart = new Date(event.startDate + 'Z');
                 }
             } else {
-                logger.log('📅 Event has no startDate:', event.title);
+                logger.log('Event has no startDate:', event.title);
                 return false;
             }
             
             const isSame = isSameDay(eventStart, currentDate);
-            logger.log('📅 Event check:', event.title, 'provider:', event.provider, 'raw:', event.startDate, 'parsed:', eventStart.toISOString(), 'isSameDay:', isSame);
+            logger.log('Event check:', event.title, 'provider:', event.provider, 'raw:', event.startDate, 'parsed:', eventStart.toISOString(), 'isSameDay:', isSame);
             return isSame;
         } catch (e) {
-            logger.log('📅 Event filter error:', event.title, e);
+            logger.log('Event filter error:', event.title, e);
             return false;
         }
     });
@@ -457,9 +457,9 @@ export function DayScheduleView({
     const timedExternalEvents = dayExternalEvents.filter(e => !e.isAllDay);
 
     // Debug: Log all tasks with recurrence
-    logger.log('📅 DayScheduleView - currentDate:', currentDate.toISOString());
-    logger.log('📅 External events for day:', dayExternalEvents.length);
-    logger.log('📅 All tasks with recurrence:', tasks.filter(t => isTaskRecurring(t)).map(t => ({
+    logger.log('DayScheduleView - currentDate:', currentDate.toISOString());
+    logger.log('External events for day:', dayExternalEvents.length);
+    logger.log('All tasks with recurrence:', tasks.filter(t => isTaskRecurring(t)).map(t => ({
         title: t.title,
         isRecurring: t.isRecurring,
         frequency: t.recurrence?.frequency,
@@ -470,7 +470,7 @@ export function DayScheduleView({
     const dayTasks = tasks.filter(task => {
         const shouldShow = shouldShowOnDay(task, currentDate);
         if (task.recurrence?.frequency === 'YEARLY') {
-            logger.log('📅 YEARLY task check:', task.title, 'yearlyDate:', task.recurrence?.yearlyDate, 'shouldShow:', shouldShow);
+            logger.log('YEARLY task check:', task.title, 'yearlyDate:', task.recurrence?.yearlyDate, 'shouldShow:', shouldShow);
         }
         return shouldShow;
     });
@@ -640,12 +640,12 @@ export function DayScheduleView({
             if (!isTaskRecurring(task) || !task.recurrence) return null;
             const freq = task.recurrence.frequency;
             switch (freq) {
-                case 'DAILY': return '📅';
-                case 'WEEKLY': return '🔄';
-                case 'BIWEEKLY': return '📆';
-                case 'MONTHLY': return '🗓️';
-                case 'YEARLY': return '🎂';
-                default: return '🔁';
+                case 'DAILY': return 'calendar-today';
+                case 'WEEKLY': return 'autorenew';
+                case 'BIWEEKLY': return 'calendar-sync-outline';
+                case 'MONTHLY': return 'calendar-month-outline';
+                case 'YEARLY': return 'cake-variant-outline';
+                default: return 'repeat';
             }
         };
 
@@ -972,7 +972,7 @@ export function DayScheduleView({
                     <View className="mt-2">
                         {specialEvents.map(event => (
                             <View key={event.id} className="flex-row items-center bg-pink-50 rounded-lg px-3 py-2 mt-1">
-                                <Text className="text-lg mr-2">🎂</Text>
+                                <MaterialCommunityIcons name="cake-variant-outline" size={20} color="#be185d" style={{ marginRight: 8 }} />
                                 <Text className="text-pink-700 font-medium flex-1">{event.title}</Text>
                                 <TouchableOpacity onPress={() => onTaskPress(event.id)}>
                                     <Text className="text-pink-500 text-sm">View →</Text>

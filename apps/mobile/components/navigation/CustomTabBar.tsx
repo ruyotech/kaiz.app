@@ -64,7 +64,7 @@ export function CustomTabBar() {
     // Reset execution state when menu opens (in case previous action got stuck)
     useEffect(() => {
         if (showCreateMenu) {
-            logger.log('📋 [Menu] Opening create menu, resetting execution state');
+            logger.log('[Menu] Opening create menu, resetting execution state');
             isExecutingAction.current = false;
         }
     }, [showCreateMenu]);
@@ -121,25 +121,25 @@ export function CustomTabBar() {
 
     // Simple handlers that set pending action and close modal
     const handleCamera = () => {
-        logger.log('📷 [Smart Input] Camera button pressed');
+        logger.log('[Smart Input] Camera button pressed');
         setPendingAction('camera');
         setShowCreateMenu(false);
     };
 
     const handleImagePicker = () => {
-        logger.log('🖼️ [Smart Input] Image button pressed');
+        logger.log('[Smart Input] Image button pressed');
         setPendingAction('image');
         setShowCreateMenu(false);
     };
 
     const handleFilePicker = () => {
-        logger.log('📄 [Smart Input] File button pressed');
+        logger.log('[Smart Input] File button pressed');
         setPendingAction('file');
         setShowCreateMenu(false);
     };
 
     const handleVoiceInput = () => {
-        logger.log('🎤 [Smart Input] Voice button pressed');
+        logger.log('[Smart Input] Voice button pressed');
         setPendingAction('voice');
         setShowCreateMenu(false);
     };
@@ -147,9 +147,9 @@ export function CustomTabBar() {
     // Actual launcher functions (called from useEffect after modal closes)
     const launchCamera = useCallback(async () => {
         try {
-            logger.log('📷 Requesting camera permission...');
+            logger.log('Requesting camera permission...');
             const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-            logger.log('📷 Camera permission result:', permissionResult);
+            logger.log('Camera permission result:', permissionResult);
             
             if (!permissionResult.granted) {
                 if (!permissionResult.canAskAgain) {
@@ -167,15 +167,15 @@ export function CustomTabBar() {
                 return;
             }
 
-            logger.log('📷 Launching camera...');
+            logger.log('Launching camera...');
             const result = await ImagePicker.launchCameraAsync({
                 allowsEditing: true,
                 quality: 0.8,
             });
-            logger.log('📷 Camera result:', JSON.stringify(result));
+            logger.log('Camera result:', JSON.stringify(result));
 
             if (!result.canceled && result.assets && result.assets[0]) {
-                logger.log('📷 Setting attachment with URI:', result.assets[0].uri);
+                logger.log('Setting attachment with URI:', result.assets[0].uri);
                 setAttachment({
                     type: 'image',
                     uri: result.assets[0].uri,
@@ -183,16 +183,16 @@ export function CustomTabBar() {
                 });
             }
         } catch (error) {
-            logger.error('📷 Camera error:', error);
+            logger.error('Camera error:', error);
             Alert.alert('Error', 'Failed to access camera. Please try again.');
         }
     }, []);
 
     const launchImagePicker = useCallback(async () => {
         try {
-            logger.log('🖼️ Requesting media library permission...');
+            logger.log('Requesting media library permission...');
             const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-            logger.log('🖼️ Media library permission result:', permissionResult);
+            logger.log('Media library permission result:', permissionResult);
             
             if (!permissionResult.granted) {
                 if (!permissionResult.canAskAgain) {
@@ -210,7 +210,7 @@ export function CustomTabBar() {
                 return;
             }
 
-            logger.log('🖼️ Launching image library...');
+            logger.log('Launching image library...');
             
             // Add timeout protection for simulator issues
             const timeoutPromise = new Promise<never>((_, reject) => {
@@ -225,20 +225,20 @@ export function CustomTabBar() {
             });
             
             const result = await Promise.race([pickerPromise, timeoutPromise]);
-            logger.log('🖼️ Image library result:', JSON.stringify(result));
+            logger.log('Image library result:', JSON.stringify(result));
 
             if (!result.canceled && result.assets && result.assets[0]) {
-                logger.log('🖼️ Setting attachment with URI:', result.assets[0].uri);
+                logger.log('Setting attachment with URI:', result.assets[0].uri);
                 setAttachment({
                     type: 'image',
                     uri: result.assets[0].uri,
                     source: 'gallery',
                 });
             } else {
-                logger.log('🖼️ User cancelled or no assets');
+                logger.log('User cancelled or no assets');
             }
         } catch (error: unknown) {
-            logger.error('🖼️ Image picker error:', error);
+            logger.error('Image picker error:', error);
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             if (errorMessage === 'TIMEOUT') {
                 Alert.alert(
@@ -254,14 +254,14 @@ export function CustomTabBar() {
 
     const launchFilePicker = useCallback(async () => {
         try {
-            logger.log('📄 Launching document picker...');
+            logger.log('Launching document picker...');
             
             // Document picker is unreliable on iOS simulator
             // Show warning and use shorter timeout
             const isSimulator = __DEV__ && Platform.OS === 'ios';
             
             if (isSimulator) {
-                logger.log('📄 Running on iOS simulator - document picker may not work');
+                logger.log('Running on iOS simulator - document picker may not work');
             }
             
             // Create a timeout promise - 5 seconds is enough
@@ -279,20 +279,20 @@ export function CustomTabBar() {
             
             // Race between the picker and timeout
             const result = await Promise.race([pickerPromise, timeoutPromise]);
-            logger.log('📄 Document picker result:', JSON.stringify(result));
+            logger.log('Document picker result:', JSON.stringify(result));
 
             if (!result.canceled && result.assets && result.assets[0]) {
-                logger.log('📄 Setting attachment with file:', result.assets[0].name);
+                logger.log('Setting attachment with file:', result.assets[0].name);
                 setAttachment({
                     type: 'file',
                     uri: result.assets[0].uri,
                     name: result.assets[0].name || 'Document',
                 });
             } else {
-                logger.log('📄 User cancelled or no assets');
+                logger.log('User cancelled or no assets');
             }
         } catch (error: unknown) {
-            logger.error('📄 Document picker error:', error);
+            logger.error('Document picker error:', error);
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             if (errorMessage === 'TIMEOUT') {
                 Alert.alert(
@@ -308,12 +308,12 @@ export function CustomTabBar() {
 
     const startVoiceRecording = useCallback(async () => {
         try {
-            logger.log('🎤 Requesting audio permission...');
+            logger.log('Requesting audio permission...');
             const permission = await Audio.requestPermissionsAsync();
-            logger.log('🎤 Audio permission result:', JSON.stringify(permission));
+            logger.log('Audio permission result:', JSON.stringify(permission));
             
             if (!permission.granted) {
-                logger.log('🎤 Permission not granted, canAskAgain:', permission.canAskAgain);
+                logger.log('Permission not granted, canAskAgain:', permission.canAskAgain);
                 if (!permission.canAskAgain) {
                     Alert.alert(
                         'Microphone Permission Required',
@@ -329,27 +329,27 @@ export function CustomTabBar() {
                 return;
             }
 
-            logger.log('🎤 Setting audio mode...');
+            logger.log('Setting audio mode...');
             await Audio.setAudioModeAsync({
                 allowsRecordingIOS: true,
                 playsInSilentModeIOS: true,
             });
 
-            logger.log('🎤 Creating recording...');
+            logger.log('Creating recording...');
             const { recording } = await Audio.Recording.createAsync(
                 Audio.RecordingOptionsPresets.HIGH_QUALITY
             );
-            logger.log('🎤 Recording object created:', recording);
+            logger.log('Recording object created:', recording);
             recordingRef.current = recording;
             setIsRecording(true);
             setRecordingDuration(0);
-            logger.log('🎤 Recording started successfully!');
+            logger.log('Recording started successfully!');
         } catch (error: unknown) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             const errorName = error instanceof Error ? error.name : 'UnknownError';
-            logger.error('🎤 Voice recording error:', error);
-            logger.error('🎤 Error name:', errorName);
-            logger.error('🎤 Error message:', errorMessage);
+            logger.error('Voice recording error:', error);
+            logger.error('Error name:', errorName);
+            logger.error('Error message:', errorMessage);
             Alert.alert('Error', `Failed to start recording: ${errorMessage}`);
         }
     }, []);
@@ -359,7 +359,7 @@ export function CustomTabBar() {
     useEffect(() => {
         // Only log when there's something meaningful to track
         if (pendingAction || showCreateMenu) {
-            logger.log('🔄 [useEffect] Check:', {
+            logger.log('[useEffect] Check:', {
                 pendingAction,
                 showCreateMenu,
                 isExecuting: isExecutingAction.current
@@ -367,44 +367,44 @@ export function CustomTabBar() {
         }
         
         if (pendingAction && !showCreateMenu && !isExecutingAction.current) {
-            logger.log('🔄 [useEffect] Conditions met, will execute:', pendingAction);
+            logger.log('[useEffect] Conditions met, will execute:', pendingAction);
             isExecutingAction.current = true;
             const currentAction = pendingAction;
             
             // Execute immediately without setTimeout - the modal is already closed
             const executeAction = async () => {
-                logger.log('🚀 [Execute] Starting action:', currentAction);
+                logger.log('[Execute] Starting action:', currentAction);
                 // Clear pending action AFTER we've captured it
                 setPendingAction(null);
                 
                 try {
                     switch (currentAction) {
                         case 'camera':
-                            logger.log('🚀 [Execute] Calling launchCamera...');
+                            logger.log('[Execute] Calling launchCamera...');
                             await launchCamera();
-                            logger.log('🚀 [Execute] launchCamera completed');
+                            logger.log('[Execute] launchCamera completed');
                             break;
                         case 'image':
-                            logger.log('🚀 [Execute] Calling launchImagePicker...');
+                            logger.log('[Execute] Calling launchImagePicker...');
                             await launchImagePicker();
-                            logger.log('🚀 [Execute] launchImagePicker completed');
+                            logger.log('[Execute] launchImagePicker completed');
                             break;
                         case 'file':
-                            logger.log('🚀 [Execute] Calling launchFilePicker...');
+                            logger.log('[Execute] Calling launchFilePicker...');
                             await launchFilePicker();
-                            logger.log('🚀 [Execute] launchFilePicker completed');
+                            logger.log('[Execute] launchFilePicker completed');
                             break;
                         case 'voice':
-                            logger.log('🚀 [Execute] Calling startVoiceRecording...');
+                            logger.log('[Execute] Calling startVoiceRecording...');
                             await startVoiceRecording();
-                            logger.log('🚀 [Execute] startVoiceRecording completed');
+                            logger.log('[Execute] startVoiceRecording completed');
                             break;
                     }
                 } catch (error) {
-                    logger.error('🚀 [Execute] Error:', error);
+                    logger.error('[Execute] Error:', error);
                 } finally {
                     isExecutingAction.current = false;
-                    logger.log('🚀 [Execute] Action complete, isExecuting reset');
+                    logger.log('[Execute] Action complete, isExecuting reset');
                 }
             };
             
@@ -417,14 +417,14 @@ export function CustomTabBar() {
     
     // Cancel voice recording
     const cancelVoiceRecording = async () => {
-        logger.log('🎤 Cancelling recording...');
+        logger.log('Cancelling recording...');
         try {
             if (recordingRef.current) {
                 await recordingRef.current.stopAndUnloadAsync();
                 recordingRef.current = null;
             }
         } catch (error) {
-            logger.error('🎤 Error stopping recording:', error);
+            logger.error('Error stopping recording:', error);
         }
         setIsRecording(false);
         setRecordingDuration(0);
@@ -432,12 +432,12 @@ export function CustomTabBar() {
     
     // Accept voice recording
     const acceptVoiceRecording = async () => {
-        logger.log('🎤 Accepting recording...');
+        logger.log('Accepting recording...');
         try {
             if (recordingRef.current) {
                 await recordingRef.current.stopAndUnloadAsync();
                 const uri = recordingRef.current.getURI();
-                logger.log('🎤 Recording saved to:', uri);
+                logger.log('Recording saved to:', uri);
                 recordingRef.current = null;
                 
                 const duration = recordingDuration;
@@ -454,7 +454,7 @@ export function CustomTabBar() {
                 setRecordingDuration(0);
             }
         } catch (error) {
-            logger.error('🎤 Error accepting recording:', error);
+            logger.error('Error accepting recording:', error);
             setIsRecording(false);
             setRecordingDuration(0);
         }
@@ -587,11 +587,11 @@ export function CustomTabBar() {
     const handleQuickCreate = async () => {
         // Check if there's an attachment or text to process
         if (!attachment && !input.trim()) {
-            logger.log('📤 [Send] No content to send - attachment:', attachment, 'input:', input);
+            logger.log('[Send] No content to send - attachment:', attachment, 'input:', input);
             return;
         }
         
-        logger.log('📤 [Send] Processing with AI...', {
+        logger.log('[Send] Processing with AI...', {
             hasAttachment: !!attachment,
             attachmentType: attachment?.type,
             attachmentUri: attachment?.uri,
@@ -616,7 +616,7 @@ export function CustomTabBar() {
                 attachments
             );
             
-            logger.log('📤 [Send] AI response:', response);
+            logger.log('[Send] AI response:', response);
             
             if (response.success && response.data) {
                 const aiResponse = response.data;
@@ -627,14 +627,14 @@ export function CustomTabBar() {
                     // AI has questions - show them
                     const questions = aiResponse.clarifyingQuestions?.join('\n\n') || 'Could you provide more details?';
                     Alert.alert(
-                        '🤔 Need More Info',
+                        'Need More Info',
                         `${aiResponse.reasoning}\n\n${questions}`,
                         [
                             { 
                                 text: 'OK', 
                                 onPress: () => {
                                     // Keep input so user can add more info
-                                    logger.log('📤 [Send] User needs to clarify');
+                                    logger.log('[Send] User needs to clarify');
                                 }
                             },
                         ]
@@ -645,7 +645,7 @@ export function CustomTabBar() {
                     const draftTitle = (aiResponse.draft as any).title || (aiResponse.draft as any).name || 'New Item';
                     
                     Alert.alert(
-                        `✨ ${draftType} Created`,
+                        `${draftType} Created`,
                         `${aiResponse.reasoning}\n\n"${draftTitle}"\n\nConfidence: ${Math.round(aiResponse.confidenceScore * 100)}%`,
                         [
                             {
@@ -653,7 +653,7 @@ export function CustomTabBar() {
                                 style: 'destructive',
                                 onPress: async () => {
                                     await commandCenterApi.rejectDraft(aiResponse.id);
-                                    logger.log('📤 [Send] Draft rejected');
+                                    logger.log('[Send] Draft rejected');
                                 }
                             },
                             { 
@@ -666,7 +666,7 @@ export function CustomTabBar() {
                                     } else {
                                         Alert.alert('Error', 'Failed to create ' + draftType.toLowerCase());
                                     }
-                                    logger.log('📤 [Send] Draft approved');
+                                    logger.log('[Send] Draft approved');
                                     setInput('');
                                     setAttachment(null);
                                 }
@@ -683,7 +683,7 @@ export function CustomTabBar() {
                 );
             }
         } catch (error: unknown) {
-            logger.error('📤 [Send] Error:', error);
+            logger.error('[Send] Error:', error);
             const errorMessage = error instanceof Error ? error.message : 'Failed to process input';
             Alert.alert('Error', errorMessage);
         } finally {

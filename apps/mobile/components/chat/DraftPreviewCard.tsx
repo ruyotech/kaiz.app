@@ -317,7 +317,7 @@ export const DraftPreviewCard = React.memo(function DraftPreviewCard({
                 {/* Suggestions */}
                 {suggestions && suggestions.length > 0 && (
                     <View className="mt-2">
-                        <Text className="text-xs text-gray-500 mb-1">💡 Suggestions</Text>
+                        <Text className="text-xs text-gray-500 mb-1">Suggestions</Text>
                         {suggestions.slice(0, 2).map((s, i) => (
                             <Text key={i} className="text-xs text-gray-600" numberOfLines={1}>• {s}</Text>
                         ))}

@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, Pressable } from 'react-native';
 import { TaskTemplate } from '../../types/models';
 import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useThemeContext } from '../../providers/ThemeProvider';
 
 interface TemplateCardProps {
@@ -15,19 +15,19 @@ interface TemplateCardProps {
     compact?: boolean;
 }
 
-export const LIFE_WHEEL_CONFIG: Record<string, { color: string; name: string; emoji: string }> = {
-    'lw-1': { color: '#10b981', name: 'Health', emoji: '💪' },
-    'lw-2': { color: '#3b82f6', name: 'Career', emoji: '💼' },
-    'lw-3': { color: '#f59e0b', name: 'Finance', emoji: '💰' },
-    'lw-4': { color: '#8b5cf6', name: 'Growth', emoji: '📚' },
-    'lw-5': { color: '#ef4444', name: 'Family & Romance', emoji: '❤️' },
-    'lw-6': { color: '#ec4899', name: 'Friends', emoji: '👥' },
-    'lw-7': { color: '#14b8a6', name: 'Fun', emoji: '🎉' },
-    'lw-8': { color: '#84cc16', name: 'Environment', emoji: '🌍' },
+export const LIFE_WHEEL_CONFIG: Record<string, { color: string; name: string; icon: string }> = {
+    'lw-1': { color: '#10b981', name: 'Health', icon: 'arm-flex-outline' },
+    'lw-2': { color: '#3b82f6', name: 'Career', icon: 'briefcase-outline' },
+    'lw-3': { color: '#f59e0b', name: 'Finance', icon: 'cash-multiple' },
+    'lw-4': { color: '#8b5cf6', name: 'Growth', icon: 'book-open-variant' },
+    'lw-5': { color: '#ef4444', name: 'Family & Romance', icon: 'heart-outline' },
+    'lw-6': { color: '#ec4899', name: 'Friends', icon: 'account-group-outline' },
+    'lw-7': { color: '#14b8a6', name: 'Fun', icon: 'party-popper' },
+    'lw-8': { color: '#84cc16', name: 'Environment', icon: 'earth' },
 };
 
 const getLifeWheelConfig = (areaId: string) => {
-    return LIFE_WHEEL_CONFIG[areaId] || { color: '#6b7280', name: 'General', emoji: '📋' };
+    return LIFE_WHEEL_CONFIG[areaId] || { color: '#6b7280', name: 'General', icon: 'clipboard-text-outline' };
 };
 
 const renderStars = (rating: number, size: number = 14) => {
@@ -139,7 +139,7 @@ export const TemplateCard = React.memo(function TemplateCard({
                         className="px-3 py-1 rounded-full flex-row items-center"
                         style={{ backgroundColor: wheelConfig.color + '20' }}
                     >
-                        <Text className="mr-1">{wheelConfig.emoji}</Text>
+                        <MaterialCommunityIcons name={wheelConfig.icon as any} size={16} color={wheelConfig.color} style={{ marginRight: 4 }} />
                         <Text className="text-sm font-semibold" style={{ color: wheelConfig.color }}>
                             {wheelConfig.name}
                         </Text>
@@ -148,7 +148,7 @@ export const TemplateCard = React.memo(function TemplateCard({
                     {/* Type Badge + Favorite */}
                     <View className="flex-row items-center">
                         <Badge variant={templateType === 'event' ? 'info' : templateType === 'birthday' ? 'warning' : 'default'} size="sm">
-                            {templateType === 'event' ? '📅 Event' : templateType === 'birthday' ? '🎂 Birthday' : '✅ Task'}
+                            {templateType === 'event' ? 'Event' : templateType === 'birthday' ? 'Birthday' : 'Task'}
                         </Badge>
                         {showActions && (
                             <Pressable
@@ -309,7 +309,7 @@ export const TemplateCard = React.memo(function TemplateCard({
                             <Text 
                                 className="text-xs font-medium"
                                 style={{ color: isDark ? '#FCD34D' : '#92400E' }}
-                            >⭐ Global</Text>
+                            >Global</Text>
                         </View>
                     </View>
                 )}

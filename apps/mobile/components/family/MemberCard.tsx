@@ -171,7 +171,7 @@ export function MemberCard({
                         className="items-center px-2 py-1 rounded-lg"
                         style={{ backgroundColor: '#F59E0B20' }}
                     >
-                        <Text className="text-lg">🔥</Text>
+                        <Text className="text-lg"></Text>
                         <Text 
                             className="text-xs font-bold"
                             style={{ color: '#F59E0B' }}

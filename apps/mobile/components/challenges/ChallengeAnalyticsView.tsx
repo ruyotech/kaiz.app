@@ -55,12 +55,12 @@ export function ChallengeAnalyticsView({ analytics }: ChallengeAnalyticsViewProp
                     <Text className="font-semibold mb-2">Insights</Text>
                     {analytics.bestDay && (
                         <Text className="text-sm text-gray-700 mb-1">
-                            🌟 Best day: {new Date(analytics.bestDay).toLocaleDateString()}
+                            Best day: {new Date(analytics.bestDay).toLocaleDateString()}
                         </Text>
                     )}
                     {analytics.worstDay && (
                         <Text className="text-sm text-gray-700">
-                            💪 Room for improvement: {new Date(analytics.worstDay).toLocaleDateString()}
+                            Room for improvement: {new Date(analytics.worstDay).toLocaleDateString()}
                         </Text>
                     )}
                 </Card>

@@ -66,7 +66,7 @@ export default function CompletedChallengesScreen() {
                 {/* Completed Challenges List */}
                 {completedChallenges.length === 0 ? (
                     <EmptyState
-                        icon="🏆"
+                        icon="trophy-outline"
                         title="No Completed Challenges Yet"
                         message="Complete your first challenge to see it here"
                     />

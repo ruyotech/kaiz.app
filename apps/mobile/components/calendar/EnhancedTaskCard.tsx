@@ -4,21 +4,6 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Task } from '../../types/models';
 import { useThemeContext } from '../../providers/ThemeProvider';
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const isEmoji = (str: string): boolean => {
-    if (!str) return false;
-    const emojiRegex = /^[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F000}-\u{1F02F}\u{1F0A0}-\u{1F0FF}\u{1F100}-\u{1F64F}\u{1F680}-\u{1F6FF}]/u;
-    return emojiRegex.test(str) || (str.length <= 2 && !/^[a-z-]+$/.test(str));
-};
-
-const renderIcon = (icon: string, size: number, color: string) => {
-    if (isEmoji(icon)) {
-        return <Text style={{ fontSize: size, lineHeight: size + 2 }}>{icon}</Text>;
-    }
-    return <MaterialCommunityIcons name={icon as any} size={size} color={color} />;
-};
-
 // ─── Eisenhower Priority Config ───────────────────────────────────────────────
 
 export const EISENHOWER_CONFIG: Record<string, { label: string; shortLabel: string; color: string; icon: string }> = {
@@ -39,18 +24,19 @@ export const STATUS_CONFIG: Record<string, { color: string; icon: string; label:
     'pending_approval': { color: '#CA8A04', icon: 'clock-alert-outline', label: 'Pending' },
 };
 
-// ─── Recurrence Label ─────────────────────────────────────────────────────────
+// ─── Recurrence Config ────────────────────────────────────────────────────────
 
-const getRecurrenceIcon = (task: Task): string | null => {
+const RECURRENCE_ICONS: Record<string, string> = {
+    'DAILY': 'autorenew',
+    'WEEKLY': 'calendar-sync-outline',
+    'BIWEEKLY': 'calendar-range',
+    'MONTHLY': 'calendar-month-outline',
+    'YEARLY': 'calendar-star',
+};
+
+const getRecurrenceIconName = (task: Task): string | null => {
     if (!task.recurrence?.frequency) return null;
-    switch (task.recurrence.frequency) {
-        case 'DAILY': return '🔁';
-        case 'WEEKLY': return '🔄';
-        case 'BIWEEKLY': return '📆';
-        case 'MONTHLY': return '🗓️';
-        case 'YEARLY': return '🎂';
-        default: return '🔁';
-    }
+    return RECURRENCE_ICONS[task.recurrence.frequency] ?? 'autorenew';
 };
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -64,6 +50,10 @@ interface EnhancedTaskCardProps {
     hideStatusBadge?: boolean;
     viewType?: 'week' | 'day';
     commentsCount?: number;
+    /** Whether the task is selected for bulk actions */
+    isSelected?: boolean;
+    /** Called when selection checkbox is toggled */
+    onToggleSelect?: (taskId: string) => void;
 }
 
 // ─── Main Card ────────────────────────────────────────────────────────────────
@@ -75,12 +65,14 @@ export const EnhancedTaskCard = React.memo(function EnhancedTaskCard({
     onPress,
     hideStatusBadge = false,
     commentsCount = 0,
+    isSelected,
+    onToggleSelect,
 }: EnhancedTaskCardProps) {
     const { colors, isDark } = useThemeContext();
 
     const eisenhower = EISENHOWER_CONFIG[task.eisenhowerQuadrantId] ?? EISENHOWER_CONFIG['eq-4'];
     const statusCfg = STATUS_CONFIG[task.status.toLowerCase()] ?? STATUS_CONFIG.todo;
-    const recurrenceIcon = getRecurrenceIcon(task);
+    const recurrenceIconName = getRecurrenceIconName(task);
     const wheelArea = lifeWheelArea ?? { id: 'unknown', name: 'General', icon: 'help-circle', color: '#6B7280' };
 
     // Time display (from recurrence or event fields)
@@ -99,14 +91,17 @@ export const EnhancedTaskCard = React.memo(function EnhancedTaskCard({
         return null;
     })();
 
+    const showSelectionMode = isSelected !== undefined;
+
     return (
         <TouchableOpacity
-            onPress={onPress}
+            onPress={showSelectionMode ? () => onToggleSelect?.(task.id) : onPress}
+            onLongPress={!showSelectionMode ? () => onToggleSelect?.(task.id) : undefined}
             className="rounded-xl mb-2.5 overflow-hidden"
             style={{
                 backgroundColor: colors.card,
-                borderWidth: 1,
-                borderColor: colors.border,
+                borderWidth: isSelected ? 2 : 1,
+                borderColor: isSelected ? colors.primary : colors.border,
                 shadowColor: colors.shadow,
                 shadowOffset: { width: 0, height: 1 },
                 shadowOpacity: 0.06,
@@ -115,24 +110,40 @@ export const EnhancedTaskCard = React.memo(function EnhancedTaskCard({
             }}
             activeOpacity={0.7}
         >
-            {/* Colored accent bar (life wheel area) */}
-            <View className="h-1" style={{ backgroundColor: wheelArea.color }} />
+            {/* Eisenhower priority accent bar */}
+            <View className="h-1" style={{ backgroundColor: eisenhower.color }} />
 
             <View className="p-3.5">
-                {/* ── Row 1: Title + status dot + recurrence ── */}
+                {/* ── Row 1: Status badge + Title + recurrence ── */}
                 <View className="flex-row items-start mb-1.5">
-                    {/* Status dot (always visible for quick scanning) */}
-                    {!hideStatusBadge ? (
-                        <View
-                            className="w-2.5 h-2.5 rounded-full mt-1.5 mr-2"
-                            style={{ backgroundColor: statusCfg.color }}
-                        />
-                    ) : (
-                        <View
-                            className="w-1.5 h-1.5 rounded-full mt-2 mr-2"
-                            style={{ backgroundColor: statusCfg.color, opacity: 0.6 }}
-                        />
+                    {/* Selection checkbox */}
+                    {showSelectionMode && (
+                        <View className="mr-2 mt-0.5">
+                            <MaterialCommunityIcons
+                                name={isSelected ? 'checkbox-marked' : 'checkbox-blank-outline'}
+                                size={20}
+                                color={isSelected ? colors.primary : colors.textTertiary}
+                            />
+                        </View>
                     )}
+
+                    {/* Status badge — always visible and prominent */}
+                    <View
+                        className="flex-row items-center px-2 py-0.5 rounded-md mr-2 mt-0.5"
+                        style={{ backgroundColor: statusCfg.color + (isDark ? '30' : '18') }}
+                    >
+                        <MaterialCommunityIcons
+                            name={statusCfg.icon as any}
+                            size={12}
+                            color={statusCfg.color}
+                        />
+                        <Text
+                            className="text-[10px] font-bold ml-1"
+                            style={{ color: statusCfg.color }}
+                        >
+                            {statusCfg.label}
+                        </Text>
+                    </View>
 
                     <Text
                         className="font-bold text-[15px] flex-1 leading-5"
@@ -142,8 +153,13 @@ export const EnhancedTaskCard = React.memo(function EnhancedTaskCard({
                         {task.title}
                     </Text>
 
-                    {recurrenceIcon && (
-                        <Text className="ml-2 text-sm">{recurrenceIcon}</Text>
+                    {recurrenceIconName && (
+                        <MaterialCommunityIcons
+                            name={recurrenceIconName as any}
+                            size={16}
+                            color={colors.textTertiary}
+                            style={{ marginLeft: 8 }}
+                        />
                     )}
                 </View>
 
@@ -170,33 +186,41 @@ export const EnhancedTaskCard = React.memo(function EnhancedTaskCard({
 
                 {/* ── Row 4: Tag chips ── */}
                 <View className="flex-row items-center flex-wrap gap-1.5 ml-4">
-                    {/* Eisenhower priority chip */}
+                    {/* Eisenhower priority chip — prominent with border */}
                     <View
-                        className="flex-row items-center px-2 py-1 rounded-lg"
-                        style={{ backgroundColor: eisenhower.color + (isDark ? '25' : '12') }}
+                        className="flex-row items-center px-2.5 py-1 rounded-lg"
+                        style={{
+                            backgroundColor: eisenhower.color + (isDark ? '25' : '12'),
+                            borderWidth: 1,
+                            borderColor: eisenhower.color + '30',
+                        }}
                     >
                         <MaterialCommunityIcons
                             name={eisenhower.icon as any}
-                            size={11}
+                            size={12}
                             color={eisenhower.color}
                         />
                         <Text
                             className="text-[10px] font-bold ml-1"
                             style={{ color: eisenhower.color }}
                         >
-                            {eisenhower.shortLabel}
+                            {eisenhower.shortLabel} {eisenhower.label}
                         </Text>
                     </View>
 
-                    {/* Life Wheel chip */}
+                    {/* Life Wheel chip — neutral color, no colorization */}
                     <View
                         className="flex-row items-center px-2 py-1 rounded-lg"
-                        style={{ backgroundColor: wheelArea.color + (isDark ? '25' : '12') }}
+                        style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }}
                     >
-                        {renderIcon(wheelArea.icon, 11, wheelArea.color)}
+                        <MaterialCommunityIcons
+                            name={(wheelArea.icon && wheelArea.icon.length > 2 ? wheelArea.icon : 'circle-outline') as any}
+                            size={11}
+                            color={colors.textSecondary}
+                        />
                         <Text
                             className="text-[10px] font-semibold ml-1"
-                            style={{ color: wheelArea.color }}
+                            style={{ color: colors.textSecondary }}
                             numberOfLines={1}
                         >
                             {wheelArea.name}
@@ -262,26 +286,6 @@ export const EnhancedTaskCard = React.memo(function EnhancedTaskCard({
                             </Text>
                         </View>
                     )}
-
-                    {/* Status badge (only in "All" tab view) */}
-                    {!hideStatusBadge && (
-                        <View
-                            className="flex-row items-center px-2 py-1 rounded-lg"
-                            style={{ backgroundColor: statusCfg.color + (isDark ? '25' : '12') }}
-                        >
-                            <MaterialCommunityIcons
-                                name={statusCfg.icon as any}
-                                size={10}
-                                color={statusCfg.color}
-                            />
-                            <Text
-                                className="text-[10px] font-semibold ml-1"
-                                style={{ color: statusCfg.color }}
-                            >
-                                {statusCfg.label}
-                            </Text>
-                        </View>
-                    )}
                 </View>
             </View>
         </TouchableOpacity>
@@ -302,7 +306,7 @@ export const CompactTaskCard = React.memo(function CompactTaskCard({
 }) {
     const { colors } = useThemeContext();
     const statusCfg = STATUS_CONFIG[task.status.toLowerCase()] ?? STATUS_CONFIG.todo;
-    const wheelArea = lifeWheelArea ?? { name: 'General', icon: 'help-circle', color: '#6B7280' };
+    const eisenhower = EISENHOWER_CONFIG[task.eisenhowerQuadrantId] ?? EISENHOWER_CONFIG['eq-4'];
 
     return (
         <TouchableOpacity
@@ -312,6 +316,8 @@ export const CompactTaskCard = React.memo(function CompactTaskCard({
                 backgroundColor: colors.card,
                 borderWidth: 1,
                 borderColor: colors.border,
+                borderLeftWidth: 3,
+                borderLeftColor: eisenhower.color,
                 shadowColor: colors.shadow,
                 shadowOffset: { width: 0, height: 1 },
                 shadowOpacity: 0.04,
@@ -320,11 +326,13 @@ export const CompactTaskCard = React.memo(function CompactTaskCard({
             }}
         >
             <View className="flex-row items-center">
-                <View className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: wheelArea.color }} />
+                <MaterialCommunityIcons name={statusCfg.icon as any} size={14} color={statusCfg.color} style={{ marginRight: 6 }} />
                 <Text className="font-semibold text-sm flex-1" style={{ color: colors.text }} numberOfLines={1}>
                     {task.title}
                 </Text>
-                <View className="w-2 h-2 rounded-full ml-2" style={{ backgroundColor: statusCfg.color }} />
+                <Text className="text-[10px] font-bold ml-2" style={{ color: eisenhower.color }}>
+                    {eisenhower.shortLabel}
+                </Text>
             </View>
         </TouchableOpacity>
     );

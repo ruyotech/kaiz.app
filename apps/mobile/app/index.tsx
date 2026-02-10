@@ -106,7 +106,7 @@ export default function Index() {
                                     textAlign: 'center',
                                 }}
                             >
-                                🔄 Reset App
+                                Reset App
                             </Text>
                             <Text
                                 style={{

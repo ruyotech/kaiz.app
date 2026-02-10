@@ -162,14 +162,14 @@ export default function CommandCenterScreen() {
   // Fetch test attachments when test mode is enabled
   useEffect(() => {
     if (testModeEnabled && testAttachments.length === 0) {
-      logger.log('🧪 [TestMode] Fetching test attachments...');
+      logger.log('[TestMode] Fetching test attachments...');
       commandCenterApi.getTestAttachments().then(response => {
-        logger.log('🧪 [TestMode] Test attachments response:', JSON.stringify(response));
+        logger.log('[TestMode] Test attachments response:', JSON.stringify(response));
         if (response.success && response.data) {
-          logger.log('🧪 [TestMode] Loaded', response.data.length, 'test attachments');
+          logger.log('[TestMode] Loaded', response.data.length, 'test attachments');
           setTestAttachments(response.data);
         } else {
-          logger.log('🧪 [TestMode] No test attachments found or error');
+          logger.log('[TestMode] No test attachments found or error');
         }
       });
     }
@@ -204,15 +204,15 @@ export default function CommandCenterScreen() {
 
   const sendMessage = useCallback(async () => {
     const text = inputText.trim();
-    logger.log('📤 [SendMessage] Called with text:', text, 'attachments:', attachments.length);
-    logger.log('📤 [SendMessage] Attachments details:', JSON.stringify(attachments));
+    logger.log('[SendMessage] Called with text:', text, 'attachments:', attachments.length);
+    logger.log('[SendMessage] Attachments details:', JSON.stringify(attachments));
     if (!text && attachments.length === 0) return;
 
     // Add user message
     const userMessage: ChatMessageType = {
       id: Date.now().toString(),
       role: 'user',
-      content: text || '📎 Attachment',
+      content: text || 'Attachment',
       timestamp: new Date(),
       attachments: attachments.map(a => ({
         id: a.id,
@@ -248,7 +248,7 @@ export default function CommandCenterScreen() {
       
       if (realFileAttachments.length > 0) {
         // Use multipart upload for real files (enables OCR/transcription)
-        logger.log('📤 [SendMessage] Using multipart upload for', realFileAttachments.length, 'files');
+        logger.log('[SendMessage] Using multipart upload for', realFileAttachments.length, 'files');
         response = await commandCenterApi.sendMessageWithFiles(
           text || null,
           realFileAttachments.map(a => ({
@@ -277,7 +277,7 @@ export default function CommandCenterScreen() {
 
       if (response.success && response.data) {
         const aiResponse = response.data as any;
-        logger.log('🤖 [AI Response] Raw:', JSON.stringify(aiResponse, null, 2));
+        logger.log('[AI Response] Raw:', JSON.stringify(aiResponse, null, 2));
         
         // Handle both /smart-input (sessionId) and /process (id) response formats
         const responseId = aiResponse.sessionId || aiResponse.id;
@@ -295,7 +295,7 @@ export default function CommandCenterScreen() {
           // Use intentDetected first (backend sets this), fallback to draft type
           const draftType = (aiResponse.intentDetected || normalizedType) as 'TASK' | 'EVENT' | 'CHALLENGE' | 'BILL' | 'NOTE' | 'EPIC' | 'GOAL';
           
-          logger.log('📋 [Draft] rawType:', rawType, 'intentDetected:', aiResponse.intentDetected, 'final draftType:', draftType);
+          logger.log('[Draft] rawType:', rawType, 'intentDetected:', aiResponse.intentDetected, 'final draftType:', draftType);
           
           // Transform backend fields to frontend format, preserving all original fields
           const transformedDraft = {
@@ -321,7 +321,7 @@ export default function CommandCenterScreen() {
             createdAt: new Date().toISOString(),
           };
           
-          logger.log('📋 [DraftPreview] Created with id:', draftPreview.id);
+          logger.log('[DraftPreview] Created with id:', draftPreview.id);
           setCurrentDraftId(responseId);
           // Refresh pending drafts
           fetchPendingTasksCount();
@@ -392,7 +392,7 @@ export default function CommandCenterScreen() {
         const successMessage: ChatMessageType = {
           id: Date.now().toString(),
           role: 'system',
-          content: `✅ ${displayType} "${title}" created successfully!`,
+          content: `${displayType} "${title}" created successfully!`,
           timestamp: new Date(),
         };
 
@@ -430,7 +430,7 @@ export default function CommandCenterScreen() {
       const rejectMessage: ChatMessageType = {
         id: Date.now().toString(),
         role: 'system',
-        content: '❌ Draft rejected',
+        content: 'Draft rejected',
         timestamp: new Date(),
       };
 
@@ -460,7 +460,7 @@ export default function CommandCenterScreen() {
     const successMessage: ChatMessageType = {
       id: Date.now().toString(),
       role: 'system',
-      content: `✅ ${displayType} "${title}" saved to pending approval!`,
+      content: `${displayType} "${title}" saved to pending approval!`,
       timestamp: new Date(),
     };
 
@@ -587,17 +587,17 @@ export default function CommandCenterScreen() {
 
   // Handle + button press - auto-add test attachment if test mode is on
   const handlePlusPress = useCallback(async () => {
-    logger.log('🧪 [TestMode] + pressed, testModeEnabled:', testModeEnabled);
+    logger.log('[TestMode] + pressed, testModeEnabled:', testModeEnabled);
     
     if (testModeEnabled) {
       // Fetch test attachment from web admin and add it
-      logger.log('🧪 [TestMode] Fetching test attachment from web admin...');
+      logger.log('[TestMode] Fetching test attachment from web admin...');
       const response = await commandCenterApi.getTestAttachments();
-      logger.log('🧪 [TestMode] Response:', JSON.stringify(response));
+      logger.log('[TestMode] Response:', JSON.stringify(response));
       
       if (response.success && response.data && response.data.length > 0) {
         const testAttachment = response.data[0];
-        logger.log('🧪 [TestMode] Adding test attachment:', testAttachment.attachmentName);
+        logger.log('[TestMode] Adding test attachment:', testAttachment.attachmentName);
         
         const newAttachment = {
           id: Date.now().toString(),
@@ -609,9 +609,9 @@ export default function CommandCenterScreen() {
         };
         
         setAttachments(prev => [...prev, newAttachment]);
-        Alert.alert('✅ Test Attachment Added', `File: ${testAttachment.attachmentName}`);
+        Alert.alert('Test Attachment Added', `File: ${testAttachment.attachmentName}`);
       } else {
-        Alert.alert('❌ No Test Attachments', 'Upload a test file in Web Admin first.');
+        Alert.alert('No Test Attachments', 'Upload a test file in Web Admin first.');
       }
     } else {
       setShowInputOptions(!showInputOptions);

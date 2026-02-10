@@ -185,7 +185,11 @@ export default function BacklogScreen() {
                                     className="w-10 h-10 rounded-full items-center justify-center mr-3 shadow-sm"
                                     style={{ backgroundColor: colors.backgroundSecondary }}
                                 >
-                                    <Text className="text-2xl">{lifeWheel?.icon}</Text>
+                                    <MaterialCommunityIcons
+                                        name={(lifeWheel?.icon && lifeWheel.icon.length > 2 ? lifeWheel.icon : 'circle-outline') as any}
+                                        size={22}
+                                        color={colors.textSecondary}
+                                    />
                                 </View>
                                 <Text 
                                     className="text-base font-bold flex-1"
@@ -285,7 +289,7 @@ export default function BacklogScreen() {
                             variant="outline"
                             className="w-full shadow-sm"
                         >
-                            <Text className="font-semibold" style={{ color: colors.primary }}>📅 Add to Sprint</Text>
+                            <Text className="font-semibold" style={{ color: colors.primary }}>Add to Sprint</Text>
                         </Button>
                     </View>
                 </View>
@@ -471,7 +475,7 @@ export default function BacklogScreen() {
             
             {tasks.length === 0 ? (
                 <EmptyState
-                    icon="📋"
+                    icon="clipboard-text-outline"
                     title="No backlog items"
                     message="Your backlog is empty. Add tasks that you'll plan into future sprints."
                     actionLabel="Create Task"
@@ -485,7 +489,7 @@ export default function BacklogScreen() {
                             className="flex-1 items-center justify-center p-8"
                             style={{ backgroundColor: colors.background }}
                         >
-                            <Text className="text-6xl mb-4">🔍</Text>
+                            <MaterialCommunityIcons name="magnify" size={56} color={colors.textTertiary} />
                             <Text 
                                 className="text-lg font-semibold mb-2"
                                 style={{ color: colors.text }}
@@ -614,7 +618,7 @@ export default function BacklogScreen() {
                                                     style={{ color: colors.text }}
                                                 >
                                                     Sprint {sprint.weekNumber}
-                                                    {sprint.status === 'active' && ' 🔥'}
+                                                    {sprint.status === 'active' && ' (Active)'}
                                                 </Text>
                                                 <Text 
                                                     className="text-sm"

@@ -28,11 +28,11 @@ interface IndependenceWizardProps {
 }
 
 const STEPS = [
-    { id: 'intro', title: 'Begin Your Journey', icon: '🦋' },
-    { id: 'review', title: 'Review Your Data', icon: '📋' },
-    { id: 'select', title: 'Choose What to Keep', icon: '🎒' },
-    { id: 'confirm', title: 'Ready to Launch', icon: '🚀' },
-    { id: 'celebration', title: "You're Independent!", icon: '🎉' },
+    { id: 'intro', title: 'Begin Your Journey', icon: 'butterfly-outline' },
+    { id: 'review', title: 'Review Your Data', icon: 'clipboard-text-outline' },
+    { id: 'select', title: 'Choose What to Keep', icon: 'bag-personal-outline' },
+    { id: 'confirm', title: 'Ready to Launch', icon: 'rocket-launch-outline' },
+    { id: 'celebration', title: "You're Independent!", icon: 'party-popper' },
 ];
 
 export function IndependenceWizard({ 
@@ -127,7 +127,7 @@ export function IndependenceWizard({
                             className="w-32 h-32 rounded-full items-center justify-center mb-6"
                             style={{ backgroundColor: '#8B5CF620' }}
                         >
-                            <Text className="text-6xl">🦋</Text>
+                            <Text className="text-6xl"></Text>
                         </View>
                         <Text 
                             className="text-2xl font-bold text-center mb-3"
@@ -358,7 +358,7 @@ export function IndependenceWizard({
                                         className="font-bold"
                                         style={{ color: colors.text }}
                                     >
-                                        Stay Connected as Family Alumni 💜
+                                        Stay Connected as Family Alumni
                                     </Text>
                                     <Text 
                                         className="text-xs mt-1"
@@ -379,7 +379,7 @@ export function IndependenceWizard({
                             className="w-24 h-24 rounded-full items-center justify-center mb-6"
                             style={{ backgroundColor: '#10B98120' }}
                         >
-                            <Text className="text-5xl">🚀</Text>
+                            <Text className="text-5xl"></Text>
                         </View>
                         <Text 
                             className="text-2xl font-bold text-center mb-3"
@@ -457,7 +457,7 @@ export function IndependenceWizard({
                             className="w-40 h-40 rounded-full items-center justify-center mb-6"
                             style={{ backgroundColor: '#8B5CF620' }}
                         >
-                            <Text className="text-7xl">🎉</Text>
+                            <Text className="text-7xl"></Text>
                         </Animated.View>
                         <Text 
                             className="text-3xl font-bold text-center mb-3"
@@ -469,7 +469,7 @@ export function IndependenceWizard({
                             className="text-lg text-center mb-2"
                             style={{ color: '#8B5CF6' }}
                         >
-                            Welcome to your new chapter! 🦋
+                            Welcome to your new chapter!
                         </Text>
                         <Text 
                             className="text-base text-center leading-6"

@@ -104,7 +104,7 @@ export const GOAL_CATEGORIES: TaskTemplateCategory[] = [
     {
         id: 'health',
         name: 'Health & Fitness',
-        icon: '💪',
+        icon: 'arm-flex-outline',
         color: '#10B981',
         description: 'Exercise, nutrition, sleep',
         templates: [
@@ -167,7 +167,7 @@ export const GOAL_CATEGORIES: TaskTemplateCategory[] = [
     {
         id: 'career',
         name: 'Career & Work',
-        icon: '💼',
+        icon: 'briefcase-outline',
         color: '#3B82F6',
         description: 'Professional growth, skills',
         templates: [
@@ -219,7 +219,7 @@ export const GOAL_CATEGORIES: TaskTemplateCategory[] = [
     {
         id: 'finance',
         name: 'Finance & Money',
-        icon: '💰',
+        icon: 'cash-multiple',
         color: '#F59E0B',
         description: 'Budget, savings, investments',
         templates: [
@@ -271,7 +271,7 @@ export const GOAL_CATEGORIES: TaskTemplateCategory[] = [
     {
         id: 'relationships',
         name: 'Family & Relationships',
-        icon: '❤️',
+        icon: 'heart-outline',
         color: '#EF4444',
         description: 'Quality time, connections',
         templates: [
@@ -324,7 +324,7 @@ export const GOAL_CATEGORIES: TaskTemplateCategory[] = [
     {
         id: 'growth',
         name: 'Personal Growth',
-        icon: '📚',
+        icon: 'book-open-variant',
         color: '#8B5CF6',
         description: 'Learning, mindfulness, hobbies',
         templates: [
@@ -377,7 +377,7 @@ export const GOAL_CATEGORIES: TaskTemplateCategory[] = [
     {
         id: 'fun',
         name: 'Fun & Recreation',
-        icon: '🎮',
+        icon: 'gamepad-variant-outline',
         color: '#06B6D4',
         description: 'Hobbies, entertainment, rest',
         templates: [
@@ -419,7 +419,7 @@ export const GOAL_CATEGORIES: TaskTemplateCategory[] = [
     {
         id: 'home',
         name: 'Home & Environment',
-        icon: '🏡',
+        icon: 'home-outline',
         color: '#84CC16',
         description: 'Organization, cleaning, projects',
         templates: [
@@ -461,7 +461,7 @@ export const GOAL_CATEGORIES: TaskTemplateCategory[] = [
     {
         id: 'social',
         name: 'Social Life',
-        icon: '👥',
+        icon: 'account-group-outline',
         color: '#EC4899',
         description: 'Friends, community, events',
         templates: [
@@ -503,7 +503,7 @@ export const GOAL_CATEGORIES: TaskTemplateCategory[] = [
     {
         id: 'bills',
         name: 'Bills & Reminders',
-        icon: '💳',
+        icon: 'credit-card-outline',
         color: '#DC2626',
         description: 'Never miss a payment',
         templates: [
@@ -578,7 +578,7 @@ export const GOAL_CATEGORIES: TaskTemplateCategory[] = [
     {
         id: 'family-calls',
         name: 'Stay Connected',
-        icon: '📞',
+        icon: 'phone-outline',
         color: '#7C3AED',
         description: 'Regular check-ins with loved ones',
         templates: [
@@ -645,9 +645,9 @@ export const GOAL_CATEGORIES: TaskTemplateCategory[] = [
 export const EPIC_TEMPLATES: EpicTemplate[] = [
     {
         id: 'epic-fitness-journey',
-        title: '🏃 Fitness Journey',
+        title: 'Fitness Journey',
         description: 'Build a sustainable exercise routine',
-        icon: '🏃',
+        icon: 'run',
         color: '#10B981',
         lifeWheelAreaId: 'life-health',
         taskTemplateIds: ['health-1', 'health-4', 'health-5'],
@@ -655,9 +655,9 @@ export const EPIC_TEMPLATES: EpicTemplate[] = [
     },
     {
         id: 'epic-financial-freedom',
-        title: '💎 Financial Freedom',
+        title: 'Financial Freedom',
         description: 'Get your finances in order',
-        icon: '💎',
+        icon: 'diamond-stone',
         color: '#F59E0B',
         lifeWheelAreaId: 'life-finance',
         taskTemplateIds: ['finance-1', 'finance-2', 'finance-4'],
@@ -665,9 +665,9 @@ export const EPIC_TEMPLATES: EpicTemplate[] = [
     },
     {
         id: 'epic-learn-skill',
-        title: '🎓 Learn New Skill',
+        title: 'Learn New Skill',
         description: 'Master something new in 30 days',
-        icon: '🎓',
+        icon: 'school-outline',
         color: '#8B5CF6',
         lifeWheelAreaId: 'life-growth',
         taskTemplateIds: ['career-2', 'growth-4'],
@@ -675,9 +675,9 @@ export const EPIC_TEMPLATES: EpicTemplate[] = [
     },
     {
         id: 'epic-relationship-boost',
-        title: '💕 Relationship Boost',
+        title: 'Relationship Boost',
         description: 'Strengthen your connections',
-        icon: '💕',
+        icon: 'heart-multiple-outline',
         color: '#EF4444',
         lifeWheelAreaId: 'life-relationships',
         taskTemplateIds: ['relationships-1', 'relationships-2', 'relationships-3'],
@@ -685,9 +685,9 @@ export const EPIC_TEMPLATES: EpicTemplate[] = [
     },
     {
         id: 'epic-mindfulness',
-        title: '🧘 Mindfulness Practice',
+        title: 'Mindfulness Practice',
         description: 'Build daily meditation habit',
-        icon: '🧘',
+        icon: 'meditation',
         color: '#8B5CF6',
         lifeWheelAreaId: 'life-growth',
         taskTemplateIds: ['growth-2', 'growth-3'],
@@ -695,9 +695,9 @@ export const EPIC_TEMPLATES: EpicTemplate[] = [
     },
     {
         id: 'epic-home-organization',
-        title: '🏠 Home Organization',
+        title: 'Home Organization',
         description: 'Transform your living space',
-        icon: '🏠',
+        icon: 'home-outline',
         color: '#84CC16',
         lifeWheelAreaId: 'life-environment',
         taskTemplateIds: ['home-1', 'home-2'],
@@ -705,9 +705,9 @@ export const EPIC_TEMPLATES: EpicTemplate[] = [
     },
     {
         id: 'epic-reading-challenge',
-        title: '📖 Reading Challenge',
+        title: 'Reading Challenge',
         description: 'Read 12 books this year',
-        icon: '📖',
+        icon: 'book-open-page-variant-outline',
         color: '#8B5CF6',
         lifeWheelAreaId: 'life-growth',
         taskTemplateIds: ['growth-1'],
@@ -715,9 +715,9 @@ export const EPIC_TEMPLATES: EpicTemplate[] = [
     },
     {
         id: 'epic-career-growth',
-        title: '🚀 Career Growth',
+        title: 'Career Growth',
         description: 'Level up professionally',
-        icon: '🚀',
+        icon: 'rocket-launch-outline',
         color: '#3B82F6',
         lifeWheelAreaId: 'life-career',
         taskTemplateIds: ['career-1', 'career-2', 'career-3'],
@@ -745,7 +745,7 @@ export const LIFE_WHEEL_ASSESSMENT: LifeWheelQuestion[] = [
         categoryId: 'health',
         question: "How energized and healthy do you feel?",
         subtext: "Think about your energy levels, fitness, and overall wellbeing",
-        icon: '💪',
+        icon: 'arm-flex-outline',
         lowScoreMessage: "Let's boost your energy! Small daily habits make a big difference.",
         highScoreMessage: "Amazing! You're taking great care of yourself. Keep it up!",
         suggestedTemplates: ['health-1', 'health-2', 'health-4', 'health-5'],
@@ -756,7 +756,7 @@ export const LIFE_WHEEL_ASSESSMENT: LifeWheelQuestion[] = [
         categoryId: 'career',
         question: "How satisfied are you with your career progress?",
         subtext: "Consider your professional growth, skills, and fulfillment",
-        icon: '💼',
+        icon: 'briefcase-outline',
         lowScoreMessage: "Time to invest in your future! Let's build some career-boosting habits.",
         highScoreMessage: "You're crushing it professionally! Let's keep that momentum.",
         suggestedTemplates: ['career-1', 'career-2', 'career-3', 'career-4'],
@@ -767,7 +767,7 @@ export const LIFE_WHEEL_ASSESSMENT: LifeWheelQuestion[] = [
         categoryId: 'finance',
         question: "How in control of your finances do you feel?",
         subtext: "Think about budgeting, savings, and financial peace of mind",
-        icon: '💰',
+        icon: 'cash-multiple',
         lowScoreMessage: "Financial freedom starts with small steps. Let's build good money habits!",
         highScoreMessage: "Great financial discipline! Let's keep you on track.",
         suggestedTemplates: ['finance-1', 'finance-2', 'finance-3', 'finance-4'],
@@ -778,7 +778,7 @@ export const LIFE_WHEEL_ASSESSMENT: LifeWheelQuestion[] = [
         categoryId: 'relationships',
         question: "How connected do you feel to your loved ones?",
         subtext: "Consider the quality of your relationships and time spent together",
-        icon: '❤️',
+        icon: 'heart-outline',
         lowScoreMessage: "Relationships need nurturing. Let's help you stay connected!",
         highScoreMessage: "Beautiful! Strong relationships are the foundation of happiness.",
         suggestedTemplates: ['relationships-1', 'relationships-2', 'relationships-3', 'call-1', 'call-2'],
@@ -789,7 +789,7 @@ export const LIFE_WHEEL_ASSESSMENT: LifeWheelQuestion[] = [
         categoryId: 'growth',
         question: "How much are you learning and growing?",
         subtext: "Think about personal development, new skills, and self-improvement",
-        icon: '📚',
+        icon: 'book-open-variant',
         lowScoreMessage: "Growth mindset activated! Small daily learning adds up to big results.",
         highScoreMessage: "You're a lifelong learner! Let's keep feeding that curiosity.",
         suggestedTemplates: ['growth-1', 'growth-2', 'growth-3', 'growth-4'],
@@ -800,7 +800,7 @@ export const LIFE_WHEEL_ASSESSMENT: LifeWheelQuestion[] = [
         categoryId: 'fun',
         question: "How much joy and fun are in your life?",
         subtext: "Consider hobbies, entertainment, and doing things you love",
-        icon: '🎮',
+        icon: 'gamepad-variant-outline',
         lowScoreMessage: "Life should be fun! Let's make sure you have time for what you enjoy.",
         highScoreMessage: "You know how to enjoy life! Balance is beautiful.",
         suggestedTemplates: ['fun-1', 'fun-2', 'fun-3'],
@@ -811,7 +811,7 @@ export const LIFE_WHEEL_ASSESSMENT: LifeWheelQuestion[] = [
         categoryId: 'home',
         question: "How organized and peaceful is your living space?",
         subtext: "Think about your home environment and how it makes you feel",
-        icon: '🏡',
+        icon: 'home-outline',
         lowScoreMessage: "A calm space = calm mind. Let's create your sanctuary!",
         highScoreMessage: "Your space is your haven! Great job maintaining it.",
         suggestedTemplates: ['home-1', 'home-2', 'home-3'],
@@ -822,7 +822,7 @@ export const LIFE_WHEEL_ASSESSMENT: LifeWheelQuestion[] = [
         categoryId: 'social',
         question: "How active is your social life?",
         subtext: "Consider friendships, community involvement, and social activities",
-        icon: '👥',
+        icon: 'account-group-outline',
         lowScoreMessage: "Humans are social creatures! Let's help you connect more.",
         highScoreMessage: "You're a social butterfly! Keep those connections strong.",
         suggestedTemplates: ['social-1', 'social-2', 'social-3'],
@@ -844,9 +844,9 @@ export interface QuickStartBundle {
 export const QUICK_START_BUNDLES: QuickStartBundle[] = [
     {
         id: 'bundle-balanced',
-        name: '⚖️ Balanced Life',
+        name: 'Balanced Life',
         description: 'A little bit of everything for a well-rounded week',
-        icon: '⚖️',
+        icon: 'scale-balance',
         color: '#10B981',
         targetAudience: 'For those wanting overall balance',
         templateIds: ['health-1', 'finance-1', 'relationships-2', 'growth-1', 'home-1'],
@@ -854,9 +854,9 @@ export const QUICK_START_BUNDLES: QuickStartBundle[] = [
     },
     {
         id: 'bundle-fitness',
-        name: '🏋️ Fitness Focus',
+        name: 'Fitness Focus',
         description: 'Get in shape with consistent workout routines',
-        icon: '🏋️',
+        icon: 'weight-lifter',
         color: '#EF4444',
         targetAudience: 'For fitness enthusiasts',
         templateIds: ['health-1', 'health-2', 'health-4', 'health-5'],
@@ -864,9 +864,9 @@ export const QUICK_START_BUNDLES: QuickStartBundle[] = [
     },
     {
         id: 'bundle-financial',
-        name: '💎 Money Master',
+        name: 'Money Master',
         description: 'Take control of your finances',
-        icon: '💎',
+        icon: 'diamond-stone',
         color: '#F59E0B',
         targetAudience: 'For financial goals',
         templateIds: ['finance-1', 'finance-2', 'finance-3', 'bills-1', 'bills-2', 'bills-3'],
@@ -874,9 +874,9 @@ export const QUICK_START_BUNDLES: QuickStartBundle[] = [
     },
     {
         id: 'bundle-family',
-        name: '👨‍👩‍👧‍👦 Family First',
+        name: 'Family First',
         description: 'Stay connected with loved ones',
-        icon: '👨‍👩‍👧‍👦',
+        icon: 'account-group',
         color: '#EC4899',
         targetAudience: 'For family-focused individuals',
         templateIds: ['relationships-1', 'relationships-2', 'relationships-3', 'call-1', 'call-2', 'call-4'],
@@ -884,9 +884,9 @@ export const QUICK_START_BUNDLES: QuickStartBundle[] = [
     },
     {
         id: 'bundle-learner',
-        name: '🎓 Lifelong Learner',
+        name: 'Lifelong Learner',
         description: 'Grow your mind and skills',
-        icon: '🎓',
+        icon: 'school-outline',
         color: '#8B5CF6',
         targetAudience: 'For continuous learners',
         templateIds: ['growth-1', 'growth-2', 'growth-3', 'growth-4', 'career-2'],
@@ -894,9 +894,9 @@ export const QUICK_START_BUNDLES: QuickStartBundle[] = [
     },
     {
         id: 'bundle-bills',
-        name: '📋 Bill Tracker',
+        name: 'Bill Tracker',
         description: 'Never miss a payment again',
-        icon: '📋',
+        icon: 'clipboard-text-outline',
         color: '#DC2626',
         targetAudience: 'For organization lovers',
         templateIds: ['bills-1', 'bills-2', 'bills-3', 'bills-4', 'bills-5', 'finance-1'],
@@ -904,9 +904,9 @@ export const QUICK_START_BUNDLES: QuickStartBundle[] = [
     },
     {
         id: 'bundle-minimal',
-        name: '🌱 Minimalist Start',
+        name: 'Minimalist Start',
         description: 'Start small, build from there',
-        icon: '🌱',
+        icon: 'sprout-outline',
         color: '#84CC16',
         targetAudience: 'For those new to planning',
         templateIds: ['health-4', 'growth-1', 'relationships-2'],
@@ -916,22 +916,22 @@ export const QUICK_START_BUNDLES: QuickStartBundle[] = [
 
 // How did you hear about us options
 export const REFERRAL_SOURCES = [
-    { id: 'friend', label: 'Friend or family', icon: '👥' },
-    { id: 'social', label: 'Social media', icon: '📱' },
-    { id: 'search', label: 'Google search', icon: '🔍' },
-    { id: 'appstore', label: 'App Store', icon: '📲' },
-    { id: 'podcast', label: 'Podcast', icon: '🎙️' },
-    { id: 'blog', label: 'Blog or article', icon: '📝' },
-    { id: 'employer', label: 'My employer', icon: '🏢' },
-    { id: 'other', label: 'Other', icon: '✨' },
+    { id: 'friend', label: 'Friend or family', icon: 'account-group-outline' },
+    { id: 'social', label: 'Social media', icon: 'cellphone' },
+    { id: 'search', label: 'Google search', icon: 'magnify' },
+    { id: 'appstore', label: 'App Store', icon: 'download' },
+    { id: 'podcast', label: 'Podcast', icon: 'microphone-outline' },
+    { id: 'blog', label: 'Blog or article', icon: 'text-box-outline' },
+    { id: 'employer', label: 'My employer', icon: 'office-building-outline' },
+    { id: 'other', label: 'Other', icon: 'star-four-points-outline' },
 ];
 
 // Relationship types for important dates
 export const RELATIONSHIP_TYPES = [
-    { id: 'family', label: 'Family', icon: '👨‍👩‍👧‍👦' },
-    { id: 'friend', label: 'Friend', icon: '🤝' },
-    { id: 'colleague', label: 'Colleague', icon: '💼' },
-    { id: 'other', label: 'Other', icon: '👤' },
+    { id: 'family', label: 'Family', icon: 'account-group' },
+    { id: 'friend', label: 'Friend', icon: 'handshake-outline' },
+    { id: 'colleague', label: 'Colleague', icon: 'briefcase-outline' },
+    { id: 'other', label: 'Other', icon: 'account-outline' },
 ];
 
 // Store state

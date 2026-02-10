@@ -124,7 +124,7 @@ async function getBiometricType(): Promise<BiometricType> {
         
         return 'none';
     } catch (error) {
-        logger.error('❌ Error getting biometric type:', error);
+        logger.error('Error getting biometric type:', error);
         return 'none';
     }
 }
@@ -175,10 +175,10 @@ async function storeCredentials(email: string, password: string): Promise<boolea
     try {
         await SecureStore.setItemAsync(SECURE_EMAIL_KEY, email);
         await SecureStore.setItemAsync(SECURE_PASSWORD_KEY, password);
-        logger.log('🔐 Credentials stored securely');
+        logger.log('Credentials stored securely');
         return true;
     } catch (error) {
-        logger.error('❌ Failed to store credentials:', error);
+        logger.error('Failed to store credentials:', error);
         return false;
     }
 }
@@ -192,12 +192,12 @@ async function retrieveCredentials(): Promise<{ email: string; password: string 
         const password = await SecureStore.getItemAsync(SECURE_PASSWORD_KEY);
         
         if (email && password) {
-            logger.log('🔐 Credentials retrieved from secure storage');
+            logger.log('Credentials retrieved from secure storage');
             return { email, password };
         }
         return null;
     } catch (error) {
-        logger.error('❌ Failed to retrieve credentials:', error);
+        logger.error('Failed to retrieve credentials:', error);
         return null;
     }
 }
@@ -209,9 +209,9 @@ async function clearCredentials(): Promise<void> {
     try {
         await SecureStore.deleteItemAsync(SECURE_EMAIL_KEY);
         await SecureStore.deleteItemAsync(SECURE_PASSWORD_KEY);
-        logger.log('🔐 Credentials cleared from secure storage');
+        logger.log('Credentials cleared from secure storage');
     } catch (error) {
-        logger.error('❌ Failed to clear credentials:', error);
+        logger.error('Failed to clear credentials:', error);
     }
 }
 
@@ -263,7 +263,7 @@ export const useBiometricStore = create<BiometricState>()(
                 set({ isChecking: true, error: null });
                 
                 try {
-                    logger.log('🔐 Checking biometric capability...');
+                    logger.log('Checking biometric capability...');
                     
                     // Check if hardware is available
                     const isHardwareAvailable = await LocalAuthentication.hasHardwareAsync();
@@ -286,11 +286,11 @@ export const useBiometricStore = create<BiometricState>()(
                     };
                     
                     set({ capability, isChecking: false });
-                    logger.log('✅ Biometric capability check complete');
+                    logger.log('Biometric capability check complete');
                     
                     return capability;
                 } catch (error) {
-                    logger.error('❌ Error checking biometric capability:', error);
+                    logger.error('Error checking biometric capability:', error);
                     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
                     set({ isChecking: false, error: errorMessage });
                     
@@ -321,7 +321,7 @@ export const useBiometricStore = create<BiometricState>()(
                 set({ isChecking: true, error: null });
                 
                 try {
-                    logger.log('🔐 Enabling biometric login (legacy method)...');
+                    logger.log('Enabling biometric login (legacy method)...');
                     
                     // First, check capability
                     const capability = await get().checkBiometricCapability();
@@ -345,7 +345,7 @@ export const useBiometricStore = create<BiometricState>()(
                     }
                     
                     // Authenticate to confirm user wants to enable
-                    logger.log('🔐 Requesting authentication to enable biometric login...');
+                    logger.log('Requesting authentication to enable biometric login...');
                     
                     const result = await LocalAuthentication.authenticateAsync({
                         promptMessage: `Enable ${capability.displayName} login`,
@@ -355,7 +355,7 @@ export const useBiometricStore = create<BiometricState>()(
                     });
                     
                     if (result.success) {
-                        logger.log('✅ Biometric login enabled successfully');
+                        logger.log('Biometric login enabled successfully');
                         set({
                             isBiometricEnabled: true,
                             enrolledEmail: email,
@@ -363,7 +363,7 @@ export const useBiometricStore = create<BiometricState>()(
                         });
                         return true;
                     } else {
-                        logger.log('❌ Biometric authentication cancelled or failed:', result.error);
+                        logger.log('Biometric authentication cancelled or failed:', result.error);
                         
                         // Handle specific errors
                         if (result.error === 'user_cancel') {
@@ -382,7 +382,7 @@ export const useBiometricStore = create<BiometricState>()(
                         return false;
                     }
                 } catch (error) {
-                    logger.error('❌ Error enabling biometric:', error);
+                    logger.error('Error enabling biometric:', error);
                     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
                     set({ isChecking: false, error: errorMessage });
                     
@@ -408,7 +408,7 @@ export const useBiometricStore = create<BiometricState>()(
                 set({ isChecking: true, error: null });
                 
                 try {
-                    logger.log('🔐 Enabling biometric login with credentials...');
+                    logger.log('Enabling biometric login with credentials...');
                     
                     // First, check capability
                     const capability = await get().checkBiometricCapability();
@@ -432,7 +432,7 @@ export const useBiometricStore = create<BiometricState>()(
                     }
                     
                     // Authenticate to confirm user wants to enable
-                    logger.log('🔐 Requesting authentication to enable biometric login...');
+                    logger.log('Requesting authentication to enable biometric login...');
                     
                     const result = await LocalAuthentication.authenticateAsync({
                         promptMessage: `Enable ${capability.displayName} login`,
@@ -455,7 +455,7 @@ export const useBiometricStore = create<BiometricState>()(
                             return false;
                         }
                         
-                        logger.log('✅ Biometric login enabled with secure credentials');
+                        logger.log('Biometric login enabled with secure credentials');
                         set({
                             isBiometricEnabled: true,
                             enrolledEmail: email,
@@ -463,7 +463,7 @@ export const useBiometricStore = create<BiometricState>()(
                         });
                         return true;
                     } else {
-                        logger.log('❌ Biometric authentication cancelled or failed:', result.error);
+                        logger.log('Biometric authentication cancelled or failed:', result.error);
                         
                         // Handle specific errors
                         if (result.error === 'user_cancel') {
@@ -482,7 +482,7 @@ export const useBiometricStore = create<BiometricState>()(
                         return false;
                     }
                 } catch (error) {
-                    logger.error('❌ Error enabling biometric with credentials:', error);
+                    logger.error('Error enabling biometric with credentials:', error);
                     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
                     set({ isChecking: false, error: errorMessage });
                     
@@ -500,7 +500,7 @@ export const useBiometricStore = create<BiometricState>()(
              * Disable biometric login
              */
             disableBiometric: async () => {
-                logger.log('🔐 Disabling biometric login');
+                logger.log('Disabling biometric login');
                 // Clear stored credentials
                 await clearCredentials();
                 set({
@@ -521,11 +521,11 @@ export const useBiometricStore = create<BiometricState>()(
                 set({ isChecking: true, error: null });
                 
                 try {
-                    logger.log('🔐 Authenticating with biometric...');
+                    logger.log('Authenticating with biometric...');
                     
                     // Check if biometric is enabled
                     if (!isBiometricEnabled || !enrolledEmail) {
-                        logger.log('❌ Biometric login not enabled');
+                        logger.log('Biometric login not enabled');
                         set({ isChecking: false });
                         return false;
                     }
@@ -535,7 +535,7 @@ export const useBiometricStore = create<BiometricState>()(
                     
                     // Check if still available
                     if (!currentCapability.isHardwareAvailable || !currentCapability.isEnrolled) {
-                        logger.log('❌ Biometric no longer available');
+                        logger.log('Biometric no longer available');
                         // Disable biometric since it's no longer available
                         get().disableBiometric();
                         set({ isChecking: false });
@@ -553,10 +553,10 @@ export const useBiometricStore = create<BiometricState>()(
                     set({ isChecking: false });
                     
                     if (result.success) {
-                        logger.log('✅ Biometric authentication successful');
+                        logger.log('Biometric authentication successful');
                         return true;
                     } else {
-                        logger.log('❌ Biometric authentication failed:', result.error);
+                        logger.log('Biometric authentication failed:', result.error);
                         
                         // Handle specific errors
                         if (result.error === 'lockout') {
@@ -570,7 +570,7 @@ export const useBiometricStore = create<BiometricState>()(
                         return false;
                     }
                 } catch (error) {
-                    logger.error('❌ Error during biometric authentication:', error);
+                    logger.error('Error during biometric authentication:', error);
                     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
                     set({ isChecking: false, error: errorMessage });
                     return false;
@@ -581,7 +581,7 @@ export const useBiometricStore = create<BiometricState>()(
              * Get stored credentials for biometric login
              */
             getStoredCredentials: async () => {
-                logger.log('🔐 Getting stored credentials...');
+                logger.log('Getting stored credentials...');
                 return await retrieveCredentials();
             },
 
@@ -589,7 +589,7 @@ export const useBiometricStore = create<BiometricState>()(
              * Clear biometric data (call on logout)
              */
             clearBiometricData: async () => {
-                logger.log('🔐 Clearing biometric data');
+                logger.log('Clearing biometric data');
                 // Clear secure credentials
                 await clearCredentials();
                 set({

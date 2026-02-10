@@ -180,21 +180,21 @@ export function getDeviceDescription(info: DeviceInfo): string {
 
 /**
  * Get a short device label for UI
- * e.g., "📱 iPhone" or "💻 Windows"
+ * e.g., "Mobile: iPhone" or "Desktop: Windows"
  */
 export function getDeviceLabel(info: DeviceInfo): string {
     const icons: Record<ClientType, string> = {
-        'mobile-ios': '📱',
-        'mobile-android': '📱',
-        'web': '🌐',
-        'desktop-windows': '💻',
-        'desktop-mac': '🖥️',
-        'desktop-linux': '🐧',
-        'unknown': '❓',
+        'mobile-ios': 'Mobile',
+        'mobile-android': 'Mobile',
+        'web': 'Web',
+        'desktop-windows': 'Desktop',
+        'desktop-mac': 'Desktop',
+        'desktop-linux': 'Desktop',
+        'unknown': 'Device',
     };
     const icon = icons[info.clientType];
     const name = info.deviceName || info.brand || info.platform;
-    return `${icon} ${name}`;
+    return `${icon}: ${name}`;
 }
 
 /**

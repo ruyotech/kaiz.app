@@ -417,7 +417,7 @@ export default function SettingsScreen() {
     // Handlers
     const handleLogout = useCallback(() => {
         Alert.alert(
-            `👋 ${t('settings.signOut.title')}`,
+            `${t('settings.signOut.title')}`,
             t('settings.signOut.message'),
             [
                 { text: t('common.cancel'), style: 'cancel' },
@@ -435,7 +435,7 @@ export default function SettingsScreen() {
     
     const handleClearCache = useCallback(() => {
         Alert.alert(
-            `🗑️ ${t('settings.storage.clearCacheTitle')}`,
+            `${t('settings.storage.clearCacheTitle')}`,
             t('settings.storage.clearCacheMessage'),
             [
                 { text: t('common.cancel'), style: 'cancel' },
@@ -443,7 +443,7 @@ export default function SettingsScreen() {
                     text: t('common.clear'),
                     onPress: async () => {
                         await clearCache();
-                        Alert.alert(`✅ ${t('common.done')}`, t('settings.storage.clearCacheSuccess'));
+                        Alert.alert(`${t('common.done')}`, t('settings.storage.clearCacheSuccess'));
                     },
                 },
             ]
@@ -490,7 +490,7 @@ export default function SettingsScreen() {
         
         if (success) {
             Alert.alert(
-                '✅ Enabled',
+                'Enabled',
                 `${biometricCapability?.displayName || 'Biometric'} login is now enabled. You can use it to log in quickly next time.`,
                 [{ text: 'OK' }]
             );
@@ -514,27 +514,27 @@ export default function SettingsScreen() {
     
     // Options for modals (with translations)
     const themeOptions: Array<{ value: ThemeMode; label: string; sublabel: string; icon: string }> = [
-        { value: 'light', label: t('settings.appearance.themes.light'), sublabel: t('settings.appearance.themes.lightSubtitle'), icon: '☀️' },
-        { value: 'dark', label: t('settings.appearance.themes.dark'), sublabel: t('settings.appearance.themes.darkSubtitle'), icon: '🌙' },
-        { value: 'auto', label: t('settings.appearance.themes.system'), sublabel: t('settings.appearance.themes.systemSubtitle'), icon: '📱' },
+        { value: 'light', label: t('settings.appearance.themes.light'), sublabel: t('settings.appearance.themes.lightSubtitle'), icon: 'weather-sunny' },
+        { value: 'dark', label: t('settings.appearance.themes.dark'), sublabel: t('settings.appearance.themes.darkSubtitle'), icon: 'weather-night' },
+        { value: 'auto', label: t('settings.appearance.themes.system'), sublabel: t('settings.appearance.themes.systemSubtitle'), icon: 'cellphone' },
     ];
     
     const sprintViewOptions: Array<{ value: SprintViewMode; label: string; sublabel: string; icon: string }> = [
-        { value: 'calendar', label: t('settings.sprints.views.calendar'), sublabel: t('settings.sprints.views.calendarSubtitle'), icon: '📅' },
-        { value: 'kanban', label: t('settings.sprints.views.kanban'), sublabel: t('settings.sprints.views.kanbanSubtitle'), icon: '📋' },
-        { value: 'list', label: t('settings.sprints.views.list'), sublabel: t('settings.sprints.views.listSubtitle'), icon: '📝' },
+        { value: 'calendar', label: t('settings.sprints.views.calendar'), sublabel: t('settings.sprints.views.calendarSubtitle'), icon: 'calendar-outline' },
+        { value: 'kanban', label: t('settings.sprints.views.kanban'), sublabel: t('settings.sprints.views.kanbanSubtitle'), icon: 'view-column-outline' },
+        { value: 'list', label: t('settings.sprints.views.list'), sublabel: t('settings.sprints.views.listSubtitle'), icon: 'format-list-bulleted' },
     ];
     
     const aiModelOptions: Array<{ value: AIModel; label: string; sublabel: string; icon: string }> = [
-        { value: 'auto', label: t('settings.commandCenter.aiModels.auto'), sublabel: t('settings.commandCenter.aiModels.autoSubtitle'), icon: '🤖' },
-        { value: 'gpt-4', label: t('settings.commandCenter.aiModels.gpt4'), sublabel: t('settings.commandCenter.aiModels.gpt4Subtitle'), icon: '🧠' },
-        { value: 'gpt-3.5', label: t('settings.commandCenter.aiModels.gpt35'), sublabel: t('settings.commandCenter.aiModels.gpt35Subtitle'), icon: '⚡' },
-        { value: 'claude', label: t('settings.commandCenter.aiModels.claude'), sublabel: t('settings.commandCenter.aiModels.claudeSubtitle'), icon: '🎭' },
+        { value: 'auto', label: t('settings.commandCenter.aiModels.auto'), sublabel: t('settings.commandCenter.aiModels.autoSubtitle'), icon: 'robot-outline' },
+        { value: 'gpt-4', label: t('settings.commandCenter.aiModels.gpt4'), sublabel: t('settings.commandCenter.aiModels.gpt4Subtitle'), icon: 'head-cog-outline' },
+        { value: 'gpt-3.5', label: t('settings.commandCenter.aiModels.gpt35'), sublabel: t('settings.commandCenter.aiModels.gpt35Subtitle'), icon: 'lightning-bolt' },
+        { value: 'claude', label: t('settings.commandCenter.aiModels.claude'), sublabel: t('settings.commandCenter.aiModels.claudeSubtitle'), icon: 'drama-masks' },
     ];
     
     const weekStartOptions: Array<{ value: 'sunday' | 'monday'; label: string; sublabel: string; icon: string }> = [
-        { value: 'sunday', label: t('settings.sprints.weekDays.sunday'), sublabel: t('settings.sprints.weekDays.sundaySubtitle'), icon: '🌅' },
-        { value: 'monday', label: t('settings.sprints.weekDays.monday'), sublabel: t('settings.sprints.weekDays.mondaySubtitle'), icon: '📆' },
+        { value: 'sunday', label: t('settings.sprints.weekDays.sunday'), sublabel: t('settings.sprints.weekDays.sundaySubtitle'), icon: 'weather-sunset' },
+        { value: 'monday', label: t('settings.sprints.weekDays.monday'), sublabel: t('settings.sprints.weekDays.mondaySubtitle'), icon: 'calendar-start' },
     ];
     
     const languageOptions = SUPPORTED_LANGUAGES.map(lang => ({
@@ -581,7 +581,7 @@ export default function SettingsScreen() {
                 {/* ============================================ */}
                 {/* ACCOUNT & PROFILE */}
                 {/* ============================================ */}
-                <SettingSection title={t('settings.sections.accountProfile')} titleIcon="👤">
+                <SettingSection title={t('settings.sections.accountProfile')} titleIcon="account-outline">
                     <SettingItem
                         icon="account-edit-outline"
                         iconColor="#3B82F6"
@@ -612,7 +612,7 @@ export default function SettingsScreen() {
                 {/* ============================================ */}
                 {/* INTEGRATIONS */}
                 {/* ============================================ */}
-                <SettingSection title="Integrations" titleIcon="🔗">
+                <SettingSection title="Integrations" titleIcon="link-variant">
                     <SettingItem
                         icon="calendar-sync"
                         iconColor="#10B981"
@@ -628,7 +628,7 @@ export default function SettingsScreen() {
                 {/* SECURITY (Face ID / Touch ID) */}
                 {/* ============================================ */}
                 {biometricCapability?.isHardwareAvailable && (
-                    <SettingSection title="Security" titleIcon="🔐">
+                    <SettingSection title="Security" titleIcon="lock-outline">
                         {/* Face ID / Touch ID Toggle */}
                         <View
                             className="flex-row items-center px-4 py-3.5 border-b border-gray-100"
@@ -706,7 +706,7 @@ export default function SettingsScreen() {
                 {/* ============================================ */}
                 {/* COMMAND CENTER (AI/CHAT) */}
                 {/* ============================================ */}
-                <SettingSection title={t('settings.sections.commandCenter')} titleIcon="🤖">
+                <SettingSection title={t('settings.sections.commandCenter')} titleIcon="robot-outline">
                     <ToggleSetting
                         icon="volume-high"
                         iconColor="#10B981"
@@ -767,7 +767,7 @@ export default function SettingsScreen() {
                 {/* ============================================ */}
                 {/* SPRINTS & WORKFLOW */}
                 {/* ============================================ */}
-                <SettingSection title={t('settings.sections.sprintsWorkflow')} titleIcon="🏃">
+                <SettingSection title={t('settings.sections.sprintsWorkflow')} titleIcon="run">
                     <SettingItem
                         icon="view-dashboard-outline"
                         iconColor="#0EA5E9"
@@ -819,7 +819,7 @@ export default function SettingsScreen() {
                 {/* ============================================ */}
                 {/* APPEARANCE */}
                 {/* ============================================ */}
-                <SettingSection title={t('settings.sections.appearance')} titleIcon="🎨">
+                <SettingSection title={t('settings.sections.appearance')} titleIcon="palette-outline">
                     <SettingItem
                         icon="theme-light-dark"
                         iconColor="#8B5CF6"
@@ -862,7 +862,7 @@ export default function SettingsScreen() {
                 {/* ============================================ */}
                 {/* STORAGE & DATA */}
                 {/* ============================================ */}
-                <SettingSection title={t('settings.sections.storageData')} titleIcon="💾">
+                <SettingSection title={t('settings.sections.storageData')} titleIcon="database-outline">
                     <SettingItem
                         icon="broom"
                         iconColor="#F59E0B"
@@ -885,7 +885,7 @@ export default function SettingsScreen() {
                 {/* ============================================ */}
                 {/* ABOUT */}
                 {/* ============================================ */}
-                <SettingSection title={t('settings.sections.about')} titleIcon="ℹ️">
+                <SettingSection title={t('settings.sections.about')} titleIcon="information-outline">
                     <SettingItem
                         icon="information-outline"
                         iconColor="#6B7280"
@@ -1012,7 +1012,7 @@ export default function SettingsScreen() {
                 <View className="flex-1 bg-black/50 justify-center items-center px-6">
                     <View className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-sm p-6">
                         <Text className="text-xl font-bold text-gray-900 dark:text-white text-center mb-2">
-                            🔐 Enable {biometricCapability?.displayName || 'Biometric'} Login
+                            Enable {biometricCapability?.displayName || 'Biometric'} Login
                         </Text>
                         <Text className="text-gray-600 dark:text-gray-400 text-center mb-6">
                             Enter your password to securely enable {biometricCapability?.displayName || 'biometric'} login.

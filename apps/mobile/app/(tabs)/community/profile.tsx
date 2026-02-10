@@ -6,19 +6,19 @@ import { useCommunityStore } from '../../../store/communityStore';
 import { CommunityBadgeType } from '../../../types/models';
 
 const BADGE_INFO: Record<CommunityBadgeType, { name: string; description: string; icon: string; rarity: string; color: string }> = {
-    sprint_starter: { name: 'Sprint Starter', description: 'Completed your first sprint', icon: '🚀', rarity: 'Common', color: '#10B981' },
-    sprint_mentor: { name: 'Sprint Mentor', description: 'Helped 10+ community members', icon: '🎓', rarity: 'Rare', color: '#3B82F6' },
-    velocity_master: { name: 'Velocity Master', description: 'Achieved consistent velocity for 4 weeks', icon: '⚡', rarity: 'Epic', color: '#8B5CF6' },
-    community_champion: { name: 'Community Champion', description: 'Top 10 contributor for a month', icon: '🏆', rarity: 'Legendary', color: '#F59E0B' },
-    knowledge_keeper: { name: 'Knowledge Keeper', description: 'Answered 50+ questions', icon: '📚', rarity: 'Epic', color: '#06B6D4' },
-    template_creator: { name: 'Template Creator', description: 'Created a popular template', icon: '🎨', rarity: 'Rare', color: '#EC4899' },
-    streak_legend: { name: 'Streak Legend', description: '100+ day streak achieved', icon: '🔥', rarity: 'Legendary', color: '#EF4444' },
-    first_post: { name: 'First Post', description: 'Made your first community post', icon: '✍️', rarity: 'Common', color: '#6B7280' },
-    helpful_hero: { name: 'Helpful Hero', description: 'Got 100+ upvotes on answers', icon: '💪', rarity: 'Epic', color: '#10B981' },
-    accountability_ace: { name: 'Accountability Ace', description: 'Supported 5+ accountability partners', icon: '🤝', rarity: 'Rare', color: '#8B5CF6' },
-    early_adopter: { name: 'Early Adopter', description: 'Joined in the first month', icon: '🌟', rarity: 'Legendary', color: '#F59E0B' },
-    bug_hunter: { name: 'Bug Hunter', description: 'Reported valid bugs', icon: '🐛', rarity: 'Rare', color: '#EF4444' },
-    ama_participant: { name: 'AMA Participant', description: 'Participated in an AMA session', icon: '🎤', rarity: 'Common', color: '#3B82F6' },
+    sprint_starter: { name: 'Sprint Starter', description: 'Completed your first sprint', icon: 'rocket-launch-outline', rarity: 'Common', color: '#10B981' },
+    sprint_mentor: { name: 'Sprint Mentor', description: 'Helped 10+ community members', icon: 'school-outline', rarity: 'Rare', color: '#3B82F6' },
+    velocity_master: { name: 'Velocity Master', description: 'Achieved consistent velocity for 4 weeks', icon: 'lightning-bolt', rarity: 'Epic', color: '#8B5CF6' },
+    community_champion: { name: 'Community Champion', description: 'Top 10 contributor for a month', icon: 'trophy-outline', rarity: 'Legendary', color: '#F59E0B' },
+    knowledge_keeper: { name: 'Knowledge Keeper', description: 'Answered 50+ questions', icon: 'book-open-variant', rarity: 'Epic', color: '#06B6D4' },
+    template_creator: { name: 'Template Creator', description: 'Created a popular template', icon: 'palette-outline', rarity: 'Rare', color: '#EC4899' },
+    streak_legend: { name: 'Streak Legend', description: '100+ day streak achieved', icon: 'fire', rarity: 'Legendary', color: '#EF4444' },
+    first_post: { name: 'First Post', description: 'Made your first community post', icon: 'pencil-outline', rarity: 'Common', color: '#6B7280' },
+    helpful_hero: { name: 'Helpful Hero', description: 'Got 100+ upvotes on answers', icon: 'arm-flex-outline', rarity: 'Epic', color: '#10B981' },
+    accountability_ace: { name: 'Accountability Ace', description: 'Supported 5+ accountability partners', icon: 'handshake-outline', rarity: 'Rare', color: '#8B5CF6' },
+    early_adopter: { name: 'Early Adopter', description: 'Joined in the first month', icon: 'star-outline', rarity: 'Legendary', color: '#F59E0B' },
+    bug_hunter: { name: 'Bug Hunter', description: 'Reported valid bugs', icon: 'bug-outline', rarity: 'Rare', color: '#EF4444' },
+    ama_participant: { name: 'AMA Participant', description: 'Participated in an AMA session', icon: 'microphone-outline', rarity: 'Common', color: '#3B82F6' },
 };
 
 const LEVEL_TITLES = [

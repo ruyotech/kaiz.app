@@ -191,7 +191,7 @@ export default function SprintRetrospectiveScreen() {
                     </Text>
 
                     <View className="p-4 rounded-xl" style={{ backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5' }}>
-                        <Text className="font-semibold mb-2" style={{ color: colors.success }}>🌟 Strength Pattern</Text>
+                        <Text className="font-semibold mb-2" style={{ color: colors.success }}>Strength Pattern</Text>
                         <Text style={{ color: colors.textSecondary }}>
                             Your Health and Growth dimensions showed consistent progress.
                             Morning routines are working well for you.
@@ -199,7 +199,7 @@ export default function SprintRetrospectiveScreen() {
                     </View>
 
                     <View className="p-4 rounded-xl mt-4" style={{ backgroundColor: isDark ? 'rgba(245, 158, 11, 0.15)' : '#FFFBEB' }}>
-                        <Text className="font-semibold mb-2" style={{ color: '#F59E0B' }}>⚠️ Improvement Area</Text>
+                        <Text className="font-semibold mb-2" style={{ color: '#F59E0B' }}>Improvement Area</Text>
                         <Text style={{ color: colors.textSecondary }}>
                             Finance tasks were deprioritized 3 sprints in a row.
                             Consider scheduling them earlier in the sprint.
@@ -207,7 +207,7 @@ export default function SprintRetrospectiveScreen() {
                     </View>
 
                     <View className="p-4 rounded-xl mt-4" style={{ backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : '#EFF6FF' }}>
-                        <Text className="font-semibold mb-2" style={{ color: '#3B82F6' }}>💡 Suggestion</Text>
+                        <Text className="font-semibold mb-2" style={{ color: '#3B82F6' }}>Suggestion</Text>
                         <Text style={{ color: colors.textSecondary }}>
                             Your completion rate improves when you plan 15% fewer points.
                             Quality over quantity is your winning strategy.

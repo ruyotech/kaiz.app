@@ -272,14 +272,14 @@ export interface KudosConfig {
 }
 
 export const KUDOS_OPTIONS: KudosConfig[] = [
-    { type: 'great_job', emoji: '🌟', label: 'Great Job!', color: '#F59E0B' },
-    { type: 'thank_you', emoji: '💜', label: 'Thank You', color: '#8B5CF6' },
-    { type: 'proud_of_you', emoji: '🎉', label: 'Proud of You', color: '#10B981' },
-    { type: 'keep_going', emoji: '💪', label: 'Keep Going!', color: '#3B82F6' },
-    { type: 'team_player', emoji: '🤝', label: 'Team Player', color: '#06B6D4' },
-    { type: 'improvement', emoji: '📈', label: 'Great Progress', color: '#EC4899' },
-    { type: 'creativity', emoji: '🎨', label: 'Creative!', color: '#F97316' },
-    { type: 'persistence', emoji: '🔥', label: 'On Fire!', color: '#EF4444' },
+    { type: 'great_job', emoji: 'star-outline', label: 'Great Job!', color: '#F59E0B' },
+    { type: 'thank_you', emoji: 'heart-outline', label: 'Thank You', color: '#8B5CF6' },
+    { type: 'proud_of_you', emoji: 'party-popper', label: 'Proud of You', color: '#10B981' },
+    { type: 'keep_going', emoji: 'arm-flex-outline', label: 'Keep Going!', color: '#3B82F6' },
+    { type: 'team_player', emoji: 'handshake-outline', label: 'Team Player', color: '#06B6D4' },
+    { type: 'improvement', emoji: 'trending-up', label: 'Great Progress', color: '#EC4899' },
+    { type: 'creativity', emoji: 'palette-outline', label: 'Creative!', color: '#F97316' },
+    { type: 'persistence', emoji: 'fire', label: 'On Fire!', color: '#EF4444' },
 ];
 
 // ==========================================

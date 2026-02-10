@@ -144,7 +144,7 @@ export function VelocityCard({ metrics, showChart = true }: VelocityCardProps) {
                 </View>
                 {metrics.projectedCapacity < metrics.currentVelocity && (
                     <Text className="text-xs mt-1" style={{ color: colors.warning }}>
-                        ⚠️ {t('sensai.velocity.reducedCapacity')}
+                        {t('sensai.velocity.reducedCapacity')}
                     </Text>
                 )}
             </View>

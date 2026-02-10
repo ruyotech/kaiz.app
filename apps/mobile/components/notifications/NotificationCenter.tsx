@@ -329,23 +329,23 @@ function EmptyState({ category }: EmptyStateProps) {
     const getEmptyMessage = () => {
         switch (category) {
             case 'all':
-                return { icon: '🎉', title: "You're all caught up!", subtitle: 'No new notifications' };
+                return { icon: 'party-popper', title: "You're all caught up!", subtitle: 'No new notifications' };
             case 'tasks':
-                return { icon: '✅', title: 'No task updates', subtitle: 'Complete tasks to see updates here' };
+                return { icon: 'check-circle-outline', title: 'No task updates', subtitle: 'Complete tasks to see updates here' };
             case 'challenges':
-                return { icon: '🏆', title: 'No challenge updates', subtitle: 'Start a challenge to get motivated!' };
+                return { icon: 'trophy-outline', title: 'No challenge updates', subtitle: 'Start a challenge to get motivated!' };
             case 'community':
-                return { icon: '👋', title: 'No social updates', subtitle: 'Connect with others to see activity' };
+                return { icon: 'hand-wave-outline', title: 'No social updates', subtitle: 'Connect with others to see activity' };
             case 'essentia':
-                return { icon: '📚', title: 'No learning updates', subtitle: 'Start reading to track progress' };
+                return { icon: 'book-open-variant', title: 'No learning updates', subtitle: 'Start reading to track progress' };
             case 'events':
-                return { icon: '📅', title: 'No event reminders', subtitle: 'Add events to get notified' };
+                return { icon: 'calendar-outline', title: 'No event reminders', subtitle: 'Add events to get notified' };
             case 'system':
-                return { icon: '⚙️', title: 'No system updates', subtitle: 'App is running smoothly' };
+                return { icon: 'cog-outline', title: 'No system updates', subtitle: 'App is running smoothly' };
             case 'ai':
-                return { icon: '🤖', title: 'No AI insights yet', subtitle: 'Use the app to get personalized tips' };
+                return { icon: 'robot-outline', title: 'No AI insights yet', subtitle: 'Use the app to get personalized tips' };
             default:
-                return { icon: '🔔', title: 'No notifications', subtitle: '' };
+                return { icon: 'bell-outline', title: 'No notifications', subtitle: '' };
         }
     };
 
@@ -543,7 +543,7 @@ export function NotificationCenter({ onClose, isModal = false }: NotificationCen
                     <>
                         {groupedNotifications.pinned.length > 0 && (
                             <NotificationSection
-                                title={`📌 ${t('common.pinned')}`}
+                                title={t('common.pinned')}
                                 notifications={groupedNotifications.pinned}
                                 onNotificationPress={handleNotificationPress}
                             />

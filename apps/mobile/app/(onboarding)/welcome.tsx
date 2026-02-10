@@ -17,7 +17,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const WELCOME_SLIDES = [
     {
         id: 1,
-        emoji: '🎯',
+        emoji: 'target',
         title: 'Welcome to Kaiz ',
         subtitle: 'Your Life, Engineered',
         description: 'Transform your life into an agile sprint system. Balance work, health, relationships, and personal growth—all in one place.',
@@ -25,7 +25,7 @@ const WELCOME_SLIDES = [
     },
     {
         id: 2,
-        emoji: '📊',
+        emoji: 'chart-bar',
         title: 'Sprint-Based Living',
         subtitle: 'Weekly Sprints, Daily Progress',
         description: 'Plan your week like a pro. Break down big goals into weekly sprints with story points, track velocity, and avoid overcommit.',
@@ -33,7 +33,7 @@ const WELCOME_SLIDES = [
     },
     {
         id: 3,
-        emoji: '🎭',
+        emoji: 'drama-masks',
         title: 'Eisenhower Matrix',
         subtitle: 'Prioritize What Matters',
         description: 'Organize tasks by urgency and importance. Focus on Q2 (Important, Not Urgent) work—where your future is built.',
@@ -41,7 +41,7 @@ const WELCOME_SLIDES = [
     },
     {
         id: 4,
-        emoji: '🤖',
+        emoji: 'robot-outline',
         title: 'AI Scrum Master',
         subtitle: 'Your Personal Coach',
         description: 'Get smart insights, capacity warnings, and balance nudges. Your AI coach helps you stay on track without burnout.',
@@ -49,7 +49,7 @@ const WELCOME_SLIDES = [
     },
     {
         id: 5,
-        emoji: '⚖️',
+        emoji: 'scale-balance',
         title: 'Life Wheel Balance',
         subtitle: 'Track All Dimensions',
         description: 'Monitor your sprint points across health, career, relationships, and more. See where you\'re thriving and where you\'re neglecting.',

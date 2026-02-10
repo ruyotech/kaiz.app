@@ -100,10 +100,10 @@ export default function TaskEditScreen() {
 
     const storyPointOptions: Task['storyPoints'][] = [1, 2, 3, 5, 8, 13, 21];
     const statusOptions: Array<{ value: Task['status']; label: string }> = [
-        { value: 'draft', label: `📝 ${t('tasks.status.draft')}` },
-        { value: 'todo', label: `⚪ ${t('tasks.statusTodo')}` },
-        { value: 'in_progress', label: `🔵 ${t('tasks.statusInProgress')}` },
-        { value: 'done', label: `✅ ${t('tasks.statusDone')}` },
+        { value: 'draft', label: t('tasks.status.draft') },
+        { value: 'todo', label: t('tasks.statusTodo') },
+        { value: 'in_progress', label: t('tasks.statusInProgress') },
+        { value: 'done', label: t('tasks.statusDone') },
     ];
 
     const eisenhowerOptions = [

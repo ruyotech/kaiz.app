@@ -36,14 +36,14 @@ interface PendingTaskCardProps {
 
 // Life Wheel Area Display Names
 const LIFE_WHEEL_AREAS: Record<string, string> = {
-  'lw-1': '🏃 Health & Fitness',
-  'lw-2': '💼 Career & Work',
-  'lw-3': '💰 Finance',
-  'lw-4': '📚 Personal Growth',
-  'lw-5': '❤️ Relationships',
-  'lw-6': '🎨 Creativity',
-  'lw-7': '🎉 Fun & Recreation',
-  'lw-8': '🌍 Contribution',
+  'lw-1': 'Health & Fitness',
+  'lw-2': 'Career & Work',
+  'lw-3': 'Finance',
+  'lw-4': 'Personal Growth',
+  'lw-5': 'Relationships',
+  'lw-6': 'Creativity',
+  'lw-7': 'Fun & Recreation',
+  'lw-8': 'Contribution',
 };
 
 // Story Points to Effort Label

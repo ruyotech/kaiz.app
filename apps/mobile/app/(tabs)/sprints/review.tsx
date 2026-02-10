@@ -130,7 +130,7 @@ export default function SprintReviewScreen() {
                     }}
                 >
                     <View className="items-center mb-4">
-                        <Text className="text-4xl mb-2">🏆</Text>
+                        <MaterialCommunityIcons name="trophy" size={40} color="#a855f7" />
                         <Text className="text-2xl font-bold" style={{ color: colors.text }}>{completionRate}% Complete</Text>
                         <Text style={{ color: colors.textSecondary }}>{totalCompleted} of {totalPlanned} points delivered</Text>
                     </View>
@@ -153,7 +153,7 @@ export default function SprintReviewScreen() {
 
                 {/* Completed Tasks */}
                 <View className="mb-4">
-                    <Text className="text-lg font-semibold mb-3" style={{ color: colors.text }}>✅ Completed This Sprint</Text>
+                    <Text className="text-lg font-semibold mb-3" style={{ color: colors.text }}>Completed This Sprint</Text>
                     {completedTasks.map(task => {
                         const dim = getDim(task.dimension);
                         return (
@@ -179,7 +179,7 @@ export default function SprintReviewScreen() {
                 {/* Incomplete Tasks */}
                 {incompleteTasks.length > 0 && (
                     <View className="mb-4">
-                        <Text className="text-lg font-semibold mb-3" style={{ color: colors.text }}>⏳ Carried Over</Text>
+                        <Text className="text-lg font-semibold mb-3" style={{ color: colors.text }}>Carried Over</Text>
                         {incompleteTasks.map(task => {
                             const dim = getDim(task.dimension);
                             return (

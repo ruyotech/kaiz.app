@@ -82,7 +82,7 @@ export const LifeWheelBalance = React.memo(function LifeWheelBalance({
             {totalDimensions < 3 && totalPoints > 0 && (
                 <View className="mt-3 p-3 rounded-xl" style={{ backgroundColor: '#F59E0B15' }}>
                     <Text className="text-xs" style={{ color: '#F59E0B' }}>
-                        💡 Try adding tasks from more life areas for better balance
+                        Try adding tasks from more life areas for better balance
                     </Text>
                 </View>
             )}
@@ -156,7 +156,7 @@ export const CapacityBar = React.memo(function CapacityBar({
             {isOvercommitted && (
                 <View className="mt-2 p-2 rounded-lg" style={{ backgroundColor: '#EF444415' }}>
                     <Text className="text-xs" style={{ color: '#EF4444' }}>
-                        ⚠️ {selectedPoints - targetVelocity} points over capacity ({Math.round(percentage)}%)
+                        {selectedPoints - targetVelocity} points over capacity ({Math.round(percentage)}%)
                     </Text>
                 </View>
             )}

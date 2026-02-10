@@ -23,11 +23,11 @@ export const AI_CONFIDENCE_THRESHOLDS = {
     HIGH: 0.95,
 } as const;
 
-// Reaction emojis
+// Reaction types (icon names)
 export const REACTION_TYPES = {
-    thumbsup: '👍',
-    fire: '🔥',
-    muscle: '💪',
+    thumbsup: 'thumb-up-outline',
+    fire: 'fire',
+    muscle: 'arm-flex-outline',
 } as const;
 
 // Default pagination

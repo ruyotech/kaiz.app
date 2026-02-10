@@ -181,10 +181,10 @@ export default function OnboardingSetup() {
 
             try {
                 const result = await onboardingApi.completeOnboarding(onboardingRequest);
-                logger.log('✅ Onboarding completed:', result);
+                logger.log('Onboarding completed:', result);
             } catch (apiError) {
                 // If onboarding API fails, continue anyway - user is registered
-                logger.warn('⚠️ Onboarding API failed, but user is registered:', apiError);
+                logger.warn('Onboarding API failed, but user is registered:', apiError);
             }
             
             // Mark onboarding complete
@@ -193,7 +193,7 @@ export default function OnboardingSetup() {
             setOnboarded(true);
             
             Alert.alert(
-                '🎉 Welcome to Kaiz!',
+                'Welcome to Kaiz!',
                 `You're all set, ${data.firstName}! We've prepared ${data.selectedTaskTemplates.length} tasks and ${data.selectedEpicTemplates.length} epics for your first sprints.`,
                 [{ text: 'Let\'s Go!', onPress: () => router.replace('/(tabs)/sprints/calendar' as any) }]
             );
@@ -370,7 +370,7 @@ function WelcomeStep({
     return (
         <Animated.View entering={FadeInDown} className="px-6 pb-8">
             <View className="items-center mb-8">
-                <Text className="text-6xl mb-4">👋</Text>
+                <Text className="text-6xl mb-4"></Text>
                 <Text className="text-3xl font-bold text-center">Welcome to Kaiz!</Text>
                 <Text className="text-base text-gray-600 text-center mt-2">
                     Let's set up your personal life operating system
@@ -423,7 +423,7 @@ function WelcomeStep({
 
             <View className="mt-4 p-4 bg-blue-50 rounded-xl">
                 <Text className="text-sm text-blue-900">
-                    🚀 <Text className="font-semibold">5 minutes to a better life:</Text> We'll help you set up tasks and goals so you hit the ground running!
+                    <Text className="font-semibold">5 minutes to a better life:</Text> We'll help you set up tasks and goals so you hit the ground running!
                 </Text>
             </View>
         </Animated.View>
@@ -446,7 +446,7 @@ function PlanStep({
         {
             id: 'individual' as const,
             title: 'Individual',
-            icon: '👤',
+            icon: 'account-outline',
             description: 'Perfect for personal productivity',
             features: ['Unlimited tasks & sprints', 'AI Scrum Master', 'Life Wheel tracking'],
             color: 'blue',
@@ -454,7 +454,7 @@ function PlanStep({
         {
             id: 'family' as const,
             title: 'Family',
-            icon: '👨‍👩‍👧‍👦',
+            icon: 'account-group-outline',
             description: 'Coordinate with loved ones',
             features: ['Shared family goals', 'Kid-friendly mode', 'Family calendar sync'],
             color: 'purple',
@@ -462,7 +462,7 @@ function PlanStep({
         {
             id: 'corporate' as const,
             title: 'Corporate',
-            icon: '🏢',
+            icon: 'office-building-outline',
             description: 'Provided by your employer',
             features: ['Employee wellness perk', 'No additional cost', 'Personal use only'],
             color: 'green',
@@ -532,7 +532,7 @@ function PlanStep({
 
             <View className="mt-4 p-4 bg-yellow-50 rounded-xl">
                 <Text className="text-sm text-yellow-900">
-                    💡 <Text className="font-semibold">All plans include:</Text> Full access to all features. Corporate plans are billed to your employer.
+                    <Text className="font-semibold">All plans include:</Text> Full access to all features. Corporate plans are billed to your employer.
                 </Text>
             </View>
         </Animated.View>
@@ -685,7 +685,7 @@ function AssessmentStep({
 
             <View className="mt-6 p-4 bg-blue-50 rounded-xl">
                 <Text className="text-sm text-blue-900">
-                    🎯 <Text className="font-semibold">Why this matters:</Text> We'll suggest tasks for areas where you want to improve!
+                    <Text className="font-semibold">Why this matters:</Text> We'll suggest tasks for areas where you want to improve!
                 </Text>
             </View>
         </Animated.View>
@@ -719,7 +719,7 @@ function GoalsStep({
             {lowScoringAreas.length > 0 && (
                 <View className="mb-4 p-4 bg-orange-50 rounded-xl">
                     <Text className="text-sm font-semibold text-orange-900 mb-2">
-                        🎯 Based on your assessment, focus on:
+                        Based on your assessment, focus on:
                     </Text>
                     <View className="flex-row flex-wrap gap-2">
                         {lowScoringAreas.slice(0, 3).map(area => (
@@ -744,7 +744,7 @@ function GoalsStep({
                     className={`flex-1 py-2 rounded-md ${viewMode === 'bundles' ? 'bg-white shadow' : ''}`}
                 >
                     <Text className={`text-center font-semibold ${viewMode === 'bundles' ? 'text-blue-600' : 'text-gray-600'}`}>
-                        🚀 Quick Start
+                        Quick Start
                     </Text>
                 </Pressable>
                 <Pressable
@@ -752,7 +752,7 @@ function GoalsStep({
                     className={`flex-1 py-2 rounded-md ${viewMode === 'categories' ? 'bg-white shadow' : ''}`}
                 >
                     <Text className={`text-center font-semibold ${viewMode === 'categories' ? 'text-blue-600' : 'text-gray-600'}`}>
-                        🎨 Customize
+                        Customize
                     </Text>
                 </Pressable>
             </View>
@@ -852,7 +852,7 @@ function GoalsStep({
 
             <View className="mt-4 p-4 bg-purple-50 rounded-xl">
                 <Text className="text-sm text-purple-900">
-                    ⚡ <Text className="font-semibold">Pro tip:</Text> Start with a bundle, then customize tasks on the next screen!
+                    <Text className="font-semibold">Pro tip:</Text> Start with a bundle, then customize tasks on the next screen!
                 </Text>
             </View>
         </Animated.View>
@@ -891,7 +891,7 @@ function TasksStep({
             
             {/* Points indicator */}
             <View className="flex-row items-center mb-4 p-3 bg-gray-100 rounded-lg">
-                <Text className="text-2xl mr-2">📊</Text>
+                <Text className="text-2xl mr-2"></Text>
                 <View className="flex-1">
                     <Text className="text-sm text-gray-600">Estimated weekly load</Text>
                     <Text className={`text-lg font-bold ${
@@ -974,7 +974,7 @@ function TasksStep({
                                                     </View>
                                                     {template.isRecurring && (
                                                         <View className="bg-purple-100 px-2 py-0.5 rounded">
-                                                            <Text className="text-xs text-purple-700">🔄 Recurring</Text>
+                                                            <Text className="text-xs text-purple-700">Recurring</Text>
                                                         </View>
                                                     )}
                                                 </View>
@@ -1040,7 +1040,7 @@ function TasksStep({
 
             <View className="mt-4 p-4 bg-green-50 rounded-xl">
                 <Text className="text-sm text-green-900">
-                    ✨ <Text className="font-semibold">Don't worry:</Text> You can always add, remove, or customize tasks later!
+                    <Text className="font-semibold">Don't worry:</Text> You can always add, remove, or customize tasks later!
                 </Text>
             </View>
         </Animated.View>
@@ -1087,16 +1087,16 @@ function DatesStep({
     };
 
     const relationships = [
-        { id: 'family' as const, icon: '👨‍👩‍👧‍👦', label: 'Family' },
-        { id: 'friend' as const, icon: '🤝', label: 'Friend' },
-        { id: 'colleague' as const, icon: '💼', label: 'Colleague' },
-        { id: 'other' as const, icon: '👤', label: 'Other' },
+        { id: 'family' as const, icon: 'account-group-outline', label: 'Family' },
+        { id: 'friend' as const, icon: 'handshake-outline', label: 'Friend' },
+        { id: 'colleague' as const, icon: 'briefcase-outline', label: 'Colleague' },
+        { id: 'other' as const, icon: 'account-outline', label: 'Other' },
     ];
 
     const dateTypes = [
-        { id: 'birthday' as const, icon: '🎂', label: 'Birthday' },
-        { id: 'anniversary' as const, icon: '💍', label: 'Anniversary' },
-        { id: 'other' as const, icon: '📅', label: 'Other' },
+        { id: 'birthday' as const, icon: 'cake-variant-outline', label: 'Birthday' },
+        { id: 'anniversary' as const, icon: 'ring', label: 'Anniversary' },
+        { id: 'other' as const, icon: 'calendar-outline', label: 'Other' },
     ];
 
     return (
@@ -1112,7 +1112,7 @@ function DatesStep({
                     {dates.map(date => (
                         <View key={date.id} className="flex-row items-center p-3 bg-gray-50 rounded-lg">
                             <Text className="text-2xl mr-3">
-                                {date.dateType === 'birthday' ? '🎂' : date.dateType === 'anniversary' ? '💍' : '📅'}
+                                {date.dateType === 'birthday' ? '' : date.dateType === 'anniversary' ? '' : ''}
                             </Text>
                             <View className="flex-1">
                                 <Text className="font-semibold text-gray-900">{date.personName}</Text>
@@ -1233,7 +1233,7 @@ function DatesStep({
 
             <View className="p-4 bg-yellow-50 rounded-xl">
                 <Text className="text-sm text-yellow-900">
-                    🎁 <Text className="font-semibold">Pro tip:</Text> Kaiz will remind you a week before each event so you have time to prepare!
+                    <Text className="font-semibold">Pro tip:</Text> Kaiz will remind you a week before each event so you have time to prepare!
                 </Text>
             </View>
         </Animated.View>
@@ -1274,7 +1274,7 @@ function AccountStep({
             {/* Summary card */}
             <View className="p-4 bg-gradient-to-r bg-blue-50 rounded-xl mb-6">
                 <Text className="text-lg font-bold text-blue-900 mb-3">
-                    🎉 {firstName}'s Setup Summary
+                    {firstName}'s Setup Summary
                 </Text>
                 <View className="flex-row flex-wrap gap-2">
                     <View className="bg-white px-3 py-2 rounded-lg">
@@ -1330,7 +1330,7 @@ function AccountStep({
 
             <View className="p-4 bg-green-50 rounded-xl">
                 <Text className="text-sm text-green-900">
-                    🚀 <Text className="font-semibold">Ready to transform your life!</Text> Your tasks and epics will be waiting for you in your sprint backlog.
+                    <Text className="font-semibold">Ready to transform your life!</Text> Your tasks and epics will be waiting for you in your sprint backlog.
                 </Text>
             </View>
         </Animated.View>

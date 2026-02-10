@@ -234,7 +234,7 @@ export default function ChallengesScreen() {
                     {activeExpanded && (
                         activeChallenges.length === 0 ? (
                             <EmptyState
-                                icon="🎯"
+                                icon="target"
                                 title={t('challenges.empty.title')}
                                 message={t('challenges.empty.subtitle')}
                             />
@@ -328,7 +328,7 @@ export default function ChallengesScreen() {
                     className="rounded-xl p-6 items-center mb-6"
                     style={{ backgroundColor: isDark ? 'rgba(139, 92, 246, 0.15)' : '#F5F3FF' }}
                 >
-                    <Text className="text-3xl mb-2">👥</Text>
+                    <Text className="text-3xl mb-2"></Text>
                     <Text className="text-lg font-bold mb-2" style={{ color: colors.text }}>{t('challenges.community.joinTitle')}</Text>
                     <Text className="text-center mb-4" style={{ color: colors.textSecondary }}>
                         {t('challenges.community.joinSubtitle')}
@@ -346,7 +346,7 @@ export default function ChallengesScreen() {
                     className="rounded-xl p-6 items-center mb-6"
                     style={{ backgroundColor: isDark ? 'rgba(245, 158, 11, 0.15)' : '#FFF7ED' }}
                 >
-                    <Text className="text-3xl mb-2">🏆</Text>
+                    <MaterialCommunityIcons name="trophy" size={32} color="#f59e0b" />
                     <Text className="text-lg font-bold mb-2" style={{ color: colors.text }}>{t('challenges.leaderboard.checkTitle')}</Text>
                     <Text className="text-center mb-4" style={{ color: colors.textSecondary }}>
                         {t('challenges.leaderboard.checkSubtitle')}

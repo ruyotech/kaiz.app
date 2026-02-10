@@ -18,21 +18,21 @@ interface LifeWheelArea {
 }
 
 const LIFE_WHEEL_AREAS: LifeWheelArea[] = [
-    { id: 'lw-1', name: 'Health & Fitness', icon: '💪', color: 'bg-green-500' },
-    { id: 'lw-2', name: 'Career & Work', icon: '💼', color: 'bg-blue-500' },
-    { id: 'lw-3', name: 'Finance & Money', icon: '💰', color: 'bg-yellow-500' },
-    { id: 'lw-4', name: 'Personal Growth', icon: '📚', color: 'bg-purple-500' },
-    { id: 'lw-5', name: 'Relationships & Family', icon: '❤️', color: 'bg-red-500' },
-    { id: 'lw-6', name: 'Social Life', icon: '👥', color: 'bg-pink-500' },
-    { id: 'lw-7', name: 'Fun & Recreation', icon: '🎮', color: 'bg-teal-500' },
-    { id: 'lw-8', name: 'Environment & Home', icon: '🏡', color: 'bg-lime-500' },
+    { id: 'lw-1', name: 'Health & Fitness', icon: 'arm-flex-outline', color: 'bg-green-500' },
+    { id: 'lw-2', name: 'Career & Work', icon: 'briefcase-outline', color: 'bg-blue-500' },
+    { id: 'lw-3', name: 'Finance & Money', icon: 'cash-multiple', color: 'bg-yellow-500' },
+    { id: 'lw-4', name: 'Personal Growth', icon: 'book-open-variant', color: 'bg-purple-500' },
+    { id: 'lw-5', name: 'Relationships & Family', icon: 'heart-outline', color: 'bg-red-500' },
+    { id: 'lw-6', name: 'Social Life', icon: 'account-group-outline', color: 'bg-pink-500' },
+    { id: 'lw-7', name: 'Fun & Recreation', icon: 'gamepad-variant-outline', color: 'bg-teal-500' },
+    { id: 'lw-8', name: 'Environment & Home', icon: 'home-outline', color: 'bg-lime-500' },
 ];
 
 const WORK_STYLES = [
-    { id: 'consistent', label: 'Consistent', icon: '📊', description: 'Steady pace every day' },
-    { id: 'bursts', label: 'Burst Worker', icon: '⚡', description: 'Intense focus sessions' },
-    { id: 'flexible', label: 'Flexible', icon: '🌊', description: 'Adapt to the day' },
-    { id: 'structured', label: 'Structured', icon: '📋', description: 'Fixed schedule' },
+    { id: 'consistent', label: 'Consistent', icon: 'chart-bar', description: 'Steady pace every day' },
+    { id: 'bursts', label: 'Burst Worker', icon: 'lightning-bolt', description: 'Intense focus sessions' },
+    { id: 'flexible', label: 'Flexible', icon: 'wave', description: 'Adapt to the day' },
+    { id: 'structured', label: 'Structured', icon: 'clipboard-text-outline', description: 'Fixed schedule' },
 ];
 
 const VELOCITY_LEVELS = [
@@ -43,17 +43,17 @@ const VELOCITY_LEVELS = [
 ];
 
 const PRIORITY_STYLES = [
-    { id: 'urgent-first', label: 'Urgent First', icon: '🔥', description: 'Handle crises immediately' },
-    { id: 'important-first', label: 'Important First', icon: '🎯', description: 'Q2 strategic work' },
-    { id: 'balanced', label: 'Balanced Mix', icon: '⚖️', description: 'Split focus daily' },
-    { id: 'ai-decides', label: 'AI Suggests', icon: '🤖', description: 'Let AI prioritize' },
+    { id: 'urgent-first', label: 'Urgent First', icon: 'fire', description: 'Handle crises immediately' },
+    { id: 'important-first', label: 'Important First', icon: 'target', description: 'Q2 strategic work' },
+    { id: 'balanced', label: 'Balanced Mix', icon: 'scale-balance', description: 'Split focus daily' },
+    { id: 'ai-decides', label: 'AI Suggests', icon: 'robot-outline', description: 'Let AI prioritize' },
 ];
 
 const COACHING_STYLES = [
-    { id: 'aggressive', label: 'Push Me Hard', icon: '💪', description: 'Challenge me constantly' },
-    { id: 'supportive', label: 'Supportive Coach', icon: '🤝', description: 'Encourage and guide' },
-    { id: 'minimal', label: 'Minimal Nudges', icon: '👁️', description: 'Only when needed' },
-    { id: 'data-only', label: 'Just Data', icon: '📊', description: 'Show metrics, I decide' },
+    { id: 'aggressive', label: 'Push Me Hard', icon: 'arm-flex-outline', description: 'Challenge me constantly' },
+    { id: 'supportive', label: 'Supportive Coach', icon: 'handshake-outline', description: 'Encourage and guide' },
+    { id: 'minimal', label: 'Minimal Nudges', icon: 'eye-outline', description: 'Only when needed' },
+    { id: 'data-only', label: 'Just Data', icon: 'chart-bar', description: 'Show metrics, I decide' },
 ];
 
 type OnboardingStep = 'personal' | 'balance' | 'capacity' | 'priorities' | 'coaching';
@@ -374,7 +374,7 @@ function PersonalStep({
 
             <View className="mt-6 p-4 bg-blue-50 rounded-xl">
                 <Text className="text-sm text-blue-900">
-                    🌍 <Text className="font-semibold">International App:</Text> Kaiz works in your language and timezone, wherever you are.
+                    <Text className="font-semibold">International App:</Text> Kaiz works in your language and timezone, wherever you are.
                 </Text>
             </View>
         </Animated.View>
@@ -425,7 +425,7 @@ function BalanceStep({
 
             <View className="mt-6 p-4 bg-purple-50 rounded-xl">
                 <Text className="text-sm text-purple-900">
-                    ⚖️ <Text className="font-semibold">Life Wheel:</Text> Kaiz tracks your sprint points across these areas, so you can see if you're neglecting anything important.
+                    <Text className="font-semibold">Life Wheel:</Text> Kaiz tracks your sprint points across these areas, so you can see if you're neglecting anything important.
                 </Text>
             </View>
         </Animated.View>
@@ -512,7 +512,7 @@ function CapacityStep({
 
             <View className="mt-6 p-4 bg-green-50 rounded-xl">
                 <Text className="text-sm text-green-900">
-                    📊 <Text className="font-semibold">Velocity Protection:</Text> Kaiz will warn you when you're overcommitting and track your real capacity over time.
+                    <Text className="font-semibold">Velocity Protection:</Text> Kaiz will warn you when you're overcommitting and track your real capacity over time.
                 </Text>
             </View>
         </Animated.View>
@@ -564,7 +564,7 @@ function PrioritiesStep({
 
             <View className="mt-6 p-4 bg-yellow-50 rounded-xl">
                 <Text className="text-sm text-yellow-900">
-                    🎯 <Text className="font-semibold">Q2 Matters:</Text> Kaiz watches your Q2 (Important, Not Urgent) work. That's where your future is built.
+                    <Text className="font-semibold">Q2 Matters:</Text> Kaiz watches your Q2 (Important, Not Urgent) work. That's where your future is built.
                 </Text>
             </View>
         </Animated.View>
@@ -669,7 +669,7 @@ function CoachingStep({
 
             <View className="mt-6 p-4 bg-indigo-50 rounded-xl">
                 <Text className="text-sm text-indigo-900">
-                    🤖 <Text className="font-semibold">AI Proposes, You Decide:</Text> Your AI Scrum Master never changes anything without your permission.
+                    <Text className="font-semibold">AI Proposes, You Decide:</Text> Your AI Scrum Master never changes anything without your permission.
                 </Text>
             </View>
         </Animated.View>

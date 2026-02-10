@@ -94,7 +94,7 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
                 >
                     {/* Logo Circle */}
                     <View className="w-32 h-32 rounded-full bg-white items-center justify-center mb-6 shadow-2xl">
-                        <Text className="text-7xl">🚀</Text>
+                        <Text className="text-7xl"></Text>
                     </View>
 
                     {/* App Name */}

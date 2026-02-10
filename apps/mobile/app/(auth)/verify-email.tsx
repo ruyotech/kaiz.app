@@ -131,7 +131,7 @@ export default function VerifyEmailScreen() {
                         className="w-24 h-24 rounded-full items-center justify-center mb-6"
                         style={{ backgroundColor: colors.primary + '20' }}
                     >
-                        <Text className="text-6xl">📬</Text>
+                        <Text className="text-6xl"></Text>
                     </View>
 
                     <Text 
@@ -231,7 +231,7 @@ export default function VerifyEmailScreen() {
                             className="text-sm text-center mb-2"
                             style={{ color: colors.text }}
                         >
-                            💡 <Text className="font-semibold">Tip:</Text> Check your spam folder
+                            <Text className="font-semibold">Tip:</Text> Check your spam folder
                             if you don't see the email
                         </Text>
                     </View>

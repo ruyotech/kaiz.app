@@ -26,25 +26,25 @@ const CEREMONY_CONFIG: Record<CeremonyType, {
     standup: {
         icon: 'account-group',
         color: '#3B82F6',
-        emoji: '🌅',
+        emoji: '',
         label: 'Daily Standup',
     },
     sprint_planning: {
         icon: 'calendar-clock',
         color: '#8B5CF6',
-        emoji: '📋',
+        emoji: '',
         label: 'Sprint Planning',
     },
     retrospective: {
         icon: 'history',
         color: '#F59E0B',
-        emoji: '🔄',
+        emoji: '',
         label: 'Retrospective',
     },
     celebration: {
         icon: 'party-popper',
         color: '#10B981',
-        emoji: '🎉',
+        emoji: '',
         label: 'Celebration',
     },
 };
@@ -274,9 +274,9 @@ export function CeremonyCard({ ceremony, onPress, onStart }: CeremonyCardProps) 
                         {ceremony.highlights.slice(0, 2).map((highlight) => (
                             <View key={highlight.id} className="flex-row items-start mb-1">
                                 <Text className="text-sm mr-2">
-                                    {highlight.type === 'achievement' ? '🏆' :
-                                     highlight.type === 'challenge' ? '💪' :
-                                     highlight.type === 'goal' ? '🎯' : '🙏'}
+                                    {highlight.type === 'achievement' ? '' :
+                                     highlight.type === 'challenge' ? '' :
+                                     highlight.type === 'goal' ? '' : ''}
                                 </Text>
                                 <Text 
                                     className="text-sm flex-1"

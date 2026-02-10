@@ -308,7 +308,7 @@ export default function SubscriptionScreen() {
                         });
                         
                         Alert.alert(
-                            '🎉 Upgrade Successful!',
+                            'Upgrade Successful!',
                             `You are now on the ${tier.name} plan. Enjoy your new features!`,
                             [{ text: 'Great!' }]
                         );

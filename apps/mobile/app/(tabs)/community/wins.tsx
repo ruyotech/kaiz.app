@@ -64,7 +64,7 @@ export default function WinsScreen() {
                                 <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
                             </TouchableOpacity>
                             <View>
-                                <Text className="text-xl font-bold" style={{ color: colors.text }}>Wins Board 🎉</Text>
+                                <Text className="text-xl font-bold" style={{ color: colors.text }}>Wins Board</Text>
                                 <Text className="text-xs" style={{ color: colors.textSecondary }}>Celebrate achievements together</Text>
                             </View>
                         </View>
@@ -122,7 +122,7 @@ export default function WinsScreen() {
             >
                 {filteredStories.length === 0 ? (
                     <View className="items-center justify-center py-12">
-                        <Text className="text-6xl mb-4">🏆</Text>
+                         <MaterialCommunityIcons name="trophy-outline" size={56} color={colors.textTertiary} />
                         <Text className="text-base text-center" style={{ color: colors.textSecondary }}>
                             No wins shared yet in this category
                         </Text>
@@ -161,7 +161,7 @@ export default function WinsScreen() {
                         <TouchableOpacity onPress={() => setShowShareModal(false)}>
                             <Text className="text-base" style={{ color: colors.textSecondary }}>Cancel</Text>
                         </TouchableOpacity>
-                        <Text className="text-lg font-bold" style={{ color: colors.text }}>Share Your Win 🎉</Text>
+                        <Text className="text-lg font-bold" style={{ color: colors.text }}>Share Your Win</Text>
                         <TouchableOpacity 
                             onPress={handleShare}
                             disabled={!newStory.title.trim() || !newStory.story.trim()}
@@ -254,7 +254,7 @@ export default function WinsScreen() {
                             style={{ backgroundColor: isDark ? 'rgba(245, 158, 11, 0.15)' : '#FFFBEB' }}
                         >
                             <View className="flex-row items-center mb-2">
-                                <Text className="text-xl mr-2">💡</Text>
+                                <Text className="text-xl mr-2"></Text>
                                 <Text className="font-semibold" style={{ color: isDark ? '#FCD34D' : '#B45309' }}>What to share</Text>
                             </View>
                             <Text className="text-sm leading-5" style={{ color: isDark ? '#FBBF24' : '#D97706' }}>

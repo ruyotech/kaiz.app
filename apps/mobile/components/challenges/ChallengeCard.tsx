@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Challenge } from '../../types/models';
 import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
@@ -28,28 +29,28 @@ const getLifeWheelColor = (areaId: string): string => {
 
 const getLifeWheelName = (areaId: string): string => {
     const names: Record<string, string> = {
-        'life-health': '💪 Health',
-        'life-career': '💼 Career',
-        'life-finance': '💰 Finance',
-        'life-family': '👨‍👩‍👧‍👦 Family',
-        'life-romance': '❤️ Romance',
-        'life-friends': '👥 Friends',
-        'life-growth': '📚 Growth',
-        'life-fun': '🎉 Fun',
-        'life-environment': '🌍 Environment',
+        'life-health': 'Health',
+        'life-career': 'Career',
+        'life-finance': 'Finance',
+        'life-family': 'Family',
+        'life-romance': 'Romance',
+        'life-friends': 'Friends',
+        'life-growth': 'Growth',
+        'life-fun': 'Fun',
+        'life-environment': 'Environment',
     };
-    return names[areaId] || '📊 General';
+    return names[areaId] || 'General';
 };
 
 const getMetricIcon = (metricType: string): string => {
     const icons: Record<string, string> = {
-        count: '🔢',
-        yesno: '✓',
-        streak: '🔥',
-        time: '⏱️',
-        completion: '✅',
+        count: '#',
+        yesno: 'Y',
+        streak: 'S',
+        time: 'T',
+        completion: 'C',
     };
-    return icons[metricType] || '📊';
+    return icons[metricType] || 'M';
 };
 
 export const ChallengeCard = React.memo(function ChallengeCard({ challenge, onQuickLog }: ChallengeCardProps) {
@@ -107,7 +108,7 @@ export const ChallengeCard = React.memo(function ChallengeCard({ challenge, onQu
                 {/* Streak Display */}
                 {challenge.currentStreak > 0 && (
                     <View className="flex-row items-center mb-3">
-                        <Text className="text-2xl mr-2">🔥</Text>
+                        <MaterialCommunityIcons name="fire" size={24} color="#ef4444" style={{ marginRight: 8 }} />
                         <Text className="text-lg font-semibold" style={{ color }}>
                             {challenge.currentStreak} day streak
                         </Text>

@@ -397,7 +397,7 @@ function CalendarSelectionModal({
                         <View className="mx-5 mt-3 mb-2 p-3 bg-indigo-50 rounded-xl flex-row items-center">
                             <MaterialCommunityIcons name="lightbulb-outline" size={18} color="#6366F1" />
                             <Text className="ml-2 text-xs text-indigo-700 flex-1">
-                                Tap the ⚙️ to set a Life Context (Personal, Work, etc.) for each calendar
+                                Tap the gear icon to set a Life Context (Personal, Work, etc.) for each calendar
                             </Text>
                         </View>
                         
@@ -557,7 +557,7 @@ function SyncSettingsSection() {
     return (
         <View className="mx-4 mb-6">
             <View className="flex-row items-center mb-2.5 px-1">
-                <Text className="text-base mr-1.5">⚙️</Text>
+                <Text className="text-base mr-1.5"></Text>
                 <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     Sync Settings
                 </Text>
@@ -972,8 +972,8 @@ export default function IntegrationsScreen() {
                 {/* Providers Section */}
                 <View className="px-4 mb-6">
                     <View className="flex-row items-center mb-2.5 px-1">
-                        <Text className="text-base mr-1.5">📅</Text>
-                        <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        <MaterialCommunityIcons name="calendar-outline" size={18} color="#6b7280" />
+                        <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wider ml-1.5">
                             Calendar Providers
                         </Text>
                     </View>

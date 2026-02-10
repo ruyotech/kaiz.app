@@ -59,7 +59,7 @@ export default function EssentiaGrowthScreen() {
                         <Card className="p-4">
                             <View className="flex-row items-center justify-between mb-4">
                                 <View>
-                                    <Text className="text-3xl font-bold text-orange-600">🔥 {streak.currentStreak}</Text>
+                                    <Text className="text-3xl font-bold text-orange-600">{streak.currentStreak}</Text>
                                     <Text className="text-sm text-gray-600">Current Streak</Text>
                                 </View>
                                 <View className="items-end">

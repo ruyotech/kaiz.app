@@ -10,14 +10,14 @@ interface LeaderboardRowProps {
 }
 
 const BADGE_ICONS: Partial<Record<CommunityBadgeType, string>> = {
-    community_champion: '🏆',
-    streak_legend: '🔥',
-    velocity_master: '⚡',
-    knowledge_keeper: '📚',
-    sprint_mentor: '🎓',
-    helpful_hero: '💪',
-    template_creator: '🎨',
-    accountability_ace: '🤝',
+    community_champion: 'trophy-outline',
+    streak_legend: 'fire',
+    velocity_master: 'lightning-bolt',
+    knowledge_keeper: 'book-open-variant',
+    sprint_mentor: 'school-outline',
+    helpful_hero: 'arm-flex-outline',
+    template_creator: 'palette-outline',
+    accountability_ace: 'handshake-outline',
 };
 
 export function LeaderboardRow({ entry, isCurrentUser = false, onPress }: LeaderboardRowProps) {
@@ -26,11 +26,11 @@ export function LeaderboardRow({ entry, isCurrentUser = false, onPress }: Leader
     const getRankStyle = (rank: number) => {
         switch (rank) {
             case 1:
-                return { bg: isDark ? 'rgba(250, 204, 21, 0.2)' : '#FEF9C3', text: isDark ? '#FACC15' : '#A16207', icon: '🥇' };
+                return { bg: isDark ? 'rgba(250, 204, 21, 0.2)' : '#FEF9C3', text: isDark ? '#FACC15' : '#A16207', icon: 'medal' };
             case 2:
-                return { bg: isDark ? 'rgba(156, 163, 175, 0.2)' : '#F3F4F6', text: colors.textSecondary, icon: '🥈' };
+                return { bg: isDark ? 'rgba(156, 163, 175, 0.2)' : '#F3F4F6', text: colors.textSecondary, icon: 'medal-outline' };
             case 3:
-                return { bg: isDark ? 'rgba(251, 146, 60, 0.2)' : '#FFEDD5', text: isDark ? '#FB923C' : '#C2410C', icon: '🥉' };
+                return { bg: isDark ? 'rgba(251, 146, 60, 0.2)' : '#FFEDD5', text: isDark ? '#FB923C' : '#C2410C', icon: 'medal-outline' };
             default:
                 return { bg: colors.backgroundSecondary, text: colors.textSecondary, icon: null };
         }
@@ -59,7 +59,7 @@ export function LeaderboardRow({ entry, isCurrentUser = false, onPress }: Leader
                 style={{ backgroundColor: rankStyle.bg }}
             >
                 {rankStyle.icon ? (
-                    <Text className="text-lg">{rankStyle.icon}</Text>
+                    <MaterialCommunityIcons name={rankStyle.icon as any} size={22} color={rankStyle.text} />
                 ) : (
                     <Text className="text-sm font-bold" style={{ color: rankStyle.text }}>
                         {entry.rank}
@@ -89,9 +89,7 @@ export function LeaderboardRow({ entry, isCurrentUser = false, onPress }: Leader
                     <Text className="text-xs" style={{ color: colors.textSecondary }}>Lvl {entry.level}</Text>
                     <View className="flex-row ml-2">
                         {entry.badges.slice(0, 3).map((badge, index) => (
-                            <Text key={index} className="text-xs mr-0.5">
-                                {BADGE_ICONS[badge] || '🏅'}
-                            </Text>
+                            <MaterialCommunityIcons key={index} name={(BADGE_ICONS[badge] || 'medal-outline') as any} size={14} color={colors.textSecondary} style={{ marginRight: 2 }} />
                         ))}
                     </View>
                 </View>

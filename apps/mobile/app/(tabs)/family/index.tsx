@@ -99,7 +99,7 @@ export default function FamilyDashboardScreen() {
                         });
                         
                         Alert.alert(
-                            '🎉 Welcome to Family Plan!',
+                            'Welcome to Family Plan!',
                             'You can now create or join a family workspace. Enjoy collaborating with your loved ones!',
                             [{ text: 'Get Started!' }]
                         );
@@ -187,7 +187,7 @@ export default function FamilyDashboardScreen() {
                                 className="w-28 h-28 rounded-full items-center justify-center mb-4"
                                 style={{ backgroundColor: '#EC489920' }}
                             >
-                                <Text className="text-6xl">👨‍👩‍👧‍👦</Text>
+                                <Text className="text-6xl"></Text>
                             </View>
                             <Text 
                                 className="text-2xl font-bold text-center mb-2"
@@ -342,7 +342,7 @@ export default function FamilyDashboardScreen() {
                         className="w-24 h-24 rounded-full items-center justify-center mb-6"
                         style={{ backgroundColor: '#8B5CF620' }}
                     >
-                        <Text className="text-5xl">👨‍👩‍👧‍👦</Text>
+                        <Text className="text-5xl"></Text>
                     </View>
                     <Text 
                         className="text-2xl font-bold text-center mb-2"
@@ -474,7 +474,7 @@ export default function FamilyDashboardScreen() {
                     <View className="px-4 mt-6">
                         <View className="flex-row items-center justify-between mb-3">
                             <View className="flex-row items-center">
-                                <Text className="text-lg">📅</Text>
+                                <MaterialCommunityIcons name="calendar-outline" size={20} color={colors.text} />
                                 <Text 
                                     className="text-lg font-bold ml-2"
                                     style={{ color: colors.text }}

@@ -10,7 +10,7 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { TaskTemplate } from '../../types/models';
 import { TemplateCard, LIFE_WHEEL_CONFIG } from './TemplateCard';
 import { useToggleTemplateFavorite } from '../../hooks/queries';
@@ -32,16 +32,16 @@ interface TemplateListProps {
 type FilterTab = 'all' | 'task' | 'event';
 
 const LIFE_WHEEL_AREAS = [
-    { id: 'all', name: 'All', emoji: '🎯' },
-    { id: 'life-health', name: 'Health', emoji: '💪' },
-    { id: 'life-career', name: 'Career', emoji: '💼' },
-    { id: 'life-finance', name: 'Finance', emoji: '💰' },
-    { id: 'life-family', name: 'Family', emoji: '👨‍👩‍👧‍👦' },
-    { id: 'life-romance', name: 'Romance', emoji: '❤️' },
-    { id: 'life-friends', name: 'Friends', emoji: '👥' },
-    { id: 'life-growth', name: 'Growth', emoji: '📚' },
-    { id: 'life-fun', name: 'Fun', emoji: '🎉' },
-    { id: 'life-environment', name: 'Environment', emoji: '🌍' },
+    { id: 'all', name: 'All', icon: 'target' },
+    { id: 'life-health', name: 'Health', icon: 'arm-flex-outline' },
+    { id: 'life-career', name: 'Career', icon: 'briefcase-outline' },
+    { id: 'life-finance', name: 'Finance', icon: 'cash-multiple' },
+    { id: 'life-family', name: 'Family', icon: 'account-supervisor-outline' },
+    { id: 'life-romance', name: 'Romance', icon: 'heart-outline' },
+    { id: 'life-friends', name: 'Friends', icon: 'account-group-outline' },
+    { id: 'life-growth', name: 'Growth', icon: 'book-open-variant' },
+    { id: 'life-fun', name: 'Fun', icon: 'party-popper' },
+    { id: 'life-environment', name: 'Environment', icon: 'earth' },
 ];
 
 export function TemplateList({
@@ -123,8 +123,8 @@ export function TemplateList({
             >
                 {[
                     { key: 'all', label: 'All' },
-                    { key: 'task', label: '✅ Tasks' },
-                    { key: 'event', label: '📅 Events' },
+                    { key: 'task', label: 'Tasks' },
+                    { key: 'event', label: 'Events' },
                 ].map((tab) => (
                     <TouchableOpacity
                         key={tab.key}
@@ -166,7 +166,7 @@ export function TemplateList({
                                     : colors.backgroundSecondary
                             }}
                         >
-                            <Text className={isSelected ? '' : 'mr-1'}>{area.emoji}</Text>
+                            <MaterialCommunityIcons name={area.icon as any} size={16} color={isSelected ? '#FFFFFF' : colors.textSecondary} />
                             <Text
                                 className="ml-1 font-medium"
                                 style={{ color: isSelected ? '#FFFFFF' : colors.textSecondary }}

@@ -309,10 +309,10 @@ export default function StandupScreen() {
             <ScrollView className="flex-1 px-4">
                 <View className="flex-row justify-between mb-6">
                     {[
-                        { value: 'great', emoji: '🚀', label: 'Great' },
-                        { value: 'good', emoji: '😊', label: 'Good' },
-                        { value: 'okay', emoji: '😐', label: 'Okay' },
-                        { value: 'struggling', emoji: '😓', label: 'Struggling' },
+                        { value: 'great', emoji: 'rocket-launch-outline', label: 'Great' },
+                        { value: 'good', emoji: 'emoticon-happy-outline', label: 'Good' },
+                        { value: 'okay', emoji: 'emoticon-neutral-outline', label: 'Okay' },
+                        { value: 'struggling', emoji: 'emoticon-sad-outline', label: 'Struggling' },
                     ].map((option) => (
                         <TouchableOpacity
                             key={option.value}

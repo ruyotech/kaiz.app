@@ -40,9 +40,9 @@ interface ApiResponse<T> {
 async function getAuthHeaders(): Promise<Record<string, string>> {
   const token = await AsyncStorage.getItem(ACCESS_TOKEN_KEY);
   if (token) {
-    console.log('🔐 [CommandCenter] Token attached');
+    console.log('[CommandCenter] Token attached');
   } else {
-    console.warn('⚠️ [CommandCenter] No token found!');
+    console.warn('[CommandCenter] No token found!');
   }
   return {
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -67,15 +67,15 @@ export const commandCenterService = {
     attachments: SmartInputAttachment[] = [],
     sessionId?: string
   ): Promise<ApiResponse<SmartInputResponse>> {
-    console.log('💬 [CommandCenter] Sending message...');
-    console.log('💬 [CommandCenter] Text:', text);
-    console.log('💬 [CommandCenter] Attachments:', attachments.length);
-    console.log('💬 [CommandCenter] Session:', sessionId);
+    console.log('[CommandCenter] Sending message...');
+    console.log('[CommandCenter] Text:', text);
+    console.log('[CommandCenter] Attachments:', attachments.length);
+    console.log('[CommandCenter] Session:', sessionId);
     
     // Debug: Log each attachment details
     if (attachments.length > 0) {
       attachments.forEach((att, i) => {
-        console.log(`💬 [CommandCenter] Attachment[${i}]:`, JSON.stringify(att));
+        console.log(`[CommandCenter] Attachment[${i}]:`, JSON.stringify(att));
       });
     }
 
@@ -89,7 +89,7 @@ export const commandCenterService = {
         sessionId,
       };
       
-      console.log('💬 [CommandCenter] Full request:', JSON.stringify(request, null, 2));
+      console.log('[CommandCenter] Full request:', JSON.stringify(request, null, 2));
 
       const response = await fetch(`${API_BASE_URL}/api/v1/command-center/smart-input`, {
         method: 'POST',
@@ -102,15 +102,15 @@ export const commandCenterService = {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('💬 [CommandCenter] Error:', errorText);
+        console.error('[CommandCenter] Error:', errorText);
         throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
 
       const data = await response.json();
-      console.log('💬 [CommandCenter] Response:', data);
+      console.log('[CommandCenter] Response:', data);
       return data;
     } catch (error: any) {
-      console.error('💬 [CommandCenter] Error:', error);
+      console.error('[CommandCenter] Error:', error);
       return {
         success: false,
         error: error.message || 'Failed to send message',
@@ -127,7 +127,7 @@ export const commandCenterService = {
     files: Array<{ uri: string; name: string; mimeType: string }>,
     sessionId?: string
   ): Promise<ApiResponse<SmartInputResponse>> {
-    console.log('📎 [CommandCenter] Sending with files...');
+    console.log('[CommandCenter] Sending with files...');
 
     try {
       const headers = await getAuthHeaders();
@@ -163,7 +163,7 @@ export const commandCenterService = {
       const data = await response.json();
       return data;
     } catch (error: any) {
-      console.error('📎 [CommandCenter] Error:', error);
+      console.error('[CommandCenter] Error:', error);
       return {
         success: false,
         error: error.message || 'Failed to send message with files',
@@ -178,7 +178,7 @@ export const commandCenterService = {
     sessionId: string,
     answers: ClarificationAnswer[]
   ): Promise<ApiResponse<SmartInputResponse>> {
-    console.log('❓ [CommandCenter] Submitting clarification...');
+    console.log('[CommandCenter] Submitting clarification...');
 
     try {
       const headers = await getAuthHeaders();
@@ -203,7 +203,7 @@ export const commandCenterService = {
       const data = await response.json();
       return data;
     } catch (error: any) {
-      console.error('❓ [CommandCenter] Error:', error);
+      console.error('[CommandCenter] Error:', error);
       return {
         success: false,
         error: error.message || 'Failed to submit clarification',
@@ -218,7 +218,7 @@ export const commandCenterService = {
     sessionId: string,
     accepted: boolean
   ): Promise<ApiResponse<SmartInputResponse>> {
-    console.log('🔄 [CommandCenter] Confirming alternative:', accepted);
+    console.log('[CommandCenter] Confirming alternative:', accepted);
 
     try {
       const headers = await getAuthHeaders();
@@ -239,7 +239,7 @@ export const commandCenterService = {
       const data = await response.json();
       return data;
     } catch (error: any) {
-      console.error('🔄 [CommandCenter] Error:', error);
+      console.error('[CommandCenter] Error:', error);
       return {
         success: false,
         error: error.message || 'Failed to confirm alternative',
@@ -255,7 +255,7 @@ export const commandCenterService = {
   async saveToPending(
     sessionId: string
   ): Promise<ApiResponse<{ taskId: string; status: string; message: string }>> {
-    console.log('💾 [CommandCenter] Saving to pending:', sessionId);
+    console.log('[CommandCenter] Saving to pending:', sessionId);
 
     try {
       const headers = await getAuthHeaders();
@@ -274,10 +274,10 @@ export const commandCenterService = {
       }
 
       const data = await response.json();
-      console.log('💾 [CommandCenter] Save result:', data);
+      console.log('[CommandCenter] Save result:', data);
       return data;
     } catch (error: any) {
-      console.error('💾 [CommandCenter] Error saving to pending:', error);
+      console.error('[CommandCenter] Error saving to pending:', error);
       return {
         success: false,
         error: error.message || 'Failed to save to pending',
@@ -312,7 +312,7 @@ export const commandCenterService = {
       attendees?: string[];
     }
   ): Promise<ApiResponse<{ taskId: string; status: string; message: string }>> {
-    console.log('💾 [CommandCenter] Creating pending from draft data:', draftData.title);
+    console.log('[CommandCenter] Creating pending from draft data:', draftData.title);
 
     try {
       const headers = await getAuthHeaders();
@@ -335,10 +335,10 @@ export const commandCenterService = {
       }
 
       const data = await response.json();
-      console.log('💾 [CommandCenter] Create pending result:', data);
+      console.log('[CommandCenter] Create pending result:', data);
       return data;
     } catch (error: any) {
-      console.error('💾 [CommandCenter] Error creating pending:', error);
+      console.error('[CommandCenter] Error creating pending:', error);
       return {
         success: false,
         error: error.message || 'Failed to create pending task',
@@ -354,7 +354,7 @@ export const commandCenterService = {
    * Approve a draft - creates the actual entity
    */
   async approveDraft(draftId: string): Promise<ApiResponse<DraftActionResponse>> {
-    console.log('✅ [CommandCenter] Approving draft:', draftId);
+    console.log('[CommandCenter] Approving draft:', draftId);
 
     try {
       const headers = await getAuthHeaders();
@@ -378,10 +378,10 @@ export const commandCenterService = {
       }
 
       const data = await response.json();
-      console.log('✅ [CommandCenter] Draft approved:', data);
+      console.log('[CommandCenter] Draft approved:', data);
       return data;
     } catch (error: any) {
-      console.error('✅ [CommandCenter] Error:', error);
+      console.error('[CommandCenter] Error:', error);
       return {
         success: false,
         error: error.message || 'Failed to approve draft',
@@ -393,7 +393,7 @@ export const commandCenterService = {
    * Reject a draft
    */
   async rejectDraft(draftId: string): Promise<ApiResponse<DraftActionResponse>> {
-    console.log('❌ [CommandCenter] Rejecting draft:', draftId);
+    console.log('[CommandCenter] Rejecting draft:', draftId);
 
     try {
       const headers = await getAuthHeaders();
@@ -419,7 +419,7 @@ export const commandCenterService = {
       const data = await response.json();
       return data;
     } catch (error: any) {
-      console.error('❌ [CommandCenter] Error:', error);
+      console.error('[CommandCenter] Error:', error);
       return {
         success: false,
         error: error.message || 'Failed to reject draft',
@@ -434,7 +434,7 @@ export const commandCenterService = {
     draftId: string,
     modifiedDraft: Partial<DraftPreview['draft']>
   ): Promise<ApiResponse<DraftActionResponse>> {
-    console.log('✏️ [CommandCenter] Modifying draft:', draftId);
+    console.log('[CommandCenter] Modifying draft:', draftId);
 
     try {
       const headers = await getAuthHeaders();
@@ -460,7 +460,7 @@ export const commandCenterService = {
       const data = await response.json();
       return data;
     } catch (error: any) {
-      console.error('✏️ [CommandCenter] Error:', error);
+      console.error('[CommandCenter] Error:', error);
       return {
         success: false,
         error: error.message || 'Failed to modify draft',
@@ -472,7 +472,7 @@ export const commandCenterService = {
    * Get all pending drafts (legacy - from PendingDraft table)
    */
   async getPendingDrafts(): Promise<ApiResponse<DraftPreview[]>> {
-    console.log('📋 [CommandCenter] Fetching pending drafts...');
+    console.log('[CommandCenter] Fetching pending drafts...');
 
     try {
       const headers = await getAuthHeaders();
@@ -493,7 +493,7 @@ export const commandCenterService = {
       const data = await response.json();
       return data;
     } catch (error: any) {
-      console.error('📋 [CommandCenter] Error:', error);
+      console.error('[CommandCenter] Error:', error);
       return {
         success: false,
         error: error.message || 'Failed to fetch pending drafts',
@@ -506,7 +506,7 @@ export const commandCenterService = {
    * This is the new approach where AI drafts are saved directly as tasks
    */
   async getPendingApprovalTasks(): Promise<ApiResponse<any[]>> {
-    console.log('📋 [CommandCenter] Fetching pending approval tasks...');
+    console.log('[CommandCenter] Fetching pending approval tasks...');
 
     try {
       const headers = await getAuthHeaders();
@@ -525,10 +525,10 @@ export const commandCenterService = {
       }
 
       const data = await response.json();
-      console.log('📋 [CommandCenter] Pending tasks:', data);
+      console.log('[CommandCenter] Pending tasks:', data);
       return data;
     } catch (error: any) {
-      console.error('📋 [CommandCenter] Error fetching pending tasks:', error);
+      console.error('[CommandCenter] Error fetching pending tasks:', error);
       return {
         success: false,
         error: error.message || 'Failed to fetch pending tasks',
@@ -540,7 +540,7 @@ export const commandCenterService = {
    * Approve a pending task - changes status from PENDING_APPROVAL to TODO
    */
   async approvePendingTask(taskId: string): Promise<ApiResponse<any>> {
-    console.log('✅ [CommandCenter] Approving pending task:', taskId);
+    console.log('[CommandCenter] Approving pending task:', taskId);
 
     try {
       const headers = await getAuthHeaders();
@@ -560,10 +560,10 @@ export const commandCenterService = {
       }
 
       const data = await response.json();
-      console.log('✅ [CommandCenter] Task approved:', data);
+      console.log('[CommandCenter] Task approved:', data);
       return data;
     } catch (error: any) {
-      console.error('✅ [CommandCenter] Error approving task:', error);
+      console.error('[CommandCenter] Error approving task:', error);
       return {
         success: false,
         error: error.message || 'Failed to approve task',
@@ -575,7 +575,7 @@ export const commandCenterService = {
    * Reject a pending task - deletes the task
    */
   async rejectPendingTask(taskId: string): Promise<ApiResponse<void>> {
-    console.log('❌ [CommandCenter] Rejecting pending task:', taskId);
+    console.log('[CommandCenter] Rejecting pending task:', taskId);
 
     try {
       const headers = await getAuthHeaders();
@@ -592,7 +592,7 @@ export const commandCenterService = {
 
       return { success: true };
     } catch (error: any) {
-      console.error('❌ [CommandCenter] Error rejecting task:', error);
+      console.error('[CommandCenter] Error rejecting task:', error);
       return {
         success: false,
         error: error.message || 'Failed to reject task',
@@ -608,7 +608,7 @@ export const commandCenterService = {
    * Get test attachments uploaded via admin
    */
   async getTestAttachments(type?: string): Promise<ApiResponse<TestAttachment[]>> {
-    console.log('🧪 [CommandCenter] Fetching test attachments...');
+    console.log('[CommandCenter] Fetching test attachments...');
 
     try {
       const headers = await getAuthHeaders();
@@ -632,7 +632,7 @@ export const commandCenterService = {
       const data = await response.json();
       return data;
     } catch (error: any) {
-      console.error('🧪 [CommandCenter] Error:', error);
+      console.error('[CommandCenter] Error:', error);
       return {
         success: false,
         error: error.message || 'Failed to fetch test attachments',
@@ -644,7 +644,7 @@ export const commandCenterService = {
    * Download test attachment data
    */
   async downloadTestAttachment(attachmentId: string): Promise<ApiResponse<{ data: string; mimeType: string }>> {
-    console.log('⬇️ [CommandCenter] Downloading test attachment:', attachmentId);
+    console.log('[CommandCenter] Downloading test attachment:', attachmentId);
 
     try {
       const headers = await getAuthHeaders();
@@ -678,7 +678,7 @@ export const commandCenterService = {
         reader.readAsDataURL(blob);
       });
     } catch (error: any) {
-      console.error('⬇️ [CommandCenter] Error:', error);
+      console.error('[CommandCenter] Error:', error);
       return {
         success: false,
         error: error.message || 'Failed to download attachment',
@@ -694,7 +694,7 @@ export const commandCenterService = {
    * Get active LLM providers
    */
   async getActiveProviders(): Promise<ApiResponse<LlmProvider[]>> {
-    console.log('🤖 [CommandCenter] Fetching providers...');
+    console.log('[CommandCenter] Fetching providers...');
 
     try {
       const headers = await getAuthHeaders();
@@ -715,7 +715,7 @@ export const commandCenterService = {
       const data = await response.json();
       return data;
     } catch (error: any) {
-      console.error('🤖 [CommandCenter] Error:', error);
+      console.error('[CommandCenter] Error:', error);
       return { success: true, data: [] };
     }
   },
@@ -724,7 +724,7 @@ export const commandCenterService = {
    * Get feature flags
    */
   async getFeatureFlags(): Promise<ApiResponse<Record<string, boolean>>> {
-    console.log('🚩 [CommandCenter] Fetching feature flags...');
+    console.log('[CommandCenter] Fetching feature flags...');
 
     try {
       const headers = await getAuthHeaders();
@@ -753,7 +753,7 @@ export const commandCenterService = {
       const data = await response.json();
       return data;
     } catch (error: any) {
-      console.error('🚩 [CommandCenter] Error:', error);
+      console.error('[CommandCenter] Error:', error);
       return {
         success: true,
         data: {

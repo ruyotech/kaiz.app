@@ -55,15 +55,15 @@ interface TaskDetail {
 // Constants
 // ============================================================================
 
-const LIFE_WHEEL_AREAS: Record<string, { name: string; emoji: string; color: string }> = {
-  'lw-1': { name: 'Health & Fitness', emoji: '🏃', color: '#10B981' },
-  'lw-2': { name: 'Career & Work', emoji: '💼', color: '#3B82F6' },
-  'lw-3': { name: 'Finance', emoji: '💰', color: '#F59E0B' },
-  'lw-4': { name: 'Personal Growth', emoji: '📚', color: '#8B5CF6' },
-  'lw-5': { name: 'Relationships', emoji: '❤️', color: '#EF4444' },
-  'lw-6': { name: 'Creativity', emoji: '🎨', color: '#EC4899' },
-  'lw-7': { name: 'Fun & Recreation', emoji: '🎉', color: '#F97316' },
-  'lw-8': { name: 'Contribution', emoji: '🌍', color: '#06B6D4' },
+const LIFE_WHEEL_AREAS: Record<string, { name: string; icon: string; color: string }> = {
+  'lw-1': { name: 'Health & Fitness', icon: 'run', color: '#10B981' },
+  'lw-2': { name: 'Career & Work', icon: 'briefcase-outline', color: '#3B82F6' },
+  'lw-3': { name: 'Finance', icon: 'cash-multiple', color: '#F59E0B' },
+  'lw-4': { name: 'Personal Growth', icon: 'book-open-variant', color: '#8B5CF6' },
+  'lw-5': { name: 'Relationships', icon: 'heart-outline', color: '#EF4444' },
+  'lw-6': { name: 'Creativity', icon: 'palette-outline', color: '#EC4899' },
+  'lw-7': { name: 'Fun & Recreation', icon: 'party-popper', color: '#F97316' },
+  'lw-8': { name: 'Contribution', icon: 'earth', color: '#06B6D4' },
 };
 
 const EISENHOWER_QUADRANTS: Record<string, { name: string; description: string; color: string }> = {
@@ -429,7 +429,7 @@ export default function PendingTaskDetailScreen() {
             <DetailField
               icon="circle-slice-8"
               label="Life Area"
-              value={`${lifeWheelInfo.emoji} ${lifeWheelInfo.name}`}
+              value={lifeWheelInfo.name}
               color={lifeWheelInfo.color}
             />
           )}

@@ -104,7 +104,7 @@ export default function EssentiaGoalsScreen() {
 
                             <Text className="text-lg font-semibold text-gray-900">
                                 {isGoalMet 
-                                    ? '🎉 Amazing work today!' 
+                                    ? 'Amazing work today!' 
                                     : `${dailyGoal - todayMinutes} minutes to go`}
                             </Text>
                         </View>
@@ -138,7 +138,7 @@ export default function EssentiaGoalsScreen() {
                         <View className="flex-row items-center justify-between">
                             <View className="flex-row items-center">
                                 <View className="w-14 h-14 bg-orange-100 rounded-2xl items-center justify-center mr-4">
-                                    <Text className="text-2xl">🔥</Text>
+                                    <Text className="text-2xl"></Text>
                                 </View>
                                 <View>
                                     <Text className="text-3xl font-bold text-gray-900">

@@ -269,7 +269,7 @@ const generateMockMembers = (): FamilyMember[] => [
     {
         userId: 'user-1',
         displayName: 'John Smith',
-        avatar: '👨',
+        avatar: 'account',
         role: 'owner',
         permissions: ROLE_CONFIGURATIONS.owner.permissions,
         joinedAt: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString(),
@@ -284,7 +284,7 @@ const generateMockMembers = (): FamilyMember[] => [
     {
         userId: 'user-2',
         displayName: 'Sarah Smith',
-        avatar: '👩',
+        avatar: 'account',
         role: 'adult',
         permissions: ROLE_CONFIGURATIONS.adult.permissions,
         joinedAt: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString(),
@@ -299,7 +299,7 @@ const generateMockMembers = (): FamilyMember[] => [
     {
         userId: 'user-3',
         displayName: 'Emma Smith',
-        avatar: '👧',
+        avatar: 'account',
         role: 'teen',
         permissions: ROLE_CONFIGURATIONS.teen.permissions,
         joinedAt: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString(),
@@ -314,7 +314,7 @@ const generateMockMembers = (): FamilyMember[] => [
     {
         userId: 'user-4',
         displayName: 'Max Smith',
-        avatar: '👦',
+        avatar: 'account',
         role: 'child',
         permissions: ROLE_CONFIGURATIONS.child.permissions,
         joinedAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
@@ -421,7 +421,7 @@ const generateMockSharedEpics = (): SharedEpic[] => [
         familyId: 'family-1',
         title: 'Family Beach Vacation',
         description: 'Planning our summer vacation to the beach',
-        icon: '🏖️',
+        icon: 'beach',
         color: '#06B6D4',
         createdBy: 'user-1',
         assignedTo: ['user-1', 'user-2', 'user-3'],
@@ -437,7 +437,7 @@ const generateMockSharedEpics = (): SharedEpic[] => [
         familyId: 'family-1',
         title: 'Home Chores',
         description: 'Regular household tasks and responsibilities',
-        icon: '🏠',
+        icon: 'home-outline',
         color: '#10B981',
         createdBy: 'user-2',
         assignedTo: ['user-1', 'user-2', 'user-3', 'user-4'],
@@ -514,7 +514,7 @@ const generateMockActivity = (): FamilyActivity[] => [
         type: 'task_completed',
         actorId: 'user-2',
         actorName: 'Sarah',
-        actorAvatar: '👩',
+        actorAvatar: 'account',
         targetId: 'st-2',
         targetName: 'Book hotel reservations',
         metadata: { storyPoints: 5 },
@@ -526,7 +526,7 @@ const generateMockActivity = (): FamilyActivity[] => [
         type: 'kudos_sent',
         actorId: 'user-2',
         actorName: 'Sarah',
-        actorAvatar: '👩',
+        actorAvatar: 'account',
         targetId: 'user-3',
         targetName: 'Emma',
         metadata: { kudosType: 'great_job' },
@@ -538,7 +538,7 @@ const generateMockActivity = (): FamilyActivity[] => [
         type: 'streak_milestone',
         actorId: 'user-1',
         actorName: 'John',
-        actorAvatar: '👨',
+        actorAvatar: 'account',
         targetId: null,
         targetName: null,
         metadata: { streakDays: 12 },
@@ -551,10 +551,10 @@ const generateMockVelocity = (): FamilyVelocity => ({
     weekNumber: 5,
     year: 2026,
     memberVelocities: [
-        { userId: 'user-1', displayName: 'John', avatar: '👨', plannedPoints: 15, completedPoints: 12, completionRate: 80, streak: 12 },
-        { userId: 'user-2', displayName: 'Sarah', avatar: '👩', plannedPoints: 18, completedPoints: 16, completionRate: 89, streak: 8 },
-        { userId: 'user-3', displayName: 'Emma', avatar: '👧', plannedPoints: 10, completedPoints: 8, completionRate: 80, streak: 5 },
-        { userId: 'user-4', displayName: 'Max', avatar: '👦', plannedPoints: 5, completedPoints: 4, completionRate: 80, streak: 3 },
+        { userId: 'user-1', displayName: 'John', avatar: 'account', plannedPoints: 15, completedPoints: 12, completionRate: 80, streak: 12 },
+        { userId: 'user-2', displayName: 'Sarah', avatar: 'account', plannedPoints: 18, completedPoints: 16, completionRate: 89, streak: 8 },
+        { userId: 'user-3', displayName: 'Emma', avatar: 'account', plannedPoints: 10, completedPoints: 8, completionRate: 80, streak: 5 },
+        { userId: 'user-4', displayName: 'Max', avatar: 'account', plannedPoints: 5, completedPoints: 4, completionRate: 80, streak: 3 },
     ],
     totalPoints: 48,
     completedPoints: 40,
@@ -673,7 +673,7 @@ export const useFamilyStore = create<FamilyState>()(
                         errObj?.message?.includes('not found');
                     
                     if (isNotFound) {
-                        logger.log('👨‍👩‍👧‍👦 Family not found:', familyId);
+                        logger.log('Family not found:', familyId);
                         set({ 
                             currentFamily: null,
                             members: [],
@@ -684,7 +684,7 @@ export const useFamilyStore = create<FamilyState>()(
                         });
                     } else {
                         // Actual API error
-                        logger.warn('⚠️ Could not fetch family:', error);
+                        logger.warn('Could not fetch family:', error);
                         set({ 
                             currentFamily: null,
                             members: [],
@@ -754,7 +754,7 @@ export const useFamilyStore = create<FamilyState>()(
                     
                     if (isNotFound) {
                         // User has no family - this is a valid state, not an error
-                        logger.log('👨‍👩‍👧‍👦 User has no family workspace');
+                        logger.log('User has no family workspace');
                         set({ 
                             currentFamily: null,
                             members: [],
@@ -765,7 +765,7 @@ export const useFamilyStore = create<FamilyState>()(
                         });
                     } else {
                         // Actual API error - log it but show empty state (not mock data)
-                        logger.warn('⚠️ Could not fetch family:', error);
+                        logger.warn('Could not fetch family:', error);
                         set({ 
                             currentFamily: null,
                             members: [],
@@ -875,7 +875,7 @@ export const useFamilyStore = create<FamilyState>()(
                     const members: FamilyMember[] = apiMembers.map((m: FamilyMemberResponse) => ({
                         userId: m.userId,
                         displayName: m.displayName,
-                        avatar: m.avatarUrl || '👤',
+                        avatar: m.avatarUrl || 'account-outline',
                         role: m.role.toLowerCase() as FamilyRole,
                         permissions: ROLE_CONFIGURATIONS[m.role.toLowerCase() as FamilyRole]?.permissions || [],
                         joinedAt: m.joinedAt,
@@ -890,7 +890,7 @@ export const useFamilyStore = create<FamilyState>()(
                     set({ members, loading: false });
                 } catch (error) {
                     // API error - set empty members, don't fall back to mock
-                    logger.warn('⚠️ Could not fetch members:', error);
+                    logger.warn('Could not fetch members:', error);
                     set({ members: [], apiAvailable: false, loading: false });
                 }
             },
@@ -1169,7 +1169,7 @@ export const useFamilyStore = create<FamilyState>()(
                         familyId: get().currentFamily?.id || '',
                         title: epic.title || '',
                         description: epic.description || '',
-                        icon: epic.icon || '📋',
+                        icon: epic.icon || 'clipboard-text-outline',
                         color: epic.color || '#8B5CF6',
                         createdBy: 'user-1',
                         assignedTo: epic.assignedTo || [],

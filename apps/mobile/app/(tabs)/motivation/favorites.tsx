@@ -98,7 +98,7 @@ export default function FavoritesScreen() {
         ListEmptyComponent={
           isLoading ? null : (
             <EmptyState
-              icon="❤️"
+              icon="heart-outline"
               title="No Favorites Yet"
               message="Tap the heart on any quote to save it here"
             />

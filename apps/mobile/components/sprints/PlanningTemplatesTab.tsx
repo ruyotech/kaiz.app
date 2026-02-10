@@ -24,15 +24,15 @@ import { logger } from '../../utils/logger';
 import type { TaskTemplate, Task } from '../../types/models';
 
 const LIFE_WHEEL_PILLS = [
-  { id: 'all', name: 'All', emoji: '🎯', color: '#6b7280' },
-  { id: 'lw-1', name: 'Health', emoji: '💪', color: '#10b981' },
-  { id: 'lw-2', name: 'Career', emoji: '💼', color: '#3b82f6' },
-  { id: 'lw-3', name: 'Finance', emoji: '💰', color: '#f59e0b' },
-  { id: 'lw-4', name: 'Growth', emoji: '📚', color: '#8b5cf6' },
-  { id: 'lw-5', name: 'Family', emoji: '❤️', color: '#ef4444' },
-  { id: 'lw-6', name: 'Friends', emoji: '👥', color: '#ec4899' },
-  { id: 'lw-7', name: 'Fun', emoji: '🎉', color: '#14b8a6' },
-  { id: 'lw-8', name: 'Environment', emoji: '🌍', color: '#84cc16' },
+  { id: 'all', name: 'All', emoji: 'target', color: '#6b7280' },
+  { id: 'lw-1', name: 'Health', emoji: 'arm-flex-outline', color: '#10b981' },
+  { id: 'lw-2', name: 'Career', emoji: 'briefcase-outline', color: '#3b82f6' },
+  { id: 'lw-3', name: 'Finance', emoji: 'cash-multiple', color: '#f59e0b' },
+  { id: 'lw-4', name: 'Growth', emoji: 'book-open-variant', color: '#8b5cf6' },
+  { id: 'lw-5', name: 'Family', emoji: 'heart-outline', color: '#ef4444' },
+  { id: 'lw-6', name: 'Friends', emoji: 'account-group-outline', color: '#ec4899' },
+  { id: 'lw-7', name: 'Fun', emoji: 'party-popper', color: '#14b8a6' },
+  { id: 'lw-8', name: 'Environment', emoji: 'earth', color: '#84cc16' },
 ];
 
 interface CreatedFromTemplate {
@@ -255,7 +255,7 @@ export const PlanningTemplatesTab = React.memo(function PlanningTemplatesTab({
                       <>
                         <Text className="text-xs mx-1.5" style={{ color: colors.textTertiary }}>•</Text>
                         <Text className="text-xs" style={{ color: '#f59e0b' }}>
-                          ⭐ {template.rating.toFixed(1)}
+                          {template.rating.toFixed(1)}
                         </Text>
                       </>
                     )}

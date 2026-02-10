@@ -362,7 +362,7 @@ export default function CommunityHubScreen() {
                     <View className="flex-row items-center">
                         <View className="flex-1">
                             <View className="flex-row items-center mb-2">
-                                <Text className="text-2xl mr-2">💝</Text>
+                                <Text className="text-2xl mr-2"></Text>
                                 <Text className="text-amber-800 font-bold">{t('community.secretCompliment')}</Text>
                             </View>
                             <Text className="text-amber-700 text-sm">

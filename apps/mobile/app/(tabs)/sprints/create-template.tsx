@@ -11,7 +11,7 @@ import {
     KeyboardAvoidingView,
     Platform,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useCreateUserTemplate } from '../../../hooks/queries';
 import { LIFE_WHEEL_CONFIG } from '../../../components/templates/TemplateCard';
@@ -31,7 +31,7 @@ const RECURRENCE_OPTIONS: { label: string; value: RecurrencePattern | null }[] =
     { label: 'Monthly', value: { frequency: 'monthly', interval: 1, endDate: null } },
 ];
 
-const ICONS = ['📋', '✅', '📅', '💪', '📚', '💰', '❤️', '🏠', '🎯', '⭐', '🔥', '💡', '🎨', '🎵', '✈️', '🍎'];
+const ICONS = ['clipboard-text-outline', 'check-circle-outline', 'calendar-outline', 'arm-flex-outline', 'book-open-variant', 'cash-multiple', 'heart-outline', 'home-outline', 'target', 'star-outline', 'fire', 'lightbulb-outline', 'palette-outline', 'music-note', 'airplane', 'food-apple'];
 
 export default function CreateTemplateScreen() {
     const router = useRouter();
@@ -42,7 +42,7 @@ export default function CreateTemplateScreen() {
     const [description, setDescription] = useState('');
     const [type, setType] = useState<TemplateType>('task');
     const [selectedArea, setSelectedArea] = useState<string>('life-growth');
-    const [selectedIcon, setSelectedIcon] = useState<string>('📋');
+    const [selectedIcon, setSelectedIcon] = useState<string>('clipboard-text-outline');
     const [duration, setDuration] = useState<number>(30);
     const [priority, setPriority] = useState<'LOW' | 'MEDIUM' | 'HIGH'>('MEDIUM');
     const [recurrence, setRecurrence] = useState<RecurrencePattern | null>(null);
@@ -90,7 +90,7 @@ export default function CreateTemplateScreen() {
         }
     };
 
-    const areaConfig = LIFE_WHEEL_CONFIG[selectedArea] || { color: '#6b7280', name: 'General', emoji: '📋' };
+    const areaConfig = LIFE_WHEEL_CONFIG[selectedArea] || { color: '#6b7280', name: 'General', icon: 'clipboard-text-outline' };
 
     return (
         <SafeAreaView className="flex-1 bg-gray-50">
@@ -119,7 +119,7 @@ export default function CreateTemplateScreen() {
                                         type === 'task' ? 'bg-blue-100 border-2 border-blue-500' : 'bg-gray-100'
                                     }`}
                                 >
-                                    <Text className="text-2xl mb-1">✅</Text>
+                                    <MaterialCommunityIcons name="check-circle-outline" size={28} color={type === 'task' ? '#1d4ed8' : '#4b5563'} />
                                     <Text className={`font-medium ${type === 'task' ? 'text-blue-700' : 'text-gray-600'}`}>
                                         Task
                                     </Text>
@@ -130,7 +130,7 @@ export default function CreateTemplateScreen() {
                                         type === 'event' ? 'bg-blue-100 border-2 border-blue-500' : 'bg-gray-100'
                                     }`}
                                 >
-                                    <Text className="text-2xl mb-1">📅</Text>
+                                    <MaterialCommunityIcons name="calendar-outline" size={28} color={type === 'event' ? '#1d4ed8' : '#4b5563'} />
                                     <Text className={`font-medium ${type === 'event' ? 'text-blue-700' : 'text-gray-600'}`}>
                                         Event
                                     </Text>
@@ -146,7 +146,7 @@ export default function CreateTemplateScreen() {
                                 className="bg-gray-100 rounded-xl px-4 py-3 flex-row items-center justify-between"
                             >
                                 <View className="flex-row items-center">
-                                    <Text className="text-2xl mr-3">{selectedIcon}</Text>
+                                    <MaterialCommunityIcons name={selectedIcon as any} size={28} color="#374151" style={{ marginRight: 12 }} />
                                     <Text className="text-gray-700">Select icon</Text>
                                 </View>
                                 <Ionicons name={showIconPicker ? 'chevron-up' : 'chevron-down'} size={20} color="#6b7280" />
@@ -164,7 +164,7 @@ export default function CreateTemplateScreen() {
                                                 selectedIcon === icon ? 'bg-blue-100 border-2 border-blue-500' : 'bg-white'
                                             }`}
                                         >
-                                            <Text className="text-2xl">{icon}</Text>
+                                            <MaterialCommunityIcons name={icon as any} size={24} color={selectedIcon === icon ? '#2563eb' : '#374151'} />
                                         </TouchableOpacity>
                                     ))}
                                 </View>
@@ -213,7 +213,7 @@ export default function CreateTemplateScreen() {
                                             }`}
                                             style={selectedArea === area.id ? { backgroundColor: area.color } : {}}
                                         >
-                                            <Text>{area.emoji}</Text>
+                                            <MaterialCommunityIcons name={area.icon as any} size={16} color={selectedArea === area.id ? '#FFFFFF' : '#374151'} />
                                             <Text
                                                 className={`ml-1 font-medium ${
                                                     selectedArea === area.id ? 'text-white' : 'text-gray-700'

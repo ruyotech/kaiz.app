@@ -154,11 +154,11 @@ export default function TaskWorkView() {
         const formatStatus = (status: string | null): string => {
             if (!status) return 'None';
             const statusMap: Record<string, string> = {
-                'DRAFT': '📋 Backlog',
-                'TODO': '📝 To Do',
-                'IN_PROGRESS': '🔄 In Progress',
-                'BLOCKED': '🚫 Blocked',
-                'DONE': '✅ Done',
+                'DRAFT': 'Backlog',
+                'TODO': 'To Do',
+                'IN_PROGRESS': 'In Progress',
+                'BLOCKED': 'Blocked',
+                'DONE': 'Done',
             };
             return statusMap[status.toUpperCase()] || status;
         };
@@ -171,10 +171,10 @@ export default function TaskWorkView() {
                 return { action: 'Moved to Sprint', detail: 'Task added to active sprint' };
             }
             if (item.newValue === 'DONE') {
-                return { action: '🎉 Task completed!', detail: `${formatStatus(item.oldValue)} → ${formatStatus(item.newValue)}` };
+                return { action: 'Task completed!', detail: `${formatStatus(item.oldValue)} → ${formatStatus(item.newValue)}` };
             }
             if (item.newValue === 'BLOCKED') {
-                return { action: '⚠️ Task blocked', detail: `${formatStatus(item.oldValue)} → ${formatStatus(item.newValue)}` };
+                return { action: 'Task blocked', detail: `${formatStatus(item.oldValue)} → ${formatStatus(item.newValue)}` };
             }
             if (item.newValue === 'IN_PROGRESS') {
                 return { action: 'Started working', detail: `${formatStatus(item.oldValue)} → ${formatStatus(item.newValue)}` };
@@ -260,7 +260,7 @@ export default function TaskWorkView() {
                 }> = [];
 
                 if (commentAttachments.length > 0) {
-                    logger.log('📤 Uploading comment attachments...');
+                    logger.log('Uploading comment attachments...');
                     for (const attachment of commentAttachments) {
                         const uploadResult = await fileUploadApi.uploadFile({
                             uri: attachment.uri,
@@ -280,7 +280,7 @@ export default function TaskWorkView() {
                             throw new Error(`Failed to upload ${attachment.name}`);
                         }
                     }
-                    logger.log('✅ All attachments uploaded:', uploadedAttachments.length);
+                    logger.log('All attachments uploaded:', uploadedAttachments.length);
                 }
 
                 // Now add the comment via React Query mutation
@@ -511,16 +511,22 @@ export default function TaskWorkView() {
                         {/* Recurrence Schedule (for recurring tasks) */}
                         {(task.isRecurring || task.recurrence?.frequency) && task.recurrence && (
                             <View className="rounded-xl p-4 mb-3" style={{ backgroundColor: colors.card }}>
-                                <Text className="text-sm font-semibold mb-3" style={{ color: colors.textSecondary }}>📅 Recurring Schedule</Text>
+                                <Text className="text-sm font-semibold mb-3" style={{ color: colors.textSecondary }}>Recurring Schedule</Text>
                                 <View className="rounded-lg p-3" style={{ backgroundColor: isDark ? 'rgba(236, 72, 153, 0.15)' : '#FDF2F8', borderWidth: 1, borderColor: isDark ? 'rgba(236, 72, 153, 0.3)' : '#FBCFE8' }}>
                                     <View className="flex-row items-center">
-                                        <Text className="text-2xl mr-3">
-                                            {task.recurrence.frequency === 'DAILY' ? '📆' :
-                                             task.recurrence.frequency === 'WEEKLY' ? '📅' :
-                                             task.recurrence.frequency === 'BIWEEKLY' ? '🗓️' :
-                                             task.recurrence.frequency === 'MONTHLY' ? '🗓️' :
-                                             task.recurrence.frequency === 'YEARLY' ? '🎂' : '🔄'}
-                                        </Text>
+                                        <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: isDark ? 'rgba(236, 72, 153, 0.25)' : '#FCE7F3' }}>
+                                            <MaterialCommunityIcons
+                                                name={(
+                                                    task.recurrence.frequency === 'DAILY' ? 'autorenew' :
+                                                    task.recurrence.frequency === 'WEEKLY' ? 'calendar-sync-outline' :
+                                                    task.recurrence.frequency === 'BIWEEKLY' ? 'calendar-range' :
+                                                    task.recurrence.frequency === 'MONTHLY' ? 'calendar-month-outline' :
+                                                    task.recurrence.frequency === 'YEARLY' ? 'calendar-star' : 'autorenew'
+                                                ) as any}
+                                                size={22}
+                                                color={isDark ? '#F9A8D4' : '#BE185D'}
+                                            />
+                                        </View>
                                         <View className="flex-1">
                                             <Text className="text-pink-800 font-semibold">
                                                 {task.recurrence.frequency === 'DAILY' ? 'Every Day' :
@@ -533,7 +539,7 @@ export default function TaskWorkView() {
                                             </Text>
                                             {task.recurrence.scheduledTime && (
                                                 <Text className="text-pink-600 text-sm mt-1">
-                                                    ⏰ {task.recurrence.scheduledTime.substring(0, 5)}
+                                                    {task.recurrence.scheduledTime.substring(0, 5)}
                                                     {task.recurrence.scheduledEndTime && ` - ${task.recurrence.scheduledEndTime.substring(0, 5)}`}
                                                 </Text>
                                             )}
@@ -667,10 +673,10 @@ export default function TaskWorkView() {
                                     }}
                                 >
                                     <Text className="font-medium" style={{ color: colors.text }}>
-                                        {task.eisenhowerQuadrantId === 'eq-1' && `🔴 ${t('calendar.urgentImportant')}`}
-                                        {task.eisenhowerQuadrantId === 'eq-2' && `🔵 ${t('calendar.notUrgentImportant')}`}
-                                        {task.eisenhowerQuadrantId === 'eq-3' && `🟡 ${t('calendar.urgentNotImportant')}`}
-                                        {task.eisenhowerQuadrantId === 'eq-4' && `⚪ ${t('calendar.notUrgentNotImportant')}`}
+                                        {task.eisenhowerQuadrantId === 'eq-1' && `P1 - ${t('calendar.urgentImportant')}`}
+                                        {task.eisenhowerQuadrantId === 'eq-2' && `P2 - ${t('calendar.notUrgentImportant')}`}
+                                        {task.eisenhowerQuadrantId === 'eq-3' && `P3 - ${t('calendar.urgentNotImportant')}`}
+                                        {task.eisenhowerQuadrantId === 'eq-4' && `P4 - ${t('calendar.notUrgentNotImportant')}`}
                                     </Text>
                                 </View>
                             </View>
@@ -682,7 +688,7 @@ export default function TaskWorkView() {
                                         className="px-3 py-1.5 rounded-lg"
                                         style={{ backgroundColor: isDark ? 'rgba(147, 51, 234, 0.15)' : '#F3E8FF', borderWidth: 1, borderColor: isDark ? 'rgba(147, 51, 234, 0.3)' : '#E9D5FF' }}
                                     >
-                                        <Text className="font-medium text-xs" style={{ color: isDark ? '#C4B5FD' : '#7E22CE' }}>📅 Sprint {task.sprintId}</Text>
+                                        <Text className="font-medium text-xs" style={{ color: isDark ? '#C4B5FD' : '#7E22CE' }}>Sprint {task.sprintId}</Text>
                                     </View>
                                 )}
                                 {task.epicId && getTaskEpic() && (

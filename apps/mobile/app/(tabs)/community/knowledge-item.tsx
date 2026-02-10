@@ -64,9 +64,9 @@ export default function KnowledgeItemScreen() {
 
     const getDifficultyStyle = (difficulty: string) => {
         const styles: Record<string, { bg: string; text: string; icon: string }> = {
-            BEGINNER: { bg: '#DCFCE7', text: '#15803D', icon: '🌱' },
-            INTERMEDIATE: { bg: '#FEF3C7', text: '#B45309', icon: '⚡' },
-            ADVANCED: { bg: '#FEE2E2', text: '#B91C1C', icon: '🔥' },
+            BEGINNER: { bg: '#DCFCE7', text: '#15803D', icon: 'sprout-outline' },
+            INTERMEDIATE: { bg: '#FEF3C7', text: '#B45309', icon: 'lightning-bolt' },
+            ADVANCED: { bg: '#FEE2E2', text: '#B91C1C', icon: 'fire' },
         };
         return styles[difficulty] || styles.BEGINNER;
     };
@@ -396,7 +396,7 @@ export default function KnowledgeItemScreen() {
                     }}
                 >
                     <View className="flex-row items-center mb-3">
-                        <Text className="text-4xl mr-3">{item.icon || '📚'}</Text>
+                        <Text className="text-4xl mr-3">{item.icon || ''}</Text>
                         <View className="flex-1">
                             <Text className="text-xl font-bold" style={{ color: colors.text }}>
                                 {item.title}
@@ -430,7 +430,7 @@ export default function KnowledgeItemScreen() {
                         </View>
                         {item.featured && (
                             <View className="flex-row items-center px-3 py-1 rounded-full bg-yellow-100">
-                                <Text className="text-xs font-medium text-yellow-700">⭐ Featured</Text>
+                                <Text className="text-xs font-medium text-yellow-700">Featured</Text>
                             </View>
                         )}
                     </View>

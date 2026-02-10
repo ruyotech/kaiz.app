@@ -858,7 +858,7 @@ export interface SuccessStory {
     }[];
     likeCount: number;
     commentCount: number;
-    celebrateCount: number; // 🎉 reactions
+    celebrateCount: number; // celebrate reactions
     createdAt: string;
     isLikedByUser?: boolean;
     isCelebratedByUser?: boolean;

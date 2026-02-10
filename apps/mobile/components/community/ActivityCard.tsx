@@ -81,7 +81,7 @@ export const ActivityCard = React.memo(function ActivityCard({ activity, onCeleb
                     style={{ backgroundColor: colors.backgroundSecondary }}
                     onPress={onCelebrate}
                 >
-                    <Text className="text-sm mr-1">🎉</Text>
+                    <Text className="text-sm mr-1"></Text>
                     <Text className="text-xs font-medium" style={{ color: colors.textSecondary }}>
                         {activity.celebrateCount}
                     </Text>

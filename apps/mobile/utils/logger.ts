@@ -61,7 +61,7 @@ export const logger = {
     if (IS_DEV) {
       const statusStr = status ? ` → ${status}` : '';
       // eslint-disable-next-line no-console
-      console.log(`🌐 ${method} ${url}${statusStr}`);
+      console.log(`${method} ${url}${statusStr}`);
     }
   },
 
@@ -69,7 +69,7 @@ export const logger = {
   auth(msg: string): void {
     if (IS_DEV) {
       // eslint-disable-next-line no-console
-      console.log(`🔐 ${msg}`);
+      console.log(`${msg}`);
     }
   },
 };

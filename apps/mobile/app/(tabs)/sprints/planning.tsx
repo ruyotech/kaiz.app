@@ -508,7 +508,7 @@ export default function SprintPlanningScreen() {
                 <MaterialCommunityIcons name="check-circle" size={64} color="#10B981" />
             </View>
 
-            <Text className="text-2xl font-bold mb-2" style={{ color: colors.text }}>Sprint Committed! 🎯</Text>
+            <Text className="text-2xl font-bold mb-2" style={{ color: colors.text }}>Sprint Committed!</Text>
             <Text className="text-center mb-6" style={{ color: colors.textSecondary }}>
                 {selectedTasks.length} tasks • {selectedPoints} points committed for this week
             </Text>

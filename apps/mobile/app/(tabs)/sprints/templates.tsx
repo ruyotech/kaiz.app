@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { TaskTemplate } from '../../../types/models';
 import {
@@ -35,15 +35,15 @@ import { useThemeContext } from '../../../providers/ThemeProvider';
 type SourceTab = 'global' | 'my' | 'favorites' | 'rated';
 
 const LIFE_WHEEL_AREAS = [
-    { id: 'all', name: 'All', emoji: '🎯', color: '#6b7280' },
-    { id: 'lw-1', name: 'Health', emoji: '💪', color: '#10b981' },
-    { id: 'lw-2', name: 'Career', emoji: '💼', color: '#3b82f6' },
-    { id: 'lw-3', name: 'Finance', emoji: '💰', color: '#f59e0b' },
-    { id: 'lw-4', name: 'Growth', emoji: '📚', color: '#8b5cf6' },
-    { id: 'lw-5', name: 'Family & Romance', emoji: '❤️', color: '#ef4444' },
-    { id: 'lw-6', name: 'Friends', emoji: '👥', color: '#ec4899' },
-    { id: 'lw-7', name: 'Fun', emoji: '🎉', color: '#14b8a6' },
-    { id: 'lw-8', name: 'Environment', emoji: '🌍', color: '#84cc16' },
+    { id: 'all', name: 'All', icon: 'target', color: '#6b7280' },
+    { id: 'lw-1', name: 'Health', icon: 'arm-flex-outline', color: '#10b981' },
+    { id: 'lw-2', name: 'Career', icon: 'briefcase-outline', color: '#3b82f6' },
+    { id: 'lw-3', name: 'Finance', icon: 'cash-multiple', color: '#f59e0b' },
+    { id: 'lw-4', name: 'Growth', icon: 'book-open-variant', color: '#8b5cf6' },
+    { id: 'lw-5', name: 'Family & Romance', icon: 'heart-outline', color: '#ef4444' },
+    { id: 'lw-6', name: 'Friends', icon: 'account-group-outline', color: '#ec4899' },
+    { id: 'lw-7', name: 'Fun', icon: 'party-popper', color: '#14b8a6' },
+    { id: 'lw-8', name: 'Environment', icon: 'earth', color: '#84cc16' },
 ];
 
 export default function TemplatesScreen() {
@@ -167,14 +167,14 @@ export default function TemplatesScreen() {
         switch (sourceTab) {
             case 'global': return 'No global templates available';
             case 'my': return 'You haven\'t created any templates yet';
-            case 'favorites': return 'Tap ❤️ on templates to add them here!';
-            case 'rated': return 'Rate templates with ⭐ to see them here!';
+            case 'favorites': return 'Tap the heart on templates to add them here!';
+            case 'rated': return 'Rate templates to see them here!';
             default: return 'No templates found';
         }
     };
 
     const getWheelConfig = (areaId: string) => {
-        return LIFE_WHEEL_CONFIG[areaId] || { color: '#6b7280', name: 'General', emoji: '📋' };
+        return LIFE_WHEEL_CONFIG[areaId] || { color: '#6b7280', name: 'General', emoji: 'clipboard-text-outline' };
     };
 
     // Render minimal template item
@@ -351,10 +351,10 @@ export default function TemplatesScreen() {
                     >
                         {/* Source Tabs */}
                         {[
-                            { key: 'global', label: '🌐', fullLabel: 'Global' },
-                            { key: 'my', label: '👤', fullLabel: 'Mine' },
-                            { key: 'favorites', label: '❤️', fullLabel: 'Favs' },
-                            { key: 'rated', label: '⭐', fullLabel: 'Rated' },
+                            { key: 'global', label: 'Global', icon: 'earth' },
+                            { key: 'my', label: 'Mine', icon: 'account-outline' },
+                            { key: 'favorites', label: 'Favs', icon: 'heart-outline' },
+                            { key: 'rated', label: 'Rated', icon: 'star-outline' },
                         ].map((tab, idx) => (
                             <React.Fragment key={tab.key}>
                                 <TouchableOpacity
@@ -367,7 +367,7 @@ export default function TemplatesScreen() {
                                             ? (isDark ? colors.primary : '#2563EB')
                                             : (isDark ? colors.textSecondary : '#FFFFFF')
                                     }}>
-                                        {tab.label} {tab.fullLabel}
+                                        {tab.label}
                                     </Text>
                                 </TouchableOpacity>
                                 {idx < 3 && (
@@ -424,7 +424,7 @@ export default function TemplatesScreen() {
                                     : { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }
                                 }
                             >
-                                <Text className="text-xs">{area.emoji}</Text>
+                                <MaterialCommunityIcons name={area.icon as any} size={14} color={isSelected ? '#FFFFFF' : colors.textSecondary} />
                                 <Text className={`text-xs font-medium ml-1`} style={{
                                     color: isSelected ? '#FFFFFF' : colors.textSecondary
                                 }}>

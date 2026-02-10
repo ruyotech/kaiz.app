@@ -68,9 +68,9 @@ export default function LeaderboardScreen() {
     ];
     
     const getRankIcon = (rank: number) => {
-        if (rank === 1) return '🥇';
-        if (rank === 2) return '🥈';
-        if (rank === 3) return '🥉';
+        if (rank === 1) return '1st';
+        if (rank === 2) return '2nd';
+        if (rank === 3) return '3rd';
         return `${rank}`;
     };
     
@@ -249,17 +249,17 @@ export default function LeaderboardScreen() {
                     {/* Rewards Section */}
                     <Card className="mt-4">
                         <View className="items-center">
-                            <Text className="text-4xl mb-2">🏆</Text>
+                            <MaterialCommunityIcons name="trophy" size={40} color="#f59e0b" />
                             <Text className="text-lg font-bold mb-2" style={{ color: colors.text }}>Rewards & Badges</Text>
                             <Text className="text-center mb-3" style={{ color: colors.textSecondary }}>
                                 Earn badges and unlock rewards as you climb the leaderboard
                             </Text>
                             <View className="flex-row gap-2">
-                                <Text className="text-2xl">🥇</Text>
-                                <Text className="text-2xl">🥈</Text>
-                                <Text className="text-2xl">🥉</Text>
-                                <Text className="text-2xl">⭐</Text>
-                                <Text className="text-2xl">🔥</Text>
+                                <MaterialCommunityIcons name="medal" size={28} color="#fbbf24" />
+                                <MaterialCommunityIcons name="medal" size={28} color="#9ca3af" />
+                                <MaterialCommunityIcons name="medal" size={28} color="#b45309" />
+                                <MaterialCommunityIcons name="star" size={28} color="#f59e0b" />
+                                <MaterialCommunityIcons name="fire" size={28} color="#ef4444" />
                             </View>
                         </View>
                     </Card>

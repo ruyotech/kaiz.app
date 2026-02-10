@@ -125,7 +125,7 @@ export default function TemplatesScreen() {
             >
                 {sortedTemplates.length === 0 ? (
                     <EmptyState
-                        icon="🎯"
+                        icon="target"
                         title="No Templates Found"
                         message="Try selecting a different category"
                     />
@@ -155,7 +155,7 @@ export default function TemplatesScreen() {
                                             {template.suggestedDuration} days
                                         </Badge>
                                         <Badge variant="info">
-                                            ⭐ {template.popularityScore}
+                                             {template.popularityScore}
                                         </Badge>
                                     </View>
                                 </View>
@@ -168,7 +168,7 @@ export default function TemplatesScreen() {
                             >
                                 <View className="flex-row items-center mb-1">
                                     <Text className="text-sm" style={{ color: colors.textSecondary }}>
-                                        📊 {template.metricType === 'count' && `${template.targetValue} ${template.unit}`}
+                                         {template.metricType === 'count' && `${template.targetValue} ${template.unit}`}
                                         {template.metricType === 'time' && `${template.targetValue} ${template.unit}`}
                                         {template.metricType === 'yesno' && 'Yes/No tracking'}
                                         {template.metricType === 'streak' && 'Streak tracking'}
@@ -176,7 +176,7 @@ export default function TemplatesScreen() {
                                     </Text>
                                 </View>
                                 <Text className="text-sm" style={{ color: colors.textSecondary }}>
-                                    🔁 {template.recurrence.charAt(0).toUpperCase() + template.recurrence.slice(1)}
+                                    {template.recurrence.charAt(0).toUpperCase() + template.recurrence.slice(1)}
                                 </Text>
                             </View>
                             

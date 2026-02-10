@@ -202,7 +202,7 @@ export function VelocityChart({ velocity, onMemberPress }: VelocityChartProps) {
                                 <View className="flex-row items-center">
                                     {member.streak > 0 && (
                                         <View className="flex-row items-center mr-2">
-                                            <Text className="text-xs">🔥</Text>
+                                            <Text className="text-xs"></Text>
                                             <Text 
                                                 className="text-xs font-bold ml-0.5"
                                                 style={{ color: '#F59E0B' }}

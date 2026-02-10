@@ -380,8 +380,8 @@ export function CreateFromTemplateSheet({
     // Get current life wheel config
     const currentWheelAreaId = selectedLifeWheelAreaId || template?.defaultLifeWheelAreaId;
     const currentWheelConfig = currentWheelAreaId 
-        ? LIFE_WHEEL_CONFIG[currentWheelAreaId] || { color: '#6b7280', name: 'General', emoji: '📋' }
-        : { color: '#6b7280', name: 'General', emoji: '📋' };
+        ? LIFE_WHEEL_CONFIG[currentWheelAreaId] || { color: '#6b7280', name: 'General', emoji: 'clipboard-text-outline' }
+        : { color: '#6b7280', name: 'General', emoji: 'clipboard-text-outline' };
 
     if (!template) return null;
 
@@ -667,7 +667,7 @@ export function CreateFromTemplateSheet({
                             {/* AI Refinement */}
                             <View className="flex-row items-center justify-between mb-4 rounded-xl px-4 py-3" style={{ backgroundColor: isDark ? colors.backgroundTertiary : '#faf5ff' }}>
                                 <View className="flex-row items-center flex-1">
-                                    <Text className="text-xl">✨</Text>
+                                    <Text className="text-xl"></Text>
                                     <View className="ml-3 flex-1">
                                         <Text className="font-medium" style={{ color: colors.text }}>AI Refinement</Text>
                                         <Text className="text-xs" style={{ color: colors.textSecondary }}>

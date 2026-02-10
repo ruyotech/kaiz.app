@@ -559,12 +559,12 @@ export default function DraftDetailScreen() {
     try {
       if (params.draft) {
         const parsed = JSON.parse(params.draft);
-        logger.log('📋 [DraftDetail] Parsed draft:', JSON.stringify(parsed, null, 2));
+        logger.log('[DraftDetail] Parsed draft:', JSON.stringify(parsed, null, 2));
         return parsed;
       }
       return null;
     } catch (e) {
-      logger.error('❌ [DraftDetail] Failed to parse draft:', e);
+      logger.error('[DraftDetail] Failed to parse draft:', e);
       return null;
     }
   }, [params.draft]);
@@ -644,14 +644,14 @@ export default function DraftDetailScreen() {
           { id: 'eq-4', name: 'Eliminate', label: 'Not Urgent & Not Important', color: '#6B7280' },
         ]);
         setLifeWheelAreas([
-          { id: 'lw-1', name: 'Health & Fitness', icon: '💪', color: '#10B981' },
-          { id: 'lw-2', name: 'Career & Work', icon: '💼', color: '#3B82F6' },
-          { id: 'lw-3', name: 'Finance & Money', icon: '💰', color: '#F59E0B' },
-          { id: 'lw-4', name: 'Personal Growth', icon: '📚', color: '#8B5CF6' },
-          { id: 'lw-5', name: 'Relationships & Family', icon: '❤️', color: '#EF4444' },
-          { id: 'lw-6', name: 'Social Life', icon: '👥', color: '#EC4899' },
-          { id: 'lw-7', name: 'Fun & Recreation', icon: '🎮', color: '#14B8A6' },
-          { id: 'lw-8', name: 'Environment & Home', icon: '🏡', color: '#84CC16' },
+          { id: 'lw-1', name: 'Health & Fitness', icon: 'arm-flex-outline', color: '#10B981' },
+          { id: 'lw-2', name: 'Career & Work', icon: 'briefcase-outline', color: '#3B82F6' },
+          { id: 'lw-3', name: 'Finance & Money', icon: 'cash-multiple', color: '#F59E0B' },
+          { id: 'lw-4', name: 'Personal Growth', icon: 'book-open-variant', color: '#8B5CF6' },
+          { id: 'lw-5', name: 'Relationships & Family', icon: 'heart-outline', color: '#EF4444' },
+          { id: 'lw-6', name: 'Social Life', icon: 'account-group-outline', color: '#EC4899' },
+          { id: 'lw-7', name: 'Fun & Recreation', icon: 'gamepad-variant-outline', color: '#14B8A6' },
+          { id: 'lw-8', name: 'Environment & Home', icon: 'home-outline', color: '#84CC16' },
         ]);
       }
     };
@@ -733,7 +733,7 @@ export default function DraftDetailScreen() {
       if (response.success && response.data) {
         const { taskId } = response.data;
         Alert.alert(
-          '✅ Added to Pending',
+          'Added to Pending',
           `${typeName} "${formData.title}" has been saved for approval.`,
           [
             {
@@ -757,7 +757,7 @@ export default function DraftDetailScreen() {
         throw new Error((typeof response.error === 'string' ? response.error : 'Failed to save to pending'));
       }
     } catch (error: unknown) {
-      logger.error('❌ [DraftDetail] Error saving to pending:', error);
+      logger.error('[DraftDetail] Error saving to pending:', error);
       Alert.alert('Error', error instanceof Error ? error.message : 'Failed to save. Please try again.');
     } finally {
       setProcessingAction(null);
@@ -797,7 +797,7 @@ export default function DraftDetailScreen() {
       
       if (response.success) {
         Alert.alert(
-          '✅ Created!',
+          'Created!',
           `${typeName} "${formData.title}" has been created successfully.`,
           [
             {
@@ -1062,7 +1062,7 @@ export default function DraftDetailScreen() {
               className="w-10 h-10 rounded-xl items-center justify-center mr-3"
               style={{ backgroundColor: (selectedLifeWheelArea?.color || '#F43F5E') + '20' }}
             >
-              <Text style={{ fontSize: 18 }}>{selectedLifeWheelArea?.icon || '🎯'}</Text>
+              <MaterialCommunityIcons name={(selectedLifeWheelArea?.icon && selectedLifeWheelArea.icon.length > 2 ? selectedLifeWheelArea.icon : 'target') as any} size={18} color={colors.text} />
             </View>
             <View className="flex-1">
               <Text className="text-xs text-gray-500 uppercase tracking-wide mb-1">Life Wheel Area</Text>
@@ -1156,7 +1156,7 @@ export default function DraftDetailScreen() {
                     className="w-10 h-10 rounded-xl items-center justify-center mr-3"
                     style={{ backgroundColor: area.color + '30' }}
                   >
-                    <Text style={{ fontSize: 18 }}>{area.icon}</Text>
+                    <MaterialCommunityIcons name={(area.icon && area.icon.length > 2 ? area.icon : 'circle-outline') as any} size={18} color={colors.text} />
                   </View>
                   <View className="flex-1">
                     <Text className="font-semibold text-gray-900">{area.name}</Text>

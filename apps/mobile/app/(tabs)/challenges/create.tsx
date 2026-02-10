@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TextInput, TouchableOpacity, Switch, Alert } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Container } from '../../../components/layout/Container';
 import { ScreenHeader } from '../../../components/layout/ScreenHeader';
@@ -9,15 +10,15 @@ import { useChallengeStore } from '../../../store/challengeStore';
 import { Challenge, ChallengeMetricType, ChallengeRecurrence } from '../../../types/models';
 
 const LIFE_WHEEL_AREAS = [
-    { id: 'life-health', name: 'Health', icon: '💪', color: '#10b981' },
-    { id: 'life-career', name: 'Career', icon: '💼', color: '#3b82f6' },
-    { id: 'life-finance', name: 'Finance', icon: '💰', color: '#f59e0b' },
-    { id: 'life-family', name: 'Family', icon: '👨‍👩‍👧‍👦', color: '#ec4899' },
-    { id: 'life-romance', name: 'Romance', icon: '❤️', color: '#ef4444' },
-    { id: 'life-friends', name: 'Friends', icon: '👥', color: '#8b5cf6' },
-    { id: 'life-growth', name: 'Growth', icon: '🌱', color: '#06b6d4' },
-    { id: 'life-fun', name: 'Fun', icon: '🎉', color: '#f97316' },
-    { id: 'life-environment', name: 'Environment', icon: '🏡', color: '#84cc16' },
+    { id: 'life-health', name: 'Health', icon: 'arm-flex-outline', color: '#10b981' },
+    { id: 'life-career', name: 'Career', icon: 'briefcase-outline', color: '#3b82f6' },
+    { id: 'life-finance', name: 'Finance', icon: 'cash-multiple', color: '#f59e0b' },
+    { id: 'life-family', name: 'Family', icon: 'account-supervisor-outline', color: '#ec4899' },
+    { id: 'life-romance', name: 'Romance', icon: 'heart-outline', color: '#ef4444' },
+    { id: 'life-friends', name: 'Friends', icon: 'account-group-outline', color: '#8b5cf6' },
+    { id: 'life-growth', name: 'Growth', icon: 'sprout-outline', color: '#06b6d4' },
+    { id: 'life-fun', name: 'Fun', icon: 'party-popper', color: '#f97316' },
+    { id: 'life-environment', name: 'Environment', icon: 'home-outline', color: '#84cc16' },
 ];
 
 const METRIC_TYPES: { id: ChallengeMetricType; name: string; description: string }[] = [
@@ -223,7 +224,7 @@ export default function CreateChallengeScreen() {
                                         challengeType === 'solo' ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
                                     }`}
                                 >
-                                    <Text className="text-center text-2xl mb-1">🧘</Text>
+                                    <MaterialCommunityIcons name="meditation" size={28} color={challengeType === 'solo' ? '#2563eb' : '#6b7280'} />
                                     <Text className="text-center font-semibold">Solo</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity
@@ -232,7 +233,7 @@ export default function CreateChallengeScreen() {
                                         challengeType === 'group' ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
                                     }`}
                                 >
-                                    <Text className="text-center text-2xl mb-1">👥</Text>
+                                    <Text className="text-center text-2xl mb-1"></Text>
                                     <Text className="text-center font-semibold">Group</Text>
                                 </TouchableOpacity>
                             </View>
@@ -461,7 +462,7 @@ export default function CreateChallengeScreen() {
                         </Card>
                         
                         <Card className="mb-4">
-                            <Text className="font-semibold mb-2">📊 Tracking</Text>
+                            <Text className="font-semibold mb-2">Tracking</Text>
                             <Text className="text-gray-700">
                                 {metricType === 'count' && `Count ${targetValue} ${unit}`}
                                 {metricType === 'time' && `Track ${targetValue} ${unit}`}
@@ -473,20 +474,20 @@ export default function CreateChallengeScreen() {
                         
                         {whyStatement && (
                             <Card className="mb-4">
-                                <Text className="font-semibold mb-2">💭 Why</Text>
+                                <Text className="font-semibold mb-2">Why</Text>
                                 <Text className="text-gray-700">{whyStatement}</Text>
                             </Card>
                         )}
                         
                         {rewardDescription && (
                             <Card className="mb-4">
-                                <Text className="font-semibold mb-2">🎁 Reward</Text>
+                                <Text className="font-semibold mb-2">Reward</Text>
                                 <Text className="text-gray-700">{rewardDescription}</Text>
                             </Card>
                         )}
                         
                         <Card className="mb-4">
-                            <Text className="font-semibold mb-2">⚙️ Settings</Text>
+                            <Text className="font-semibold mb-2">Settings</Text>
                             <Text className="text-gray-700 mb-1">Grace Days: {graceDays}</Text>
                             <Text className="text-gray-700 mb-1">
                                 Sprint Integration: {sprintIntegration ? `Yes (${pointValue} pts)` : 'No'}

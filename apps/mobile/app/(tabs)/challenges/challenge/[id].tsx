@@ -219,7 +219,7 @@ export default function ChallengeDetailScreen() {
                 {/* Reward Display */}
                 {challenge.rewardDescription && (
                     <Card className="mb-4 bg-yellow-50">
-                        <Text className="text-sm text-gray-600 mb-1">🎁 Reward:</Text>
+                        <Text className="text-sm text-gray-600 mb-1">Reward:</Text>
                         <Text className="text-base font-semibold">{challenge.rewardDescription}</Text>
                     </Card>
                 )}

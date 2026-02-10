@@ -192,7 +192,7 @@ export default function SupportCircleScreen() {
                         
                         {partners.length === 0 ? (
                             <View className="items-center justify-center py-12 bg-white rounded-2xl">
-                                <Text className="text-5xl mb-4">🤝</Text>
+                                <MaterialCommunityIcons name="handshake-outline" size={48} color="#9ca3af" />
                                 <Text className="text-gray-500 text-base text-center mb-2">
                                     No accountability partners yet
                                 </Text>

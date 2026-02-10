@@ -101,7 +101,7 @@ export function LogEntryModal({ visible, challenge, onClose, onSubmit }: LogEntr
                     {challenge.metricType === 'streak' && (
                         <View className="mb-6 bg-orange-50 rounded-lg p-4">
                             <Text className="text-center text-lg">
-                                🔥 Keep your streak alive!
+                                Keep your streak alive!
                             </Text>
                             <Text className="text-center text-gray-600 mt-2">
                                 Tap "Log Entry" to mark today as complete

@@ -79,7 +79,7 @@ async function getFileInfo(uri: string): Promise<{ size: number; exists: boolean
             size: info.exists && 'size' in info ? info.size : 0,
         };
     } catch (error) {
-        logger.error('❌ Error getting file info:', error);
+        logger.error('Error getting file info:', error);
         return { exists: false, size: 0 };
     }
 }
@@ -144,7 +144,7 @@ function formatDuration(seconds: number): string {
  * Log attachment info for debugging/verification
  */
 function logAttachmentInfo(attachment: Attachment, label: string = 'Attachment'): void {
-    logger.log(`\n📎 ===== ${label} =====`);
+    logger.log(`\n===== ${label} =====`);
     logger.log(`   URI: ${attachment.uri}`);
     logger.log(`   Type: ${attachment.type}`);
     logger.log(`   Name: ${attachment.name}`);
@@ -191,7 +191,7 @@ export function ChatInput({
     
     // Audio recorder using the new expo-audio hook
     const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY, (status) => {
-        logger.log('🎤 [Voice] Recording status:', status);
+        logger.log('[Voice] Recording status:', status);
     });
     
     // Audio player for playback preview (null source when not playing)
@@ -254,7 +254,7 @@ export function ChatInput({
     
     const handleCamera = useCallback(async () => {
         try {
-            logger.log('📷 [Camera] Checking permissions...');
+            logger.log('[Camera] Checking permissions...');
             
             // Use the hook-based permission
             if (!cameraPermission?.granted) {
@@ -269,7 +269,7 @@ export function ChatInput({
                 }
             }
             
-            logger.log('📷 [Camera] Launching camera...');
+            logger.log('[Camera] Launching camera...');
             const result = await ImagePicker.launchCameraAsync({
                 allowsEditing: true,
                 quality: 0.8,
@@ -277,12 +277,12 @@ export function ChatInput({
             });
             
             if (result.canceled) {
-                logger.log('📷 [Camera] User cancelled');
+                logger.log('[Camera] User cancelled');
                 return;
             }
             
             const asset = result.assets[0];
-            logger.log('📷 [Camera] Photo captured:', asset.uri);
+            logger.log('[Camera] Photo captured:', asset.uri);
             
             // Get file info for normalization
             const fileInfo = await getFileInfo(asset.uri);
@@ -304,7 +304,7 @@ export function ChatInput({
                 Alert.alert('Limit Reached', `Maximum ${maxAttachments} attachments allowed.`);
             }
         } catch (error) {
-            logger.error('📷 [Camera] Error:', error);
+            logger.error('[Camera] Error:', error);
             Alert.alert('Error', 'Failed to capture photo. Please try again.');
         }
     }, [cameraPermission, requestCameraPermission, attachments.length, maxAttachments]);
@@ -315,7 +315,7 @@ export function ChatInput({
     
     const handleGallery = useCallback(async () => {
         try {
-            logger.log('🖼️ [Gallery] Checking permissions...');
+            logger.log('[Gallery] Checking permissions...');
             
             // Use the hook-based permission
             if (!mediaLibraryPermission?.granted) {
@@ -330,7 +330,7 @@ export function ChatInput({
                 }
             }
             
-            logger.log('🖼️ [Gallery] Launching image library...');
+            logger.log('[Gallery] Launching image library...');
             const result = await ImagePicker.launchImageLibraryAsync({
                 mediaTypes: ['images'],
                 allowsMultipleSelection: true,
@@ -340,11 +340,11 @@ export function ChatInput({
             });
             
             if (result.canceled) {
-                logger.log('🖼️ [Gallery] User cancelled');
+                logger.log('[Gallery] User cancelled');
                 return;
             }
             
-            logger.log(`🖼️ [Gallery] Selected ${result.assets.length} image(s)`);
+            logger.log(`[Gallery] Selected ${result.assets.length} image(s)`);
             
             const newAttachments: Attachment[] = [];
             
@@ -373,7 +373,7 @@ export function ChatInput({
             
             setAttachments(prev => [...prev, ...toAdd]);
         } catch (error) {
-            logger.error('🖼️ [Gallery] Error:', error);
+            logger.error('[Gallery] Error:', error);
             Alert.alert('Error', 'Failed to access photo library. Please try again.');
         }
     }, [mediaLibraryPermission, requestMediaLibraryPermission, attachments.length, maxAttachments]);
@@ -384,7 +384,7 @@ export function ChatInput({
     
     const handleFilePicker = useCallback(async () => {
         try {
-            logger.log('📄 [File] Launching document picker...');
+            logger.log('[File] Launching document picker...');
             
             const result = await DocumentPicker.getDocumentAsync({
                 type: '*/*',
@@ -393,11 +393,11 @@ export function ChatInput({
             });
             
             if (result.canceled) {
-                logger.log('📄 [File] User cancelled');
+                logger.log('[File] User cancelled');
                 return;
             }
             
-            logger.log(`📄 [File] Selected ${result.assets.length} file(s)`);
+            logger.log(`[File] Selected ${result.assets.length} file(s)`);
             
             const newAttachments: Attachment[] = [];
             
@@ -406,7 +406,7 @@ export function ChatInput({
                 const fileInfo = await getFileInfo(asset.uri);
                 
                 if (!fileInfo.exists) {
-                    logger.warn(`📄 [File] File not accessible: ${asset.uri}`);
+                    logger.warn(`[File] File not accessible: ${asset.uri}`);
                     continue;
                 }
                 
@@ -431,7 +431,7 @@ export function ChatInput({
             
             setAttachments(prev => [...prev, ...toAdd]);
         } catch (error) {
-            logger.error('📄 [File] Error:', error);
+            logger.error('[File] Error:', error);
             Alert.alert('Error', 'Failed to pick file. Please try again.');
         }
     }, [attachments.length, maxAttachments]);
@@ -442,7 +442,7 @@ export function ChatInput({
     
     const startRecording = useCallback(async () => {
         try {
-            logger.log('🎤 [Voice] Requesting microphone permission...');
+            logger.log('[Voice] Requesting microphone permission...');
             
             // Request permission using the new expo-audio module
             const permissionStatus = await requestRecordingPermissionsAsync();
@@ -456,12 +456,12 @@ export function ChatInput({
                 return;
             }
             
-            logger.log('🎤 [Voice] Preparing recorder...');
+            logger.log('[Voice] Preparing recorder...');
             
             // Prepare the recorder before starting (required in SDK 54)
             await audioRecorder.prepareToRecordAsync();
             
-            logger.log('🎤 [Voice] Starting recording...');
+            logger.log('[Voice] Starting recording...');
             
             // Use the recorder from useAudioRecorder hook
             audioRecorder.record();
@@ -469,23 +469,23 @@ export function ChatInput({
             setIsRecording(true);
             setRecordingDuration(0);
             
-            logger.log('🎤 [Voice] Recording started');
+            logger.log('[Voice] Recording started');
         } catch (error) {
-            logger.error('🎤 [Voice] Error starting recording:', error);
+            logger.error('[Voice] Error starting recording:', error);
             Alert.alert('Error', 'Failed to start recording. Please try again.');
         }
     }, [audioRecorder]);
     
     const stopRecording = useCallback(async (save: boolean = true) => {
         try {
-            logger.log(`🎤 [Voice] Stopping recording (save: ${save})...`);
+            logger.log(`[Voice] Stopping recording (save: ${save})...`);
             
             // Stop the recording
             await audioRecorder.stop();
             
             if (save && audioRecorder.uri) {
                 const uri = audioRecorder.uri;
-                logger.log('🎤 [Voice] Recording saved to:', uri);
+                logger.log('[Voice] Recording saved to:', uri);
                 
                 // Get file info
                 const fileInfo = await getFileInfo(uri);
@@ -507,13 +507,13 @@ export function ChatInput({
                     Alert.alert('Limit Reached', `Maximum ${maxAttachments} attachments allowed.`);
                 }
             } else {
-                logger.log('🎤 [Voice] Recording discarded');
+                logger.log('[Voice] Recording discarded');
             }
             
             setIsRecording(false);
             setRecordingDuration(0);
         } catch (error) {
-            logger.error('🎤 [Voice] Error stopping recording:', error);
+            logger.error('[Voice] Error stopping recording:', error);
             setIsRecording(false);
             setRecordingDuration(0);
         }
@@ -566,7 +566,7 @@ export function ChatInput({
             return;
         }
         
-        logger.log('\n📤 ===== SENDING MESSAGE =====');
+        logger.log('\n===== SENDING MESSAGE =====');
         logger.log(`   Message: "${message.trim()}"`);
         logger.log(`   Attachments: ${attachments.length}`);
         attachments.forEach((att, i) => {
@@ -796,9 +796,9 @@ export function ChatInput({
  */
 export function ChatInputDemo() {
     const handleSend = (message: string, attachments: Attachment[]) => {
-        logger.log('\n🚀 ========== DEMO: Message Received ==========');
-        logger.log(`📝 Message: "${message}"`);
-        logger.log(`📎 Attachments Count: ${attachments.length}`);
+        logger.log('\n========== DEMO: Message Received ==========');
+        logger.log(`Message: "${message}"`);
+        logger.log(`Attachments Count: ${attachments.length}`);
         
         attachments.forEach((att, i) => {
             logger.log(`\n--- Attachment ${i + 1} ---`);
@@ -810,12 +810,12 @@ export function ChatInputDemo() {
             
             // Verify the file is accessible
             FileSystem.getInfoAsync(att.uri).then(info => {
-                logger.log(`  ✅ File exists: ${info.exists}`);
+                logger.log(`  File exists: ${info.exists}`);
                 if (info.exists && 'size' in info) {
-                    logger.log(`  ✅ Verified size: ${info.size} bytes`);
+                    logger.log(`  Verified size: ${info.size} bytes`);
                 }
             }).catch(err => {
-                logger.log(`  ❌ File access error: ${err.message}`);
+                logger.log(`  File access error: ${err.message}`);
             });
         });
         

@@ -98,7 +98,7 @@ export function KudosModal({ visible, onClose, recipient }: KudosModalProps) {
                                     className="w-24 h-24 rounded-full items-center justify-center mb-6"
                                     style={{ backgroundColor: '#10B98120' }}
                                 >
-                                    <Text className="text-5xl">🎉</Text>
+                                    <Text className="text-5xl"></Text>
                                 </View>
                                 <Text 
                                     className="text-2xl font-bold text-center mb-2"
@@ -110,7 +110,7 @@ export function KudosModal({ visible, onClose, recipient }: KudosModalProps) {
                                     className="text-base text-center"
                                     style={{ color: colors.textSecondary }}
                                 >
-                                    {recipient.displayName} will be so happy! 💜
+                                    {recipient.displayName} will be so happy!
                                 </Text>
                             </View>
                         ) : (
@@ -166,7 +166,7 @@ export function KudosModal({ visible, onClose, recipient }: KudosModalProps) {
                                             className="text-sm mt-1"
                                             style={{ color: colors.textSecondary }}
                                         >
-                                            Send some encouragement! 💪
+                                            Send some encouragement!
                                         </Text>
                                     </View>
                                     

@@ -3,7 +3,7 @@
  *
  * Features:
  * - Multi-line text input (type multiple task ideas, one per line)
- * - "✨ Generate with AI" sends lines to /command-center/sprint-quick-add
+ * - "Generate with AI" sends lines to /command-center/sprint-quick-add
  * - Editable draft cards with AI-suggested metadata
  * - "Add All" / individual toggle to select drafts
  * - Manual fallback toggle (create without AI enrichment)
@@ -56,14 +56,14 @@ interface PlanningQuickAddTabProps {
 }
 
 const DIMENSION_META: Record<string, { emoji: string; name: string; color: string }> = {
-  'lw-1': { emoji: '💪', name: 'Health', color: '#10b981' },
-  'lw-2': { emoji: '💼', name: 'Career', color: '#3b82f6' },
-  'lw-3': { emoji: '💰', name: 'Finance', color: '#f59e0b' },
-  'lw-4': { emoji: '📚', name: 'Growth', color: '#8b5cf6' },
-  'lw-5': { emoji: '❤️', name: 'Family', color: '#ef4444' },
-  'lw-6': { emoji: '👥', name: 'Friends', color: '#ec4899' },
-  'lw-7': { emoji: '🎉', name: 'Fun', color: '#14b8a6' },
-  'lw-8': { emoji: '🌍', name: 'Environment', color: '#84cc16' },
+  'lw-1': { emoji: 'arm-flex-outline', name: 'Health', color: '#10b981' },
+  'lw-2': { emoji: 'briefcase-outline', name: 'Career', color: '#3b82f6' },
+  'lw-3': { emoji: 'cash-multiple', name: 'Finance', color: '#f59e0b' },
+  'lw-4': { emoji: 'book-open-variant', name: 'Growth', color: '#8b5cf6' },
+  'lw-5': { emoji: 'heart-outline', name: 'Family', color: '#ef4444' },
+  'lw-6': { emoji: 'account-group-outline', name: 'Friends', color: '#ec4899' },
+  'lw-7': { emoji: 'party-popper', name: 'Fun', color: '#14b8a6' },
+  'lw-8': { emoji: 'earth', name: 'Environment', color: '#84cc16' },
 };
 
 export const PlanningQuickAddTab = React.memo(function PlanningQuickAddTab({
@@ -266,7 +266,7 @@ export const PlanningQuickAddTab = React.memo(function PlanningQuickAddTab({
                 {useAI && <MaterialCommunityIcons name="check" size={14} color="#FFFFFF" />}
               </View>
               <Text className="text-sm" style={{ color: colors.text }}>
-                ✨ Enrich with AI (auto-assign life area, points, priority)
+                Enrich with AI (auto-assign life area, points, priority)
               </Text>
             </TouchableOpacity>
 
@@ -290,7 +290,7 @@ export const PlanningQuickAddTab = React.memo(function PlanningQuickAddTab({
                     color="#FFFFFF"
                   />
                   <Text className="text-white font-bold ml-2">
-                    {useAI ? '✨ Generate with AI' : 'Create Drafts'}
+                    {useAI ? 'Generate with AI' : 'Create Drafts'}
                   </Text>
                 </>
               )}
@@ -361,7 +361,7 @@ export const PlanningQuickAddTab = React.memo(function PlanningQuickAddTab({
                         </View>
                         {draft.aiEnriched && (
                           <View className="flex-row items-center px-2 py-0.5 rounded-full" style={{ backgroundColor: '#8b5cf620' }}>
-                            <Text className="text-xs" style={{ color: '#8b5cf6' }}>✨ AI</Text>
+                            <Text className="text-xs" style={{ color: '#8b5cf6' }}>AI</Text>
                           </View>
                         )}
                         {draft.tags.slice(0, 2).map(tag => (

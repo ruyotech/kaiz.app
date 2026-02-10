@@ -259,7 +259,7 @@ function DraftPreviewCard({ draft, onApprove, onReject, onEdit, onPress, onConfi
   const buildDraftDataObject = () => {
     const draftDetails = draft.draft as any;
     
-    logger.log('🔄 [ChatMessage] Building draft data:');
+    logger.log('[ChatMessage] Building draft data:');
     logger.log('  - draft:', JSON.stringify(draft, null, 2));
     logger.log('  - draftDetails:', JSON.stringify(draftDetails, null, 2));
     
@@ -274,7 +274,7 @@ function DraftPreviewCard({ draft, onApprove, onReject, onEdit, onPress, onConfi
     const titleDescReasoning = `${draft.title || ''} ${draft.description || ''} ${draftDetails?.description || ''} ${draft.reasoning || ''}`;
     const extractedFromText = extractTimeFromText(titleDescReasoning);
     if (extractedFromText.date || extractedFromText.startTime) {
-      logger.log('🕐 [ChatMessage] Extracted time from text:', extractedFromText);
+      logger.log('[ChatMessage] Extracted time from text:', extractedFromText);
     }
     
     // For events, parse startTime which might be ISO datetime
@@ -356,7 +356,7 @@ function DraftPreviewCard({ draft, onApprove, onReject, onEdit, onPress, onConfi
     try {
       const draftData = buildDraftDataObject();
       
-      logger.log('💾 [ChatMessage] Creating pending from draft data:', draftData.title);
+      logger.log('[ChatMessage] Creating pending from draft data:', draftData.title);
       
       // Use createPendingFromDraft which sends data directly (no session needed)
       // Backend uses `date` for events and `dueDate` for tasks
@@ -376,7 +376,7 @@ function DraftPreviewCard({ draft, onApprove, onReject, onEdit, onPress, onConfi
         isAllDay: draftData.isAllDay,
       });
       
-      logger.log('💾 [ChatMessage] Create pending result:', JSON.stringify(response));
+      logger.log('[ChatMessage] Create pending result:', JSON.stringify(response));
       
       if (response.success) {
         // Call onConfirmed callback to clear chat and show success message
@@ -397,7 +397,7 @@ function DraftPreviewCard({ draft, onApprove, onReject, onEdit, onPress, onConfi
   const handleCreateTask = () => {
     const draftData = buildDraftDataObject();
     
-    logger.log('🚀 [ChatMessage] Navigating to create-from-sensai with:', JSON.stringify(draftData, null, 2));
+    logger.log('[ChatMessage] Navigating to create-from-sensai with:', JSON.stringify(draftData, null, 2));
     
     router.push({
       pathname: '/(tabs)/command-center/create-from-sensai',
@@ -603,8 +603,8 @@ function ClarificationCard({ clarification }: { clarification: ChatMessageType['
 // ============================================================================
 
 function SystemMessage({ message }: { message: ChatMessageType }) {
-  const isSuccess = message.content.includes('✅');
-  const isError = message.content.includes('⚠️') || message.content.includes('❌');
+  const isSuccess = message.content.includes('successfully') || message.content.includes('created') || message.content.includes('saved to pending');
+  const isError = message.content.includes('rejected') || message.content.includes('error') || message.content.includes('failed');
   
   const bgColor = isSuccess ? 'bg-green-100' : isError ? 'bg-red-100' : 'bg-gray-200';
   const textColor = isSuccess ? 'text-green-700' : isError ? 'text-red-700' : 'text-gray-600';

@@ -173,7 +173,7 @@ export default function PomodoroSettings() {
         {/* Info */}
         <View className="mt-8 mb-8 bg-blue-600/10 border border-blue-600/30 rounded-xl p-4">
           <Text className="text-blue-400 text-sm leading-6">
-            💡 The Pomodoro Technique uses 25-minute focused work sessions followed by short breaks
+            The Pomodoro Technique uses 25-minute focused work sessions followed by short breaks
             to maintain productivity and prevent burnout.
           </Text>
         </View>

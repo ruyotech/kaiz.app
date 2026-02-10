@@ -104,7 +104,7 @@ export async function schedulePlanningNotification(
         await Notifications.scheduleNotificationAsync({
             identifier: PLANNING_NOTIFICATION_ID,
             content: {
-                title: '🌟 Sprint Planning Ceremony',
+                title: 'Sprint Planning Ceremony',
                 body: "It's Sunday — time to plan your week! Select tasks, balance your life wheel, and commit your sprint.",
                 data: { screen: '/(tabs)/sprints/planning', type: 'planning-ceremony' },
                 sound: 'default',
@@ -163,7 +163,7 @@ export async function scheduleMidWeekNudge(
         await Notifications.scheduleNotificationAsync({
             identifier: MIDWEEK_NUDGE_ID,
             content: {
-                title: '⚠️ Sprint Not Planned',
+                title: 'Sprint Not Planned',
                 body: "It's mid-week and your sprint isn't committed yet. Plan now to stay on track!",
                 data: { screen: '/(tabs)/sprints/planning', type: 'midweek-nudge' },
                 sound: 'default',
@@ -221,7 +221,7 @@ export async function scheduleStandupNotifications(
             await Notifications.scheduleNotificationAsync({
                 identifier: `${STANDUP_NOTIFICATION_ID}-${weekday}`,
                 content: {
-                    title: '☀️ Daily Standup',
+                    title: 'Daily Standup',
                     body: "Good morning! What's on your plate today? Check your sprint tasks.",
                     data: { screen: '/(tabs)/sprints/calendar', type: 'daily-standup' },
                     sound: 'default',

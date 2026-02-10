@@ -145,7 +145,7 @@ export default function EssentiaTodayScreen() {
                             <View className="flex-row items-center justify-between">
                                 <View>
                                     <View className="flex-row items-center">
-                                        <Text className="text-5xl mr-2">🔥</Text>
+                                        <Text className="text-5xl mr-2"></Text>
                                         <View>
                                             <Text className="text-3xl font-bold text-white">
                                                 {streak.currentStreak}

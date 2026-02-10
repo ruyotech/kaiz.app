@@ -43,12 +43,12 @@ const ACTIVITY_CONFIG: Record<FamilyActivityType, {
     epic_completed: {
         icon: 'flag-checkered',
         color: '#10B981',
-        getMessage: (a) => `completed epic "${a.targetName}" 🎉`,
+        getMessage: (a) => `completed epic "${a.targetName}"`,
     },
     member_joined: {
         icon: 'account-plus',
         color: '#06B6D4',
-        getMessage: (a) => `joined the family! 👋`,
+        getMessage: (a) => `joined the family!`,
     },
     member_left: {
         icon: 'account-minus',
@@ -58,7 +58,7 @@ const ACTIVITY_CONFIG: Record<FamilyActivityType, {
     kudos_sent: {
         icon: 'hand-clap',
         color: '#EC4899',
-        getMessage: (a) => `sent kudos to ${a.targetName} 💜`,
+        getMessage: (a) => `sent kudos to ${a.targetName}`,
     },
     ceremony_completed: {
         icon: 'calendar-check',
@@ -68,12 +68,12 @@ const ACTIVITY_CONFIG: Record<FamilyActivityType, {
     streak_milestone: {
         icon: 'fire',
         color: '#F59E0B',
-        getMessage: (a) => `reached a ${a.metadata?.streakDays}-day streak! 🔥`,
+        getMessage: (a) => `reached a ${a.metadata?.streakDays}-day streak!`,
     },
     independence_started: {
         icon: 'account-arrow-right-outline',
         color: '#8B5CF6',
-        getMessage: (a) => `started their independence journey 🦋`,
+        getMessage: (a) => `started their independence journey`,
     },
 };
 

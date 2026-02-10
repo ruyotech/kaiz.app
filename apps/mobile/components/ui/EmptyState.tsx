@@ -10,7 +10,7 @@ interface EmptyStateProps {
     onAction?: () => void;
 }
 
-export function EmptyState({ icon = '📭', title, message, action, actionLabel, onAction }: EmptyStateProps) {
+export function EmptyState({ icon = 'mailbox-open-outline', title, message, action, actionLabel, onAction }: EmptyStateProps) {
     return (
         <View className="flex-1 items-center justify-center p-8">
             <Text className="text-6xl mb-4">{icon}</Text>

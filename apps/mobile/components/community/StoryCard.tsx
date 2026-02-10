@@ -116,7 +116,7 @@ export const StoryCard = React.memo(function StoryCard({ story, onPress, onLike,
                     className={`flex-row items-center mr-4 ${story.isCelebratedByUser ? 'opacity-100' : 'opacity-70'}`}
                     onPress={onCelebrate}
                 >
-                    <Text className="text-lg">🎉</Text>
+                    <Text className="text-lg"></Text>
                     <Text className="text-sm ml-1" style={{ color: colors.textSecondary }}>{story.celebrateCount}</Text>
                 </TouchableOpacity>
                 

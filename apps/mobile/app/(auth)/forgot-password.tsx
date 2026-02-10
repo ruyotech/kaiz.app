@@ -77,7 +77,7 @@ export default function ForgotPasswordScreen() {
                             className="w-24 h-24 rounded-full items-center justify-center mb-6"
                             style={{ backgroundColor: colors.success + '20' }}
                         >
-                            <Text className="text-6xl">📧</Text>
+                            <Text className="text-6xl"></Text>
                         </View>
 
                         <Text 
@@ -109,7 +109,7 @@ export default function ForgotPasswordScreen() {
                                 className="text-sm text-center"
                                 style={{ color: colors.text }}
                             >
-                                💡 {t('auth.forgotPassword.linkExpiry')}
+                                {t('auth.forgotPassword.linkExpiry')}
                             </Text>
                         </View>
 
@@ -160,7 +160,7 @@ export default function ForgotPasswordScreen() {
                             className="w-20 h-20 rounded-full items-center justify-center mb-6"
                             style={{ backgroundColor: colors.warning + '20' }}
                         >
-                            <Text className="text-5xl">🔑</Text>
+                            <Text className="text-5xl"></Text>
                         </View>
 
                         <Text 

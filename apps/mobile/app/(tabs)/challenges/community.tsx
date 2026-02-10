@@ -31,7 +31,7 @@ export default function CommunityChallengesScreen() {
             id: 'comm-1',
             name: '10K Steps Daily',
             description: 'Walk 10,000 steps every day for 30 days',
-            lifeWheelArea: '💪 Health',
+            lifeWheelArea: 'Health',
             participants: 1247,
             startDate: '2026-02-01',
             duration: 30,
@@ -42,7 +42,7 @@ export default function CommunityChallengesScreen() {
             id: 'comm-2',
             name: 'Meditation Streak',
             description: '21 days of daily meditation practice',
-            lifeWheelArea: '📚 Growth',
+            lifeWheelArea: 'Growth',
             participants: 892,
             startDate: '2026-02-05',
             duration: 21,
@@ -53,7 +53,7 @@ export default function CommunityChallengesScreen() {
             id: 'comm-3',
             name: 'Reading Challenge',
             description: 'Read one book per week for 4 weeks',
-            lifeWheelArea: '📚 Growth',
+            lifeWheelArea: 'Growth',
             participants: 634,
             startDate: '2026-02-10',
             duration: 28,
@@ -63,7 +63,7 @@ export default function CommunityChallengesScreen() {
             id: 'comm-4',
             name: 'No Spending Week',
             description: '7 days without non-essential purchases',
-            lifeWheelArea: '💰 Finance',
+            lifeWheelArea: 'Finance',
             participants: 445,
             startDate: '2026-02-03',
             duration: 7,
@@ -74,13 +74,13 @@ export default function CommunityChallengesScreen() {
     
     const getMetricIcon = (type: string) => {
         const icons: Record<string, string> = {
-            count: '🔢',
-            yesno: '✓',
-            streak: '🔥',
-            time: '⏱️',
-            completion: '✅',
+            count: '#',
+            yesno: 'Y',
+            streak: 'S',
+            time: 'T',
+            completion: 'C',
         };
-        return icons[type] || '📊';
+        return icons[type] || 'M';
     };
     
     return (
@@ -140,7 +140,7 @@ export default function CommunityChallengesScreen() {
                         <>
                             {/* Featured Section */}
                             <View className="mb-6">
-                                <Text className="text-xl font-bold mb-3">🔥 Trending Now</Text>
+                                <Text className="text-xl font-bold mb-3">Trending Now</Text>
                                 {communityChallenges
                                     .filter(c => c.isTrending)
                                     .map(challenge => (
@@ -238,7 +238,7 @@ export default function CommunityChallengesScreen() {
                     
                     {activeTab === 'joined' && (
                         <View className="items-center py-12">
-                            <Text className="text-6xl mb-4">👥</Text>
+                            <Text className="text-6xl mb-4"></Text>
                             <Text className="text-xl font-bold mb-2">No Joined Challenges</Text>
                             <Text className="text-gray-600 text-center">
                                 Join a community challenge to see it here
@@ -248,7 +248,7 @@ export default function CommunityChallengesScreen() {
                     
                     {activeTab === 'friends' && (
                         <View className="items-center py-12">
-                            <Text className="text-6xl mb-4">🤝</Text>
+                             <MaterialCommunityIcons name="handshake-outline" size={56} color={colors.textTertiary} />
                             <Text className="text-xl font-bold mb-2">Connect with Friends</Text>
                             <Text className="text-gray-600 text-center mb-4">
                                 Invite friends to challenge together

@@ -14,7 +14,7 @@ export function StreakDisplay({ currentStreak, bestStreak, animated = false }: S
         <View className="items-center py-4">
             {/* Main Streak */}
             <View className="flex-row items-center mb-2">
-                <Text className={`text-6xl ${animated ? 'animate-pulse' : ''}`}>🔥</Text>
+                <Text className={`text-6xl ${animated ? 'animate-pulse' : ''}`}></Text>
             </View>
             
             <Text className="text-4xl font-bold text-orange-500 mb-1">
@@ -29,7 +29,7 @@ export function StreakDisplay({ currentStreak, bestStreak, animated = false }: S
             {bestStreak > 0 && (
                 <View className="flex-row items-center gap-2">
                     <Text className="text-sm text-gray-500">
-                        {isNewRecord ? '🎉 New Record!' : `Best: ${bestStreak} days`}
+                        {isNewRecord ? 'New Record!' : `Best: ${bestStreak} days`}
                     </Text>
                 </View>
             )}

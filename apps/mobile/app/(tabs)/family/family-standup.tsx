@@ -41,11 +41,11 @@ interface StandupEntry {
 }
 
 const MOOD_OPTIONS: { type: MoodType; emoji: string; label: string; color: string }[] = [
-    { type: 'great', emoji: '🤩', label: 'Great!', color: '#10B981' },
-    { type: 'good', emoji: '😊', label: 'Good', color: '#3B82F6' },
-    { type: 'okay', emoji: '😐', label: 'Okay', color: '#F59E0B' },
-    { type: 'struggling', emoji: '😔', label: 'Struggling', color: '#F97316' },
-    { type: 'tough', emoji: '😢', label: 'Tough day', color: '#EF4444' },
+    { type: 'great', emoji: 'emoticon-excited-outline', label: 'Great!', color: '#10B981' },
+    { type: 'good', emoji: 'emoticon-happy-outline', label: 'Good', color: '#3B82F6' },
+    { type: 'okay', emoji: 'emoticon-neutral-outline', label: 'Okay', color: '#F59E0B' },
+    { type: 'struggling', emoji: 'emoticon-sad-outline', label: 'Struggling', color: '#F97316' },
+    { type: 'tough', emoji: 'emoticon-cry-outline', label: 'Tough day', color: '#EF4444' },
 ];
 
 export default function FamilyStandupScreen() {
@@ -135,7 +135,7 @@ export default function FamilyStandupScreen() {
     
     // Calculate family mood average
     const familyMoodStats = () => {
-        if (standupEntries.length === 0) return { average: 'N/A', emoji: '❓' };
+        if (standupEntries.length === 0) return { average: 'N/A', emoji: 'help-circle-outline' };
         
         const moodScores: Record<MoodType, number> = {
             great: 5, good: 4, okay: 3, struggling: 2, tough: 1
@@ -144,10 +144,10 @@ export default function FamilyStandupScreen() {
         const totalScore = standupEntries.reduce((sum, e) => sum + moodScores[e.mood], 0);
         const avg = totalScore / standupEntries.length;
         
-        if (avg >= 4.5) return { average: 'Fantastic!', emoji: '🌟' };
-        if (avg >= 3.5) return { average: 'Good vibes', emoji: '✨' };
-        if (avg >= 2.5) return { average: 'Hanging in', emoji: '💪' };
-        return { average: 'Needs support', emoji: '❤️' };
+        if (avg >= 4.5) return { average: 'Fantastic!', emoji: 'star-outline' };
+        if (avg >= 3.5) return { average: 'Good vibes', emoji: 'star-four-points-outline' };
+        if (avg >= 2.5) return { average: 'Hanging in', emoji: 'arm-flex-outline' };
+        return { average: 'Needs support', emoji: 'heart-outline' };
     };
     
     const moodStats = familyMoodStats();
@@ -198,7 +198,7 @@ export default function FamilyStandupScreen() {
                     >
                         <View className="flex-row items-center">
                             <View className="w-14 h-14 rounded-full bg-white/20 items-center justify-center">
-                                <Text className="text-3xl">👋</Text>
+                                <Text className="text-3xl"></Text>
                             </View>
                             <View className="flex-1 ml-4">
                                 <Text className="text-white text-lg font-bold">
@@ -269,7 +269,7 @@ export default function FamilyStandupScreen() {
                             className="items-center py-12 rounded-2xl"
                             style={{ backgroundColor: isDark ? '#374151' : '#F3F4F6' }}
                         >
-                            <Text className="text-4xl mb-3">🌅</Text>
+                            <MaterialCommunityIcons name="weather-sunset" size={40} color={colors.textTertiary} />
                             <Text 
                                 className="text-lg font-semibold"
                                 style={{ color: colors.text }}
@@ -335,7 +335,7 @@ export default function FamilyStandupScreen() {
                                             className="px-3 py-2 rounded-full"
                                             style={{ backgroundColor: '#F59E0B20' }}
                                         >
-                                            <Text className="text-lg">🎉</Text>
+                                            <Text className="text-lg"></Text>
                                         </TouchableOpacity>
                                     </View>
                                     
@@ -552,7 +552,7 @@ export default function FamilyStandupScreen() {
                             className="text-sm font-semibold mb-2"
                             style={{ color: colors.textSecondary }}
                         >
-                            ⭐ What's your highlight?
+                            What's your highlight?
                         </Text>
                         <TextInput
                             value={myHighlight}
@@ -574,7 +574,7 @@ export default function FamilyStandupScreen() {
                             className="text-sm font-semibold mb-2"
                             style={{ color: colors.textSecondary }}
                         >
-                            🚧 Any challenges?
+                            Any challenges?
                         </Text>
                         <TextInput
                             value={myBlocker}
@@ -596,7 +596,7 @@ export default function FamilyStandupScreen() {
                             className="text-sm font-semibold mb-2"
                             style={{ color: colors.textSecondary }}
                         >
-                            🤝 Need any help?
+                            Need any help?
                         </Text>
                         <TextInput
                             value={myHelpNeeded}

@@ -141,23 +141,23 @@ export default function LoginScreen() {
         setIsBiometricLoggingIn(true);
 
         try {
-            logger.log('🔐 Attempting biometric login...');
+            logger.log('Attempting biometric login...');
             const success = await authenticateWithBiometric();
 
             if (success) {
-                logger.log('✅ Biometric authentication successful');
+                logger.log('Biometric authentication successful');
                 
                 // Retrieve stored credentials
                 const credentials = await getStoredCredentials();
                 
                 if (credentials) {
-                    logger.log('🔐 Found stored credentials, logging in...');
+                    logger.log('Found stored credentials, logging in...');
                     try {
                         await login(credentials.email, credentials.password);
                         // @ts-ignore - Dynamic route
                         router.replace('/(tabs)/sprints/calendar');
                     } catch (loginError: unknown) {
-                        logger.error('❌ Login with stored credentials failed:', loginError);
+                        logger.error('Login with stored credentials failed:', loginError);
                         Alert.alert(
                             'Login Failed',
                             'Stored credentials are invalid. Please login with your password.',
@@ -165,7 +165,7 @@ export default function LoginScreen() {
                         );
                     }
                 } else {
-                    logger.log('⚠️ No stored credentials found');
+                    logger.log('No stored credentials found');
                     // Fallback: prefill email and ask for password
                     setEmail(enrolledEmail);
                     Alert.alert(
@@ -175,11 +175,11 @@ export default function LoginScreen() {
                     );
                 }
             } else {
-                logger.log('❌ Biometric authentication failed');
+                logger.log('Biometric authentication failed');
                 // Don't show alert here - the biometric store handles specific errors
             }
         } catch (error) {
-            logger.error('❌ Biometric login error:', error);
+            logger.error('Biometric login error:', error);
             Alert.alert(
                 'Error',
                 'Failed to authenticate. Please try again or use your password.',
@@ -211,7 +211,7 @@ export default function LoginScreen() {
                                 className="w-20 h-20 rounded-full items-center justify-center mb-4"
                                 style={{ backgroundColor: colors.primary }}
                             >
-                                <Text className="text-5xl">🚀</Text>
+                                <Text className="text-5xl">K</Text>
                             </View>
                             <Text 
                                 className="text-4xl font-bold"

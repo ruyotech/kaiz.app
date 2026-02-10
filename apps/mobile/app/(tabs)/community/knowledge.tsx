@@ -394,7 +394,7 @@ export default function KnowledgeHubScreen() {
                                             className="w-10 h-10 rounded-xl items-center justify-center mr-3"
                                             style={{ backgroundColor: isDark ? 'rgba(147, 51, 234, 0.2)' : '#F3E8FF' }}
                                         >
-                                            <Text className="text-xl">{item.icon || '📚'}</Text>
+                                            <Text className="text-xl">{item.icon || ''}</Text>
                                         </View>
                                         <View className="flex-1">
                                             <View className="flex-row items-center flex-wrap gap-2 mb-1">
@@ -403,7 +403,7 @@ export default function KnowledgeHubScreen() {
                                                 </Text>
                                                 {item.featured && (
                                                     <View className="bg-yellow-100 px-2 py-0.5 rounded-full">
-                                                        <Text className="text-xs text-yellow-700">⭐ Featured</Text>
+                                                         <Text className="text-xs text-yellow-700">Featured</Text>
                                                     </View>
                                                 )}
                                             </View>
@@ -417,10 +417,10 @@ export default function KnowledgeHubScreen() {
                                                     </Text>
                                                 </View>
                                                 <Text className="text-xs" style={{ color: colors.textTertiary }}>
-                                                    🕐 {item.readTimeMinutes || 2} min
+                                                    {item.readTimeMinutes || 2} min
                                                 </Text>
                                                 <Text className="text-xs" style={{ color: colors.textTertiary }}>
-                                                    👀 {item.viewCount || 0}
+                                                    {item.viewCount || 0} views
                                                 </Text>
                                             </View>
                                         </View>

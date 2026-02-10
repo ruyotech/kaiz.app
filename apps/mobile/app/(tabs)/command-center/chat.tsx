@@ -140,7 +140,7 @@ export default function CommandCenterChatScreen() {
     const userMessage: ChatMessageType = {
       id: Date.now().toString(),
       role: 'user',
-      content: text || '📎 Attachment',
+      content: text || 'Attachment',
       timestamp: new Date(),
       attachments: attachments.map(a => ({
         id: a.id,
@@ -186,7 +186,7 @@ export default function CommandCenterChatScreen() {
 
       if (response.success && response.data) {
         const aiResponse = response.data as any; // Backend response structure differs from frontend types
-        logger.log('🤖 [AI Response] Raw:', JSON.stringify(aiResponse, null, 2));
+        logger.log('[AI Response] Raw:', JSON.stringify(aiResponse, null, 2));
         setCurrentSessionId(aiResponse.sessionId);
 
         // Transform backend response to frontend DraftPreview structure
@@ -201,7 +201,7 @@ export default function CommandCenterChatScreen() {
           // Use intentDetected first (backend sets this), fallback to draft type
           const draftType = (aiResponse.intentDetected || normalizedType) as 'TASK' | 'EVENT' | 'CHALLENGE' | 'BILL' | 'NOTE' | 'EPIC' | 'GOAL';
           
-          logger.log('📋 [Draft] rawType:', rawType, 'intentDetected:', aiResponse.intentDetected, 'final draftType:', draftType);
+          logger.log('[Draft] rawType:', rawType, 'intentDetected:', aiResponse.intentDetected, 'final draftType:', draftType);
           
           // Transform backend fields to frontend format
           const transformedDraft = {
@@ -226,7 +226,7 @@ export default function CommandCenterChatScreen() {
             createdAt: new Date().toISOString(),
           };
           
-          logger.log('📋 [DraftPreview] Created:', JSON.stringify(draftPreview, null, 2));
+          logger.log('[DraftPreview] Created:', JSON.stringify(draftPreview, null, 2));
           setCurrentDraftId(aiResponse.sessionId);
         }
 
@@ -295,7 +295,7 @@ export default function CommandCenterChatScreen() {
         const successMessage: ChatMessageType = {
           id: Date.now().toString(),
           role: 'system',
-          content: `✅ ${displayType} "${title}" created successfully!`,
+          content: `${displayType} "${title}" created successfully!`,
           timestamp: new Date(),
         };
 
@@ -331,7 +331,7 @@ export default function CommandCenterChatScreen() {
       const rejectMessage: ChatMessageType = {
         id: Date.now().toString(),
         role: 'system',
-        content: '❌ Draft rejected',
+        content: 'Draft rejected',
         timestamp: new Date(),
       };
 

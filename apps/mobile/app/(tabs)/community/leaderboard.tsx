@@ -185,7 +185,7 @@ export default function LeaderboardScreen() {
                                 className="w-20 rounded-t-xl items-center py-3" 
                                 style={{ height: 60, backgroundColor: isDark ? '#374151' : '#E5E7EB' }}
                             >
-                                <Text className="text-2xl">🥈</Text>
+                                <Text className="text-2xl">2nd</Text>
                                 <Text className="text-xs font-bold" style={{ color: colors.textSecondary }}>
                                     {leaderboard[1].value.toLocaleString()}
                                 </Text>
@@ -202,7 +202,7 @@ export default function LeaderboardScreen() {
                                 className="w-20 rounded-t-xl items-center py-3" 
                                 style={{ height: 80, backgroundColor: isDark ? 'rgba(250, 204, 21, 0.2)' : '#FEF9C3' }}
                             >
-                                <Text className="text-3xl">🥇</Text>
+                                <Text className="text-3xl">1st</Text>
                                 <Text className="text-sm font-bold" style={{ color: isDark ? '#FACC15' : '#A16207' }}>
                                     {leaderboard[0].value.toLocaleString()}
                                 </Text>
@@ -219,7 +219,7 @@ export default function LeaderboardScreen() {
                                 className="w-20 rounded-t-xl items-center py-2" 
                                 style={{ height: 50, backgroundColor: isDark ? 'rgba(251, 146, 60, 0.2)' : '#FFEDD5' }}
                             >
-                                <Text className="text-xl">🥉</Text>
+                                <Text className="text-xl">3rd</Text>
                                 <Text className="text-xs font-bold" style={{ color: isDark ? '#FB923C' : '#C2410C' }}>
                                     {leaderboard[2].value.toLocaleString()}
                                 </Text>

@@ -72,15 +72,15 @@ interface DraftData {
 // Constants
 // ============================================================================
 
-const LIFE_WHEEL_CONFIG: Record<string, { color: string; name: string; emoji: string }> = {
-  'lw-1': { color: '#10B981', name: 'Health & Fitness', emoji: '🏃' },
-  'lw-2': { color: '#3B82F6', name: 'Career & Work', emoji: '💼' },
-  'lw-3': { color: '#F59E0B', name: 'Finance', emoji: '💰' },
-  'lw-4': { color: '#8B5CF6', name: 'Personal Growth', emoji: '📚' },
-  'lw-5': { color: '#EF4444', name: 'Relationships', emoji: '❤️' },
-  'lw-6': { color: '#EC4899', name: 'Creativity', emoji: '🎨' },
-  'lw-7': { color: '#F97316', name: 'Fun & Recreation', emoji: '🎉' },
-  'lw-8': { color: '#06B6D4', name: 'Contribution', emoji: '🌍' },
+const LIFE_WHEEL_CONFIG: Record<string, { color: string; name: string; icon: string }> = {
+  'lw-1': { color: '#10B981', name: 'Health & Fitness', icon: 'run' },
+  'lw-2': { color: '#3B82F6', name: 'Career & Work', icon: 'briefcase-outline' },
+  'lw-3': { color: '#F59E0B', name: 'Finance', icon: 'cash-multiple' },
+  'lw-4': { color: '#8B5CF6', name: 'Personal Growth', icon: 'book-open-variant' },
+  'lw-5': { color: '#EF4444', name: 'Relationships', icon: 'heart-outline' },
+  'lw-6': { color: '#EC4899', name: 'Creativity', icon: 'palette-outline' },
+  'lw-7': { color: '#F97316', name: 'Fun & Recreation', icon: 'party-popper' },
+  'lw-8': { color: '#06B6D4', name: 'Contribution', icon: 'earth' },
 };
 
 // ============================================================================
@@ -397,7 +397,7 @@ export default function CreateFromSensAIScreen() {
       if (newTask && (initialDraft.aiReasoning || initialDraft.aiSummary)) {
         try {
           const commentText = initialDraft.aiSummary 
-            || `🤖 AI Analysis:\n${initialDraft.aiReasoning}`;
+            || `AI Analysis:\n${initialDraft.aiReasoning}`;
           
           await taskApi.addComment((newTask as any).id, {
             commentText,
@@ -411,7 +411,7 @@ export default function CreateFromSensAIScreen() {
 
       const typeLabel = schedule.taskType === 'EVENT' ? 'Event' : schedule.taskType === 'BIRTHDAY' ? 'Birthday' : 'Task';
       Alert.alert(
-        '✅ Created!',
+        'Created!',
         `${typeLabel} "${title}" has been added to ${
           schedule.sprintId ? 'your sprint' : 'backlog'
         }.`,
@@ -448,7 +448,7 @@ export default function CreateFromSensAIScreen() {
   // Helpers
   // =========================================================================
 
-  const currentWheelConfig = LIFE_WHEEL_CONFIG[selectedLifeWheelAreaId] || { color: '#6b7280', name: 'General', emoji: '📋' };
+  const currentWheelConfig = LIFE_WHEEL_CONFIG[selectedLifeWheelAreaId] || { color: '#6b7280', name: 'General', icon: 'clipboard-text-outline' };
 
   // =========================================================================
   // Render
@@ -548,7 +548,7 @@ export default function CreateFromSensAIScreen() {
               className="bg-gray-100 rounded-xl px-4 py-3 flex-row items-center justify-between"
             >
               <View className="flex-row items-center">
-                <Text className="text-xl mr-2">{currentWheelConfig.emoji}</Text>
+                <MaterialCommunityIcons name={currentWheelConfig.icon as any} size={22} color={currentWheelConfig.color} style={{ marginRight: 8 }} />
                 <Text className="text-gray-900">{currentWheelConfig.name}</Text>
               </View>
               <MaterialCommunityIcons 
@@ -571,7 +571,7 @@ export default function CreateFromSensAIScreen() {
                     style={{ backgroundColor: selectedLifeWheelAreaId === id ? config.color + '15' : 'white' }}
                   >
                     <View className="flex-row items-center">
-                      <Text className="text-xl mr-2">{config.emoji}</Text>
+                      <MaterialCommunityIcons name={config.icon as any} size={22} color={config.color} style={{ marginRight: 8 }} />
                       <Text className="text-gray-900">{config.name}</Text>
                     </View>
                     {selectedLifeWheelAreaId === id && (
