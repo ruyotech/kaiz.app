@@ -1,6 +1,6 @@
 import { logger } from '../../../utils/logger';
 import { useState, useRef, useMemo, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Alert, Modal, Pressable } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { addDays, subDays, isThisWeek, getDay, isSameDay } from 'date-fns';
@@ -23,7 +23,6 @@ import {
     useCurrentSprint,
     useSprintTasks,
     useUpdateTaskStatus,
-    useDeleteTask,
 } from '../../../hooks/queries';
 import { useEpics } from '../../../hooks/queries';
 import { useLifeWheelAreas } from '../../../hooks/queries';
@@ -44,9 +43,6 @@ export default function SprintCalendar() {
     const [activeTab, setActiveTab] = useState<StatusTab>('todo');
     const [viewType, setViewType] = useState<'day' | 'week'>('week');
     const [isMonthExpanded, setIsMonthExpanded] = useState(false);
-    const [bulkSelectMode, setBulkSelectMode] = useState(false);
-    const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
-    const [showMoreMenu, setShowMoreMenu] = useState(false);
 
     // Family state for scope filtering
     const currentFamily = useFamilyStore((state) => state.currentFamily);
@@ -78,8 +74,8 @@ export default function SprintCalendar() {
 
     // ── Data fetching via TanStack Query ──────────────────────────────────────
 
-    const { data: allSprints = [] } = useSprints(currentYear);
-    const { data: activeSprint } = useCurrentSprint();
+    const { data: allSprints = [], isLoading: sprintsLoading } = useSprints(currentYear);
+    const { data: activeSprint, isLoading: activeSprintLoading } = useCurrentSprint();
 
     // Find sprint matching this calendar week
     const matchedSprint = useMemo(() => {
@@ -98,6 +94,9 @@ export default function SprintCalendar() {
     const { data: sprintTasks = [], isLoading: loading } = useSprintTasks(sprintId);
     const weekTasks = sprintTasks as Task[];
 
+    // True only once all parent queries have resolved and tasks are loaded (or query is settled)
+    const isDataReady = !sprintsLoading && !activeSprintLoading && (!sprintId || !loading);
+
     const { data: epicsData = [] } = useEpics();
     const epics = epicsData as any[];
 
@@ -106,7 +105,6 @@ export default function SprintCalendar() {
 
     // Status mutation for swipe-to-change
     const updateTaskStatusMutation = useUpdateTaskStatus();
-    const deleteTaskMutation = useDeleteTask();
 
     // Fetch family data on mount
     useFocusEffect(
@@ -210,8 +208,8 @@ export default function SprintCalendar() {
     const dayOfWeek = getDay(new Date());
     const isSunday = dayOfWeek === 0;
     const isMidWeek = dayOfWeek >= 3 && dayOfWeek <= 5;
-    const sprintNotCommitted = isCurrentWeek && matchedSprint && !(matchedSprint as any).committedAt;
-    const sprintEmpty = isCurrentWeek && matchedSprint && weekTasks.length === 0;
+    const sprintNotCommitted = isDataReady && isCurrentWeek && matchedSprint && !(matchedSprint as any).committedAt;
+    const sprintEmpty = isDataReady && isCurrentWeek && matchedSprint && weekTasks.length === 0;
     const showPlanningNudge = sprintNotCommitted || sprintEmpty;
 
     const totalPoints = useMemo(() =>
@@ -269,7 +267,14 @@ export default function SprintCalendar() {
     // ── Render helpers ────────────────────────────────────────────────────────
 
     const renderPlanningNudge = () => {
-        if (!showPlanningNudge || loading) return null;
+        if (!isDataReady) {
+            return (
+                <View className="items-center justify-center py-16">
+                    <ActivityIndicator size="large" color={colors.primary} />
+                </View>
+            );
+        }
+        if (!showPlanningNudge) return null;
         const isUrgent = isMidWeek;
         const nudgeColor = isUrgent ? '#EF4444' : '#3B82F6';
         const nudgeBg = isUrgent
@@ -325,7 +330,7 @@ export default function SprintCalendar() {
     };
 
     const renderSprintProgressBar = () => {
-        if (!isCurrentWeek || !(matchedSprint as any)?.committedAt || loading) return null;
+        if (!isDataReady || !isCurrentWeek || !(matchedSprint as any)?.committedAt) return null;
         const progress = totalPoints > 0 ? donePoints / totalPoints : 0;
 
         return (
@@ -362,55 +367,8 @@ export default function SprintCalendar() {
         );
     };
 
-    // ── Bulk selection handlers ──────────────────────────────────────────────
-
-    const handleToggleSelect = useCallback((taskId: string) => {
-        if (!bulkSelectMode) {
-            setBulkSelectMode(true);
-            setSelectedTaskIds(new Set([taskId]));
-            return;
-        }
-        setSelectedTaskIds(prev => {
-            const next = new Set(prev);
-            if (next.has(taskId)) next.delete(taskId);
-            else next.add(taskId);
-            return next;
-        });
-    }, [bulkSelectMode]);
-
-    const handleCancelBulkSelect = useCallback(() => {
-        setBulkSelectMode(false);
-        setSelectedTaskIds(new Set());
-    }, []);
-
-    const handleSelectAll = useCallback(() => {
-        const allIds = new Set(tabFilteredTasks.map(t => t.id));
-        setSelectedTaskIds(allIds);
-    }, [tabFilteredTasks]);
-
-    const handleBulkDelete = useCallback(() => {
-        if (selectedTaskIds.size === 0) return;
-        Alert.alert(
-            'Delete Tasks',
-            `Are you sure you want to delete ${selectedTaskIds.size} task${selectedTaskIds.size > 1 ? 's' : ''}?`,
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Delete',
-                    style: 'destructive',
-                    onPress: async () => {
-                        for (const taskId of selectedTaskIds) {
-                            deleteTaskMutation.mutate(taskId);
-                        }
-                        setBulkSelectMode(false);
-                        setSelectedTaskIds(new Set());
-                    },
-                },
-            ]
-        );
-    }, [selectedTaskIds, deleteTaskMutation]);
-
     const renderTaskList = () => {
+        if (!isDataReady) return null;
         if (tabFilteredTasks.length === 0) {
             const emptyMessage = `No ${activeTab.replace('_', ' ')} tasks`;
             return (
@@ -444,20 +402,6 @@ export default function SprintCalendar() {
                     const taskEpic = epics.find(e => e.id === task.epicId);
                     const lifeWheelArea = getLifeWheelArea(task.lifeWheelAreaId);
 
-                    if (bulkSelectMode) {
-                        return (
-                            <EnhancedTaskCard
-                                key={task.id}
-                                task={task}
-                                epic={taskEpic}
-                                lifeWheelArea={lifeWheelArea}
-                                onPress={() => router.push(`/(tabs)/sprints/task/${task.id}` as any)}
-                                isSelected={selectedTaskIds.has(task.id)}
-                                onToggleSelect={handleToggleSelect}
-                            />
-                        );
-                    }
-
                     return (
                         <SwipeableTaskCard
                             key={task.id}
@@ -470,7 +414,6 @@ export default function SprintCalendar() {
                                 epic={taskEpic}
                                 lifeWheelArea={lifeWheelArea}
                                 onPress={() => router.push(`/(tabs)/sprints/task/${task.id}` as any)}
-                                onToggleSelect={handleToggleSelect}
                             />
                         </SwipeableTaskCard>
                     );
@@ -558,55 +501,11 @@ export default function SprintCalendar() {
                 ) : (
                     <>
                         {/* Status Tab Bar — sticky below header */}
-                        <View className="flex-row items-center" style={{ backgroundColor: colors.background }}>
-                            <View className="flex-1">
-                                <StatusTabBar
-                                    activeTab={activeTab}
-                                    onTabChange={setActiveTab}
-                                    counts={tabCounts}
-                                />
-                            </View>
-                            {/* More menu button */}
-                            <TouchableOpacity
-                                onPress={() => setShowMoreMenu(true)}
-                                className="px-3 py-2.5"
-                                style={{ borderBottomWidth: 1, borderBottomColor: colors.border }}
-                            >
-                                <MaterialCommunityIcons name="dots-vertical" size={20} color={colors.textSecondary} />
-                            </TouchableOpacity>
-                        </View>
-
-                        {/* Bulk select action bar */}
-                        {bulkSelectMode && (
-                            <View
-                                className="flex-row items-center justify-between px-4 py-2.5"
-                                style={{ backgroundColor: isDark ? 'rgba(37, 99, 235, 0.15)' : '#EFF6FF', borderBottomWidth: 1, borderBottomColor: colors.border }}
-                            >
-                                <View className="flex-row items-center">
-                                    <TouchableOpacity onPress={handleCancelBulkSelect} className="mr-3">
-                                        <MaterialCommunityIcons name="close" size={20} color={colors.text} />
-                                    </TouchableOpacity>
-                                    <Text className="text-sm font-semibold" style={{ color: colors.text }}>
-                                        {selectedTaskIds.size} selected
-                                    </Text>
-                                </View>
-                                <View className="flex-row items-center gap-3">
-                                    <TouchableOpacity onPress={handleSelectAll} className="flex-row items-center px-3 py-1.5 rounded-lg" style={{ backgroundColor: colors.primary + '20' }}>
-                                        <MaterialCommunityIcons name="select-all" size={16} color={colors.primary} />
-                                        <Text className="text-xs font-semibold ml-1" style={{ color: colors.primary }}>Select All</Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity
-                                        onPress={handleBulkDelete}
-                                        disabled={selectedTaskIds.size === 0}
-                                        className="flex-row items-center px-3 py-1.5 rounded-lg"
-                                        style={{ backgroundColor: selectedTaskIds.size > 0 ? '#DC262620' : colors.backgroundSecondary }}
-                                    >
-                                        <MaterialCommunityIcons name="delete-outline" size={16} color={selectedTaskIds.size > 0 ? '#DC2626' : colors.textTertiary} />
-                                        <Text className="text-xs font-semibold ml-1" style={{ color: selectedTaskIds.size > 0 ? '#DC2626' : colors.textTertiary }}>Delete</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            </View>
-                        )}
+                        <StatusTabBar
+                            activeTab={activeTab}
+                            onTabChange={setActiveTab}
+                            counts={tabCounts}
+                        />
 
                         <ScrollView className="flex-1">
                             {renderPlanningNudge()}
@@ -619,68 +518,6 @@ export default function SprintCalendar() {
                 )}
             </View>
 
-            {/* More Menu Modal */}
-            <Modal visible={showMoreMenu} transparent animationType="fade">
-                <Pressable
-                    className="flex-1"
-                    style={{ backgroundColor: colors.overlay }}
-                    onPress={() => setShowMoreMenu(false)}
-                >
-                    <Pressable>
-                        <View
-                            className="absolute right-4 top-48 rounded-xl shadow-lg py-2 min-w-[200px]"
-                            style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
-                        >
-                            <TouchableOpacity
-                                onPress={() => {
-                                    setShowMoreMenu(false);
-                                    setBulkSelectMode(true);
-                                }}
-                                className="flex-row items-center px-4 py-3"
-                            >
-                                <MaterialCommunityIcons name="checkbox-multiple-outline" size={20} color={colors.text} />
-                                <Text className="ml-3 text-sm font-medium" style={{ color: colors.text }}>Bulk Select</Text>
-                            </TouchableOpacity>
-                            <View className="h-px mx-4" style={{ backgroundColor: colors.border }} />
-                            <TouchableOpacity
-                                onPress={() => {
-                                    setShowMoreMenu(false);
-                                    setBulkSelectMode(true);
-                                    // Select all in current tab then immediately prompt delete
-                                    const allIds = new Set(tabFilteredTasks.map(t => t.id));
-                                    setSelectedTaskIds(allIds);
-                                }}
-                                className="flex-row items-center px-4 py-3"
-                            >
-                                <MaterialCommunityIcons name="delete-sweep-outline" size={20} color="#DC2626" />
-                                <Text className="ml-3 text-sm font-medium" style={{ color: '#DC2626' }}>Bulk Delete</Text>
-                            </TouchableOpacity>
-                            <View className="h-px mx-4" style={{ backgroundColor: colors.border }} />
-                            <TouchableOpacity
-                                onPress={() => {
-                                    setShowMoreMenu(false);
-                                    router.push('/(tabs)/sprints/search-tasks' as any);
-                                }}
-                                className="flex-row items-center px-4 py-3"
-                            >
-                                <MaterialCommunityIcons name="magnify" size={20} color={colors.text} />
-                                <Text className="ml-3 text-sm font-medium" style={{ color: colors.text }}>Search Tasks</Text>
-                            </TouchableOpacity>
-                            <View className="h-px mx-4" style={{ backgroundColor: colors.border }} />
-                            <TouchableOpacity
-                                onPress={() => {
-                                    setShowMoreMenu(false);
-                                    router.push('/(tabs)/sprints/backlog' as any);
-                                }}
-                                className="flex-row items-center px-4 py-3"
-                            >
-                                <MaterialCommunityIcons name="archive-outline" size={20} color={colors.text} />
-                                <Text className="ml-3 text-sm font-medium" style={{ color: colors.text }}>Backlog</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </Pressable>
-                </Pressable>
-            </Modal>
         </View>
     );
 }

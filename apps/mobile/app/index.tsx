@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { View, Pressable, Text } from 'react-native';
 import { SplashScreen } from '../components/SplashScreen';
@@ -13,10 +13,23 @@ export default function Index() {
     const { isOnboarded, reset: resetApp } = useAppStore();
     const { user, validateSession, reset: resetAuth } = useAuthStore();
 
+    // Pre-validate session during splash so navigation is instant
+    const sessionResult = useRef<'valid' | 'invalid' | 'pending'>('pending');
+
+    useEffect(() => {
+        // Start validation immediately (runs in parallel with splash animation)
+        if (isOnboarded) {
+            validateSession().then((valid) => {
+                sessionResult.current = valid ? 'valid' : 'invalid';
+                logger.info('Navigation', `Session pre-validated: ${valid ? 'valid' : 'invalid'}`);
+            });
+        }
+    }, []);
+
     useEffect(() => {
         if (!showSplash) {
             (async () => {
-                logger.info('Navigation', 'Navigating based on state…');
+                logger.info('Navigation', 'Splash done, navigating…');
 
                 if (!isOnboarded) {
                     logger.info('Navigation', '→ Welcome Screen (not onboarded)');
@@ -24,8 +37,12 @@ export default function Index() {
                     return;
                 }
 
-                // Validate token with the backend instead of trusting persisted state
-                const valid = await validateSession();
+                // If pre-validation already finished, use the result immediately
+                // Otherwise wait for it (should be rare since splash is 2.5s)
+                let valid = sessionResult.current !== 'pending'
+                    ? sessionResult.current === 'valid'
+                    : await validateSession();
+
                 if (!valid) {
                     logger.info('Navigation', '→ Login (session invalid)');
                     router.replace('/(auth)/login' as never);

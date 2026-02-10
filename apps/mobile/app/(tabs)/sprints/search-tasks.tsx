@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { View, Text, TextInput, FlatList, Pressable, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { Container } from '../../../components/layout/Container';
 import { ScreenHeader } from '../../../components/layout/ScreenHeader';
@@ -11,6 +11,7 @@ import { useTaskStore } from '../../../store/taskStore';
 import { useEpicStore } from '../../../store/epicStore';
 import { lifeWheelApi, taskApi } from '../../../services/api';
 import { useThemeContext } from '../../../providers/ThemeProvider';
+import { useDeleteTask } from '../../../hooks/queries';
 import { logger } from '../../../utils/logger';
 
 export default function SearchTasksScreen() {
@@ -27,6 +28,9 @@ export default function SearchTasksScreen() {
     const [eisenhowerQuadrants, setEisenhowerQuadrants] = useState<EisenhowerQuadrant[]>([]);
     const [epics, setEpics] = useState<any[]>([]);
     const [deletedTasks, setDeletedTasks] = useState<Task[]>([]);
+    const [bulkSelectMode, setBulkSelectMode] = useState(false);
+    const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
+    const deleteTaskMutation = useDeleteTask();
 
     const loadDeletedTasks = async () => {
         try {
@@ -69,6 +73,10 @@ export default function SearchTasksScreen() {
     }, [deletedTasks, selectedStatus, searchQuery]);
 
     useEffect(() => {
+        // Exit bulk select when filters change
+        setBulkSelectMode(false);
+        setSelectedTaskIds(new Set());
+
         // When "Deleted" filter is selected, show deleted tasks from API
         if (selectedStatus === 'deleted') {
             loadDeletedTasks();
@@ -141,6 +149,56 @@ export default function SearchTasksScreen() {
         );
     };
 
+    // ── Bulk select handlers ──────────────────────────────────────────────
+
+    const handleToggleSelect = useCallback((taskId: string) => {
+        if (!bulkSelectMode) {
+            setBulkSelectMode(true);
+            setSelectedTaskIds(new Set([taskId]));
+            return;
+        }
+        setSelectedTaskIds(prev => {
+            const next = new Set(prev);
+            if (next.has(taskId)) next.delete(taskId);
+            else next.add(taskId);
+            return next;
+        });
+    }, [bulkSelectMode]);
+
+    const handleCancelBulkSelect = useCallback(() => {
+        setBulkSelectMode(false);
+        setSelectedTaskIds(new Set());
+    }, []);
+
+    const handleSelectAll = useCallback(() => {
+        const allIds = new Set(filteredTasks.map(t => t.id));
+        setSelectedTaskIds(allIds);
+    }, [filteredTasks]);
+
+    const handleBulkSoftDelete = useCallback(() => {
+        if (selectedTaskIds.size === 0) return;
+        Alert.alert(
+            'Delete Tasks',
+            `Are you sure you want to delete ${selectedTaskIds.size} task${selectedTaskIds.size > 1 ? 's' : ''}? They will be moved to Deleted and can be restored later.`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        for (const taskId of selectedTaskIds) {
+                            deleteTaskMutation.mutate(taskId);
+                        }
+                        setBulkSelectMode(false);
+                        setSelectedTaskIds(new Set());
+                        // Refresh task list
+                        await fetchTasks({});
+                    },
+                },
+            ]
+        );
+    }, [selectedTaskIds, deleteTaskMutation, fetchTasks]);
+
     const getQuadrantStyle = (quadrantId: string) => {
         const styles: Record<string, { bgColor: string; textColor: string; borderColor: string }> = {
             'eq-1': { 
@@ -205,13 +263,37 @@ export default function SearchTasksScreen() {
         const taskEpic = epics.find(e => e.id === item.epicId);
         const style = getQuadrantStyle(item.eisenhowerQuadrantId || 'eq-2');
 
+        const isSelected = bulkSelectMode && selectedTaskIds.has(item.id);
+
         return (
-            <Pressable onPress={() => router.push(`/(tabs)/sprints/task/${item.id}` as any)}>
+            <Pressable
+                onPress={() => {
+                    if (bulkSelectMode) {
+                        handleToggleSelect(item.id);
+                    } else {
+                        router.push(`/(tabs)/sprints/task/${item.id}` as any);
+                    }
+                }}
+                onLongPress={() => handleToggleSelect(item.id)}
+            >
                 <View 
                     className="mb-3 p-4 rounded-xl"
-                    style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }}
+                    style={{
+                        backgroundColor: isSelected ? (isDark ? 'rgba(37, 99, 235, 0.15)' : '#EFF6FF') : colors.card,
+                        borderWidth: isSelected ? 2 : 1,
+                        borderColor: isSelected ? colors.primary : colors.border,
+                    }}
                 >
                     <View className="flex-row items-start justify-between mb-2">
+                        {bulkSelectMode && (
+                            <View className="mr-3 mt-0.5">
+                                <MaterialCommunityIcons
+                                    name={isSelected ? 'checkbox-marked' : 'checkbox-blank-outline'}
+                                    size={22}
+                                    color={isSelected ? colors.primary : colors.textTertiary}
+                                />
+                            </View>
+                        )}
                         <Text 
                             className="text-base font-semibold flex-1 mr-2"
                             style={{ color: colors.text }}
@@ -448,15 +530,59 @@ export default function SearchTasksScreen() {
                 </ScrollView>
             </View>
 
+            {/* Bulk select action bar */}
+            {bulkSelectMode && (
+                <View
+                    className="flex-row items-center justify-between px-4 py-2.5"
+                    style={{ backgroundColor: isDark ? 'rgba(37, 99, 235, 0.15)' : '#EFF6FF', borderBottomWidth: 1, borderBottomColor: colors.border }}
+                >
+                    <View className="flex-row items-center">
+                        <TouchableOpacity onPress={handleCancelBulkSelect} className="mr-3">
+                            <MaterialCommunityIcons name="close" size={20} color={colors.text} />
+                        </TouchableOpacity>
+                        <Text className="text-sm font-semibold" style={{ color: colors.text }}>
+                            {selectedTaskIds.size} selected
+                        </Text>
+                    </View>
+                    <View className="flex-row items-center gap-3">
+                        <TouchableOpacity onPress={handleSelectAll} className="flex-row items-center px-3 py-1.5 rounded-lg" style={{ backgroundColor: colors.primary + '20' }}>
+                            <MaterialCommunityIcons name="select-all" size={16} color={colors.primary} />
+                            <Text className="text-xs font-semibold ml-1" style={{ color: colors.primary }}>Select All</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            onPress={handleBulkSoftDelete}
+                            disabled={selectedTaskIds.size === 0}
+                            className="flex-row items-center px-3 py-1.5 rounded-lg"
+                            style={{ backgroundColor: selectedTaskIds.size > 0 ? '#DC262620' : colors.backgroundSecondary }}
+                        >
+                            <MaterialCommunityIcons name="delete-outline" size={16} color={selectedTaskIds.size > 0 ? '#DC2626' : colors.textTertiary} />
+                            <Text className="text-xs font-semibold ml-1" style={{ color: selectedTaskIds.size > 0 ? '#DC2626' : colors.textTertiary }}>Delete</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            )}
+
             <View className="p-4">
                 {/* Results */}
                 <View>
-                    <Text 
-                        className="text-sm mb-3"
-                        style={{ color: colors.textSecondary }}
-                    >
-                        {filteredTasks.length} {filteredTasks.length === 1 ? 'task' : 'tasks'} found
-                    </Text>
+                    <View className="flex-row items-center justify-between mb-3">
+                        <Text 
+                            className="text-sm"
+                            style={{ color: colors.textSecondary }}
+                        >
+                            {filteredTasks.length} {filteredTasks.length === 1 ? 'task' : 'tasks'} found
+                        </Text>
+                        {!bulkSelectMode && filteredTasks.length > 0 && selectedStatus !== 'deleted' && (
+                            <TouchableOpacity
+                                onPress={() => setBulkSelectMode(true)}
+                                className="flex-row items-center px-3 py-1.5 rounded-lg"
+                                style={{ backgroundColor: colors.backgroundSecondary, borderWidth: 1, borderColor: colors.border }}
+                            >
+                                <MaterialCommunityIcons name="checkbox-multiple-outline" size={16} color={colors.textSecondary} />
+                                <Text className="text-xs font-medium ml-1.5" style={{ color: colors.textSecondary }}>Select</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
                     {filteredTasks.length > 0 ? (
                         <FlatList
                             data={filteredTasks}
