@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,42 +32,54 @@ public class EssentiaService {
 
   @Cacheable("essentiaBooks")
   public List<EssentiaBookDto> getAllBooks() {
-    return bookRepository.findAll().stream().map(mapper::toBookDtoWithoutCards).toList();
+    log.debug("Fetching all published books");
+    return bookRepository.findAllPublished().stream().map(mapper::toBookDtoWithoutCards).toList();
   }
 
   public EssentiaBookDto getBookById(String id) {
+    log.debug("Fetching book by id={}", id);
     EssentiaBook book =
         bookRepository
             .findById(UUID.fromString(id))
-            .orElseThrow(() -> new ResourceNotFoundException("Book not found: " + id));
+            .orElseThrow(() -> new ResourceNotFoundException("Book", id));
     return mapper.toBookDto(book);
   }
 
   public List<EssentiaBookDto> getBooksByCategory(String category) {
+    log.debug("Fetching books by category={}", category);
     return bookRepository.findByCategory(category).stream()
         .map(mapper::toBookDtoWithoutCards)
         .toList();
   }
 
   public List<EssentiaBookDto> getBooksByDifficulty(Difficulty difficulty) {
+    log.debug("Fetching books by difficulty={}", difficulty);
     return bookRepository.findByDifficulty(difficulty).stream()
         .map(mapper::toBookDtoWithoutCards)
         .toList();
   }
 
   public List<EssentiaBookDto> getBooksByLifeWheelArea(String lifeWheelAreaId) {
-    return bookRepository.findByLifeWheelAreaId(UUID.fromString(lifeWheelAreaId)).stream()
+    log.debug("Fetching published books for lifeWheelAreaId={}", lifeWheelAreaId);
+    return bookRepository.findPublishedByLifeWheelAreaId(lifeWheelAreaId).stream()
         .map(mapper::toBookDtoWithoutCards)
         .toList();
   }
 
+  public List<EssentiaBookDto> getFeaturedBooks() {
+    log.debug("Fetching featured books");
+    return bookRepository.findFeaturedBooks().stream().map(mapper::toBookDtoWithoutCards).toList();
+  }
+
   public List<EssentiaBookDto> getTopRatedBooks() {
+    log.debug("Fetching top rated books");
     return bookRepository.findAllOrderByRating().stream()
         .map(mapper::toBookDtoWithoutCards)
         .toList();
   }
 
   public List<EssentiaBookDto> getPopularBooks() {
+    log.debug("Fetching popular books");
     return bookRepository.findAllOrderByPopularity().stream()
         .map(mapper::toBookDtoWithoutCards)
         .toList();
@@ -74,15 +87,18 @@ public class EssentiaService {
 
   @Cacheable("essentiaCategories")
   public List<String> getAllCategories() {
+    log.debug("Fetching all categories");
     return bookRepository.findAllCategories();
   }
 
   // User progress methods
   public List<EssentiaUserProgressDto> getUserProgress(UUID userId) {
+    log.debug("Fetching user progress for userId={}", userId);
     return progressRepository.findByUserId(userId).stream().map(mapper::toProgressDto).toList();
   }
 
   public EssentiaUserProgressDto getUserProgressForBook(UUID userId, String bookId) {
+    log.debug("Fetching progress for userId={}, bookId={}", userId, bookId);
     EssentiaUserProgress progress =
         progressRepository
             .findByUserIdAndBookId(userId, UUID.fromString(bookId))
@@ -111,17 +127,17 @@ public class EssentiaService {
 
   @Transactional
   public EssentiaUserProgressDto startBook(UUID userId, String bookId) {
+    log.info("User {} starting book {}", userId, bookId);
     User user =
         userRepository
             .findById(userId)
-            .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
+            .orElseThrow(() -> new ResourceNotFoundException("User", userId.toString()));
 
     EssentiaBook book =
         bookRepository
             .findById(UUID.fromString(bookId))
-            .orElseThrow(() -> new ResourceNotFoundException("Book not found: " + bookId));
+            .orElseThrow(() -> new ResourceNotFoundException("Book", bookId));
 
-    // Check if progress already exists
     return progressRepository
         .findByUserIdAndBookId(userId, UUID.fromString(bookId))
         .map(mapper::toProgressDto)
@@ -140,7 +156,9 @@ public class EssentiaService {
   }
 
   @Transactional
+  @CacheEvict(value = "essentiaBooks", allEntries = true)
   public EssentiaUserProgressDto updateProgress(UUID userId, String bookId, int cardIndex) {
+    log.info("Updating progress for userId={}, bookId={}, cardIndex={}", userId, bookId, cardIndex);
     EssentiaUserProgress progress =
         progressRepository
             .findByUserIdAndBookId(userId, UUID.fromString(bookId))
@@ -149,13 +167,12 @@ public class EssentiaService {
 
     progress.setCurrentCardIndex(cardIndex);
 
-    // Check if completed
     if (cardIndex >= progress.getBook().getCardCount() - 1) {
       progress.setIsCompleted(true);
-      // Increment completion count on the book
       EssentiaBook book = progress.getBook();
       book.setCompletionCount(book.getCompletionCount() + 1);
       bookRepository.save(book);
+      log.info("Book {} completed by user {}", bookId, userId);
     }
 
     return mapper.toProgressDto(progressRepository.save(progress));
@@ -163,6 +180,7 @@ public class EssentiaService {
 
   @Transactional
   public EssentiaUserProgressDto toggleFavorite(UUID userId, String bookId) {
+    log.info("Toggling favorite for userId={}, bookId={}", userId, bookId);
     EssentiaUserProgress progress =
         progressRepository
             .findByUserIdAndBookId(userId, UUID.fromString(bookId))
@@ -172,12 +190,11 @@ public class EssentiaService {
                       userRepository
                           .findById(userId)
                           .orElseThrow(
-                              () -> new ResourceNotFoundException("User not found: " + userId));
+                              () -> new ResourceNotFoundException("User", userId.toString()));
                   EssentiaBook book =
                       bookRepository
                           .findById(UUID.fromString(bookId))
-                          .orElseThrow(
-                              () -> new ResourceNotFoundException("Book not found: " + bookId));
+                          .orElseThrow(() -> new ResourceNotFoundException("Book", bookId));
                   return EssentiaUserProgress.builder()
                       .user(user)
                       .book(book)

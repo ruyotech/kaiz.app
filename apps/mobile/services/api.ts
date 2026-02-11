@@ -35,6 +35,7 @@ import type {
   MindsetContent as MindsetContentType,
   MindsetTheme as MindsetThemeType,
   ToggleFavoriteResponse as ToggleFavoriteResponseType,
+  EssentiaBook as EssentiaBookType,
 } from '../types/models';
 import { UserPreferences } from '../store/preferencesStore';
 import { TaskTemplate, RecurrencePattern } from '../types/models';
@@ -549,13 +550,14 @@ export const mindsetApi = {
 // ============================================================================
 
 export const essentiaApi = {
-  async getAllBooks() { return apiGet<unknown[]>('/essentia/books'); },
-  async getBookById(id: string) { return apiGet<unknown>(`/essentia/books/${id}`); },
-  async getBooksByCategory(cat: string) { return apiGet<unknown[]>(`/essentia/books/category/${cat}`); },
-  async getBooksByDifficulty(d: string) { return apiGet<unknown[]>(`/essentia/books/difficulty/${d}`); },
-  async getBooksByLifeWheelArea(id: string) { return apiGet<unknown[]>(`/essentia/books/life-wheel/${id}`); },
-  async getTopRatedBooks() { return apiGet<unknown[]>('/essentia/books/top-rated'); },
-  async getPopularBooks() { return apiGet<unknown[]>('/essentia/books/popular'); },
+  async getAllBooks() { return apiGet<EssentiaBookType[]>('/essentia/books'); },
+  async getBookById(id: string) { return apiGet<EssentiaBookType>(`/essentia/books/${id}`); },
+  async getBooksByCategory(cat: string) { return apiGet<EssentiaBookType[]>(`/essentia/books/category/${cat}`); },
+  async getBooksByDifficulty(d: string) { return apiGet<EssentiaBookType[]>(`/essentia/books/difficulty/${d}`); },
+  async getBooksByLifeWheelArea(id: string) { return apiGet<EssentiaBookType[]>(`/essentia/books/life-wheel/${id}`); },
+  async getTopRatedBooks() { return apiGet<EssentiaBookType[]>('/essentia/books/top-rated'); },
+  async getPopularBooks() { return apiGet<EssentiaBookType[]>('/essentia/books/popular'); },
+  async getFeaturedBooks() { return apiGet<EssentiaBookType[]>('/essentia/books/featured'); },
   async getAllCategories() { return apiGet<string[]>('/essentia/categories'); },
   async getUserProgress() { return apiGet<unknown[]>('/essentia/progress'); },
   async getProgressForBook(bookId: string) { return apiGet<unknown>(`/essentia/progress/${bookId}`); },

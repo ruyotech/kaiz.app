@@ -33,6 +33,23 @@ export function useBooksByCategory(category: string) {
   });
 }
 
+export function useBooksByLifeWheelArea(areaId: string) {
+  return useQuery({
+    queryKey: essentiaKeys.booksByLifeWheelArea(areaId),
+    queryFn: () => essentiaApi.getBooksByLifeWheelArea(areaId),
+    enabled: !!areaId,
+    staleTime: STALE_TIMES.static,
+  });
+}
+
+export function useFeaturedBooks() {
+  return useQuery({
+    queryKey: essentiaKeys.featured(),
+    queryFn: () => essentiaApi.getFeaturedBooks(),
+    staleTime: STALE_TIMES.static,
+  });
+}
+
 export function useTopRatedBooks() {
   return useQuery({
     queryKey: essentiaKeys.topRated(),

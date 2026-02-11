@@ -24,46 +24,65 @@ public class EssentiaMapper {
 
   public EssentiaBookDto toBookDto(EssentiaBook book) {
     List<EssentiaCardDto> cardDtos = book.getCards().stream().map(this::toCardDto).toList();
+    List<String> relatedBookIds = mapRelatedBookIds(book);
 
     return new EssentiaBookDto(
         book.getId().toString(),
         book.getTitle(),
         book.getAuthor(),
-        book.getLifeWheelArea() != null ? book.getLifeWheelArea().getId().toString() : null,
+        book.getLifeWheelArea() != null ? book.getLifeWheelArea().getId() : null,
         book.getCategory(),
         book.getDuration(),
         book.getCardCount(),
         book.getDifficulty(),
         book.getTags(),
         book.getDescription(),
+        book.getSummaryText(),
+        book.getCoreMethodology(),
+        book.getAppApplication(),
+        book.getCoverImageUrl(),
+        book.getIsbn(),
+        book.getIsFeatured(),
+        book.getIsPublished(),
         book.getKeyTakeaways(),
         book.getPublicationYear(),
         book.getRating(),
         book.getCompletionCount(),
         book.getCreatedAt(),
         book.getUpdatedAt(),
-        cardDtos);
+        cardDtos,
+        relatedBookIds);
   }
 
   public EssentiaBookDto toBookDtoWithoutCards(EssentiaBook book) {
+    List<String> relatedBookIds = mapRelatedBookIds(book);
+
     return new EssentiaBookDto(
         book.getId().toString(),
         book.getTitle(),
         book.getAuthor(),
-        book.getLifeWheelArea() != null ? book.getLifeWheelArea().getId().toString() : null,
+        book.getLifeWheelArea() != null ? book.getLifeWheelArea().getId() : null,
         book.getCategory(),
         book.getDuration(),
         book.getCardCount(),
         book.getDifficulty(),
         book.getTags(),
         book.getDescription(),
+        book.getSummaryText(),
+        book.getCoreMethodology(),
+        book.getAppApplication(),
+        book.getCoverImageUrl(),
+        book.getIsbn(),
+        book.getIsFeatured(),
+        book.getIsPublished(),
         book.getKeyTakeaways(),
         book.getPublicationYear(),
         book.getRating(),
         book.getCompletionCount(),
         book.getCreatedAt(),
         book.getUpdatedAt(),
-        List.of());
+        List.of(),
+        relatedBookIds);
   }
 
   public EssentiaUserProgressDto toProgressDto(EssentiaUserProgress progress) {
@@ -77,5 +96,12 @@ public class EssentiaMapper {
         progress.getIsFavorite(),
         progress.getCreatedAt(),
         progress.getUpdatedAt());
+  }
+
+  private List<String> mapRelatedBookIds(EssentiaBook book) {
+    if (book.getRelatedBooks() == null || book.getRelatedBooks().isEmpty()) {
+      return List.of();
+    }
+    return book.getRelatedBooks().stream().map(related -> related.getId().toString()).toList();
   }
 }

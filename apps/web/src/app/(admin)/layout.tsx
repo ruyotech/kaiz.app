@@ -23,6 +23,7 @@ import {
   ChevronDown,
   Bot,
   Sparkles,
+  Library,
 } from 'lucide-react';
 
 type NavItem = {
@@ -38,6 +39,7 @@ const navigation: NavItem[] = [
   { name: 'Subscribers', href: '/admin/subscribers', icon: Users },
   { name: 'Community', href: '/admin/community', icon: MessageSquare },
   { name: 'Mindset', href: '/admin/mindset', icon: Sparkles },
+  { name: 'Essentia', href: '/admin/essentia', icon: Library },
   { name: 'CRM', href: '/admin/crm', icon: TrendingUp },
   { name: 'Revenue', href: '/admin/revenue', icon: CreditCard },
   {

@@ -13,6 +13,7 @@ export default function EssentiaLayout() {
                 <Stack.Screen name="flashcards" />
                 <Stack.Screen name="goals" />
                 <Stack.Screen name="collections" />
+                <Stack.Screen name="life-wheel-books" />
                 <Stack.Screen name="reader/[id]" />
                 <Stack.Screen name="book-detail/[id]" />
             </Stack>

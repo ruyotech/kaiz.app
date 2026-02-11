@@ -72,6 +72,14 @@ public class EssentiaController {
     return ResponseEntity.ok(ApiResponse.success(essentiaService.getTopRatedBooks()));
   }
 
+  @GetMapping("/books/featured")
+  @Operation(
+      summary = "Get featured books",
+      description = "Retrieve curated featured books across all life wheel areas")
+  public ResponseEntity<ApiResponse<List<EssentiaBookDto>>> getFeaturedBooks() {
+    return ResponseEntity.ok(ApiResponse.success(essentiaService.getFeaturedBooks()));
+  }
+
   @GetMapping("/books/popular")
   @Operation(
       summary = "Get popular books",

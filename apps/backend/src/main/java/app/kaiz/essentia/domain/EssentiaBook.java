@@ -5,7 +5,9 @@ import app.kaiz.shared.persistence.BaseEntity;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
@@ -51,6 +53,29 @@ public class EssentiaBook extends BaseEntity {
   @Column(name = "description", columnDefinition = "TEXT")
   private String description;
 
+  @Column(name = "summary_text", columnDefinition = "TEXT")
+  private String summaryText;
+
+  @Column(name = "core_methodology", length = 300)
+  private String coreMethodology;
+
+  @Column(name = "app_application", columnDefinition = "TEXT")
+  private String appApplication;
+
+  @Column(name = "cover_image_url", length = 500)
+  private String coverImageUrl;
+
+  @Column(name = "isbn", length = 20)
+  private String isbn;
+
+  @Column(name = "is_featured")
+  @Builder.Default
+  private Boolean isFeatured = false;
+
+  @Column(name = "is_published")
+  @Builder.Default
+  private Boolean isPublished = true;
+
   @ElementCollection(fetch = FetchType.LAZY)
   @CollectionTable(name = "essentia_book_takeaways", joinColumns = @JoinColumn(name = "book_id"))
   @Column(name = "takeaway", columnDefinition = "TEXT")
@@ -72,4 +97,12 @@ public class EssentiaBook extends BaseEntity {
   @OrderBy("sortOrder ASC")
   @Builder.Default
   private List<EssentiaCard> cards = new ArrayList<>();
+
+  @ManyToMany(fetch = FetchType.LAZY)
+  @JoinTable(
+      name = "essentia_book_related",
+      joinColumns = @JoinColumn(name = "book_id"),
+      inverseJoinColumns = @JoinColumn(name = "related_book_id"))
+  @Builder.Default
+  private Set<EssentiaBook> relatedBooks = new HashSet<>();
 }

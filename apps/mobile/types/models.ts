@@ -476,8 +476,15 @@ export interface EssentiaBook {
     difficulty: EssentiaDifficulty;
     tags: string[];
     description: string;
+    summaryText?: string; // Rich summary for book detail page
+    coreMethodology?: string; // Core method/framework from the book
+    appApplication?: string; // How to apply in KAIZ LifeOS
+    isbn?: string;
+    isFeatured?: boolean;
+    isPublished?: boolean;
     keyTakeaways: string[];
     cards: EssentiaCard[];
+    relatedBookIds?: string[];
     publicationYear?: number;
     rating?: number; // 0-5
     completionCount?: number; // popularity metric
