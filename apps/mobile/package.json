@@ -1,7 +1,7 @@
 {
   "name": "kaiz1-mobile-playground",
   "version": "1.0.0",
-  "main": "expo-router/entry",
+  "main": "./index.ts",
   "scripts": {
     "start": "npx expo --clear",
     "ios": "npx expo --ios --clear",

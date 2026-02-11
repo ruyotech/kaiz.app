@@ -106,7 +106,7 @@ export default function OnboardingSetup() {
             case 'dates':
                 return true; // Optional step
             case 'account':
-                return email.trim().length > 0 && password.length >= 6;
+                return email.trim().length > 0 && password.length >= 8;
             default:
                 return true;
         }
@@ -1264,6 +1264,7 @@ function AccountStep({
     selectedEpicsCount: number;
     importantDatesCount: number;
 }) {
+    const router = useRouter();
     return (
         <Animated.View entering={FadeInDown} className="px-6 pb-8">
             <Text className="text-3xl font-bold mb-2">You're Almost There!</Text>
@@ -1308,7 +1309,7 @@ function AccountStep({
                     label="Password *"
                     value={password}
                     onChangeText={setPassword}
-                    placeholder="At least 6 characters"
+                    placeholder="At least 8 characters"
                     secureTextEntry={!showPassword}
                 />
                 <Pressable
@@ -1333,6 +1334,17 @@ function AccountStep({
                     <Text className="font-semibold">Ready to transform your life!</Text> Your tasks and epics will be waiting for you in your sprint backlog.
                 </Text>
             </View>
+
+            {/* Sign In link for returning users */}
+            <Pressable
+                onPress={() => router.push('/(auth)/login' as any)}
+                className="mt-6 items-center py-2"
+            >
+                <Text className="text-gray-600 text-sm">
+                    Already have an account?{' '}
+                    <Text className="text-blue-600 font-semibold">Sign In</Text>
+                </Text>
+            </Pressable>
         </Animated.View>
     );
 }

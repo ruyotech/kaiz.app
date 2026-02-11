@@ -1,5 +1,5 @@
-// Must be first import — polyfills crypto.getRandomValues for Hermes
-import '../utils/cryptoPolyfill';
+// crypto polyfill is now loaded in index.ts (app entry point) before expo-router
+// import '../utils/cryptoPolyfill'; — kept here as safety comment
 
 import { useEffect, useRef } from 'react';
 import { Stack, useRouter } from 'expo-router';

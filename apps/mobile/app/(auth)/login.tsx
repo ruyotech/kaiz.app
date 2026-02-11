@@ -38,6 +38,7 @@ import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { useAuthStore } from '../../store/authStore';
 import { useBiometricStore } from '../../store/biometricStore';
+import { useAppStore } from '../../store/appStore';
 import { useTranslation } from '../../hooks';
 import { useThemeContext } from '../../providers/ThemeProvider';
 
@@ -46,6 +47,7 @@ export default function LoginScreen() {
     const { t } = useTranslation();
     const { login, loading, error: authError } = useAuthStore();
     const { colors } = useThemeContext();
+    const { setOnboarded } = useAppStore();
     const {
         isBiometricEnabled,
         enrolledEmail,
@@ -116,6 +118,8 @@ export default function LoginScreen() {
 
         try {
             await login(email, password);
+            // Returning user — mark onboarding complete so they skip it on next launch
+            setOnboarded(true);
             // @ts-ignore - Dynamic route
             router.replace('/(tabs)/sprints/calendar');
         } catch (error: unknown) {

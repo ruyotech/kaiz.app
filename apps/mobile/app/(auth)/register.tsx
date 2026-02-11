@@ -70,7 +70,7 @@ export default function RegisterScreen() {
             setPasswordError(t('auth.validation.passwordRequired'));
             return false;
         }
-        if (password.length < 6) {
+        if (password.length < 8) {
             setPasswordError(t('auth.validation.passwordMinLength'));
             return false;
         }

@@ -187,6 +187,17 @@ export default function WelcomeScreen() {
                     <Button onPress={handleNext} size="lg">
                         {currentIndex === WELCOME_SLIDES.length - 1 ? 'Get Started' : 'Continue'}
                     </Button>
+
+                    {/* Sign In link for returning users */}
+                    <TouchableOpacity
+                        onPress={() => router.push('/(auth)/login' as any)}
+                        className="mt-4 items-center py-2"
+                    >
+                        <Text className="text-gray-600 text-sm">
+                            Already have an account?{' '}
+                            <Text className="text-blue-600 font-semibold">Sign In</Text>
+                        </Text>
+                    </TouchableOpacity>
                 </View>
             </View>
         </Container>

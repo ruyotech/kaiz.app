@@ -17,8 +17,25 @@
 import { gcm } from '@noble/ciphers/aes';
 import { pbkdf2 } from '@noble/hashes/pbkdf2';
 import { sha256 } from '@noble/hashes/sha256';
-import { randomBytes } from '@noble/ciphers/webcrypto';
 import { bytesToHex, hexToBytes } from '@noble/hashes/utils';
+import { getRandomValues } from 'expo-crypto';
+
+/**
+ * CSPRNG using expo-crypto (native SecureRandom / SecRandomCopyBytes).
+ *
+ * We intentionally DO NOT use `randomBytes` from `@noble/ciphers/webcrypto`
+ * because its internal `crypto.js` module captures `globalThis.crypto` at
+ * evaluation time. Metro's module resolution can cause this capture to
+ * happen before our polyfill runs, leaving the reference `undefined` and
+ * throwing "crypto.getRandomValues must be defined" on Hermes.
+ *
+ * Using expo-crypto directly is 100% reliable on React Native.
+ */
+function randomBytes(length: number): Uint8Array {
+  const buf = new Uint8Array(length);
+  getRandomValues(buf);
+  return buf;
+}
 import { logger } from '../../utils/logger';
 import {
   CIPHERTEXT_PREFIX,
