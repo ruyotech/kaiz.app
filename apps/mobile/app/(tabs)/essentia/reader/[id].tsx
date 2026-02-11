@@ -1,39 +1,44 @@
-import { View, Text, TouchableOpacity, Dimensions, Animated, PanResponder } from 'react-native';
-import { useEffect, useState, useRef } from 'react';
+import { View, Text, TouchableOpacity, Dimensions, Animated, PanResponder, ActivityIndicator } from 'react-native';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useEssentiaStore } from '../../../../store/essentiaStore';
-import { EssentiaCard } from '../../../../types/models';
+import { useBook } from '../../../../hooks/queries/useEssentia';
+import { logger } from '../../../../utils/logger';
 
-const { width, height } = Dimensions.get('window');
+const TAG = 'CardReaderScreen';
+const { width } = Dimensions.get('window');
 
 export default function CardReaderScreen() {
     const router = useRouter();
     const { id } = useLocalSearchParams<{ id: string }>();
-    const { 
-        getBookById, 
-        getBookProgress, 
-        updateProgress, 
-        completeBook, 
-        autoPlayAudio,
-        audioSpeed 
-    } = useEssentiaStore();
-    
-    const book = getBookById(id!);
-    const progress = getBookProgress(id!);
-    
-    const [currentCardIndex, setCurrentCardIndex] = useState(progress?.currentCardIndex || 0);
+    const { data: bookData, isLoading, isError } = useBook(id!);
+
+    // Map backend card types (UPPERCASE) to lowercase for display
+    const cards = useMemo(() => {
+        if (!bookData?.cards) return [];
+        return bookData.cards.map((card: any) => ({
+            id: card.id,
+            type: (typeof card.type === 'string' ? card.type.toLowerCase() : card.type) as string,
+            order: card.order ?? card.sortOrder ?? 0,
+            title: card.title ?? '',
+            text: card.text ?? '',
+            imageUrl: card.imageUrl,
+            audioUrl: card.audioUrl,
+            quizOptions: card.quizOptions,
+        }));
+    }, [bookData]);
+
+    const [currentCardIndex, setCurrentCardIndex] = useState(0);
     const [isAudioPlaying, setIsAudioPlaying] = useState(false);
     
     const pan = useRef(new Animated.ValueXY()).current;
     const opacity = useRef(new Animated.Value(1)).current;
 
     useEffect(() => {
-        if (book && currentCardIndex < book.cards.length) {
-            const currentCard = book.cards[currentCardIndex];
-            updateProgress(book.id, currentCard.id, currentCardIndex);
+        if (cards.length > 0 && currentCardIndex < cards.length) {
+            logger.info(TAG, `Viewing card ${currentCardIndex + 1}/${cards.length}`);
         }
-    }, [currentCardIndex]);
+    }, [currentCardIndex, cards.length]);
 
     const panResponder = useRef(
         PanResponder.create({
@@ -78,25 +83,21 @@ export default function CardReaderScreen() {
                 useNativeDriver: true,
             }),
         ]).start(() => {
-            // Update card index
-            if (direction === 'next' && currentCardIndex < (book?.cards.length || 0) - 1) {
+            if (direction === 'next' && currentCardIndex < cards.length - 1) {
                 setCurrentCardIndex(currentCardIndex + 1);
             } else if (direction === 'previous' && currentCardIndex > 0) {
                 setCurrentCardIndex(currentCardIndex - 1);
             }
             
-            // Reset animations
             pan.setValue({ x: 0, y: 0 });
             opacity.setValue(1);
         });
     };
 
     const handleNext = () => {
-        if (book && currentCardIndex < book.cards.length - 1) {
+        if (currentCardIndex < cards.length - 1) {
             animateCardChange('next');
-        } else if (book && currentCardIndex === book.cards.length - 1) {
-            // Book completed
-            completeBook(book.id);
+        } else if (currentCardIndex === cards.length - 1) {
             router.back();
         }
     };
@@ -111,23 +112,47 @@ export default function CardReaderScreen() {
         router.back();
     };
 
-    if (!book) {
+    if (isLoading) {
         return (
-            <View className="flex-1 bg-black items-center justify-center">
-                <Text className="text-white">Book not found</Text>
+            <View className="flex-1 bg-white items-center justify-center">
+                <ActivityIndicator size="large" color="#7C3AED" />
+                <Text className="text-gray-500 mt-4">Loading book...</Text>
             </View>
         );
     }
 
-    const currentCard = book.cards[currentCardIndex];
-    const progressPercent = ((currentCardIndex + 1) / book.cards.length) * 100;
+    if (isError || !bookData || cards.length === 0) {
+        return (
+            <View className="flex-1 bg-white items-center justify-center px-6">
+                <MaterialCommunityIcons name="book-off-outline" size={64} color="#9CA3AF" />
+                <Text className="text-gray-900 text-lg font-semibold mt-4">
+                    {isError ? 'Failed to load book' : 'No cards available'}
+                </Text>
+                <Text className="text-gray-500 text-center mt-2">
+                    {isError ? 'Please check your connection and try again.' : 'This book has no cards yet.'}
+                </Text>
+                <TouchableOpacity onPress={() => router.back()} className="mt-6 bg-purple-600 px-6 py-3 rounded-xl">
+                    <Text className="text-white font-semibold">Go Back</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    }
+
+    const currentCard = cards[currentCardIndex];
+    if (!currentCard) {
+        logger.error(TAG, `Card at index ${currentCardIndex} is undefined, total cards: ${cards.length}`);
+        router.back();
+        return null;
+    }
+
+    const progressPercent = ((currentCardIndex + 1) / cards.length) * 100;
 
     return (
         <View className="flex-1 bg-white">
             {/* Progress Bar */}
             <View className="absolute top-0 left-0 right-0 z-10">
                 <View className="flex-row px-4 pt-12 pb-2">
-                    {book.cards.map((_, index) => (
+                    {cards.map((_: any, index: number) => (
                         <View 
                             key={index} 
                             className="flex-1 h-1 mx-0.5 rounded-full overflow-hidden"
@@ -146,7 +171,7 @@ export default function CardReaderScreen() {
                         <MaterialCommunityIcons name="close" size={28} color="#111827" />
                     </TouchableOpacity>
                     <Text className="text-sm font-medium text-gray-600">
-                        {currentCardIndex + 1} / {book.cards.length}
+                        {currentCardIndex + 1} / {cards.length}
                     </Text>
                     <TouchableOpacity className="p-2">
                         <MaterialCommunityIcons name="bookmark-outline" size={24} color="#111827" />
@@ -236,7 +261,7 @@ export default function CardReaderScreen() {
                             </TouchableOpacity>
                             
                             <TouchableOpacity className="px-3 py-2 bg-gray-200 rounded-full">
-                                <Text className="text-sm font-medium text-gray-700">{audioSpeed}x</Text>
+                                <Text className="text-sm font-medium text-gray-700">1x</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
