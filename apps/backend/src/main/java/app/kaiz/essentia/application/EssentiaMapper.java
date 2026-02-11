@@ -6,6 +6,7 @@ import app.kaiz.essentia.application.dto.EssentiaUserProgressDto;
 import app.kaiz.essentia.domain.EssentiaBook;
 import app.kaiz.essentia.domain.EssentiaCard;
 import app.kaiz.essentia.domain.EssentiaUserProgress;
+import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Component;
 
@@ -25,6 +26,10 @@ public class EssentiaMapper {
   public EssentiaBookDto toBookDto(EssentiaBook book) {
     List<EssentiaCardDto> cardDtos = book.getCards().stream().map(this::toCardDto).toList();
     List<String> relatedBookIds = mapRelatedBookIds(book);
+    // Copy @ElementCollection proxies to detached lists to prevent LazyInitializationException
+    List<String> tags = book.getTags() != null ? new ArrayList<>(book.getTags()) : List.of();
+    List<String> takeaways =
+        book.getKeyTakeaways() != null ? new ArrayList<>(book.getKeyTakeaways()) : List.of();
 
     return new EssentiaBookDto(
         book.getId().toString(),
@@ -35,7 +40,7 @@ public class EssentiaMapper {
         book.getDuration(),
         book.getCardCount(),
         book.getDifficulty(),
-        book.getTags(),
+        tags,
         book.getDescription(),
         book.getSummaryText(),
         book.getCoreMethodology(),
@@ -44,7 +49,7 @@ public class EssentiaMapper {
         book.getIsbn(),
         book.getIsFeatured(),
         book.getIsPublished(),
-        book.getKeyTakeaways(),
+        takeaways,
         book.getPublicationYear(),
         book.getRating(),
         book.getCompletionCount(),
@@ -56,6 +61,10 @@ public class EssentiaMapper {
 
   public EssentiaBookDto toBookDtoWithoutCards(EssentiaBook book) {
     List<String> relatedBookIds = mapRelatedBookIds(book);
+    // Copy @ElementCollection proxies to detached lists to prevent LazyInitializationException
+    List<String> tags = book.getTags() != null ? new ArrayList<>(book.getTags()) : List.of();
+    List<String> takeaways =
+        book.getKeyTakeaways() != null ? new ArrayList<>(book.getKeyTakeaways()) : List.of();
 
     return new EssentiaBookDto(
         book.getId().toString(),
@@ -66,7 +75,7 @@ public class EssentiaMapper {
         book.getDuration(),
         book.getCardCount(),
         book.getDifficulty(),
-        book.getTags(),
+        tags,
         book.getDescription(),
         book.getSummaryText(),
         book.getCoreMethodology(),
@@ -75,7 +84,7 @@ public class EssentiaMapper {
         book.getIsbn(),
         book.getIsFeatured(),
         book.getIsPublished(),
-        book.getKeyTakeaways(),
+        takeaways,
         book.getPublicationYear(),
         book.getRating(),
         book.getCompletionCount(),

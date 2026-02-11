@@ -15,17 +15,19 @@ public interface EssentiaBookRepository extends JpaRepository<EssentiaBook, UUID
   List<EssentiaBook> findByLifeWheelAreaId(String lifeWheelAreaId);
 
   @Query(
-      "SELECT b FROM EssentiaBook b WHERE b.lifeWheelArea.id = :lifeWheelAreaId AND b.isPublished = true")
+      "SELECT b FROM EssentiaBook b LEFT JOIN FETCH b.lifeWheelArea WHERE b.lifeWheelArea.id = :lifeWheelAreaId AND b.isPublished = true")
   List<EssentiaBook> findPublishedByLifeWheelAreaId(String lifeWheelAreaId);
 
   List<EssentiaBook> findByCategory(String category);
 
   List<EssentiaBook> findByDifficulty(Difficulty difficulty);
 
-  @Query("SELECT b FROM EssentiaBook b WHERE b.isPublished = true ORDER BY b.rating DESC")
+  @Query(
+      "SELECT b FROM EssentiaBook b LEFT JOIN FETCH b.lifeWheelArea WHERE b.isPublished = true ORDER BY b.rating DESC")
   List<EssentiaBook> findAllOrderByRating();
 
-  @Query("SELECT b FROM EssentiaBook b WHERE b.isPublished = true ORDER BY b.completionCount DESC")
+  @Query(
+      "SELECT b FROM EssentiaBook b LEFT JOIN FETCH b.lifeWheelArea WHERE b.isPublished = true ORDER BY b.completionCount DESC")
   List<EssentiaBook> findAllOrderByPopularity();
 
   @Query(
@@ -33,9 +35,9 @@ public interface EssentiaBookRepository extends JpaRepository<EssentiaBook, UUID
   List<String> findAllCategories();
 
   @Query(
-      "SELECT b FROM EssentiaBook b WHERE b.isFeatured = true AND b.isPublished = true ORDER BY b.rating DESC")
+      "SELECT b FROM EssentiaBook b LEFT JOIN FETCH b.lifeWheelArea WHERE b.isFeatured = true AND b.isPublished = true ORDER BY b.rating DESC")
   List<EssentiaBook> findFeaturedBooks();
 
-  @Query("SELECT b FROM EssentiaBook b WHERE b.isPublished = true")
+  @Query("SELECT b FROM EssentiaBook b LEFT JOIN FETCH b.lifeWheelArea WHERE b.isPublished = true")
   List<EssentiaBook> findAllPublished();
 }
