@@ -25,7 +25,8 @@ export interface SystemPrompt {
   promptName: string;
   promptCategory:
     | 'COMMAND_CENTER'
-    | 'SENSAI_CHAT'
+    | 'COACH_CHAT'
+    | 'SMART_INPUT'
     | 'IMAGE_ANALYSIS'
     | 'VOICE_TRANSCRIPTION'
     | 'DRAFT_GENERATION'

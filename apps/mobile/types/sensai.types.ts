@@ -1,7 +1,10 @@
 /**
- * SensAI - AI Scrum Master & Life Coach Types
+ * Coach (Scrum Master) Types — Sprint ceremonies, velocity, interventions, life wheel.
  * 
  * "Not a chatbot. A high-performance athletic coach for your life."
+ * 
+ * NOTE: The file is still named sensai.types.ts to match backend module.
+ * Internal Java packages stay as app.kaiz.sensai — only UI labels change.
  */
 
 import { LifeWheelDimensionTag } from './models';
@@ -574,7 +577,7 @@ export interface MicroChallenge {
 // USER SETTINGS & PREFERENCES
 // ============================================================================
 
-export interface SensAISettings {
+export interface CoachSettings {
     userId: string;
     
     // Standup preferences
@@ -612,7 +615,7 @@ export interface SensAISettings {
     standupReminders: boolean;
     
     // Coach personality
-    coachName: string;                  // "SensAI" or custom
+    coachName: string;                  // "Scrum Master" or custom
     preferredTone: CoachTone;
     coachTone: CoachTone;              // Alias for preferredTone
     
@@ -620,11 +623,14 @@ export interface SensAISettings {
     dimensionPriorities: Record<LifeWheelDimensionTag, number>;
 }
 
+/** @deprecated Use CoachSettings instead */
+export type SensAISettings = CoachSettings;
+
 // ============================================================================
 // ANALYTICS & HISTORY
 // ============================================================================
 
-export interface SensAIAnalytics {
+export interface CoachAnalytics {
     userId: string;
     period: 'week' | 'month' | 'quarter' | 'year';
     
@@ -651,6 +657,9 @@ export interface SensAIAnalytics {
     // Patterns
     commonPatterns: PatternInsight[];
 }
+
+/** @deprecated Use CoachAnalytics instead */
+export type SensAIAnalytics = CoachAnalytics;
 
 export interface PatternInsight {
     id: string;

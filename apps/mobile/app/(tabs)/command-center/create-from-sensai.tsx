@@ -1,6 +1,6 @@
 import { logger } from '../../../utils/logger';
 /**
- * Create From SensAI Screen
+ * Create From Scrum Master Screen
  * 
  * Creates a task/event from AI-generated draft data.
  * Similar to CreateFromTemplateSheet but for AI drafts.
@@ -461,7 +461,7 @@ export default function CreateFromSensAIScreen() {
       <Container safeArea={false}>
         <ScreenHeader 
           title={`Create ${typeLabel}`}
-          subtitle="From SensAI"
+          subtitle="From Scrum Master"
           showBack 
         />
         <View className="flex-1 items-center justify-center">
@@ -476,7 +476,7 @@ export default function CreateFromSensAIScreen() {
     <Container safeArea={false}>
       <ScreenHeader 
         title={`Create ${typeLabel}`}
-        subtitle="From SensAI"
+        subtitle="From Scrum Master"
         showBack 
         rightAction={
           <TouchableOpacity onPress={handleCancel}>

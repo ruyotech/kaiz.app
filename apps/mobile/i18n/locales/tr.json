@@ -208,7 +208,7 @@
       "challenges": "Meydan Okumalar",
       "community": "Topluluk",
       "commandCenter": "Komut",
-      "sensai": "SensAI",
+      "sensai": "Scrum Master",
       "essentia": "Essentia",
       "motivation": "Motivasyon",
       "pomodoro": "Pomodoro",
@@ -752,12 +752,12 @@
     }
   },
   "sensai": {
-    "title": "SensAI",
+    "title": "Scrum Master",
     "subtitle": "AI Scrum Masterınız",
     "insights": "İçgörüler",
     "recommendations": "Öneriler",
     "analysis": "Analiz",
-    "initializing": "SensAI Başlatılıyor...",
+    "initializing": "Scrum Master Başlatılıyor...",
     "needsAttention": "Dikkat Gerektiriyor",
     "yourVelocity": "Hızınız",
     "details": "Detaylar",
@@ -1157,7 +1157,7 @@
     "quickStats": {
       "sprints": "Sprintler",
       "challenges": "Görevler",
-      "sensai": "SensAI"
+      "sensai": "Scrum Master"
     }
   }
 }

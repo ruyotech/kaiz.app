@@ -7,6 +7,7 @@ import app.kaiz.challenge.domain.Recurrence;
 import app.kaiz.command_center.application.dto.DraftActionRequest;
 import app.kaiz.command_center.application.dto.DraftActionResponse;
 import app.kaiz.command_center.domain.*;
+import app.kaiz.command_center.domain.DraftFeedbackRecord.FeedbackAction;
 import app.kaiz.command_center.infrastructure.PendingDraftRepository;
 import app.kaiz.shared.exception.ResourceNotFoundException;
 import app.kaiz.tasks.application.EpicService;
@@ -33,6 +34,8 @@ public class DraftApprovalService {
   private final TaskService taskService;
   private final EpicService epicService;
   private final ChallengeService challengeService;
+  private final DraftFeedbackCollector feedbackCollector;
+  private final UserPreferenceLearner preferenceLearner;
 
   // Note: EventService and BillService do not exist yet - will return placeholder IDs
 
@@ -78,6 +81,9 @@ public class DraftApprovalService {
     pendingDraft.approve(entityId);
     draftRepository.save(pendingDraft);
 
+    // Record feedback for learning
+    recordFeedbackSafely(userId, pendingDraft.getId(), FeedbackAction.APPROVED, null, null);
+
     log.info("✅ [Draft] Approved and created {} with ID: {}", draft.type(), entityId);
 
     return DraftActionResponse.approved(
@@ -98,6 +104,10 @@ public class DraftApprovalService {
     pendingDraft.markModified(entityId);
     draftRepository.save(pendingDraft);
 
+    // Record feedback + trigger pattern learning on modification
+    recordFeedbackSafely(userId, pendingDraft.getId(), FeedbackAction.MODIFIED, null, null);
+    triggerLearning(userId);
+
     log.info("✏️ [Draft] Modified and created {} with ID: {}", modifiedDraft.type(), entityId);
 
     return DraftActionResponse.modified(
@@ -110,12 +120,43 @@ public class DraftApprovalService {
   /** Reject a draft (delete it). */
   private DraftActionResponse rejectDraft(PendingDraft pendingDraft) {
     DraftType type = pendingDraft.getDraftType();
+    UUID userId = pendingDraft.getUser().getId();
     pendingDraft.reject();
     draftRepository.save(pendingDraft);
+
+    // Record feedback for learning
+    recordFeedbackSafely(userId, pendingDraft.getId(), FeedbackAction.REJECTED, null, null);
 
     log.info("❌ [Draft] Rejected draft: {}", pendingDraft.getId());
 
     return DraftActionResponse.rejected(pendingDraft.getId().toString(), type);
+  }
+
+  /** Safely record feedback — failures here should not block the draft action. */
+  private void recordFeedbackSafely(
+      UUID userId, UUID draftId, FeedbackAction action, String comment, Long timeToDecideMs) {
+    try {
+      feedbackCollector.recordFeedback(
+          userId, draftId, action, null, comment, timeToDecideMs, null);
+    } catch (Exception e) {
+      log.warn(
+          "Failed to record draft feedback: draftId={}, action={}: {}",
+          draftId,
+          action,
+          e.getMessage());
+    }
+  }
+
+  /** Trigger preference learning asynchronously after a draft modification. */
+  private void triggerLearning(UUID userId) {
+    try {
+      int patterns = preferenceLearner.learnFromUser(userId);
+      if (patterns > 0) {
+        log.info("Detected {} correction patterns for userId={}", patterns, userId);
+      }
+    } catch (Exception e) {
+      log.warn("Failed to trigger preference learning for userId={}: {}", userId, e.getMessage());
+    }
   }
 
   /**

@@ -208,7 +208,7 @@
       "challenges": "Challenges",
       "community": "Community",
       "commandCenter": "Command",
-      "sensai": "SensAI",
+      "sensai": "Scrum Master",
       "essentia": "Essentia",
       "motivation": "Motivation",
       "pomodoro": "Pomodoro",
@@ -546,7 +546,7 @@
       "success": "created successfully",
       "error": "Failed to create. Please try again.",
       "aiRefinement": "AI Refinement",
-      "aiRefinementDesc": "Enhance with SensAI suggestions"
+      "aiRefinementDesc": "Enhance with Scrum Master suggestions"
     },
     "actions": {
       "favorite": "Favorite",
@@ -892,12 +892,12 @@
     }
   },
   "sensai": {
-    "title": "SensAI",
+    "title": "Scrum Master",
     "subtitle": "Your AI Scrum Master",
     "insights": "Insights",
     "recommendations": "Recommendations",
     "analysis": "Analysis",
-    "initializing": "Initializing SensAI...",
+    "initializing": "Initializing Scrum Master...",
     "needsAttention": "Needs Attention",
     "yourVelocity": "Your Velocity",
     "details": "Details",
@@ -1471,7 +1471,7 @@
     "quickStats": {
       "sprints": "Sprints",
       "challenges": "Challenges",
-      "sensai": "SensAI"
+      "sensai": "Scrum Master"
     }
   }
 }

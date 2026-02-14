@@ -108,7 +108,7 @@ export function AppSwitcher() {
                         </TouchableOpacity>
                     </View>
 
-                    {/* ====== Productivity Section — SensAI, Challenges, Focus ====== */}
+                    {/* ====== Productivity Section — Scrum Master, Challenges, Focus ====== */}
                     <View className="mb-5">
                         <View className="flex-row items-center mb-3 px-1">
                             <AppIcon icon={sectionIcons.rocketLaunch} size={16} color="#10B981" />

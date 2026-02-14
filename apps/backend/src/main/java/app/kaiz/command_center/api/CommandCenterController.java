@@ -3,6 +3,8 @@ package app.kaiz.command_center.api;
 import app.kaiz.admin.application.AdminCommandCenterService;
 import app.kaiz.admin.application.dto.CommandCenterAdminDtos.TestAttachmentResponse;
 import app.kaiz.command_center.application.CommandCenterAIService;
+import app.kaiz.command_center.application.CommandCenterOrchestrator;
+import app.kaiz.command_center.application.CommandCenterOrchestrator.OrchestratedResponse;
 import app.kaiz.command_center.application.DraftApprovalService;
 import app.kaiz.command_center.application.SmartInputAIService;
 import app.kaiz.command_center.application.SprintQuickAddAIService;
@@ -10,8 +12,12 @@ import app.kaiz.command_center.application.StreamingAIService;
 import app.kaiz.command_center.application.dto.*;
 import app.kaiz.command_center.application.dto.CommandCenterAIResponse.AttachmentSummary;
 import app.kaiz.command_center.application.dto.SmartInputResponse;
+import app.kaiz.command_center.domain.ConversationMessage;
+import app.kaiz.command_center.domain.ConversationSession;
 import app.kaiz.command_center.domain.DraftStatus;
 import app.kaiz.command_center.domain.PendingDraft;
+import app.kaiz.command_center.infrastructure.ConversationMessageRepository;
+import app.kaiz.command_center.infrastructure.ConversationSessionRepository;
 import app.kaiz.command_center.infrastructure.PendingDraftRepository;
 import app.kaiz.shared.config.RateLimitConfig.AIRateLimiter;
 import app.kaiz.shared.exception.BadRequestException;
@@ -44,11 +50,14 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 public class CommandCenterController {
 
   private final CommandCenterAIService aiService;
+  private final CommandCenterOrchestrator orchestrator;
   private final SmartInputAIService smartInputService;
   private final StreamingAIService streamingService;
   private final SprintQuickAddAIService sprintQuickAddService;
   private final DraftApprovalService approvalService;
   private final PendingDraftRepository draftRepository;
+  private final ConversationSessionRepository sessionRepository;
+  private final ConversationMessageRepository messageRepository;
   private final AdminCommandCenterService adminService;
   private final AIRateLimiter aiRateLimiter;
 
@@ -409,6 +418,100 @@ public class CommandCenterController {
         .header(
             "Content-Disposition", "attachment; filename=\"" + attachment.attachmentName() + "\"")
         .body(data);
+  }
+
+  // =========================================================================
+  // Scrum-Master Chat & Conversation Endpoints
+  // =========================================================================
+
+  @PostMapping("/chat")
+  @Operation(
+      summary = "Send a message to the Scrum-Master coach",
+      description =
+          "Main conversational endpoint. Sends a message through the orchestration pipeline "
+              + "(mode detection → intent classification → context assembly → LLM → draft extraction). "
+              + "Optionally specify a mode to override auto-detection.")
+  public ResponseEntity<ApiResponse<OrchestratedResponse>> chat(
+      @CurrentUser UUID userId, @RequestBody Map<String, String> body) {
+
+    String message = body.get("message");
+    if (message == null || message.isBlank()) {
+      throw new BadRequestException("Message is required");
+    }
+
+    String mode = body.get("mode");
+    log.info("Chat request: userId={}, mode={}, messageLength={}", userId, mode, message.length());
+
+    OrchestratedResponse response = orchestrator.process(userId, message, mode);
+
+    log.info(
+        "Chat response: userId={}, detectedMode={}, draftsCount={}",
+        userId,
+        response.mode(),
+        response.drafts() != null ? response.drafts().size() : 0);
+
+    return ResponseEntity.ok(ApiResponse.success(response));
+  }
+
+  @GetMapping("/conversations/{id}")
+  @Operation(
+      summary = "Get conversation session with messages",
+      description = "Retrieves a specific conversation session and all its messages.")
+  public ResponseEntity<ApiResponse<Map<String, Object>>> getConversation(
+      @CurrentUser UUID userId, @PathVariable UUID id) {
+
+    log.debug("Fetching conversation: sessionId={}, userId={}", id, userId);
+
+    ConversationSession session =
+        sessionRepository
+            .findById(id)
+            .filter(s -> s.getUser().getId().equals(userId))
+            .orElseThrow(() -> new ResourceNotFoundException("ConversationSession", id.toString()));
+
+    List<ConversationMessage> messages =
+        messageRepository.findBySessionIdOrderBySequenceNumber(session.getId());
+
+    Map<String, Object> result =
+        Map.of(
+            "session", session,
+            "messages", messages);
+
+    return ResponseEntity.ok(ApiResponse.success(result));
+  }
+
+  @GetMapping("/conversations")
+  @Operation(
+      summary = "List recent conversation sessions",
+      description = "Returns the 20 most recent conversation sessions for the current user.")
+  public ResponseEntity<ApiResponse<List<ConversationSession>>> listConversations(
+      @CurrentUser UUID userId) {
+
+    log.debug("Listing conversations for userId={}", userId);
+
+    List<ConversationSession> sessions =
+        sessionRepository.findTop20ByUserIdOrderByLastMessageAtDesc(userId);
+
+    return ResponseEntity.ok(ApiResponse.success(sessions));
+  }
+
+  @GetMapping("/active-ceremony")
+  @Operation(
+      summary = "Get active ceremony session",
+      description =
+          "Returns the currently active conversation session that is linked to a ceremony, if any.")
+  public ResponseEntity<ApiResponse<ConversationSession>> getActiveCeremony(
+      @CurrentUser UUID userId) {
+
+    log.debug("Checking active ceremony for userId={}", userId);
+
+    List<ConversationSession> activeSessions =
+        sessionRepository.findByUserIdAndStatusOrderByLastMessageAtDesc(
+            userId, ConversationSession.SessionStatus.ACTIVE);
+
+    ConversationSession ceremonySessions =
+        activeSessions.stream().filter(s -> s.getCeremonyId() != null).findFirst().orElse(null);
+
+    return ResponseEntity.ok(ApiResponse.success(ceremonySessions));
   }
 
   // =========================================================================

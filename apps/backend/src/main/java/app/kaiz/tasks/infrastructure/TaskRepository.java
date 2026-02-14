@@ -5,6 +5,7 @@ import app.kaiz.tasks.domain.TaskStatus;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -125,4 +126,10 @@ public interface TaskRepository extends JpaRepository<Task, UUID> {
       @Param("userId") UUID userId,
       @Param("sprintStartDate") java.time.LocalDate sprintStartDate,
       @Param("sprintEndDate") java.time.LocalDate sprintEndDate);
+
+  /** Find distinct user IDs that have tasks in a given sprint. */
+  @Query(
+      "SELECT DISTINCT t.user.id FROM Task t WHERE t.sprint.id = :sprintId"
+          + " AND t.deletedAt IS NULL")
+  Set<UUID> findDistinctUserIdsBySprintId(@Param("sprintId") String sprintId);
 }

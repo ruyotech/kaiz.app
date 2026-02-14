@@ -22,7 +22,7 @@ import {
     getDraftTypeDisplayName,
     getDraftTitle,
     getConfidenceLevel,
-} from '../../types/commandCenter.types';
+} from '../../types/commandCenter';
 import { useTranslation } from '../../hooks';
 
 // ============================================================================

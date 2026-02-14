@@ -48,6 +48,8 @@ export const navIcons = {
 export const moduleIcons = {
   sprints: mci('view-dashboard-outline'),
   sensai: mci('robot'),
+  /** @deprecated Use scrumMaster instead */
+  scrumMaster: mci('robot'),
   challenges: mci('target'),
   essentia: mci('brain'),
   mindset: mci('creation'),

@@ -671,7 +671,7 @@ export function CreateFromTemplateSheet({
                                     <View className="ml-3 flex-1">
                                         <Text className="font-medium" style={{ color: colors.text }}>AI Refinement</Text>
                                         <Text className="text-xs" style={{ color: colors.textSecondary }}>
-                                            Enhance with SensAI suggestions
+                                            Enhance with Scrum Master suggestions
                                         </Text>
                                     </View>
                                 </View>

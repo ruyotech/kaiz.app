@@ -208,7 +208,7 @@
       "challenges": "Челленджи",
       "community": "Сообщество",
       "commandCenter": "Команды",
-      "sensai": "SensAI",
+      "sensai": "Scrum Master",
       "essentia": "Essentia",
       "motivation": "Мотивация",
       "pomodoro": "Помодоро",
@@ -805,12 +805,12 @@
     }
   },
   "sensai": {
-    "title": "SensAI",
+    "title": "Scrum Master",
     "subtitle": "Ваш AI Scrum Master",
     "insights": "Инсайты",
     "recommendations": "Рекомендации",
     "analysis": "Анализ",
-    "initializing": "Инициализация SensAI...",
+    "initializing": "Инициализация Scrum Master...",
     "needsAttention": "Требует внимания",
     "yourVelocity": "Ваша скорость",
     "details": "Детали",
@@ -1250,7 +1250,7 @@
     "quickStats": {
       "sprints": "Спринты",
       "challenges": "Задачи",
-      "sensai": "SensAI"
+      "sensai": "Scrum Master"
     }
   }
 }

@@ -70,7 +70,7 @@ export const notificationKeys = {
 
 // ── Sprint Ceremonies (backed by /api/v1/sensai/* endpoints) ────────────────
 export const sprintCeremonyKeys = {
-  all: ['sensai'] as const,
+  all: ['coach'] as const,
   velocity: () => [...sprintCeremonyKeys.all, 'velocity'] as const,
   velocityHistory: (count?: number) => [...sprintCeremonyKeys.all, 'velocityHistory', count] as const,
   burndown: (sprintId: string) => [...sprintCeremonyKeys.all, 'burndown', sprintId] as const,

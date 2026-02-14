@@ -44,7 +44,7 @@ import type {
   Draft,
   DraftType,
   DraftStatus,
-} from '../types/commandCenter.types';
+} from '../types/commandCenter';
 import type {
   FamilyRole,
   FamilySettings,
@@ -57,9 +57,9 @@ import type {
   SprintCeremony,
   LifeWheelMetrics,
   CoachMessage,
-  SensAISettings,
+  CoachSettings,
   IntakeResult,
-  SensAIAnalytics,
+  CoachAnalytics,
   GetStandupResponse,
   CompleteStandupRequest,
   AcknowledgeInterventionRequest,
@@ -1072,9 +1072,9 @@ export const sensaiApi = {
   // Settings & Analytics
   async getCoachMessages(unreadOnly = false) { return apiGet<CoachMessage[]>(`/sensai/messages?unreadOnly=${unreadOnly}`); },
   async markMessageRead(messageId: string) { return apiPost<void>(`/sensai/messages/${messageId}/read`); },
-  async getSettings() { return apiGet<SensAISettings>('/sensai/settings'); },
-  async updateSettings(settings: Partial<SensAISettings>) { return apiPut<SensAISettings>('/sensai/settings', settings); },
-  async getAnalytics(period: string) { return apiGet<SensAIAnalytics>(`/sensai/analytics?period=${period}`); },
+  async getSettings() { return apiGet<CoachSettings>('/sensai/settings'); },
+  async updateSettings(settings: Partial<CoachSettings>) { return apiPut<CoachSettings>('/sensai/settings', settings); },
+  async getAnalytics(period: string) { return apiGet<CoachAnalytics>(`/sensai/analytics?period=${period}`); },
   async getPatternInsights() { return apiGet<unknown[]>('/sensai/analytics/patterns'); },
   async getMotivationContent() { return apiGet<unknown>('/sensai/motivation/contextual'); },
   async getKnowledgePrescription() { return apiGet<unknown[]>('/sensai/motivation/prescriptions'); },

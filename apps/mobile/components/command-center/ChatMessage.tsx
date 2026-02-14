@@ -122,7 +122,7 @@ function AssistantMessage({
         <View className="w-8 h-8 bg-purple-100 rounded-full items-center justify-center">
           <MaterialCommunityIcons name="robot" size={18} color="#8B5CF6" />
         </View>
-        <Text className="text-sm font-semibold text-purple-600 ml-2">SensAI</Text>
+        <Text className="text-sm font-semibold text-purple-600 ml-2">Scrum Master</Text>
         {message.isThinking && (
           <View className="flex-row items-center ml-2">
             <ActivityIndicator size="small" color="#8B5CF6" />

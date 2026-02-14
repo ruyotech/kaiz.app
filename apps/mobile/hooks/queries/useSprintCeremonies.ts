@@ -14,8 +14,8 @@ import type {
   SprintCeremony,
   LifeWheelMetrics,
   CoachMessage,
-  SensAISettings,
-  SensAIAnalytics,
+  CoachSettings,
+  CoachAnalytics,
   CompleteStandupRequest,
   AcknowledgeInterventionRequest,
   ProcessIntakeRequest,
@@ -156,7 +156,7 @@ export function useCoachMessages(unreadOnly = false) {
 export function useSprintPreferences() {
   return useQuery({
     queryKey: sprintCeremonyKeys.settings(),
-    queryFn: () => sensaiApi.getSettings() as Promise<SensAISettings>,
+    queryFn: () => sensaiApi.getSettings() as Promise<CoachSettings>,
     staleTime: STALE_TIMES.profile,
   });
 }
@@ -164,7 +164,7 @@ export function useSprintPreferences() {
 export function useSprintAnalytics(period: string) {
   return useQuery({
     queryKey: sprintCeremonyKeys.analytics(period),
-    queryFn: () => sensaiApi.getAnalytics(period) as Promise<SensAIAnalytics>,
+    queryFn: () => sensaiApi.getAnalytics(period) as Promise<CoachAnalytics>,
     enabled: !!period,
     staleTime: STALE_TIMES.lists,
   });
@@ -269,7 +269,7 @@ export function useAddRecoveryTask() {
 export function useUpdateSprintPreferences() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (settings: Partial<SensAISettings>) => sensaiApi.updateSettings(settings),
+    mutationFn: (settings: Partial<CoachSettings>) => sensaiApi.updateSettings(settings),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: sprintCeremonyKeys.settings() });
     },

@@ -24,6 +24,9 @@ import {
   Bot,
   Sparkles,
   Library,
+  Brain,
+  FlaskConical,
+  Flag,
 } from 'lucide-react';
 
 type NavItem = {
@@ -55,6 +58,16 @@ const navigation: NavItem[] = [
     ],
   },
   { name: 'Command Center', href: '/admin/command-center', icon: Bot },
+  {
+    name: 'AI Management',
+    icon: Brain,
+    children: [
+      { name: 'LLM Providers', href: '/admin/ai/providers' },
+      { name: 'System Prompts', href: '/admin/ai/prompts' },
+      { name: 'Configuration', href: '/admin/ai/config' },
+      { name: 'AI Testing', href: '/admin/ai/testing' },
+    ],
+  },
   { name: 'Settings', href: '/admin/settings', icon: Settings },
 ];
 

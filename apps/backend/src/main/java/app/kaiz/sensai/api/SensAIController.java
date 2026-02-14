@@ -1,6 +1,6 @@
 package app.kaiz.sensai.api;
 
-import app.kaiz.sensai.application.SensAIService;
+import app.kaiz.sensai.application.SensAIFacade;
 import app.kaiz.sensai.application.dto.*;
 import app.kaiz.shared.security.CurrentUser;
 import app.kaiz.shared.util.ApiResponse;
@@ -30,7 +30,7 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "SensAI", description = "AI Scrum Master - Life coaching and productivity management")
 public class SensAIController {
 
-  private final SensAIService sensAIService;
+  private final SensAIFacade sensAIService;
 
   // ============ SETTINGS ============
 
